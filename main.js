@@ -1,5 +1,5 @@
 /**
- * BIMX Studio - Minimalist & Innovative Architectural Controller
+ * BIMX Studio - Comprehensive Architectural Platform Controller
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentTheme = localStorage.getItem('bimx_theme') || 'dark';
 
   /* ==========================================================================
-     1. Theme Engine (Light / Dark)
+     1. Theme Engine (Light & Dark Mode)
      ========================================================================== */
   const htmlEl = document.documentElement;
   const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -29,12 +29,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (themeToggleBtn) {
     themeToggleBtn.addEventListener('click', () => {
-      const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
-      applyTheme(nextTheme);
+      applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
     });
   }
 
-  // Initialize theme
   applyTheme(currentTheme);
 
   /* ==========================================================================
@@ -45,12 +43,10 @@ document.addEventListener('DOMContentLoaded', () => {
     currentLang = lang;
     localStorage.setItem('bimx_lang', lang);
 
-    // Update active class on language buttons
     document.querySelectorAll('.lang-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.lang === lang);
     });
 
-    // Update texts
     document.querySelectorAll('[data-i18n]').forEach(el => {
       const key = el.getAttribute('data-i18n');
       if (translations[lang][key]) {
@@ -58,7 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Update placeholders
     document.querySelectorAll('[data-i18n-ph]').forEach(el => {
       const key = el.getAttribute('data-i18n-ph');
       if (translations[lang][key]) {
@@ -66,14 +61,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Update page meta
     if (translations[lang].meta_title) document.title = translations[lang].meta_title;
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc && translations[lang].meta_desc) {
       metaDesc.setAttribute('content', translations[lang].meta_desc);
     }
 
-    // Recalculate calculator to refresh currency / language
     updateCalculator();
   }
 
@@ -84,30 +77,89 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   /* ==========================================================================
-     3. Scroll Reveal Animation Engine
+     3. Architectural Viewport Switcher (3D Model / MEP / LiDAR Scan)
      ========================================================================== */
-  const revealElements = document.querySelectorAll('.reveal-fade');
+  const viewportImg = document.getElementById('viewportImg');
+  const modeBtns = document.querySelectorAll('.mode-btn');
+
+  const viewportSources = {
+    render: 'assets/images/hero-bim.jpg',
+    mep: 'assets/images/mep-coordination.jpg',
+    scan: 'assets/images/scan-to-bim.jpg'
+  };
+
+  modeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      modeBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const viewKey = btn.dataset.view;
+      if (viewportImg && viewportSources[viewKey]) {
+        viewportImg.style.opacity = '0.3';
+        setTimeout(() => {
+          viewportImg.src = viewportSources[viewKey];
+          viewportImg.style.opacity = '1';
+        }, 150);
+      }
+    });
+  });
+
+  /* ==========================================================================
+     4. Animated Counter Numbers
+     ========================================================================== */
+  let countersAnimated = false;
+  function animateCounters() {
+    if (countersAnimated) return;
+    const counters = document.querySelectorAll('.stat-counter-number[data-target]');
+    counters.forEach(counter => {
+      const target = parseInt(counter.dataset.target, 10);
+      const suffix = '+';
+      const duration = 1600;
+      const startTime = performance.now();
+
+      function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const ease = 1 - Math.pow(1 - progress, 3);
+        const current = Math.floor(ease * target);
+        counter.textContent = current.toLocaleString() + suffix;
+
+        if (progress < 1) {
+          requestAnimationFrame(update);
+        }
+      }
+      requestAnimationFrame(update);
+    });
+    countersAnimated = true;
+  }
+
+  /* ==========================================================================
+     5. Scroll Reveal Engine
+     ========================================================================== */
+  const animElements = document.querySelectorAll('.anim-reveal');
   const revealObserver = new IntersectionObserver((entries, observer) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
-        entry.target.classList.add('is-revealed');
+        entry.target.classList.add('is-in-view');
         observer.unobserve(entry.target);
       }
     });
   }, {
-    root: null,
-    threshold: 0.12,
+    threshold: 0.1,
     rootMargin: '0px 0px -40px 0px'
   });
 
-  revealElements.forEach(el => revealObserver.observe(el));
+  animElements.forEach(el => revealObserver.observe(el));
+
+  // Trigger counters on first scroll or immediately
+  setTimeout(animateCounters, 600);
 
   /* ==========================================================================
-     4. Sticky Header & Navigation
+     6. Header & Mobile Menu
      ========================================================================== */
   const header = document.getElementById('mainHeader');
-  const mobileToggle = document.getElementById('mobileToggle');
-  const navMenu = document.getElementById('navMenu');
+  const mobileHamburger = document.getElementById('mobileHamburger');
+  const navLinksList = document.getElementById('navLinksList');
 
   window.addEventListener('scroll', () => {
     if (window.scrollY > 30) {
@@ -117,20 +169,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  if (mobileToggle && navMenu) {
-    mobileToggle.addEventListener('click', () => {
-      navMenu.classList.toggle('open');
+  if (mobileHamburger && navLinksList) {
+    mobileHamburger.addEventListener('click', () => {
+      navLinksList.classList.toggle('open');
     });
 
-    document.querySelectorAll('.nav-link').forEach(link => {
+    document.querySelectorAll('.nav-link-item').forEach(link => {
       link.addEventListener('click', () => {
-        navMenu.classList.remove('open');
+        navLinksList.classList.remove('open');
       });
     });
   }
 
   /* ==========================================================================
-     5. BIM Cost & Timeline Calculator
+     7. BIM Cost & Timeline Calculator
      ========================================================================== */
   const areaSlider = document.getElementById('calcArea');
   const areaValueDisplay = document.getElementById('calcAreaVal');
@@ -147,12 +199,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const area = parseInt(areaSlider.value, 10);
     areaValueDisplay.textContent = area.toLocaleString() + ' m²';
 
-    let baseRate = 1.25;
+    let baseRate = 1.3;
     const type = typeSelect ? typeSelect.value : 'commercial';
-    if (type === 'residential') baseRate = 1.05;
-    if (type === 'commercial') baseRate = 1.35;
-    if (type === 'industrial') baseRate = 1.15;
-    if (type === 'public') baseRate = 1.55;
+    if (type === 'residential') baseRate = 1.1;
+    if (type === 'commercial') baseRate = 1.4;
+    if (type === 'industrial') baseRate = 1.2;
+    if (type === 'public') baseRate = 1.6;
 
     let lodMultiplier = 1.0;
     const lod = lodSelect ? lodSelect.value : '300';
@@ -178,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const rawCost = Math.round(area * baseRate * lodMultiplier * discMultiplier);
     const finalCost = Math.max(rawCost, 900);
 
-    let weeks = Math.round(2 + (area / 2400) * lodMultiplier * (selectedCount || 1) * 0.75);
+    let weeks = Math.round(2 + (area / 2200) * lodMultiplier * (selectedCount || 1) * 0.75);
     weeks = Math.max(weeks, 2);
 
     const currencySymbol = currentLang === 'ka' ? '₾' : '$';
@@ -195,7 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   discCheckboxes.forEach(cb => {
     cb.addEventListener('change', () => {
-      cb.closest('.calc-checkbox-label').classList.toggle('checked', cb.checked);
+      cb.closest('.check-pill-option').classList.toggle('checked', cb.checked);
       updateCalculator();
     });
   });
@@ -209,7 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const messageField = document.getElementById('contactMsg');
       if (messageField) {
         const textKa = `მოგესალმებით, მსურს BIMX Studio-სგან შეთავაზების მიღება:\n- ფართობი: ${area} მ²\n- შენობის ტიპი: ${typeText}\n- დეტალიზაცია: ${lodText}\nგთხოვთ დამიკავშირდეთ დეტალების განსახილველად.`;
-        const textEn = `Hello, I would like to request an official BIM proposal from BIMX Studio:\n- Area: ${area} m²\n- Type: ${typeText}\n- LOD: ${lodText}\nPlease contact me to discuss.`;
+        const textEn = `Hello, I would like to request an official proposal from BIMX Studio:\n- Area: ${area} m²\n- Type: ${typeText}\n- LOD: ${lodText}\nPlease contact me to discuss.`;
         messageField.value = currentLang === 'ka' ? textKa : textEn;
       }
 
@@ -221,10 +273,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     6. Portfolio Filter Engine
+     8. Portfolio Filter
      ========================================================================== */
-  const filterPills = document.querySelectorAll('.filter-pill');
-  const projectItems = document.querySelectorAll('.project-item');
+  const filterPills = document.querySelectorAll('.filter-btn-pill');
+  const portfolioCards = document.querySelectorAll('.portfolio-card-item');
 
   filterPills.forEach(pill => {
     pill.addEventListener('click', () => {
@@ -232,18 +284,18 @@ document.addEventListener('DOMContentLoaded', () => {
       pill.classList.add('active');
 
       const filter = pill.dataset.filter;
-      projectItems.forEach(item => {
-        if (filter === 'all' || item.dataset.category === filter) {
-          item.style.display = 'flex';
+      portfolioCards.forEach(card => {
+        if (filter === 'all' || card.dataset.category === filter) {
+          card.style.display = 'flex';
           setTimeout(() => {
-            item.style.opacity = '1';
-            item.style.transform = 'translateY(0)';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
           }, 30);
         } else {
-          item.style.opacity = '0';
-          item.style.transform = 'translateY(12px)';
+          card.style.opacity = '0';
+          card.style.transform = 'translateY(15px)';
           setTimeout(() => {
-            item.style.display = 'none';
+            card.style.display = 'none';
           }, 250);
         }
       });
@@ -251,10 +303,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   /* ==========================================================================
-     7. Contact Form Controller
+     9. Contact Form Controller
      ========================================================================== */
   const contactForm = document.getElementById('contactForm');
-  const formFeedback = document.getElementById('formFeedback');
+  const formAlertMsg = document.getElementById('formAlertMsg');
 
   if (contactForm) {
     contactForm.addEventListener('submit', (e) => {
@@ -268,19 +320,19 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => {
         submitBtn.disabled = false;
         submitBtn.textContent = originalText;
-        if (formFeedback) {
-          formFeedback.textContent = translations[currentLang].contact_form_success;
-          formFeedback.style.display = 'block';
+        if (formAlertMsg) {
+          formAlertMsg.textContent = translations[currentLang].contact_form_success;
+          formAlertMsg.style.display = 'block';
         }
         contactForm.reset();
         setTimeout(() => {
-          if (formFeedback) formFeedback.style.display = 'none';
+          if (formAlertMsg) formAlertMsg.style.display = 'none';
         }, 6000);
       }, 700);
     });
   }
 
-  // Initial apply
+  // Initialize
   applyLanguage(currentLang);
   updateCalculator();
 });
