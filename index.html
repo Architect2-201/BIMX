@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BIMX | წამყვანი BIM და ციფრული ინჟინერიის სერვისები საქართველოში</title>
+  <meta name="description" content="უმაღლესი სიზუსტის BIM მოდელირება (LOD 200-500), არქიტექტურული, კონსტრუქციული და MEP საინჟინრო კოორდინაცია, Scan-to-BIM და Clash Detection.">
+  <meta name="keywords" content="BIM Georgia, BIM მოდელირება, Revit, ArchiCAD, MEP ინჟინერია, Clash Detection, Scan to BIM, არქიტექტურული მოდელირება, ციფრული ტყუპი">
+  
+  <!-- Open Graph / Social Meta -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.bimx.ge/">
+  <meta property="og:title" content="BIMX | წამყვანი BIM და ციფრული ინჟინერია">
+  <meta property="og:description" content="ინოვაციური BIM მოდელირება, საინჟინრო კოორდინაცია და ციფრული ტყუპები საქართველოში.">
+  <meta property="og:image" content="assets/images/hero-bim.jpg">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="assets/images/favicon.png">
+  <link rel="apple-touch-icon" href="assets/images/favicon.png">
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ==========================================================================
+       Header & Navigation
+       ========================================================================== -->
+  <header class="header" id="mainHeader">
+    <div class="container nav-container">
+      <a href="#hero" class="logo-link" id="navLogo">
+        <img src="assets/images/logo.png" alt="BIMX Logo" class="logo-img">
+        <span class="logo-text">BIM<span>X</span></span>
+      </a>
+
+      <ul class="nav-menu" id="navMenu">
+        <li><a href="#hero" class="nav-link active" data-i18n="nav_home">მთავარი</a></li>
+        <li><a href="#services" class="nav-link" data-i18n="nav_services">სერვისები</a></li>
+        <li><a href="#calculator" class="nav-link" data-i18n="nav_calc">კალკულატორი</a></li>
+        <li><a href="#portfolio" class="nav-link" data-i18n="nav_projects">პროექტები</a></li>
+        <li><a href="#why-us" class="nav-link" data-i18n="nav_why_us">უპირატესობები</a></li>
+        <li><a href="#contact" class="nav-link" data-i18n="nav_contact">კონტაქტი</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <!-- Language Switcher -->
+        <div class="lang-switcher" id="langSwitcher">
+          <button type="button" class="lang-btn active" data-lang="ka">KA</button>
+          <button type="button" class="lang-btn" data-lang="en">EN</button>
+        </div>
+
+        <a href="#contact" class="btn btn-primary btn-sm" data-i18n="nav_cta" id="headerCtaBtn">მოითხოვეთ კონსულტაცია</a>
+
+        <!-- Mobile Nav Hamburger -->
+        <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle navigation menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================================================
+       Hero Section
+       ========================================================================== -->
+  <section class="hero" id="hero">
+    <div class="container hero-grid">
+      <div class="hero-content">
+        <div class="badge-tech">
+          <span class="badge-dot"></span>
+          <span data-i18n="hero_badge">ინოვაციური BIM & ციფრული ინჟინერია</span>
+        </div>
+
+        <h1 class="hero-title">
+          <span data-i18n="hero_title_1">სამშენებლო მომავალი</span><br>
+          <span class="text-gradient" data-i18n="hero_title_highlight">ციფრულ განზომილებაში</span>
+        </h1>
+
+        <p class="hero-desc" data-i18n="hero_desc">
+          უმაღლესი სიზუსტის BIM მოდელირება (LOD 200–500), საინჟინრო კოორდინაცია, Clash Detection და Scan-to-BIM გადაწყვეტილებები თქვენი მასშტაბური პროექტებისთვის.
+        </p>
+
+        <div class="hero-actions">
+          <a href="#calculator" class="btn btn-primary btn-lg" id="heroStartBtn">
+            <span data-i18n="hero_btn_project">დაიწყეთ პროექტი</span>
+            <i class="fa-solid fa-arrow-right btn-icon"></i>
+          </a>
+          <a href="#services" class="btn btn-secondary btn-lg" id="heroExploreBtn" data-i18n="hero_btn_services">ჩვენი სერვისები</a>
+        </div>
+
+        <div class="hero-stats">
+          <div class="stat-item">
+            <span class="stat-val" data-i18n="hero_stat_1_val">50+</span>
+            <span class="stat-lbl" data-i18n="hero_stat_1_lbl">წარმატებული პროექტი</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-val" data-i18n="hero_stat_2_val">99.8%</span>
+            <span class="stat-lbl" data-i18n="hero_stat_2_lbl">მოდელის სიზუსტე</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-val" data-i18n="hero_stat_3_val">0%</span>
+            <span class="stat-lbl" data-i18n="hero_stat_3_lbl">შეჯახება მშენებლობისას</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-val" data-i18n="hero_stat_4_val">ISO</span>
+            <span class="stat-lbl" data-i18n="hero_stat_4_lbl">19650 სტანდარტი</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-visual">
+        <div class="hero-img-wrapper">
+          <img src="assets/images/hero-bim.jpg" alt="BIM 3D Digital Twin Visualization" class="hero-img">
+          
+          <div class="floating-badge">
+            <div class="floating-badge-icon">
+              <i class="fa-solid fa-cube"></i>
+            </div>
+            <div>
+              <div class="floating-badge-title">OpenBIM & LOD 400</div>
+              <div class="floating-badge-sub">Revit • IFC • Navisworks</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       Services Section
+       ========================================================================== -->
+  <section class="services-section" id="services">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag" data-i18n="services_tag">რას გთავაზობთ</span>
+        <h2 class="section-title" data-i18n="services_title">სრულყოფილი BIM სერვისები</h2>
+        <p class="section-subtitle" data-i18n="services_subtitle">
+          იდეიდან ექსპლუატაციამდე — ვუზრუნველყოფთ პროექტის ყველა ეტაპის უნაკლო ციფრულ მოდელირებასა და კოორდინაციას.
+        </p>
+      </div>
+
+      <div class="services-grid">
+        <!-- Service 1 -->
+        <div class="service-card">
+          <div class="service-icon-box">
+            <i class="fa-solid fa-building"></i>
+          </div>
+          <h3 class="service-title" data-i18n="srv_1_title">არქიტექტურული BIM მოდელირება</h3>
+          <p class="service-desc" data-i18n="srv_1_desc">
+            დეტალური 3D არქიტექტურული მოდელების შექმნა (LOD 200-დან LOD 500-მდე) Revit და ArchiCAD გარემოში მაღალი ვიზუალიზაციითა და სპეციფიკაციებით.
+          </p>
+        </div>
+
+        <!-- Service 2 -->
+        <div class="service-card">
+          <div class="service-icon-box">
+            <i class="fa-solid fa-cubes-stacked"></i>
+          </div>
+          <h3 class="service-title" data-i18n="srv_2_title">სამშენებლო კონსტრუქციები</h3>
+          <p class="service-desc" data-i18n="srv_2_desc">
+            რკინაბეტონისა და ლითონის კონსტრუქციების ზუსტი მოდელირება, არმატურის და კვანძების დეტალიზაცია, ტექნიკური ნახაზების ავტომატური გენერაცია.
+          </p>
+        </div>
+
+        <!-- Service 3 -->
+        <div class="service-card">
+          <div class="service-icon-box">
+            <i class="fa-solid fa-network-wired"></i>
+          </div>
+          <h3 class="service-title" data-i18n="srv_3_title">საინჟინრო ქსელები (MEP)</h3>
+          <p class="service-desc" data-i18n="srv_3_desc">
+            გათბობა-ვენტილაციის (HVAC), წყალმომარაგება-კანალიზაციის და ელექტრომომარაგების სისტემების კომპლექსური საინჟინრო მოდელირება.
+          </p>
+        </div>
+
+        <!-- Service 4 -->
+        <div class="service-card">
+          <div class="service-icon-box">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <h3 class="service-title" data-i18n="srv_4_title">შეჯახების გამოვლენა & კოორდინაცია</h3>
+          <p class="service-desc" data-i18n="srv_4_desc">
+            Navisworks-სა და Solibri-ში დისციპლინათაშორისი კონფლიქტების (Clash Detection) წინასწარი იდენტიფიცირება და გადაჭრა მშენებლობის დაწყებამდე.
+          </p>
+        </div>
+
+        <!-- Service 5 -->
+        <div class="service-card">
+          <div class="service-icon-box">
+            <i class="fa-solid fa-camera-retro"></i>
+          </div>
+          <h3 class="service-title" data-i18n="srv_5_title">Scan to BIM & 3D სკანირება</h3>
+          <p class="service-desc" data-i18n="srv_5_desc">
+            არსებული შენობა-ნაგებობების ლაზერული სკანირების წერტილოვანი ღრუბლის (Point Cloud) ზუსტ საპროექტო BIM მოდელად გარდაქმნა.
+          </p>
+        </div>
+
+        <!-- Service 6 -->
+        <div class="service-card">
+          <div class="service-icon-box">
+            <i class="fa-solid fa-chart-gantt"></i>
+          </div>
+          <h3 class="service-title" data-i18n="srv_6_title">4D/5D განზომილება & ხარჯთაღრიცხვა</h3>
+          <p class="service-desc" data-i18n="srv_6_desc">
+            სამშენებლო კალენდარული გრაფიკის (4D Time) და მასალათა ზუსტი ხარჯთაღრიცხვის (5D Cost) ინტეგრაცია ერთიან საინფორმაციო მოდელში.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       Technology & Visual Showcase
+       ========================================================================== -->
+  <section class="showcase-section" id="technology">
+    <div class="container showcase-grid">
+      <div class="showcase-image-box">
+        <img src="assets/images/mep-coordination.jpg" alt="MEP Clash Detection and Coordination">
+      </div>
+
+      <div class="showcase-info">
+        <span class="section-tag" data-i18n="showcase_tag">ტექნოლოგიური პროცესი</span>
+        <h2 class="section-title" data-i18n="showcase_title">ციფრული ტყუპი და საინჟინრო ხარისხი</h2>
+        <p class="section-subtitle" style="margin-bottom: 30px;" data-i18n="showcase_desc">
+          ჩვენი სამუშაო პროცესი გამორიცხავს გაუთვალისწინებელ ხარჯებსა და სამშენებლო შეფერხებებს.
+        </p>
+
+        <div class="feature-list">
+          <div class="feature-item">
+            <div class="feature-icon"><i class="fa-solid fa-arrows-split-up-and-left"></i></div>
+            <div>
+              <h4 class="feature-title" data-i18n="feat_1_title">Revit, ArchiCAD, Navisworks & IFC</h4>
+              <p class="feature-desc" data-i18n="feat_1_desc">მუშაობა ღია BIM (OpenBIM) ფორმატებით, რაც უზრუნველყოფს სრულ თავსებადობას ნებისმიერ საპროექტო გუნდთან.</p>
+            </div>
+          </div>
+
+          <div class="feature-item">
+            <div class="feature-icon"><i class="fa-solid fa-list-check"></i></div>
+            <div>
+              <h4 class="feature-title" data-i18n="feat_2_title">ავტომატური სპეციფიკაციები</h4>
+              <p class="feature-desc" data-i18n="feat_2_desc">მასალათა უზუსტესი უწყისები და ხარჯთაღრიცხვა პირდაპირ მოდელიდან რეალურ დროში.</p>
+            </div>
+          </div>
+
+          <div class="feature-item">
+            <div class="feature-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+            <div>
+              <h4 class="feature-title" data-i18n="feat_3_title">სრული კოორდინაცია</h4>
+              <p class="feature-desc" data-i18n="feat_3_desc">არქიტექტორის, კონსტრუქტორის და ინჟინრის სრული სინქრონიზაცია ერთიან ღრუბლოვან გარემოში.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       Interactive BIM Cost & Timeline Calculator
+       ========================================================================== -->
+  <section class="calculator-section" id="calculator">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag" data-i18n="calc_tag">ღირებულების შეფასება</span>
+        <h2 class="section-title" data-i18n="calc_title">BIM პროექტის ონლაინ კალკულატორი</h2>
+        <p class="section-subtitle" data-i18n="calc_subtitle">
+          გამოთვალეთ თქვენი ობიექტის საორიენტაციო ღირებულება და ვადები რამდენიმე წამში
+        </p>
+      </div>
+
+      <div class="calc-wrapper">
+        <div class="calc-grid">
+          <!-- Inputs Column -->
+          <div class="calc-inputs">
+            <!-- Area Slider -->
+            <div class="calc-group">
+              <div class="calc-label-row">
+                <label for="calcArea" class="calc-label" data-i18n="calc_lbl_area">სამშენებლო ფართობი (მ²):</label>
+                <span class="calc-area-badge" id="calcAreaVal">5,000 m²</span>
+              </div>
+              <input type="range" class="calc-range" id="calcArea" min="500" max="60000" step="500" value="5000">
+            </div>
+
+            <!-- Building Type -->
+            <div class="calc-group">
+              <label for="calcType" class="calc-label" data-i18n="calc_lbl_type">შენობის ტიპი:</label>
+              <select id="calcType" class="calc-select">
+                <option value="commercial" data-i18n="calc_type_commercial">კომერციული / საოფისე</option>
+                <option value="residential" data-i18n="calc_type_residential">საცხოვრებელი კომპლექსი</option>
+                <option value="industrial" data-i18n="calc_type_industrial">საწარმოო / სასაწყობო</option>
+                <option value="public" data-i18n="calc_type_public">საზოგადოებრივი / ინფრასტრუქტურული</option>
+              </select>
+            </div>
+
+            <!-- LOD Level -->
+            <div class="calc-group">
+              <label for="calcLod" class="calc-label" data-i18n="calc_lbl_lod">დეტალიზაციის დონე (LOD):</label>
+              <select id="calcLod" class="calc-select">
+                <option value="200" data-i18n="calc_lod_200">LOD 200 - კონცეპტუალური მოცულობები</option>
+                <option value="300" selected data-i18n="calc_lod_300">LOD 300 - ზუსტი გეომეტრია და სისტემები</option>
+                <option value="350" data-i18n="calc_lod_350">LOD 350 - სამშენებლო კვანძები და კოორდინაცია</option>
+                <option value="400" data-i18n="calc_lod_400">LOD 400 - წარმოებისა და მონტაჟის დონე</option>
+              </select>
+            </div>
+
+            <!-- Disciplines -->
+            <div class="calc-group">
+              <label class="calc-label" data-i18n="calc_lbl_disciplines">საჭირო დისციპლინები:</label>
+              <div class="calc-checkboxes">
+                <label class="checkbox-card checked">
+                  <input type="checkbox" class="calc-disc-checkbox" value="arch" checked>
+                  <span data-i18n="calc_disc_arch">არქიტექტურა (ARCH)</span>
+                </label>
+                <label class="checkbox-card checked">
+                  <input type="checkbox" class="calc-disc-checkbox" value="struct" checked>
+                  <span data-i18n="calc_disc_struct">კონსტრუქციები (STRUCT)</span>
+                </label>
+                <label class="checkbox-card checked">
+                  <input type="checkbox" class="calc-disc-checkbox" value="mep" checked>
+                  <span data-i18n="calc_disc_mep">საინჟინრო ქსელები (MEP)</span>
+                </label>
+                <label class="checkbox-card checked">
+                  <input type="checkbox" class="calc-disc-checkbox" value="clash" checked>
+                  <span data-i18n="calc_disc_clash">Clash Detection & კოორდინაცია</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Results Panel -->
+          <div class="calc-results">
+            <div>
+              <div class="result-block">
+                <div class="result-label" data-i18n="calc_res_est_cost">საორიენტაციო ბიუჯეტი:</div>
+                <div class="result-val-cost" id="calcResultCost">₾ 23,600</div>
+              </div>
+
+              <div class="result-block">
+                <div class="result-label" data-i18n="calc_res_est_time">საორიენტაციო ვადა:</div>
+                <div class="result-val-time" id="calcResultTime">6 კვირა</div>
+              </div>
+
+              <div class="result-block">
+                <div class="result-label" data-i18n="calc_res_formats">მისაღები ფორმატები:</div>
+                <div class="result-formats">
+                  <span class="format-tag">.RVT</span>
+                  <span class="format-tag">.IFC 4</span>
+                  <span class="format-tag">.NWD / NWC</span>
+                  <span class="format-tag">.DWG</span>
+                  <span class="format-tag">.PDF Drawing Sheets</span>
+                </div>
+              </div>
+            </div>
+
+            <button type="button" class="btn btn-primary" id="applyCalcBtn" style="width: 100%; margin-top: 24px;" data-i18n="calc_btn_apply">
+              ამ მონაცემებით შეთავაზების მიღება
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       Portfolio Section
+       ========================================================================== -->
+  <section class="portfolio-section" id="portfolio">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag" data-i18n="portfolio_tag">ჩვენი ნამუშევრები</span>
+        <h2 class="section-title" data-i18n="portfolio_title">გამორჩეული პროექტები</h2>
+      </div>
+
+      <div class="portfolio-filters">
+        <button class="filter-btn active" data-filter="all" data-i18n="portfolio_all">ყველა</button>
+        <button class="filter-btn" data-filter="commercial" data-i18n="portfolio_comm">კომერციული</button>
+        <button class="filter-btn" data-filter="residential" data-i18n="portfolio_res">საცხოვრებელი</button>
+        <button class="filter-btn" data-filter="industrial" data-i18n="portfolio_ind">ინდუსტრიული</button>
+      </div>
+
+      <div class="portfolio-grid">
+        <!-- Project 1 -->
+        <div class="project-card" data-category="commercial">
+          <div class="project-img-box">
+            <img src="assets/images/hero-bim.jpg" alt="Horizon Business Tower">
+          </div>
+          <div class="project-info">
+            <div class="project-cat" data-i18n="proj_1_cat">კომერციული • LOD 350</div>
+            <h3 class="project-title" data-i18n="proj_1_title">ბიზნეს ცენტრი ჰორიზონტი</h3>
+            <p class="project-desc" data-i18n="proj_1_desc">
+              კომპლექსური MEP და კონსტრუქციული მოდელირება 32,000 მ² ფართობზე. გამოვლინდა და აღმოიფხვრა 140+ შეჯახება.
+            </p>
+          </div>
+        </div>
+
+        <!-- Project 2 -->
+        <div class="project-card" data-category="residential">
+          <div class="project-img-box">
+            <img src="assets/images/mep-coordination.jpg" alt="Goldfield Luxury Residences">
+          </div>
+          <div class="project-info">
+            <div class="project-cat" data-i18n="proj_2_cat">საცხოვრებელი • LOD 400</div>
+            <h3 class="project-title" data-i18n="proj_2_title">საცხოვრებელი რეზიდენცია გოლდი</h3>
+            <p class="project-desc" data-i18n="proj_2_desc">
+              სრული არქიტექტურული და საინჟინრო BIM პაკეტი ავტომატური სპეციფიკაციებითა და 4D გრაფიკით.
+            </p>
+          </div>
+        </div>
+
+        <!-- Project 3 -->
+        <div class="project-card" data-category="industrial">
+          <div class="project-img-box">
+            <img src="assets/images/scan-to-bim.jpg" alt="Terminal Logistics Hub">
+          </div>
+          <div class="project-info">
+            <div class="project-cat" data-i18n="proj_3_cat">ინდუსტრიული • Scan-to-BIM</div>
+            <h3 class="project-title" data-i18n="proj_3_title">ლოგისტიკური ჰაბი ტერმინალი</h3>
+            <p class="project-desc" data-i18n="proj_3_desc">
+              არსებული სამრეწველო ობიექტის ლაზერული სკანირება და ზუსტი ციფრული მოდელის შექმნა რეკონსტრუქციისთვის.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       Why BIMX Section
+       ========================================================================== -->
+  <section class="why-section" id="why-us">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag" data-i18n="why_tag">რატომ BIMX?</span>
+        <h2 class="section-title" data-i18n="why_title">რატომ ირჩევენ ჩვენს გუნდს პარტნიორები</h2>
+      </div>
+
+      <div class="why-grid">
+        <div class="why-card">
+          <div class="why-icon"><i class="fa-solid fa-gauge-high"></i></div>
+          <h3 class="why-card-title" data-i18n="why_1_title">30%-ით ნაკლები დრო</h3>
+          <p class="why-card-desc" data-i18n="why_1_desc">წინასწარი ციფრული კოორდინაცია ამცირებს შეცდომებს ობიექტზე და საგრძნობლად აჩქარებს მშენებლობის პროცესს.</p>
+        </div>
+
+        <div class="why-card">
+          <div class="why-icon"><i class="fa-solid fa-coins"></i></div>
+          <h3 class="why-card-title" data-i18n="why_2_title">15%-მდე ბიუჯეტის ეკონომია</h3>
+          <p class="why-card-desc" data-i18n="why_2_desc">მასალების ზუსტი ხარჯთაღრიცხვა გამორიცხავს გადამეტებულ შესყიდვებსა და გაუთვალისწინებელ გადაკეთებებს.</p>
+        </div>
+
+        <div class="why-card">
+          <div class="why-icon"><i class="fa-solid fa-certificate"></i></div>
+          <h3 class="why-card-title" data-i18n="why_3_title">ISO 19650 სტანდარტები</h3>
+          <p class="why-card-desc" data-i18n="why_3_desc">ვმუშაობთ ინფორმაციული მოდელირების საერთაშორისო პროტოკოლებითა და ხარისხის კონტროლით.</p>
+        </div>
+
+        <div class="why-card">
+          <div class="why-icon"><i class="fa-solid fa-user-gear"></i></div>
+          <h3 class="why-card-title" data-i18n="why_4_title">გამოცდილი ინჟინრები</h3>
+          <p class="why-card-desc" data-i18n="why_4_desc">სერტიფიცირებული BIM მენეჯერები, კონსტრუქტორები და MEP ინჟინრები მრავალწლიანი გამოცდილებით.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       Contact Section
+       ========================================================================== -->
+  <section class="contact-section" id="contact">
+    <div class="container">
+      <div class="contact-grid">
+        <div class="contact-info">
+          <span class="section-tag" data-i18n="contact_tag">დაგვიკავშირდით</span>
+          <h2 class="section-title" data-i18n="contact_title">მზად ხართ თქვენი პროექტის ციფრული ტრანსფორმაციისთვის?</h2>
+          <p class="section-subtitle" data-i18n="contact_subtitle">
+            მოგვწერეთ ან დაგვირეკეთ და ჩვენი BIM ექსპერტები გაგიწევენ სრულფასოვან კონსულტაციას.
+          </p>
+
+          <div class="contact-item">
+            <div class="contact-icon"><i class="fa-solid fa-phone"></i></div>
+            <div class="contact-details">
+              <h4 data-i18n="contact_phone_lbl">ტელეფონი</h4>
+              <a href="tel:+995599000000">+995 (599) 00-00-00</a>
+            </div>
+          </div>
+
+          <div class="contact-item">
+            <div class="contact-icon"><i class="fa-solid fa-envelope"></i></div>
+            <div class="contact-details">
+              <h4 data-i18n="contact_email_lbl">ელ-ფოსტა</h4>
+              <a href="mailto:info@bimx.ge">info@bimx.ge</a>
+            </div>
+          </div>
+
+          <div class="contact-item">
+            <div class="contact-icon"><i class="fa-solid fa-share-nodes"></i></div>
+            <div class="contact-details">
+              <h4 data-i18n="contact_social_lbl">სოციალური ქსელები</h4>
+              <div class="social-links">
+                <a href="https://www.instagram.com/_bim_x_/" target="_blank" class="social-btn" aria-label="Instagram">
+                  <i class="fa-brands fa-instagram"></i>
+                </a>
+                <a href="https://wa.me/995599000000" target="_blank" class="social-btn" aria-label="WhatsApp">
+                  <i class="fa-brands fa-whatsapp"></i>
+                </a>
+                <a href="https://www.facebook.com" target="_blank" class="social-btn" aria-label="Facebook">
+                  <i class="fa-brands fa-facebook-f"></i>
+                </a>
+                <a href="https://www.linkedin.com" target="_blank" class="social-btn" aria-label="LinkedIn">
+                  <i class="fa-brands fa-linkedin-in"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="contact-form-box">
+          <form class="contact-form" id="contactForm">
+            <div class="form-group">
+              <input type="text" class="form-input" id="contactName" required data-i18n-ph="contact_form_name" placeholder="თქვენი სახელი / კომპანია">
+            </div>
+
+            <div class="form-group">
+              <input type="email" class="form-input" id="contactEmail" required data-i18n-ph="contact_form_email" placeholder="ელ-ფოსტა">
+            </div>
+
+            <div class="form-group">
+              <input type="tel" class="form-input" id="contactPhone" required data-i18n-ph="contact_form_phone" placeholder="ტელეფონის ნომერი">
+            </div>
+
+            <div class="form-group">
+              <select class="form-select" id="contactService">
+                <option value="" disabled selected data-i18n="contact_form_service">სასურველი სერვისი</option>
+                <option value="arch" data-i18n="srv_1_title">არქიტექტურული BIM მოდელირება</option>
+                <option value="struct" data-i18n="srv_2_title">სამშენებლო კონსტრუქციები</option>
+                <option value="mep" data-i18n="srv_3_title">საინჟინრო ქსელები (MEP)</option>
+                <option value="clash" data-i18n="srv_4_title">შეჯახების გამოვლენა & კოორდინაცია</option>
+                <option value="scan" data-i18n="srv_5_title">Scan to BIM & 3D სკანირება</option>
+                <option value="4d5d" data-i18n="srv_6_title">4D/5D განზომილება & ხარჯთაღრიცხვა</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <textarea class="form-textarea" id="contactMsg" rows="4" required data-i18n-ph="contact_form_msg" placeholder="პროექტის მოკლე აღწერა / დეტალები"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg" id="submitFormBtn" data-i18n="contact_form_submit">
+              შეტყობინების გაგზავნა
+            </button>
+
+            <div class="form-status" id="formStatus"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       Footer
+       ========================================================================== -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a href="#hero" class="logo-link">
+            <img src="assets/images/logo.png" alt="BIMX Logo" class="logo-img">
+            <span class="logo-text">BIM<span>X</span></span>
+          </a>
+          <p class="footer-tagline" data-i18n="footer_tagline">Building Information Modeling & Digital Engineering Excellence</p>
+        </div>
+
+        <div class="social-links">
+          <a href="https://www.instagram.com/_bim_x_/" target="_blank" class="social-btn" aria-label="Instagram">
+            <i class="fa-brands fa-instagram"></i>
+          </a>
+          <a href="https://wa.me/995599000000" target="_blank" class="social-btn" aria-label="WhatsApp">
+            <i class="fa-brands fa-whatsapp"></i>
+          </a>
+          <a href="https://www.facebook.com" target="_blank" class="social-btn" aria-label="Facebook">
+            <i class="fa-brands fa-facebook-f"></i>
+          </a>
+          <a href="https://www.linkedin.com" target="_blank" class="social-btn" aria-label="LinkedIn">
+            <i class="fa-brands fa-linkedin-in"></i>
+          </a>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>&copy; 2026 BIMX Georgia. <span data-i18n="footer_rights">ყველა უფლება დაცულია.</span></p>
+        <p>Managed with <i class="fa-solid fa-bolt" style="color: var(--cyan-neon);"></i> by Antigravity</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="translations.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
