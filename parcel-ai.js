@@ -316,12 +316,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (cadastralInput) cadastralInput.value = code;
 
-    // Update active code in NAPR viewer toolbar
-    const naprBadge = document.getElementById('naprActiveCodeBadge');
-    if (naprBadge) naprBadge.textContent = code;
-    const naprManual = document.getElementById('naprManualCode');
-    if (naprManual) naprManual.textContent = code;
-
     // 1. Check local high-detail sample database
     let parcelData = CADASTRAL_DATABASE[code];
 
@@ -386,30 +380,25 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         generateDefaultConcept(parcelData);
       }
-
-      // If user was on NAPR iframe tab, switch to 3D concept view
-      if (state.currentMode === 'napr') {
-        setMode('3d');
-      }
       return;
     }
 
     // 4. Strict rule: Never invent geometry! If not found on NAPR:
     showCadastralAlert(
-      'info',
-      translations[state.currentLang].cadastral_notice_external_only ||
-      'საკადასტრო კოდის ფორმატი ვალიდურია. ვინაიდან maps.gov.ge-ს არ გააჩნია საჯარო REST API კონტურის პირდაპირი წაკითხვისთვის, ნაკვეთის სანახავად გადადით maps.gov.ge პორტალის ჩანართში ან გახსენით ცალკე ტაბში.'
+      'error',
+      translations[state.currentLang].parcel_err_not_found ||
+      'მითითებული საკადასტრო კოდით ნაკვეთი ვერ მოიძებნა.'
     );
-
-    // Switch view mode to maps.gov.ge official portal
-    setMode('napr');
   }
 
   function renderParcelOnMap(parcel) {
     if (!map) return;
 
     if (parcelPolygonLayer) map.removeLayer(parcelPolygonLayer);
-    if (buildingFootprintLayer) map.removeLayer(buildingFootprintLayer);
+    if (buildingFootprintLayer) {
+      map.removeLayer(buildingFootprintLayer);
+      buildingFootprintLayer = null;
+    }
 
     // Create Leaflet Polygon
     parcelPolygonLayer = L.polygon(parcel.coordinates, {
@@ -705,36 +694,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderFootprintOnMap(parcel, concept) {
     if (!map) return;
-    if (buildingFootprintLayer) map.removeLayer(buildingFootprintLayer);
-
-    const fp = computeFootprintGeometry(parcel, concept);
-    if (!fp) return;
-
-    // Convert local meters back to GPS lat/lng
-    const centerLat = parcel.coordinates.reduce((sum, c) => sum + c[0], 0) / parcel.coordinates.length;
-    const centerLng = parcel.coordinates.reduce((sum, c) => sum + c[1], 0) / parcel.coordinates.length;
-    const latToMeters = 111139;
-    const lngToMeters = 111139 * Math.cos(centerLat * Math.PI / 180);
-
-    const gpsCorners = fp.corners.map(pt => [
-      centerLat + (pt.y / latToMeters),
-      centerLng + (pt.x / lngToMeters)
-    ]);
-
-    buildingFootprintLayer = L.polygon(gpsCorners, {
-      color: '#ff7828',
-      weight: 2.5,
-      fillColor: '#ff7828',
-      fillOpacity: 0.45
-    }).addTo(map);
-
-    buildingFootprintLayer.bindPopup(`
-      <div style="font-family: var(--font-main); font-size: 0.85rem; color: #000; padding: 4px;">
-        <strong>შენობის 2D Footprint</strong><br>
-        <span>ფართობი: <strong>${Math.round(fp.width * fp.length)} მ²</strong></span><br>
-        <span>სართულები: <strong>${concept.floors}</strong> (${concept.buildingType})</span>
-      </div>
-    `);
+    if (buildingFootprintLayer) {
+      map.removeLayer(buildingFootprintLayer);
+      buildingFootprintLayer = null;
+    }
+    // Strict requirement: Do not display orange tile on cadastral parcel map
   }
 
   /* ==========================================================================
@@ -984,14 +948,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     10. Mode Switcher (Map / 2D / 3D / Combined / NAPR maps.gov.ge)
+     10. Mode Switcher (Map / 2D / 3D / Combined)
      ========================================================================== */
   const modeTabBtns = document.querySelectorAll('.mode-tab-btn');
   const viewportStage = document.getElementById('viewportStage');
   const mapViewport = document.getElementById('mapViewport');
   const threeViewport = document.getElementById('threeViewport');
-  const naprViewport = document.getElementById('naprViewport');
-  const naprResetBtn = document.getElementById('naprResetBtn');
 
   function setMode(mode) {
     state.currentMode = mode;
@@ -1004,41 +966,32 @@ document.addEventListener('DOMContentLoaded', () => {
     if (mode === 'map' || mode === '2d') {
       if (mapViewport) mapViewport.style.display = 'block';
       if (threeViewport) threeViewport.style.display = 'none';
-      if (naprViewport) naprViewport.style.display = 'none';
+      if (buildingFootprintLayer) {
+        map.removeLayer(buildingFootprintLayer);
+        buildingFootprintLayer = null;
+      }
       if (map) {
         setTimeout(() => map.invalidateSize(), 50);
       }
     } else if (mode === '3d') {
       if (mapViewport) mapViewport.style.display = 'none';
       if (threeViewport) threeViewport.style.display = 'block';
-      if (naprViewport) naprViewport.style.display = 'none';
       onWindowResize();
     } else if (mode === 'combined') {
       if (mapViewport) mapViewport.style.display = 'block';
       if (threeViewport) threeViewport.style.display = 'block';
-      if (naprViewport) naprViewport.style.display = 'none';
+      if (buildingFootprintLayer) {
+        map.removeLayer(buildingFootprintLayer);
+        buildingFootprintLayer = null;
+      }
       if (map) setTimeout(() => map.invalidateSize(), 50);
       onWindowResize();
-    } else if (mode === 'napr') {
-      if (mapViewport) mapViewport.style.display = 'none';
-      if (threeViewport) threeViewport.style.display = 'none';
-      if (naprViewport) naprViewport.style.display = 'flex';
     }
   }
 
   modeTabBtns.forEach(btn => {
     btn.addEventListener('click', () => setMode(btn.dataset.mode));
   });
-
-  if (naprResetBtn) {
-    naprResetBtn.addEventListener('click', () => {
-      if (cadastralInput) {
-        cadastralInput.value = '';
-        cadastralInput.focus();
-      }
-      hideCadastralAlert();
-    });
-  }
 
   /* ==========================================================================
      11. Viewport Tools (Satellite Switch, Reset Center, Measure)

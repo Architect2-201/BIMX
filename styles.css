@@ -2951,7 +2951,7 @@ img {
 }
 
 /* ==========================================================================
-   Cadastral Viewer & maps.gov.ge NAPR Embed Component
+   Cadastral Viewer Component
    ========================================================================== */
 .cadastral-viewer__hint {
   font-size: 0.73rem;
@@ -2964,122 +2964,5 @@ img {
   gap: 6px;
 }
 
-.napr-viewport-container {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 15;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-surface);
-}
-
-.cadastral-viewer__toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border-line);
-  z-index: 2;
-  gap: 12px;
-}
-
-.cadastral-viewer__toolbar-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.85rem;
-}
-
-.toolbar-code-badge {
-  font-family: var(--font-mono);
-  background: rgba(0, 240, 255, 0.12);
-  color: var(--cyan-neon);
-  padding: 3px 8px;
-  border-radius: var(--radius-sm);
-  border: 1px solid rgba(0, 240, 255, 0.25);
-  font-size: 0.85rem;
-}
-
-.cadastral-viewer__toolbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.btn-napr-external {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  border-radius: var(--radius-sm);
-  background: var(--cyan-neon);
-  color: #000;
-  text-decoration: none;
-  transition: all 0.2s;
-}
-
-.btn-napr-external:hover {
-  background: #38bdf8;
-  box-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
-}
-
-.btn-napr-reset {
-  padding: 6px 12px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  border-radius: var(--radius-sm);
-  background: var(--bg-subtle);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-line);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-napr-reset:hover {
-  color: var(--text-primary);
-  border-color: var(--border-active);
-}
-
-.cadastral-viewer__iframe-wrapper {
-  flex: 1;
-  position: relative;
-  width: 100%;
-  height: 100%;
-  background: #000;
-  overflow: hidden;
-}
-
-.cadastral-viewer__iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
-  display: block;
-}
-
-.cadastral-viewer__manual-step {
-  padding: 8px 16px;
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  background: var(--bg-card);
-  border-top: 1px solid var(--border-line);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  line-height: 1.4;
-}
-
-.cadastral-viewer__manual-step code {
-  font-family: var(--font-mono);
-  color: var(--cyan-neon);
-  background: rgba(0, 240, 255, 0.1);
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-weight: 600;
-}
 
 
