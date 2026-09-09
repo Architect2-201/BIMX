@@ -2991,10 +2991,10 @@ img {
 }
 
 .tool-btn-draw.active {
-  background: rgba(0, 240, 255, 0.18);
-  border-color: var(--cyan-neon);
-  color: var(--cyan-neon);
-  box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+  color: #10b981;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
 }
 
 .tool-btn-finish {
@@ -3032,10 +3032,10 @@ img {
   align-items: center;
   gap: 10px;
   padding: 8px 16px;
-  background: rgba(10, 15, 26, 0.92);
+  background: rgba(10, 15, 26, 0.94);
   backdrop-filter: blur(12px);
-  border: 1px solid var(--cyan-neon);
-  box-shadow: 0 4px 20px rgba(0, 240, 255, 0.25);
+  border: 1px solid #10b981;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
   border-radius: 30px;
   font-size: 0.8rem;
   color: #fff;
@@ -3057,11 +3057,11 @@ img {
 .drawing-live-area {
   font-family: var(--font-mono);
   font-weight: 700;
-  color: var(--cyan-neon);
-  background: rgba(0, 240, 255, 0.15);
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
   padding: 2px 8px;
   border-radius: 12px;
-  border: 1px solid rgba(0, 240, 255, 0.3);
+  border: 1px solid rgba(16, 185, 129, 0.35);
 }
 
 /* Drawing Vertex Marker on Leaflet */
@@ -3123,17 +3123,17 @@ img {
   margin-top: 4px;
   margin-bottom: 8px;
   padding: 4px 8px;
-  background: rgba(0, 240, 255, 0.08);
-  border: 1px dashed rgba(0, 240, 255, 0.35);
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px dashed rgba(16, 185, 129, 0.45);
   border-radius: var(--radius-sm);
   font-size: 0.72rem;
-  color: var(--cyan-neon);
+  color: #10b981;
 }
 
 .btn-reset-footprint {
   background: transparent;
-  border: 1px solid rgba(0, 240, 255, 0.4);
-  color: var(--cyan-neon);
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  color: #10b981;
   border-radius: 3px;
   font-size: 0.68rem;
   padding: 2px 6px;
@@ -3142,8 +3142,20 @@ img {
 }
 
 .btn-reset-footprint:hover {
-  background: var(--cyan-neon);
+  background: #10b981;
   color: #000;
+}
+
+.custom-footprint-map-tooltip {
+  background: rgba(15, 23, 42, 0.94) !important;
+  border: 1px solid #10b981 !important;
+  color: #10b981 !important;
+  font-family: var(--font-mono) !important;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  border-radius: 6px !important;
+  padding: 4px 10px !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6) !important;
 }
 
 /* ==========================================================================

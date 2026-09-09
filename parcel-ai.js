@@ -443,6 +443,15 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
     parcelPolygonLayer.bindPopup(popupContent);
 
+    // Enable direct drawing inside cadastral polygon boundary
+    parcelPolygonLayer.on('click', (e) => {
+      if (state.isDrawingMode) {
+        L.DomEvent.stopPropagation(e);
+        parcelPolygonLayer.closePopup();
+        handleMapClick(e);
+      }
+    });
+
     // Fit map bounds to parcel
     map.fitBounds(parcelPolygonLayer.getBounds(), { padding: [40, 40], maxZoom: 18 });
 
@@ -819,9 +828,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const subterraneanEdgeMat = new THREE.LineBasicMaterial({
-      color: 0x00f0ff,
+      color: 0x10b981,
       transparent: true,
-      opacity: 0.8
+      opacity: 0.85
     });
 
     // 1. Extrude Above-Ground Floors (Y >= 0)
@@ -878,6 +887,16 @@ document.addEventListener('DOMContentLoaded', () => {
       line.rotation.x = -Math.PI / 2;
       line.position.set(0, btmY, 0);
       buildingGroup.add(line);
+    }
+
+    // 3. Ground-level perimeter outline for custom drawn footprint (Emerald Green)
+    if (fp.isCustom && fp.corners && fp.corners.length >= 3) {
+      const basePoints = fp.corners.map(p => new THREE.Vector3(p.x, 0.15, p.y));
+      basePoints.push(new THREE.Vector3(fp.corners[0].x, 0.15, fp.corners[0].y));
+      const baseGeom = new THREE.BufferGeometry().setFromPoints(basePoints);
+      const baseMat = new THREE.LineBasicMaterial({ color: 0x10b981, linewidth: 3 });
+      const baseOutline = new THREE.Line(baseGeom, baseMat);
+      buildingGroup.add(baseOutline);
     }
 
     // Adjust camera target to center of mass
@@ -1230,15 +1249,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (banner) banner.style.display = 'flex';
     if (btnClear) btnClear.style.display = count > 0 ? 'inline-flex' : 'none';
 
-    // Draw vertex dots
+    // Draw vertex dots in vibrant Emerald Green (#10b981) / Gold anchor
     state.drawnPoints.forEach((pt, idx) => {
       const isFirst = idx === 0;
       const marker = L.circleMarker(pt, {
         radius: isFirst ? 8 : 6,
-        color: isFirst ? '#10b981' : '#00f0ff',
-        fillColor: '#ffffff',
+        color: isFirst ? '#facc15' : '#10b981',
+        fillColor: isFirst ? '#10b981' : '#ffffff',
         fillOpacity: 1,
         weight: 2.5,
+        interactive: isFirst && count >= 3,
         className: 'drawing-vertex-marker'
       });
 
@@ -1253,22 +1273,26 @@ document.addEventListener('DOMContentLoaded', () => {
       drawingLayerGroup.addLayer(marker);
     });
 
+    // In-progress connecting line in Emerald Green
     if (count >= 2) {
       const line = L.polyline(state.drawnPoints, {
-        color: '#00f0ff',
-        weight: 2.5,
-        dashArray: '5, 5'
+        color: '#10b981',
+        weight: 3,
+        dashArray: '5, 5',
+        interactive: false
       });
       drawingLayerGroup.addLayer(line);
     }
 
+    // In-progress preview polygon in Emerald Green
     if (count >= 3) {
       const previewPoly = L.polygon(state.drawnPoints, {
-        color: '#00f0ff',
-        weight: 2,
-        fillColor: '#00f0ff',
-        fillOpacity: 0.18,
-        dashArray: '4, 4'
+        color: '#10b981',
+        weight: 2.5,
+        fillColor: '#10b981',
+        fillOpacity: 0.22,
+        dashArray: '4, 4',
+        interactive: false
       });
       drawingLayerGroup.addLayer(previewPoly);
 
@@ -1295,6 +1319,7 @@ document.addEventListener('DOMContentLoaded', () => {
     state.isDrawingMode = true;
     state.drawnPoints = [];
     if (drawingLayerGroup) drawingLayerGroup.clearLayers();
+    if (parcelPolygonLayer) parcelPolygonLayer.closePopup();
 
     const mapViewport = document.getElementById('mapViewport');
     if (mapViewport) mapViewport.classList.add('map-drawing-active');
@@ -1339,15 +1364,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const poly = turf.polygon([ring]);
     const areaSqM = Math.round(turf.area(poly));
 
-    // Render finalized clean footprint polygon on map
+    // Render finalized clean footprint polygon on map in distinct Emerald Green (#10b981)
     if (drawingLayerGroup) {
       drawingLayerGroup.clearLayers();
       const finalPoly = L.polygon(state.customFootprint, {
-        color: '#00f0ff',
-        weight: 2.5,
-        fillColor: '#00f0ff',
-        fillOpacity: 0.15,
+        color: '#10b981',
+        weight: 3,
+        fillColor: '#10b981',
+        fillOpacity: 0.25,
         dashArray: '5, 5'
+      });
+      finalPoly.bindTooltip(`დახაზული შენობის კონტური: ${areaSqM.toLocaleString()} მ²`, {
+        permanent: false,
+        direction: 'center',
+        className: 'custom-footprint-map-tooltip'
       });
       drawingLayerGroup.addLayer(finalPoly);
     }
