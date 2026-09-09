@@ -147,6 +147,12 @@
             <option value="03.02.05.018.009">ქუთაისი, წერეთლის ქუჩა (1,600 მ² · 03.02.05.018.009)</option>
           </select>
 
+          <!-- Privacy / Client-Side Processing Notice -->
+          <p class="cadastral-viewer__hint">
+            <i class="fa-solid fa-lock" style="color: var(--cyan-neon); margin-right: 4px;"></i>
+            <span data-i18n="cadastral_privacy_note">კოდი არსად არ ინახება — ძებნა ხდება პირდაპირ maps.gov.ge-ზე, შენი ბრაუზერიდან.</span>
+          </p>
+
           <!-- Alert / Validation Message Area -->
           <div class="cadastral-alert-message" id="cadastralAlertMsg"></div>
 
@@ -259,6 +265,10 @@
               <i class="fa-solid fa-table-columns"></i>
               <span data-i18n="mode_combined">კომბინირებული ხედი</span>
             </button>
+            <button type="button" class="mode-tab-btn" data-mode="napr" role="tab" aria-selected="false">
+              <i class="fa-solid fa-landmark"></i>
+              <span data-i18n="mode_napr">maps.gov.ge პორტალი</span>
+            </button>
           </div>
 
           <div class="viewport-tools-group">
@@ -278,6 +288,45 @@
 
           <!-- 3D Three.js WebGL Canvas Container -->
           <div id="threeViewport" role="region" aria-label="3D WebGL Canvas View"></div>
+
+          <!-- maps.gov.ge NAPR Official Portal Embed Container -->
+          <div id="naprViewport" class="napr-viewport-container" role="region" aria-label="maps.gov.ge Official Registry Portal" style="display: none;">
+            <div class="cadastral-viewer__toolbar">
+              <div class="cadastral-viewer__toolbar-info">
+                <span class="toolbar-label" data-i18n="cadastral_active_plot">ნაკვეთი:</span>
+                <strong id="naprActiveCodeBadge" class="toolbar-code-badge">01.15.02.038.003</strong>
+              </div>
+              <div class="cadastral-viewer__toolbar-actions">
+                <a href="https://maps.gov.ge/map/portal" target="_blank" rel="noopener noreferrer" class="btn-napr-external" id="naprExternalLink" data-i18n="cadastral_open_external">
+                  გახსენი ცალკე ტაბში ↗
+                </a>
+                <button type="button" class="btn-napr-reset" id="naprResetBtn" data-i18n="cadastral_new_search">
+                  ახალი ძებნა
+                </button>
+              </div>
+            </div>
+
+            <!-- iframe embed -->
+            <div class="cadastral-viewer__iframe-wrapper">
+              <iframe
+                id="naprIframe"
+                src="https://maps.gov.ge/map/portal"
+                title="NAPR Public Registry Land Map"
+                class="cadastral-viewer__iframe"
+                loading="lazy"
+                allow="geolocation"
+              ></iframe>
+            </div>
+
+            <div class="cadastral-viewer__manual-step">
+              <i class="fa-solid fa-circle-info" style="color: var(--cyan-neon);"></i>
+              <span>
+                <span data-i18n="cadastral_manual_step_hint">პორტალის ძებნის ველში ჩაწერე კოდი:</span>
+                <code id="naprManualCode">01.15.02.038.003</code>.
+                <span data-i18n="cadastral_iframe_note">(თუ სამთავრობო პორტალი ზღუდავს embedding-ს X-Frame-Options-ით, გამოიყენეთ ზემოთ ღილაკი „გახსენი ცალკე ტაბში ↗“).</span>
+              </span>
+            </div>
+          </div>
 
           <!-- HUD Floating Overlays -->
           <div class="viewport-hud-overlay">

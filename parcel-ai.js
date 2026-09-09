@@ -273,12 +273,23 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     4. Cadastral Search & Geometry Validation
+     4. Cadastral Search & Geometry Validation (with maps.gov.ge NAPR safe integration)
      ========================================================================== */
   const cadastralInput = document.getElementById('cadastralCodeInput');
   const cadastralSearchBtn = document.getElementById('cadastralSearchBtn');
   const sampleParcelsSelect = document.getElementById('sampleParcelsSelect');
   const cadastralAlertMsg = document.getElementById('cadastralAlertMsg');
+
+  // Regex format supporting dot and dash separators, 2-3 digit sections
+  const CADASTRAL_CODE_REGEX = /^\d{2}[.\-]\d{2}[.\-]\d{2}[.\-]\d{2,3}[.\-]\d{2,3}$/;
+
+  function normalizeCode(raw) {
+    return (raw || '').trim().replace(/\s+/g, '');
+  }
+
+  function isValidCadastralCode(code) {
+    return CADASTRAL_CODE_REGEX.test(normalizeCode(code));
+  }
 
   function showCadastralAlert(type, text) {
     if (!cadastralAlertMsg) return;
@@ -294,43 +305,59 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function searchParcel(codeQuery) {
     hideCadastralAlert();
-    const code = (codeQuery || (cadastralInput ? cadastralInput.value : '')).trim();
+    const rawInput = codeQuery || (cadastralInput ? cadastralInput.value : '');
+    const code = normalizeCode(rawInput);
 
-    // Strict Cadastral format validation (XX.XX.XX.XXX.XXX)
-    const cadastralRegex = /^\d{2}\.\d{2}\.\d{2}\.\d{3}\.\d{3}$/;
-    if (!cadastralRegex.test(code)) {
-      showCadastralAlert('error', translations[state.currentLang].parcel_err_invalid_format || 'შეიყვანეთ სწორი საკადასტრო კოდი.');
+    // Format validation
+    if (!isValidCadastralCode(code)) {
+      showCadastralAlert('error', translations[state.currentLang].parcel_err_invalid_format || 'საკადასტრო კოდის ფორმატი არასწორია (მაგ.: 01.10.09.001.001)');
       return;
     }
+
+    if (cadastralInput) cadastralInput.value = code;
+
+    // Update active code in NAPR viewer toolbar
+    const naprBadge = document.getElementById('naprActiveCodeBadge');
+    if (naprBadge) naprBadge.textContent = code;
+    const naprManual = document.getElementById('naprManualCode');
+    if (naprManual) naprManual.textContent = code;
 
     const parcelData = CADASTRAL_DATABASE[code];
 
-    // Strict rule: Never invent geometry! If not in database, reject with official notice
-    if (!parcelData || !parcelData.coordinates) {
-      showCadastralAlert('error', translations[state.currentLang].parcel_err_not_found + ' ' + translations[state.currentLang].parcel_err_no_geometry);
+    // If parcel exists in our authentic sample GIS database:
+    if (parcelData && parcelData.coordinates) {
+      state.activeParcel = parcelData;
+
+      // Render Plot on Leaflet Map
+      renderParcelOnMap(parcelData);
+
+      // Render Plot Ground on Three.js 3D
+      renderParcelGround3D(parcelData);
+
+      // Update Right Panel Info
+      updateParcelAttributesUI(parcelData);
+
+      // Trigger Initial or Existing Concept
+      const aiText = document.getElementById('aiPromptInput');
+      const promptValue = aiText ? aiText.value.trim() : '';
+      if (promptValue) {
+        generateConceptFromPrompt(promptValue);
+      } else {
+        generateDefaultConcept(parcelData);
+      }
       return;
     }
 
-    state.activeParcel = parcelData;
-    if (cadastralInput) cadastralInput.value = code;
+    // Strict rule: Never invent geometry!
+    // Since maps.gov.ge has no public documented REST API, safely direct to the NAPR viewer tab
+    showCadastralAlert(
+      'info',
+      translations[state.currentLang].cadastral_notice_external_only ||
+      'საკადასტრო კოდის ფორმატი ვალიდურია. ვინაიდან maps.gov.ge-ს არ გააჩნია საჯარო REST API კონტურის პირდაპირი წაკითხვისთვის, ნაკვეთის სანახავად გადადით maps.gov.ge პორტალის ჩანართში ან გახსენით ცალკე ტაბში.'
+    );
 
-    // Render Plot on Leaflet Map
-    renderParcelOnMap(parcelData);
-
-    // Render Plot Ground on Three.js 3D
-    renderParcelGround3D(parcelData);
-
-    // Update Right Panel Info
-    updateParcelAttributesUI(parcelData);
-
-    // Trigger Initial or Existing Concept
-    const aiText = document.getElementById('aiPromptInput');
-    const promptValue = aiText ? aiText.value.trim() : '';
-    if (promptValue) {
-      generateConceptFromPrompt(promptValue);
-    } else {
-      generateDefaultConcept(parcelData);
-    }
+    // Switch view mode to maps.gov.ge official portal
+    setMode('napr');
   }
 
   function renderParcelOnMap(parcel) {
@@ -912,12 +939,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     10. Mode Switcher (Map / 2D / 3D / Combined)
+     10. Mode Switcher (Map / 2D / 3D / Combined / NAPR maps.gov.ge)
      ========================================================================== */
   const modeTabBtns = document.querySelectorAll('.mode-tab-btn');
   const viewportStage = document.getElementById('viewportStage');
   const mapViewport = document.getElementById('mapViewport');
   const threeViewport = document.getElementById('threeViewport');
+  const naprViewport = document.getElementById('naprViewport');
+  const naprResetBtn = document.getElementById('naprResetBtn');
 
   function setMode(mode) {
     state.currentMode = mode;
@@ -930,24 +959,41 @@ document.addEventListener('DOMContentLoaded', () => {
     if (mode === 'map' || mode === '2d') {
       if (mapViewport) mapViewport.style.display = 'block';
       if (threeViewport) threeViewport.style.display = 'none';
+      if (naprViewport) naprViewport.style.display = 'none';
       if (map) {
         setTimeout(() => map.invalidateSize(), 50);
       }
     } else if (mode === '3d') {
       if (mapViewport) mapViewport.style.display = 'none';
       if (threeViewport) threeViewport.style.display = 'block';
+      if (naprViewport) naprViewport.style.display = 'none';
       onWindowResize();
     } else if (mode === 'combined') {
       if (mapViewport) mapViewport.style.display = 'block';
       if (threeViewport) threeViewport.style.display = 'block';
+      if (naprViewport) naprViewport.style.display = 'none';
       if (map) setTimeout(() => map.invalidateSize(), 50);
       onWindowResize();
+    } else if (mode === 'napr') {
+      if (mapViewport) mapViewport.style.display = 'none';
+      if (threeViewport) threeViewport.style.display = 'none';
+      if (naprViewport) naprViewport.style.display = 'flex';
     }
   }
 
   modeTabBtns.forEach(btn => {
     btn.addEventListener('click', () => setMode(btn.dataset.mode));
   });
+
+  if (naprResetBtn) {
+    naprResetBtn.addEventListener('click', () => {
+      if (cadastralInput) {
+        cadastralInput.value = '';
+        cadastralInput.focus();
+      }
+      hideCadastralAlert();
+    });
+  }
 
   /* ==========================================================================
      11. Viewport Tools (Satellite Switch, Reset Center, Measure)

@@ -230,9 +230,16 @@ const translations = {
     parcel_ph_cadastral: "მაგ. 01.15.02.038.003",
     parcel_btn_search: "ნაკვეთის მოძიება",
     parcel_sample_lbl: "სატესტო ოფიციალური ნაკვეთები",
-    parcel_err_invalid_format: "შეიყვანეთ სწორი საკადასტრო კოდი.",
+    parcel_err_invalid_format: "საკადასტრო კოდის ფორმატი არასწორია (მაგ.: 01.10.09.001.001)",
     parcel_err_not_found: "მითითებული საკადასტრო კოდით ნაკვეთი ვერ მოიძებნა.",
     parcel_err_no_geometry: "საკადასტრო საზღვრის ოფიციალური გეომეტრია ვერ მოიძებნა.",
+    cadastral_privacy_note: "კოდი არსად არ ინახება — ძებნა ხდება პირდაპირ maps.gov.ge-ზე, შენი ბრაუზერიდან.",
+    cadastral_active_plot: "ნაკვეთი:",
+    cadastral_open_external: "გახსენი ცალკე ტაბში ↗",
+    cadastral_new_search: "ახალი ძებნა",
+    cadastral_manual_step_hint: "პორტალის ძებნის ველში ჩაწერე კოდი:",
+    cadastral_iframe_note: "თუ სამთავრობო პორტალი ზღუდავს embedding-ს X-Frame-Options-ით, გამოიყენეთ ზემოთ ღილაკი „გახსენი ცალკე ტაბში ↗“.",
+    cadastral_notice_external_only: "საკადასტრო კოდის ფორმატი ვალიდურია. ვინაიდან maps.gov.ge-ს არ გააჩნია საჯარო REST API კონტურის პირდაპირი წაკითხვისთვის, ნაკვეთის სანახავად გადადით maps.gov.ge პორტალის ჩანართში ან გახსენით ცალკე ტაბში.",
 
     // Left Panel - AI Concept Prompt
     ai_prompt_heading: "3D კონცეფციის გენერაცია",
@@ -258,6 +265,7 @@ const translations = {
     mode_2d: "2D კონცეფცია",
     mode_3d: "3D კონცეფცია",
     mode_combined: "კომბინირებული ხედი",
+    mode_napr: "maps.gov.ge პორტალი",
 
     // Provenance Badges
     badge_official: "ოფიციალური მონაცემი",
@@ -550,9 +558,16 @@ const translations = {
     parcel_ph_cadastral: "e.g. 01.15.02.038.003",
     parcel_btn_search: "Find Parcel",
     parcel_sample_lbl: "Sample Official Parcels",
-    parcel_err_invalid_format: "Please enter a valid cadastral code format.",
+    parcel_err_invalid_format: "Cadastral code format is invalid (e.g.: 01.10.09.001.001)",
     parcel_err_not_found: "No parcel found with the specified cadastral code.",
     parcel_err_no_geometry: "Official geometry for cadastral boundary not found.",
+    cadastral_privacy_note: "Code is never stored — searched directly on maps.gov.ge from your browser.",
+    cadastral_active_plot: "Plot:",
+    cadastral_open_external: "Open in New Tab ↗",
+    cadastral_new_search: "New Search",
+    cadastral_manual_step_hint: "Enter code into the portal search box:",
+    cadastral_iframe_note: "If the government portal restricts embedding via X-Frame-Options, use the 'Open in New Tab ↗' button above.",
+    cadastral_notice_external_only: "Cadastral code format is valid. Since maps.gov.ge lacks a public REST API for boundary extraction, switch to the maps.gov.ge tab or open in a new tab.",
 
     // Left Panel - AI Concept Prompt
     ai_prompt_heading: "3D Concept Generation",
@@ -578,6 +593,7 @@ const translations = {
     mode_2d: "2D Concept",
     mode_3d: "3D Concept",
     mode_combined: "Combined View",
+    mode_napr: "maps.gov.ge Portal",
 
     // Provenance Badges
     badge_official: "Official Data",
