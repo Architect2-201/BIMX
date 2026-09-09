@@ -8,6 +8,7 @@ const translations = {
     nav_services: "სერვისები",
     nav_apps: "აპლიკაციები",
     nav_plugins: "პლაგინები",
+    nav_parcel_ai: "ნაკვეთის AI ანალიზი",
     nav_philosophy: "ფილოსოფია",
     nav_modules: "მოდულები",
     nav_portfolio: "პროექტები",
@@ -217,6 +218,102 @@ const translations = {
     contact_form_submit: "მოთხოვნის გაგზავნა",
     contact_form_success: "მადლობა! თქვენი შეტყობინება წარმატებით გაიგზავნა. მალე დაგიკავშირდებით.",
 
+    // Land Parcel AI Analysis Module
+    parcel_page_title: "ნაკვეთის AI ანალიზი — BIMX Studio GIS & 3D ConTech",
+    parcel_meta_desc: "საქართველოში არსებული მიწის ნაკვეთების სივრცითი GIS ანალიზი, საკადასტრო კოდით მოძიება და შენობის საწყისი 3D კონცეფციის ავტო-გენერაცია.",
+    parcel_main_title: "ნაკვეთის AI ანალიზი",
+    parcel_main_desc: "შეიყვანე საკადასტრო კოდი, ნახე ნაკვეთი, გააანალიზე მისი სივრცითი მონაცემები და შექმენი შენობის საწყისი 3D კონცეფცია.",
+    
+    // Left Panel - Cadastral Search
+    parcel_cadastral_heading: "საკადასტრო მონაცემები",
+    parcel_lbl_cadastral: "საკადასტრო კოდი",
+    parcel_ph_cadastral: "მაგ. 01.15.02.038.003",
+    parcel_btn_search: "ნაკვეთის მოძიება",
+    parcel_sample_lbl: "სატესტო ოფიციალური ნაკვეთები",
+    parcel_err_invalid_format: "შეიყვანეთ სწორი საკადასტრო კოდი.",
+    parcel_err_not_found: "მითითებული საკადასტრო კოდით ნაკვეთი ვერ მოიძებნა.",
+    parcel_err_no_geometry: "საკადასტრო საზღვრის ოფიციალური გეომეტრია ვერ მოიძებნა.",
+
+    // Left Panel - AI Concept Prompt
+    ai_prompt_heading: "3D კონცეფციის გენერაცია",
+    ai_prompt_title: "აღწერე სასურველი შენობა",
+    ai_prompt_placeholder: "მაგ. მინდა 5-სართულიანი საცხოვრებელი შენობა, დაახლოებით 3,000 კვადრატული მეტრი ფართობით, თანამედროვე არქიტექტურით, პირველ სართულზე კომერციული ფართებით და ზედა სართულებზე ბინებით.",
+    ai_btn_generate: "3D კონცეფციის შექმნა",
+    ai_generating_text: "AI აანალიზებს პარამეტრებს...",
+
+    // Parametric overrides
+    params_heading: "პარამეტრების კორექტირება",
+    param_floors: "სართულიანობა",
+    param_total_area: "სავარაუდო საერთო ფართობი (მ²)",
+    param_footprint: "საძირკვლის ფართობი (Footprint მ²)",
+    param_height: "სართულის სიმაღლე (მ)",
+    param_rotation: "შენობის როტაცია ნაკვეთზე",
+    param_style: "არქიტექტურული სტილი",
+    param_facade_mat: "ფასადის მასალა",
+    param_facade_color: "ფასადის ძირითადი ფერი",
+    param_ground_floor: "პირველი სართულის ფუნქცია",
+
+    // Modes
+    mode_map: "რუკა",
+    mode_2d: "2D კონცეფცია",
+    mode_3d: "3D კონცეფცია",
+    mode_combined: "კომბინირებული ხედი",
+
+    // Provenance Badges
+    badge_official: "ოფიციალური მონაცემი",
+    badge_calculated: "დამუშავებული მონაცემი",
+    badge_ai: "AI შეფასება",
+
+    // Disclaimers & Warnings
+    placement_warning: "შენობის განთავსება არის კონცეპტუალური და არ წარმოადგენს ოფიციალურ განაშენიანების ან სამშენებლო პირობებს.",
+    urban_warning: "ამ ნაკვეთისთვის შესაბამისი ოფიციალური ქალაქმშენებლობითი მონაცემი ამ ეტაპზე არ არის ინტეგრირებული სისტემაში.",
+    process_warning: "ეს სისტემა არ აგზავნის განაცხადს ავტომატურად მუნიციპალიტეტში.",
+    historical_disclaimer: "ეს მაჩვენებელი ეფუძნება ისტორიულ მონაცემებს და არ წარმოადგენს მუნიციპალიტეტის ოფიციალურ გადაწყვეტილებას ან დამტკიცების გარანტიას.",
+    terrain_warning: "რელიეფის ზუსტი მონაცემისთვის საჭიროა ტოპოგრაფიული კვლევა.",
+
+    // Right Panel - Parcel Info & AI Assessment
+    parcel_info_title: "ნაკვეთის მონაცემები",
+    parcel_info_code: "საკადასტრო კოდი",
+    parcel_info_area: "ნაკვეთის ფართობი",
+    parcel_info_shape: "ფორმა",
+    parcel_info_address: "მისამართი",
+    parcel_info_terrain: "რელიეფი",
+
+    assessment_title: "პროექტის AI შეფასება",
+    assess_footprint: "შენობის Footprint",
+    assess_free_land: "დარჩენილი თავისუფალი სივრცე",
+    assess_floors: "სართულიანობა",
+    assess_total_gfa: "სავარაუდო საერთო ფართობი (GFA)",
+    assess_coverage: "განაშენიანების კოეფიციენტი (K1)",
+    assess_use: "მოთხოვნილი ფუნქცია",
+
+    urban_title: "ქალაქმშენებლობითი მონაცემები",
+    urban_zone: "ფუნქციური ზონა",
+    urban_k1: "მაქსიმალური K1",
+    urban_k2: "მაქსიმალური K2",
+    urban_k3: "მინიმალური K3",
+    urban_setbacks: "განაშენიანების რეგულირების ხაზი",
+    urban_heritage: "კულტურული მემკვიდრეობის ზონა",
+
+    history_title: "ისტორიული გადაწყვეტილებების ანალიზი",
+    history_stat_lead: "მსგავს შემთხვევებზე დაფუძნებული მაჩვენებელი",
+    history_stat_val: "დადებითი გადაწყვეტილებების წილი იყო 72%",
+    history_sample_desc: "შედარებულია 140+ ანალოგიური მასშტაბისა და ფუნქციის მქონე საჯარო ადმინისტრაციული გადაწყვეტილება მოცემულ რაიონში.",
+
+    // Variants & Export
+    variants_title: "ვარიანტების მართვა",
+    variant_a: "ვარიანტი A (საწყისი)",
+    variant_b: "ვარიანტი B (კომპაქტური)",
+    variant_c: "ვარიანტი C (მაქსიმალური)",
+    btn_save_variant: "ვარიანტის შენახვა",
+    btn_dup_variant: "დუბლირება",
+
+    export_title: "პროექტის ექსპორტი",
+    export_btn_pdf: "PDF ანგარიში",
+    export_btn_png: "PNG სურათი",
+    export_btn_geojson: "GeoJSON მონაცემები",
+    export_btn_obj: "3D OBJ მოდელი",
+
     // Footer
     footer_tagline: "Building Information Modeling & Digital Engineering Excellence.",
     footer_rights: "ყველა უფლება დაცულია."
@@ -231,6 +328,7 @@ const translations = {
     nav_services: "Services",
     nav_apps: "Applications",
     nav_plugins: "Plugins",
+    nav_parcel_ai: "Parcel AI Analysis",
     nav_philosophy: "Philosophy",
     nav_modules: "Modules",
     nav_portfolio: "Projects",
@@ -439,6 +537,102 @@ const translations = {
     contact_form_msg: "Brief Project Details",
     contact_form_submit: "Send Project Inquiry",
     contact_form_success: "Thank you! Your inquiry has been submitted. We will contact you shortly.",
+
+    // Land Parcel AI Analysis Module
+    parcel_page_title: "Land Parcel AI Analysis — BIMX Studio GIS & 3D ConTech",
+    parcel_meta_desc: "Spatial GIS analysis, cadastral parcel lookup, and automated 3D architectural massing concept generator for land plots in Georgia.",
+    parcel_main_title: "Land Parcel AI Analysis",
+    parcel_main_desc: "Enter cadastral code, view the land plot, analyze spatial data, and generate an initial 3D building massing concept.",
+    
+    // Left Panel - Cadastral Search
+    parcel_cadastral_heading: "Cadastral Data",
+    parcel_lbl_cadastral: "Cadastral Code",
+    parcel_ph_cadastral: "e.g. 01.15.02.038.003",
+    parcel_btn_search: "Find Parcel",
+    parcel_sample_lbl: "Sample Official Parcels",
+    parcel_err_invalid_format: "Please enter a valid cadastral code format.",
+    parcel_err_not_found: "No parcel found with the specified cadastral code.",
+    parcel_err_no_geometry: "Official geometry for cadastral boundary not found.",
+
+    // Left Panel - AI Concept Prompt
+    ai_prompt_heading: "3D Concept Generation",
+    ai_prompt_title: "Describe Desired Building",
+    ai_prompt_placeholder: "e.g. I want a 5-story residential building, approx 3,000 sq.m total area, modern architecture, commercial ground floor and residential apartments on upper floors.",
+    ai_btn_generate: "Generate 3D Concept",
+    ai_generating_text: "AI is analyzing parameters...",
+
+    // Parametric overrides
+    params_heading: "Parametric Adjustments",
+    param_floors: "Floors",
+    param_total_area: "Est. Total Gross Area (m²)",
+    param_footprint: "Ground Footprint (m²)",
+    param_height: "Floor Height (m)",
+    param_rotation: "Building Orientation on Plot",
+    param_style: "Architectural Style",
+    param_facade_mat: "Facade Material",
+    param_facade_color: "Primary Facade Tone",
+    param_ground_floor: "Ground Floor Use",
+
+    // Modes
+    mode_map: "Map View",
+    mode_2d: "2D Concept",
+    mode_3d: "3D Concept",
+    mode_combined: "Combined View",
+
+    // Provenance Badges
+    badge_official: "Official Data",
+    badge_calculated: "Calculated Data",
+    badge_ai: "AI Estimation",
+
+    // Disclaimers & Warnings
+    placement_warning: "Building placement is conceptual and does not constitute official zoning or construction approval.",
+    urban_warning: "Relevant official urban planning data for this parcel is not integrated at this stage.",
+    process_warning: "This system does not automatically submit applications to the municipality.",
+    historical_disclaimer: "This metric is based on historical records and does not represent an official municipal decision or permit guarantee.",
+    terrain_warning: "Accurate terrain analysis requires an on-site topographic survey.",
+
+    // Right Panel - Parcel Info & AI Assessment
+    parcel_info_title: "Parcel Attributes",
+    parcel_info_code: "Cadastral Code",
+    parcel_info_area: "Parcel Area",
+    parcel_info_shape: "Geometry Shape",
+    parcel_info_address: "Official Location",
+    parcel_info_terrain: "Topography",
+
+    assessment_title: "Project AI Assessment",
+    assess_footprint: "Building Footprint",
+    assess_free_land: "Remaining Open Ground",
+    assess_floors: "Total Floors",
+    assess_total_gfa: "Est. Gross Floor Area (GFA)",
+    assess_coverage: "Site Coverage (K1)",
+    assess_use: "Proposed Primary Use",
+
+    urban_title: "Urban Planning & Zoning",
+    urban_zone: "Functional Zone",
+    urban_k1: "Maximum K1",
+    urban_k2: "Maximum K2",
+    urban_k3: "Minimum K3",
+    urban_setbacks: "Building Setback Line",
+    urban_heritage: "Heritage Protection Zone",
+
+    history_title: "Historical Municipal Decisions",
+    history_stat_lead: "Trend Based on Similar Historical Records",
+    history_stat_val: "Positive decision share was 72%",
+    history_sample_desc: "Compared against 140+ publicly recorded administrative municipal decisions of similar scale and function in this district.",
+
+    // Variants & Export
+    variants_title: "Variant Management",
+    variant_a: "Variant A (Initial)",
+    variant_b: "Variant B (Compact)",
+    variant_c: "Variant C (Max Volume)",
+    btn_save_variant: "Save Variant",
+    btn_dup_variant: "Duplicate",
+
+    export_title: "Project Export",
+    export_btn_pdf: "PDF Report",
+    export_btn_png: "PNG Snapshot",
+    export_btn_geojson: "GeoJSON Data",
+    export_btn_obj: "3D OBJ Model",
 
     // Footer
     footer_tagline: "Building Information Modeling & Digital Engineering Excellence.",

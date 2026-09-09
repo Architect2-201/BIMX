@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="ka" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ნაკვეთის AI ანალიზი — BIMX Studio GIS & 3D ConTech</title>
+  <meta name="description" content="საქართველოში არსებული მიწის ნაკვეთების სივრცითი GIS ანალიზი, საკადასტრო კოდით მოძიება და შენობის საწყისი 3D კონცეფციის ავტო-გენერაცია.">
+  <meta name="keywords" content="ნაკვეთის AI ანალიზი, საკადასტრო კოდი, GIS საქართველო, 3D კონცეფცია, BIMX Studio, PropTech, ConTech, მიწის ნაკვეთი">
+
+  <!-- OpenGraph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.bimx.ge/parcel-ai.html">
+  <meta property="og:title" content="ნაკვეთის AI ანალიზი — BIMX Studio">
+  <meta property="og:description" content="მიწის ნაკვეთის საკადასტრო კოდი, სივრცითი GIS ანალიზი და შენობის საწყისი 3D კონცეფცია.">
+  <meta property="og:image" content="assets/images/hero-bim.jpg">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="assets/images/favicon.png">
+  <link rel="apple-touch-icon" href="assets/images/favicon.png">
+
+  <!-- Icons (FontAwesome) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Leaflet GIS Stylesheet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
+  <!-- Site Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="page-fade-in">
+
+  <!-- ==========================================================================
+       Header (Pristine Original Logo with Subtle Shadow)
+       ========================================================================== -->
+  <header class="header" id="mainHeader">
+    <div class="container-fluid nav-layout">
+      <!-- Pristine Original Logo with Subtle Shadow -->
+      <a href="index.html" class="brand-logo-link" id="brandLogo" aria-label="BIMX Studio Home">
+        <img src="assets/images/logo.png" alt="BIMX Studio" class="brand-logo-img">
+      </a>
+
+      <!-- Desktop Nav Links -->
+      <nav>
+        <ul class="nav-links-list" id="navLinksList">
+          <li><a href="index.html" class="nav-link-item" data-i18n="nav_home">მთავარი</a></li>
+          <li><a href="index.html#services" class="nav-link-item" data-i18n="nav_services">სერვისები</a></li>
+          <li><a href="apps.html" class="nav-link-item" data-i18n="nav_apps">აპლიკაციები</a></li>
+          <li><a href="plugins.html" class="nav-link-item" data-i18n="nav_plugins">პლაგინები</a></li>
+          <li><a href="parcel-ai.html" class="nav-link-item active" data-i18n="nav_parcel_ai">ნაკვეთის AI ანალიზი</a></li>
+          <li><a href="index.html#projects" class="nav-link-item" data-i18n="nav_portfolio">პროექტები</a></li>
+          <li><a href="index.html#calculator" class="nav-link-item" data-i18n="nav_calc">კალკულატორი</a></li>
+          <li><a href="index.html#contact" class="nav-link-item" data-i18n="nav_contact">კონტაქტი</a></li>
+        </ul>
+      </nav>
+
+      <!-- Actions Group -->
+      <div class="nav-actions-group">
+        <!-- Language Switcher -->
+        <div class="lang-switch-box">
+          <button type="button" class="lang-btn active" data-lang="ka">KA</button>
+          <span style="color: var(--text-muted); opacity: 0.4;">/</span>
+          <button type="button" class="lang-btn" data-lang="en">EN</button>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle Light/Dark Theme">
+          <i class="fa-regular fa-sun"></i>
+        </button>
+
+        <a href="index.html#contact" class="btn-pill btn-pill-primary header-cta-btn" data-i18n="nav_cta">კონსულტაცია</a>
+
+        <!-- Mobile Hamburger -->
+        <button class="mobile-hamburger" id="mobileHamburger" aria-label="Toggle mobile menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================================================
+       Top Introduction Banner & Official Process Disclaimer
+       ========================================================================== -->
+  <section class="parcel-top-intro">
+    <div class="container-fluid">
+      <div class="intro-flex">
+        <div>
+          <div class="label-hud">
+            <span class="hud-dot"></span>
+            <span>PROPTECH &amp; CONTECH GIS ENGINE</span>
+          </div>
+          <h1 class="parcel-main-heading" data-i18n="parcel_main_title">ნაკვეთის AI ანალიზი</h1>
+          <p class="parcel-main-lead" data-i18n="parcel_main_desc">
+            შეიყვანე საკადასტრო კოდი, ნახე ნაკვეთი, გააანალიზე მისი სივრცითი მონაცემები და შექმენი შენობის საწყისი 3D კონცეფცია.
+          </p>
+        </div>
+
+        <!-- System Status Banner (Item 13 in user requirements) -->
+        <div class="banner-system-status">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span data-i18n="process_warning">ეს სისტემა არ აგზავნის განაცხადს ავტომატურად მუნიციპალიტეტში.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       Main Tri-Panel Workspace
+       ========================================================================== -->
+  <main class="gis-workspace-wrapper">
+    <div class="gis-workspace-grid">
+
+      <!-- ====================================================================
+           LEFT PANEL: Cadastral Input, AI Concept Prompt & Parametric Controls
+           ==================================================================== -->
+      <aside class="gis-panel panel-left" aria-label="Parcel and Concept Parameters">
+        <div class="gis-panel-header">
+          <h2 class="gis-panel-title">
+            <i class="fa-solid fa-sliders" style="color: var(--cyan-neon);"></i>
+            <span data-i18n="parcel_cadastral_heading">საკადასტრო მონაცემები</span>
+          </h2>
+          <span class="provenance-tag-pill official" data-i18n="badge_official">ოფიციალური</span>
+        </div>
+
+        <div class="gis-panel-body">
+          <!-- 1. Cadastral Code Input -->
+          <div class="cadastral-input-box">
+            <label for="cadastralCodeInput" style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;" data-i18n="parcel_lbl_cadastral">
+              საკადასტრო კოდი
+            </label>
+            <input type="text" id="cadastralCodeInput" class="cadastral-input" placeholder="01.15.02.038.003" value="01.15.02.038.003" data-i18n-ph="parcel_ph_cadastral">
+          </div>
+
+          <button type="button" class="btn-cadastral-search" id="cadastralSearchBtn">
+            <i class="fa-solid fa-magnifying-glass-location"></i>
+            <span data-i18n="parcel_btn_search">ნაკვეთის მოძიება</span>
+          </button>
+
+          <!-- Sample Official Parcels Dropdown for Instant Testing -->
+          <select class="sample-parcels-select" id="sampleParcelsSelect" aria-label="Sample official parcels">
+            <option value="" disabled selected data-i18n="parcel_sample_lbl">სატესტო ოფიციალური ნაკვეთები</option>
+            <option value="01.15.02.038.003">თბილისი, საბურთალო (1,250 მ² · 01.15.02.038.003)</option>
+            <option value="01.14.04.012.015">თბილისი, ვაკე (2,100 მ² · 01.14.04.012.015)</option>
+            <option value="01.10.15.045.022">თბილისი, დიდი დიღომი (4,500 მ² · 01.10.15.045.022)</option>
+            <option value="05.21.11.002.040">ბათუმი, რუსთაველის გამზ. (1,850 მ² · 05.21.11.002.040)</option>
+            <option value="03.02.05.018.009">ქუთაისი, წერეთლის ქუჩა (1,600 მ² · 03.02.05.018.009)</option>
+          </select>
+
+          <!-- Alert / Validation Message Area -->
+          <div class="cadastral-alert-message" id="cadastralAlertMsg"></div>
+
+          <!-- 2. AI Text Concept Generation -->
+          <div class="ai-prompt-box">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <label for="aiPromptInput" style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary);" data-i18n="ai_prompt_title">
+                აღწერე სასურველი შენობა
+              </label>
+              <span class="provenance-tag-pill ai" data-i18n="badge_ai">AI შეფასება</span>
+            </div>
+
+            <textarea id="aiPromptInput" class="ai-prompt-textarea" rows="4" data-i18n-ph="ai_prompt_placeholder" placeholder="მაგ. მინდა 5-სართულიანი საცხოვრებელი შენობა, დაახლოებით 3,000 კვადრატული მეტრი ფართობით, თანამედროვე არქიტექტურით, პირველ სართულზე კომერციული ფართებით და ზედა სართულებზე ბინებით.">მინდა 5-სართულიანი საცხოვრებელი შენობა, დაახლოებით 3,000 კვადრატული მეტრი ფართობით, თანამედროვე არქიტექტურით, პირველ სართულზე კომერციული ფართებით და ზედა სართულებზე ბინებით.</textarea>
+
+            <button type="button" class="btn-generate-concept" id="aiGenerateBtn">
+              <i class="fa-solid fa-wand-magic-sparkles"></i>
+              <span data-i18n="ai_btn_generate">3D კონცეფციის შექმნა</span>
+            </button>
+          </div>
+
+          <!-- 3. Parametric Adjustments (User Overrides) -->
+          <div class="parametric-section">
+            <h3 style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); margin-bottom: 14px;" data-i18n="params_heading">
+              პარამეტრების კორექტირება
+            </h3>
+
+            <!-- Floors Slider -->
+            <div class="control-field-row">
+              <label for="sliderFloors" data-i18n="param_floors">სართულიანობა</label>
+              <span class="control-val" id="displayFloors">5</span>
+            </div>
+            <input type="range" id="sliderFloors" class="slider-custom" min="1" max="25" value="5">
+
+            <!-- Footprint Slider -->
+            <div class="control-field-row">
+              <label for="sliderFootprint" data-i18n="param_footprint">საძირკვლის ფართობი (Footprint)</label>
+              <span class="control-val" id="displayFootprint">450 მ²</span>
+            </div>
+            <input type="range" id="sliderFootprint" class="slider-custom" min="100" max="2500" step="25" value="450">
+
+            <!-- Floor Height -->
+            <div class="control-field-row">
+              <label for="sliderHeight" data-i18n="param_height">სართულის სიმაღლე</label>
+              <span class="control-val" id="displayHeight">3.3 მ</span>
+            </div>
+            <input type="range" id="sliderHeight" class="slider-custom" min="2.8" max="4.5" step="0.1" value="3.3">
+
+            <!-- Building Rotation on Site -->
+            <div class="control-field-row">
+              <label for="sliderRotation" data-i18n="param_rotation">როტაცია ნაკვეთზე</label>
+              <span class="control-val" id="displayRotation">0°</span>
+            </div>
+            <input type="range" id="sliderRotation" class="slider-custom" min="0" max="360" step="5" value="0">
+
+            <!-- Facade Material -->
+            <label for="selectMaterial" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 5px;" data-i18n="param_facade_mat">
+              ფასადის მასალა
+            </label>
+            <select class="select-compact" id="selectMaterial">
+              <option value="concrete">არქიტექტურული ბეტონი (Concrete)</option>
+              <option value="glass">შუშის ვიტრაჟი (Curtain Wall)</option>
+              <option value="brick">აგური (Textured Brick)</option>
+              <option value="composite">ალუმინის კომპოზიტი (Composite)</option>
+            </select>
+
+            <!-- Architectural Style -->
+            <label for="selectStyle" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 5px;" data-i18n="param_style">
+              არქიტექტურული სტილი
+            </label>
+            <select class="select-compact" id="selectStyle">
+              <option value="modern">თანამედროვე (Modern)</option>
+              <option value="minimalist">მინიმალისტური (Minimalist)</option>
+              <option value="high-tech">ჰაიტექი (High-Tech)</option>
+              <option value="classic">კლასიკური (Classic)</option>
+            </select>
+
+            <!-- Ground Floor Function -->
+            <label for="selectGroundUse" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 5px;" data-i18n="param_ground_floor">
+              პირველი სართულის ფუნქცია
+            </label>
+            <select class="select-compact" id="selectGroundUse">
+              <option value="commercial">კომერციული / საცალო ვაჭრობა</option>
+              <option value="lobby">საცხოვრებელი ლობი</option>
+              <option value="parking">ავტოსადგომი</option>
+            </select>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ====================================================================
+           CENTER WORKSPACE: Interactive GIS Map & 3D WebGL Massing Canvas
+           ==================================================================== -->
+      <section class="gis-panel center-viewport-container" aria-label="Interactive Map and 3D Viewport">
+        <!-- Mode Switcher Bar -->
+        <div class="mode-switcher-bar">
+          <div class="mode-tabs-group" role="tablist">
+            <button type="button" class="mode-tab-btn" data-mode="map" role="tab" aria-selected="false">
+              <i class="fa-solid fa-map"></i>
+              <span data-i18n="mode_map">რუკა</span>
+            </button>
+            <button type="button" class="mode-tab-btn" data-mode="2d" role="tab" aria-selected="false">
+              <i class="fa-solid fa-vector-square"></i>
+              <span data-i18n="mode_2d">2D კონცეფცია</span>
+            </button>
+            <button type="button" class="mode-tab-btn active" data-mode="3d" role="tab" aria-selected="true">
+              <i class="fa-solid fa-cube"></i>
+              <span data-i18n="mode_3d">3D კონცეფცია</span>
+            </button>
+            <button type="button" class="mode-tab-btn" data-mode="combined" role="tab" aria-selected="false">
+              <i class="fa-solid fa-table-columns"></i>
+              <span data-i18n="mode_combined">კომბინირებული ხედი</span>
+            </button>
+          </div>
+
+          <div class="viewport-tools-group">
+            <button type="button" class="tool-icon-btn active" id="btnToggleSatellite" title="Satellite Imagery">
+              <i class="fa-solid fa-earth-americas"></i>
+            </button>
+            <button type="button" class="tool-icon-btn" id="btnResetCenter" title="Reset View / Center on Plot">
+              <i class="fa-solid fa-crosshairs"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Viewport Stage -->
+        <div class="viewport-stage mode-3d" id="viewportStage">
+          <!-- 2D Leaflet Map Layer -->
+          <div id="mapViewport" role="region" aria-label="GIS Map View"></div>
+
+          <!-- 3D Three.js WebGL Canvas Container -->
+          <div id="threeViewport" role="region" aria-label="3D WebGL Canvas View"></div>
+
+          <!-- HUD Floating Overlays -->
+          <div class="viewport-hud-overlay">
+            <div class="hud-pill-badge">
+              <i class="fa-solid fa-location-dot" style="color: var(--cyan-neon);"></i>
+              <span id="hudCadastral">01.15.02.038.003</span>
+            </div>
+            <div class="hud-pill-badge">
+              <i class="fa-solid fa-chart-area" style="color: var(--cyan-neon);"></i>
+              <span id="hudArea">1,250 მ²</span>
+            </div>
+          </div>
+
+          <!-- North Compass Indicator -->
+          <div class="viewport-compass" title="North orientation">
+            <span>N</span>
+          </div>
+
+          <!-- Mandatory Bottom Conceptual Disclaimer (Item 7 in requirements) -->
+          <div class="viewport-bottom-disclaimer">
+            <i class="fa-solid fa-circle-exclamation" style="color: var(--amber-neon);"></i>
+            <span data-i18n="placement_warning">
+              შენობის განთავსება არის კონცეპტუალური და არ წარმოადგენს ოფიციალურ განაშენიანების ან სამშენებლო პირობებს.
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           RIGHT PANEL: AI Assessment, Provenance Badges, Zoning & Export
+           ==================================================================== -->
+      <aside class="gis-panel panel-right" aria-label="AI Assessment and Spatial Data">
+        <div class="gis-panel-header">
+          <h2 class="gis-panel-title">
+            <i class="fa-solid fa-chart-pie" style="color: var(--cyan-neon);"></i>
+            <span data-i18n="assessment_title">პროექტის AI შეფასება</span>
+          </h2>
+          <span class="provenance-tag-pill calculated" data-i18n="badge_calculated">დამუშავებული</span>
+        </div>
+
+        <div class="gis-panel-body">
+          <!-- Section 1: Official Parcel Attributes -->
+          <div class="section-block-analytic">
+            <div class="analytic-header-row">
+              <h3 data-i18n="parcel_info_title">ნაკვეთის მონაცემები</h3>
+              <span class="provenance-tag-pill official" data-i18n="badge_official">ოფიციალური</span>
+            </div>
+
+            <div class="analytic-data-list">
+              <div class="analytic-data-item">
+                <span class="label" data-i18n="parcel_info_code">საკადასტრო კოდი</span>
+                <span class="val" id="infoCadastralCode">01.15.02.038.003</span>
+              </div>
+              <div class="analytic-data-item">
+                <span class="label" data-i18n="parcel_info_area">ნაკვეთის ფართობი</span>
+                <span class="val" id="infoParcelArea">1,250 მ²</span>
+              </div>
+              <div class="analytic-data-item">
+                <span class="label" data-i18n="parcel_info_shape">ფორმა</span>
+                <span class="val" id="infoParcelShape">მრავალკუთხა (არარეგულარული)</span>
+              </div>
+              <div class="analytic-data-item">
+                <span class="label" data-i18n="parcel_info_address">მისამართი</span>
+                <span class="val" id="infoParcelAddress">თბილისი, საბურთალო, პეკინის გამზ. #28</span>
+              </div>
+              <div class="analytic-data-item">
+                <span class="label" data-i18n="parcel_info_terrain">რელიეფი</span>
+                <span class="val" id="infoParcelTerrain" style="font-size: 0.78rem; color: var(--text-secondary);">
+                  ვაკე / მცირედ დახრილი (2%)
+                </span>
+              </div>
+            </div>
+            <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 8px;" data-i18n="terrain_warning">
+              რელიეფის ზუსტი მონაცემისთვის საჭიროა ტოპოგრაფიული კვლევა.
+            </p>
+          </div>
+
+          <!-- Section 2: AI Conceptual Estimation -->
+          <div class="section-block-analytic">
+            <div class="analytic-header-row">
+              <h3 data-i18n="assessment_title">კონცეპტუალური შეფასება</h3>
+              <span class="provenance-tag-pill ai" data-i18n="badge_ai">AI შეფასება</span>
+            </div>
+
+            <div class="metrics-grid-2col">
+              <div class="metric-card-unit">
+                <span class="metric-lbl" data-i18n="assess_footprint">შენობის Footprint</span>
+                <span class="metric-val" id="assessFootprint">450 მ²</span>
+              </div>
+              <div class="metric-card-unit">
+                <span class="metric-lbl" data-i18n="assess_free_land">თავისუფალი სივრცე</span>
+                <span class="metric-val" id="assessFreeLand">800 მ²</span>
+              </div>
+              <div class="metric-card-unit">
+                <span class="metric-lbl" data-i18n="assess_floors">სართულიანობა</span>
+                <span class="metric-val" id="assessFloors">5</span>
+              </div>
+              <div class="metric-card-unit">
+                <span class="metric-lbl" data-i18n="assess_total_gfa">საერთო ფართობი (GFA)</span>
+                <span class="metric-val" id="assessTotalGFA">2,250 მ²</span>
+              </div>
+            </div>
+
+            <div class="analytic-data-list" style="margin-top: 10px;">
+              <div class="analytic-data-item">
+                <span class="label" data-i18n="assess_coverage">განაშენიანების კოეფიციენტი (K1)</span>
+                <span class="val" id="assessCoverage">36% (K1: 0.36)</span>
+              </div>
+              <div class="analytic-data-item">
+                <span class="label" data-i18n="assess_use">მოთხოვნილი ფუნქცია</span>
+                <span class="val" id="assessFunction">RESIDENTIAL</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Urban Planning & Regulations -->
+          <div class="section-block-analytic">
+            <div class="analytic-header-row">
+              <h3 data-i18n="urban_title">ქალაქმშენებლობითი მონაცემები</h3>
+              <span class="provenance-tag-pill calculated" data-i18n="badge_calculated">დამუშავებული</span>
+            </div>
+
+            <div class="analytic-data-list">
+              <div class="analytic-data-item">
+                <span class="label" data-i18n="urban_zone">ფუნქციური ზონა</span>
+                <span class="val" id="infoParcelZone">საზოგადოებრივ-საქმიანი (სზ-2)</span>
+              </div>
+              <div class="analytic-data-item">
+                <span class="label" data-i18n="urban_k1">მაქსიმალური K1</span>
+                <span class="val" id="infoParcelK1">0.50</span>
+              </div>
+              <div class="analytic-data-item">
+                <span class="label" data-i18n="urban_k2">მაქსიმალური K2</span>
+                <span class="val" id="infoParcelK2">3.50</span>
+              </div>
+              <div class="analytic-data-item">
+                <span class="label" data-i18n="urban_k3">მინიმალური K3</span>
+                <span class="val" id="infoParcelK3">0.20</span>
+              </div>
+            </div>
+
+            <div style="margin-top: 10px; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--bg-surface); border: 1px solid var(--border-line); font-size: 0.72rem; color: var(--text-muted); line-height: 1.45;">
+              <i class="fa-solid fa-info-circle" style="color: var(--cyan-neon);"></i>
+              <span data-i18n="urban_warning">ამ ნაკვეთისთვის შესაბამისი ოფიციალური ქალაქმშენებლობითი მონაცემი ამ ეტაპზე არ არის ინტეგრირებული სისტემაში.</span>
+            </div>
+          </div>
+
+          <!-- Section 4: Historical Municipal Decisions Analysis (Item 12 in user requirements) -->
+          <div class="section-block-analytic">
+            <div class="analytic-header-row">
+              <h3 data-i18n="history_title">ისტორიული გადაწყვეტილებები</h3>
+              <span class="provenance-tag-pill ai" data-i18n="badge_ai">სტატისტიკა</span>
+            </div>
+
+            <div class="history-trend-box">
+              <div class="history-percentage-row">
+                <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary);" data-i18n="history_stat_lead">
+                  მსგავს შემთხვევებზე დაფუძნებული მაჩვენებელი
+                </span>
+                <span class="history-percent-number">72%</span>
+              </div>
+              <div class="history-progress-track">
+                <div class="history-progress-fill"></div>
+              </div>
+              <p class="history-disclaimer-note" data-i18n="historical_disclaimer">
+                ეს მაჩვენებელი ეფუძნება ისტორიულ მონაცემებს და არ წარმოადგენს მუნიციპალიტეტის ოფიციალურ გადაწყვეტილებას ან დამტკიცების გარანტიას.
+              </p>
+            </div>
+          </div>
+
+          <!-- Section 5: Variant Management (Item 14 in user requirements) -->
+          <div class="section-block-analytic">
+            <div class="analytic-header-row">
+              <h3 data-i18n="variants_title">ვარიანტების მართვა</h3>
+            </div>
+
+            <div class="variant-tabs-row">
+              <button type="button" class="variant-tab-pill active" data-variant="A">ვარიანტი A</button>
+              <button type="button" class="variant-tab-pill" data-variant="B">ვარიანტი B</button>
+              <button type="button" class="variant-tab-pill" data-variant="C">ვარიანტი C</button>
+            </div>
+
+            <div class="variant-actions-row">
+              <button type="button" class="btn-variant-action" id="btnSaveVariant">
+                <i class="fa-solid fa-floppy-disk"></i>
+                <span data-i18n="btn_save_variant">შენახვა</span>
+              </button>
+              <button type="button" class="btn-variant-action" id="btnDupVariant">
+                <i class="fa-solid fa-copy"></i>
+                <span data-i18n="btn_dup_variant">დუბლირება</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Section 6: Export Tools (Item 15 in user requirements) -->
+          <div class="section-block-analytic">
+            <div class="analytic-header-row">
+              <h3 data-i18n="export_title">პროექტის ექსპორტი</h3>
+            </div>
+
+            <div class="export-buttons-grid">
+              <button type="button" class="btn-export-tile" id="exportBtnPdf">
+                <i class="fa-solid fa-file-pdf" style="color: #ef4444;"></i>
+                <span data-i18n="export_btn_pdf">PDF ანგარიში</span>
+              </button>
+              <button type="button" class="btn-export-tile" id="exportBtnPng">
+                <i class="fa-solid fa-image" style="color: var(--cyan-neon);"></i>
+                <span data-i18n="export_btn_png">PNG სურათი</span>
+              </button>
+              <button type="button" class="btn-export-tile" id="exportBtnGeoJson">
+                <i class="fa-solid fa-map-location-dot" style="color: #10b981;"></i>
+                <span data-i18n="export_btn_geojson">GeoJSON</span>
+              </button>
+              <button type="button" class="btn-export-tile" id="exportBtnObj">
+                <i class="fa-solid fa-cube" style="color: #f59e0b;"></i>
+                <span data-i18n="export_btn_obj">3D OBJ</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </aside>
+
+    </div>
+  </main>
+
+  <!-- ==========================================================================
+       Footer
+       ========================================================================== -->
+  <footer class="footer-widescreen">
+    <div class="container-fluid">
+      <div class="footer-top-split">
+        <div>
+          <a href="index.html" class="brand-logo-link">
+            <img src="assets/images/logo.png" alt="BIMX Studio" class="brand-logo-img">
+          </a>
+          <p class="label-hud" style="margin-top: 14px; max-width: 400px;" data-i18n="footer_tagline">
+            Building Information Modeling & Digital Engineering Excellence.
+          </p>
+        </div>
+
+        <div class="socials-round-list">
+          <a href="https://www.instagram.com/_bim_x_/" target="_blank" class="round-social-btn" aria-label="Instagram">
+            <i class="fa-brands fa-instagram"></i>
+          </a>
+          <a href="https://wa.me/995599000000" target="_blank" class="round-social-btn" aria-label="WhatsApp">
+            <i class="fa-brands fa-whatsapp"></i>
+          </a>
+          <a href="https://www.facebook.com" target="_blank" class="round-social-btn" aria-label="Facebook">
+            <i class="fa-brands fa-facebook-f"></i>
+          </a>
+          <a href="https://www.linkedin.com" target="_blank" class="round-social-btn" aria-label="LinkedIn">
+            <i class="fa-brands fa-linkedin-in"></i>
+          </a>
+        </div>
+      </div>
+
+      <div class="footer-bottom-split">
+        <p>&copy; 2026 BIMX Studio. <span data-i18n="footer_rights">ყველა უფლება დაცულია.</span></p>
+        <p class="label-hud">Autonomous BIM Platform · Powered by Antigravity</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <!-- 1. Leaflet GIS Library -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- 2. Three.js 3D WebGL Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <!-- 3. Turf.js GIS Spatial Calculations -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
+
+  <!-- 4. Platform Scripts -->
+  <script src="translations.js"></script>
+  <script src="main.js"></script>
+  <script src="parcel-ai.js"></script>
+</body>
+</html>
