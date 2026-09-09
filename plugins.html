@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ka" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BIMX Studio — BIM პლაგინები და სკრიპტები</title>
+  <meta name="description" content="Autodesk Revit, ArchiCAD და Navisworks გაფართოებები და პლაგინები სამუშაო დროის დასაზოგად და BIM პროცესების ავტომატიზაციისთვის.">
+  <meta name="keywords" content="Revit პლაგინები, ArchiCAD Add-in, Navisworks BCF, BIMX Studio, Clash Auto Fixer, Sheet Generator">
+
+  <!-- OpenGraph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.bimx.ge/plugins.html">
+  <meta property="og:title" content="BIMX Studio — BIM პლაგინები და სკრიპტები">
+  <meta property="og:description" content="Autodesk Revit, ArchiCAD და Navisworks პროფესიონალური პლაგინები.">
+  <meta property="og:image" content="assets/images/hero-bim.jpg">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="assets/images/favicon.png">
+  <link rel="apple-touch-icon" href="assets/images/favicon.png">
+
+  <!-- Icons (FontAwesome) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="page-fade-in">
+
+  <!-- ==========================================================================
+       Header (Pristine Original Logo with Subtle Shadow)
+       ========================================================================== -->
+  <header class="header" id="mainHeader">
+    <div class="container-fluid nav-layout">
+      <!-- Pristine Original Logo with Subtle Shadow -->
+      <a href="index.html" class="brand-logo-link" id="brandLogo" aria-label="BIMX Studio Home">
+        <img src="assets/images/logo.png" alt="BIMX Studio" class="brand-logo-img">
+      </a>
+
+      <!-- Desktop Nav Links -->
+      <nav>
+        <ul class="nav-links-list" id="navLinksList">
+          <li><a href="index.html" class="nav-link-item" data-i18n="nav_home">მთავარი</a></li>
+          <li><a href="index.html#services" class="nav-link-item" data-i18n="nav_services">სერვისები</a></li>
+          <li><a href="apps.html" class="nav-link-item" data-i18n="nav_apps">აპლიკაციები</a></li>
+          <li><a href="plugins.html" class="nav-link-item active" data-i18n="nav_plugins">პლაგინები</a></li>
+          <li><a href="index.html#projects" class="nav-link-item" data-i18n="nav_portfolio">პროექტები</a></li>
+          <li><a href="index.html#calculator" class="nav-link-item" data-i18n="nav_calc">კალკულატორი</a></li>
+          <li><a href="index.html#contact" class="nav-link-item" data-i18n="nav_contact">კონტაქტი</a></li>
+        </ul>
+      </nav>
+
+      <!-- Actions Group -->
+      <div class="nav-actions-group">
+        <!-- Language Switcher -->
+        <div class="lang-switch-box">
+          <button type="button" class="lang-btn active" data-lang="ka">KA</button>
+          <span style="color: var(--text-muted); opacity: 0.4;">/</span>
+          <button type="button" class="lang-btn" data-lang="en">EN</button>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle Light/Dark Theme">
+          <i class="fa-regular fa-sun"></i>
+        </button>
+
+        <a href="index.html#contact" class="btn-pill btn-pill-primary header-cta-btn" data-i18n="nav_cta">კონსულტაცია</a>
+
+        <!-- Mobile Hamburger -->
+        <button class="mobile-hamburger" id="mobileHamburger" aria-label="Toggle mobile menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================================================
+       Hero Banner / Intro for Plugins
+       ========================================================================== -->
+  <section class="catalog-hero-section">
+    <div class="container-fluid">
+      <div class="catalog-header-content anim-reveal">
+        <div class="catalog-breadcrumb">
+          <a href="index.html" data-i18n="nav_home">მთავარი</a>
+          <i class="fa-solid fa-chevron-right" style="font-size: 0.65rem;"></i>
+          <span data-i18n="nav_plugins">პლაგინები</span>
+        </div>
+
+        <div class="label-hud" style="margin-bottom: 14px;">
+          <span class="hud-dot"></span>
+          <span data-i18n="plugins_hero_tag">PRODUCTIVITY ADD-INS</span>
+        </div>
+
+        <h1 class="catalog-headline">
+          <span data-i18n="plugins_hero_title">BIM პლაგინები და სკრიპტები</span>
+        </h1>
+
+        <p class="catalog-subheadline" data-i18n="plugins_hero_desc">
+          Autodesk Revit, ArchiCAD და Navisworks გაფართოებები სამუშაო დროის 40%-ით დასაზოგად და რუტინული პროცესების გასამარტივებლად.
+        </p>
+
+        <div class="catalog-stat-strip">
+          <div class="catalog-stat-item">
+            <i class="fa-solid fa-bolt"></i>
+            <span>Revit 2022–2026 Native .NET</span>
+          </div>
+          <div class="catalog-stat-item">
+            <i class="fa-solid fa-cubes"></i>
+            <span>ArchiCAD & Navisworks API</span>
+          </div>
+          <div class="catalog-stat-item">
+            <i class="fa-solid fa-file-zipper"></i>
+            <span>Instant Zip & Add-in Packages</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       Action Toolbar (Search, Filter Tabs, Upload Modal Button)
+       ========================================================================== -->
+  <section class="catalog-toolbar-section">
+    <div class="container-fluid">
+      <div class="catalog-toolbar-flex">
+        <!-- Search -->
+        <div class="catalog-search-wrap">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="catalogSearchInput" class="catalog-search-input" placeholder="მოძებნეთ პლაგინი დასახელებით ან პლატფორმით..." data-i18n-ph="plugins_search_ph">
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="catalog-filters-group">
+          <button type="button" class="catalog-filter-btn active" data-filter="all" data-i18n="plugins_filter_all">ყველა პლაგინი</button>
+          <button type="button" class="catalog-filter-btn" data-filter="revit" data-i18n="plugins_filter_revit">Autodesk Revit</button>
+          <button type="button" class="catalog-filter-btn" data-filter="archicad" data-i18n="plugins_filter_archicad">ArchiCAD</button>
+          <button type="button" class="catalog-filter-btn" data-filter="navis" data-i18n="plugins_filter_navis">Navisworks</button>
+        </div>
+
+        <!-- Upload Trigger -->
+        <button type="button" class="btn-upload-trigger" id="openUploadModalBtn">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span data-i18n="plugins_upload_btn">პლაგინის ატვირთვა</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       Plugins Grid Section
+       ========================================================================== -->
+  <section class="catalog-cards-section">
+    <div class="container-fluid">
+      <div class="catalog-grid" id="catalogGrid">
+
+        <!-- Plugin Card 1: Revit Clash Auto-Fixer -->
+        <div class="catalog-item-card anim-reveal" data-category="revit" data-id="plugin-1">
+          <div>
+            <div class="card-top-badge-row">
+              <span class="platform-pill">
+                <i class="fa-solid fa-plug"></i> Autodesk Revit
+              </span>
+              <span class="version-pill">
+                <i class="fa-solid fa-code-branch"></i> v4.2.1 · 14 MB
+              </span>
+            </div>
+            <h3 class="card-title-lg" data-i18n="plugin_1_title">Revit Clash Auto-Fixer</h3>
+            <p class="card-desc-body" data-i18n="plugin_1_desc">
+              MEP მილებისა და საჰაერო არხების სამშენებლო კონსტრუქციებთან შეჯახების ავტომატური გადაჭრა მითითებული ოფსეტებით.
+            </p>
+            <ul class="card-specs-list">
+              <li><i class="fa-solid fa-check"></i> <span>ავტომატური შემოვლები (Bypass) და ჭრები კედლებში</span></li>
+              <li><i class="fa-solid fa-check"></i> <span>Revit 2023–2026 სრული თავსებადობა (.NET 8)</span></li>
+              <li><i class="fa-solid fa-check"></i> <span>მშენებლობაზე შეჯახებების 95%-მდე შემცირება</span></li>
+            </ul>
+          </div>
+          <div class="card-action-footer">
+            <button type="button" class="btn-download-action" data-filename="BIMX-Revit-Clash-AutoFixer-v4.2.zip">
+              <i class="fa-solid fa-download"></i>
+              <span data-i18n="plugins_download_btn">ჩამოტვირთვა (.ZIP)</span>
+            </button>
+            <button type="button" class="btn-docs-action" title="Installation Guide">
+              <i class="fa-solid fa-book"></i>
+              <span data-i18n="plugins_details_btn">გზამკვლევი</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Plugin Card 2: Revit Smart Sheet Generator -->
+        <div class="catalog-item-card anim-reveal" data-category="revit" data-id="plugin-2" style="transition-delay: 0.1s;">
+          <div>
+            <div class="card-top-badge-row">
+              <span class="platform-pill">
+                <i class="fa-solid fa-file-lines"></i> Autodesk Revit
+              </span>
+              <span class="version-pill">
+                <i class="fa-solid fa-code-branch"></i> v2.0.4 · 8 MB
+              </span>
+            </div>
+            <h3 class="card-title-lg" data-i18n="plugin_2_title">Revit Smart Sheet Generator</h3>
+            <p class="card-desc-body" data-i18n="plugin_2_desc">
+              ნახაზების ფურცლების, ჭრების და ფასადების ავტომატური გენერაცია და ნუმერაცია საპროექტო შაბლონის მიხედვით.
+            </p>
+            <ul class="card-specs-list">
+              <li><i class="fa-solid fa-check"></i> <span>100+ ფურცლის გენერაცია 10 წამში Title Block-ებით</span></li>
+              <li><i class="fa-solid fa-check"></i> <span>ხედების (Views) ზუსტი განლაგება ბადის მიხედვით</span></li>
+              <li><i class="fa-solid fa-check"></i> <span>ავტომატური PDF ექსპორტი და დასახელების წესები</span></li>
+            </ul>
+          </div>
+          <div class="card-action-footer">
+            <button type="button" class="btn-download-action" data-filename="BIMX-Revit-Sheet-Generator-v2.0.zip">
+              <i class="fa-solid fa-download"></i>
+              <span data-i18n="plugins_download_btn">ჩამოტვირთვა (.ZIP)</span>
+            </button>
+            <button type="button" class="btn-docs-action" title="Installation Guide">
+              <i class="fa-solid fa-book"></i>
+              <span data-i18n="plugins_details_btn">გზამკვლევი</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Plugin Card 3: Navisworks BCF Live Sync -->
+        <div class="catalog-item-card anim-reveal" data-category="navis" data-id="plugin-3" style="transition-delay: 0.2s;">
+          <div>
+            <div class="card-top-badge-row">
+              <span class="platform-pill">
+                <i class="fa-solid fa-arrows-rotate"></i> Navisworks
+              </span>
+              <span class="version-pill">
+                <i class="fa-solid fa-code-branch"></i> v1.5.0 · 11 MB
+              </span>
+            </div>
+            <h3 class="card-title-lg" data-i18n="plugin_3_title">Navisworks BCF Live Sync</h3>
+            <p class="card-desc-body" data-i18n="plugin_3_desc">
+              შეჯახებების მყისიერი სინქრონიზაცია BCF 2.1 ფორმატში BIM Track-სა და Revizto-სთან რეალურ დროში.
+            </p>
+            <ul class="card-specs-list">
+              <li><i class="fa-solid fa-check"></i> <span>ორმხრივი სინქრონიზაცია Cloud ပლატფორმებთან</span></li>
+              <li><i class="fa-solid fa-check"></i> <span>კამერის პოზიციის და Viewpoint-ების გადატანა</span></li>
+              <li><i class="fa-solid fa-check"></i> <span>სტატუსების მართვა (Open, Resolved, Closed)</span></li>
+            </ul>
+          </div>
+          <div class="card-action-footer">
+            <button type="button" class="btn-download-action" data-filename="BIMX-Navisworks-BCF-Sync-v1.5.zip">
+              <i class="fa-solid fa-download"></i>
+              <span data-i18n="plugins_download_btn">ჩამოტვირთვა (.ZIP)</span>
+            </button>
+            <button type="button" class="btn-docs-action" title="Installation Guide">
+              <i class="fa-solid fa-book"></i>
+              <span data-i18n="plugins_details_btn">გზამკვლევი</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Plugin Card 4: ArchiCAD OpenBIM Exporter -->
+        <div class="catalog-item-card anim-reveal" data-category="archicad" data-id="plugin-4" style="transition-delay: 0.3s;">
+          <div>
+            <div class="card-top-badge-row">
+              <span class="platform-pill">
+                <i class="fa-solid fa-cubes"></i> Graphisoft ArchiCAD
+              </span>
+              <span class="version-pill">
+                <i class="fa-solid fa-code-branch"></i> v1.2.0 · 6 MB
+              </span>
+            </div>
+            <h3 class="card-title-lg" data-i18n="plugin_4_title">ArchiCAD OpenBIM Exporter</h3>
+            <p class="card-desc-body" data-i18n="plugin_4_desc">
+              IFC4 ექსპორტის ოპტიმიზაცია, კლასიფიკაციების და ფენების ავტომატური რუკირება უდანაკარგო კოორდინაციისთვის.
+            </p>
+            <ul class="card-specs-list">
+              <li><i class="fa-solid fa-check"></i> <span>IFC Reference View 1.2 & Design Transfer</span></li>
+              <li><i class="fa-solid fa-check"></i> <span>მატერიალების და პარამეტრების უდანაკარგო ექსპორტი</span></li>
+              <li><i class="fa-solid fa-check"></i> <span>ArchiCAD 26–28 სრული თავსებადობა</span></li>
+            </ul>
+          </div>
+          <div class="card-action-footer">
+            <button type="button" class="btn-download-action" data-filename="BIMX-ArchiCAD-OpenBIM-v1.2.zip">
+              <i class="fa-solid fa-download"></i>
+              <span data-i18n="plugins_download_btn">ჩამოტვირთვა (.ZIP)</span>
+            </button>
+            <button type="button" class="btn-docs-action" title="Installation Guide">
+              <i class="fa-solid fa-book"></i>
+              <span data-i18n="plugins_details_btn">გზამკვლევი</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Empty State -->
+      <div class="catalog-empty-state" id="catalogEmptyState">
+        <i class="fa-solid fa-box-open"></i>
+        <h4>შესატყვისი პლაგინი ვერ მოიძებნა</h4>
+        <p>სცადეთ სხვა საძიებო სიტყვა ან შეცვალეთ კატეგორიის ფილტრი.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       Upload Modal Dialog (For BIM Plugins)
+       ========================================================================== -->
+  <div class="upload-modal-overlay" id="uploadModalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="upload-modal-box">
+      <div class="modal-header-row">
+        <h3 class="modal-header-title" id="modalTitle">
+          <i class="fa-solid fa-cloud-arrow-up" style="color: var(--cyan-neon);"></i>
+          <span data-i18n="modal_plugin_title">პლაგინის ატვირთვა / დამატება</span>
+        </h3>
+        <button type="button" class="modal-close-btn" id="closeUploadModalBtn" aria-label="Close modal">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="uploadPluginForm">
+        <!-- Drag & Drop Zone -->
+        <div class="modal-dropzone" id="modalDropzone">
+          <i class="fa-solid fa-file-zipper"></i>
+          <p class="dropzone-lead">ჩააგდეთ პლაგინის არქივი ან დააჭირეთ ასარჩევად</p>
+          <p class="dropzone-formats">მხარდაჭერილი ფორმატები: .zip, .addin, .dll, .msi, .apx (მაქს. 200 MB)</p>
+          <input type="file" id="modalFileInput" style="display: none;" accept=".zip,.addin,.dll,.msi,.apx,.rar">
+          <div class="selected-file-badge" id="selectedFileBadge">
+            <i class="fa-solid fa-file-check"></i>
+            <span id="selectedFileName">plugin.zip</span>
+          </div>
+        </div>
+
+        <div class="modal-form-grid">
+          <div class="modal-field-group">
+            <label for="pluginName" data-i18n="modal_lbl_name">დასახელება</label>
+            <input type="text" id="pluginName" class="modal-input-field" placeholder="მაგ. Revit Auto-Tag Pro" required>
+          </div>
+          <div class="modal-field-group">
+            <label for="pluginVersion" data-i18n="modal_lbl_ver">ვერსია</label>
+            <input type="text" id="pluginVersion" class="modal-input-field" placeholder="მაგ. v1.0.0" required>
+          </div>
+        </div>
+
+        <div class="modal-form-grid">
+          <div class="modal-field-group">
+            <label for="pluginCategory" data-i18n="modal_lbl_cat">კატეგორია / პლატფორმა</label>
+            <select id="pluginCategory" class="modal-input-field">
+              <option value="revit">Autodesk Revit</option>
+              <option value="archicad">ArchiCAD</option>
+              <option value="navis">Navisworks</option>
+            </select>
+          </div>
+          <div class="modal-field-group">
+            <label for="pluginFileSize">თავსებადობა / ზომა</label>
+            <input type="text" id="pluginFileSize" class="modal-input-field" placeholder="მაგ. Revit 2024–2026 · 12 MB">
+          </div>
+        </div>
+
+        <div class="modal-form-grid full-width">
+          <div class="modal-field-group">
+            <label for="pluginDesc" data-i18n="modal_lbl_desc">მოკლე აღწერა და ფუნქციონალი</label>
+            <textarea id="pluginDesc" class="modal-input-field" rows="3" placeholder="აღწერეთ პლაგინის ძირითადი დანიშნულება და შესაძლებლობები..." required></textarea>
+          </div>
+        </div>
+
+        <button type="submit" class="modal-submit-btn" id="uploadSubmitBtn">
+          <i class="fa-solid fa-check"></i>
+          <span data-i18n="modal_submit_btn">ატვირთვა და გამოქვეყნება</span>
+        </button>
+
+        <div class="modal-alert-success" id="modalAlertSuccess">
+          <i class="fa-solid fa-circle-check"></i>
+          <span data-i18n="modal_success_msg">მადლობა! პლაგინი წარმატებით აიტვირთა და დაემატა საიტის კატალოგში.</span>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       Footer
+       ========================================================================== -->
+  <footer class="footer-widescreen">
+    <div class="container-fluid">
+      <div class="footer-top-split">
+        <div>
+          <a href="index.html" class="brand-logo-link">
+            <img src="assets/images/logo.png" alt="BIMX Studio" class="brand-logo-img">
+          </a>
+          <p class="label-hud" style="margin-top: 14px; max-width: 400px;" data-i18n="footer_tagline">
+            Building Information Modeling & Digital Engineering Excellence.
+          </p>
+        </div>
+
+        <div class="socials-round-list">
+          <a href="https://www.instagram.com/_bim_x_/" target="_blank" class="round-social-btn" aria-label="Instagram">
+            <i class="fa-brands fa-instagram"></i>
+          </a>
+          <a href="https://wa.me/995599000000" target="_blank" class="round-social-btn" aria-label="WhatsApp">
+            <i class="fa-brands fa-whatsapp"></i>
+          </a>
+          <a href="https://www.facebook.com" target="_blank" class="round-social-btn" aria-label="Facebook">
+            <i class="fa-brands fa-facebook-f"></i>
+          </a>
+          <a href="https://www.linkedin.com" target="_blank" class="round-social-btn" aria-label="LinkedIn">
+            <i class="fa-brands fa-linkedin-in"></i>
+          </a>
+        </div>
+      </div>
+
+      <div class="footer-bottom-split">
+        <p>&copy; 2026 BIMX Studio. <span data-i18n="footer_rights">ყველა უფლება დაცულია.</span></p>
+        <p class="label-hud">Autonomous BIM Platform · Powered by Antigravity</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="translations.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ka" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BIMX Studio — BIM აპლიკაციები და პროგრამული უზრუნველყოფა</title>
+  <meta name="description" content="ექსკლუზიური დამოუკიდებელი BIM დესკტოპ და ქლაუდ აპლიკაციები კოორდინაციისთვის, მონაცემთა ექსტრაქციისა და ხარისხის აუდიტისთვის.">
+  <meta name="keywords" content="BIM აპლიკაციები, BIM software, BIMX Studio, დესკტოპ პროგრამები, Coordinate Master, BoQ Engine, Model Auditor">
+
+  <!-- OpenGraph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.bimx.ge/apps.html">
+  <meta property="og:title" content="BIMX Studio — BIM აპლიკაციები">
+  <meta property="og:description" content="ექსკლუზიური BIM აპლიკაციები დამოუკიდებელი ინჟინერიისთვის.">
+  <meta property="og:image" content="assets/images/hero-bim.jpg">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="assets/images/favicon.png">
+  <link rel="apple-touch-icon" href="assets/images/favicon.png">
+
+  <!-- Icons (FontAwesome) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="page-fade-in">
+
+  <!-- ==========================================================================
+       Header (Pristine Original Logo with Subtle Shadow)
+       ========================================================================== -->
+  <header class="header" id="mainHeader">
+    <div class="container-fluid nav-layout">
+      <!-- Pristine Original Logo with Subtle Shadow -->
+      <a href="index.html" class="brand-logo-link" id="brandLogo" aria-label="BIMX Studio Home">
+        <img src="assets/images/logo.png" alt="BIMX Studio" class="brand-logo-img">
+      </a>
+
+      <!-- Desktop Nav Links -->
+      <nav>
+        <ul class="nav-links-list" id="navLinksList">
+          <li><a href="index.html" class="nav-link-item" data-i18n="nav_home">მთავარი</a></li>
+          <li><a href="index.html#services" class="nav-link-item" data-i18n="nav_services">სერვისები</a></li>
+          <li><a href="apps.html" class="nav-link-item active" data-i18n="nav_apps">აპლიკაციები</a></li>
+          <li><a href="plugins.html" class="nav-link-item" data-i18n="nav_plugins">პლაგინები</a></li>
+          <li><a href="index.html#projects" class="nav-link-item" data-i18n="nav_portfolio">პროექტები</a></li>
+          <li><a href="index.html#calculator" class="nav-link-item" data-i18n="nav_calc">კალკულატორი</a></li>
+          <li><a href="index.html#contact" class="nav-link-item" data-i18n="nav_contact">კონტაქტი</a></li>
+        </ul>
+      </nav>
+
+      <!-- Actions Group -->
+      <div class="nav-actions-group">
+        <!-- Language Switcher -->
+        <div class="lang-switch-box">
+          <button type="button" class="lang-btn active" data-lang="ka">KA</button>
+          <span style="color: var(--text-muted); opacity: 0.4;">/</span>
+          <button type="button" class="lang-btn" data-lang="en">EN</button>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle Light/Dark Theme">
+          <i class="fa-regular fa-sun"></i>
+        </button>
+
+        <a href="index.html#contact" class="btn-pill btn-pill-primary header-cta-btn" data-i18n="nav_cta">კონსულტაცია</a>
+
+        <!-- Mobile Hamburger -->
+        <button class="mobile-hamburger" id="mobileHamburger" aria-label="Toggle mobile menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================================================
+       Hero Banner / Intro for Applications
+       ========================================================================== -->
+  <section class="catalog-hero-section">
+    <div class="container-fluid">
+      <div class="catalog-header-content anim-reveal">
+        <div class="catalog-breadcrumb">
+          <a href="index.html" data-i18n="nav_home">მთავარი</a>
+          <i class="fa-solid fa-chevron-right" style="font-size: 0.65rem;"></i>
+          <span data-i18n="nav_apps">აპლიკაციები</span>
+        </div>
+
+        <div class="label-hud" style="margin-bottom: 14px;">
+          <span class="hud-dot"></span>
+          <span data-i18n="apps_hero_tag">BIMX SOFTWARE SUITE</span>
+        </div>
+
+        <h1 class="catalog-headline">
+          <span data-i18n="apps_hero_title">BIM აპლიკაციები</span>
+        </h1>
+
+        <p class="catalog-subheadline" data-i18n="apps_hero_desc">
+          მაღალტექნოლოგიური დამოუკიდებელი პროგრამები არქიტექტორებისთვის, ინჟინრებისა და BIM მენეჯერებისთვის.
+        </p>
+
+        <div class="catalog-stat-strip">
+          <div class="catalog-stat-item">
+            <i class="fa-solid fa-shield-halved"></i>
+            <span>Verified 64-bit Executables</span>
+          </div>
+          <div class="catalog-stat-item">
+            <i class="fa-solid fa-cube"></i>
+            <span>OpenBIM IFC4 & LiDAR</span>
+          </div>
+          <div class="catalog-stat-item">
+            <i class="fa-solid fa-cloud-arrow-down"></i>
+            <span>Direct High-Speed Download</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       Action Toolbar (Search, Filter Tabs, Upload Modal Button)
+       ========================================================================== -->
+  <section class="catalog-toolbar-section">
+    <div class="container-fluid">
+      <div class="catalog-toolbar-flex">
+        <!-- Search -->
+        <div class="catalog-search-wrap">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="catalogSearchInput" class="catalog-search-input" placeholder="მოძებნეთ აპლიკაცია დასახელებით ან ფუნქციით..." data-i18n-ph="apps_search_ph">
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="catalog-filters-group">
+          <button type="button" class="catalog-filter-btn active" data-filter="all" data-i18n="apps_filter_all">ყველა აპლიკაცია</button>
+          <button type="button" class="catalog-filter-btn" data-filter="desktop" data-i18n="apps_filter_desktop">Windows Desktop</button>
+          <button type="button" class="catalog-filter-btn" data-filter="cloud" data-i18n="apps_filter_cloud">Cloud & Web</button>
+        </div>
+
+        <!-- Upload Trigger -->
+        <button type="button" class="btn-upload-trigger" id="openUploadModalBtn">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span data-i18n="apps_upload_btn">აპლიკაციის ატვირთვა</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       Applications Grid Section
+       ========================================================================== -->
+  <section class="catalog-cards-section">
+    <div class="container-fluid">
+      <div class="catalog-grid" id="catalogGrid">
+
+        <!-- App Card 1: Coordinate Master -->
+        <div class="catalog-item-card anim-reveal" data-category="desktop" data-id="app-1">
+          <div>
+            <div class="card-top-badge-row">
+              <span class="platform-pill">
+                <i class="fa-brands fa-windows"></i> Windows 64-Bit
+              </span>
+              <span class="version-pill">
+                <i class="fa-solid fa-code-branch"></i> v2.4.0 · 48 MB
+              </span>
+            </div>
+            <h3 class="card-title-lg" data-i18n="app_1_title">BIMX Coordinate Master</h3>
+            <p class="card-desc-body" data-i18n="app_1_desc">
+              კოორდინატების ავტომატური ექსტრაქცია, IFC მოდელების პოზიციონირება და LiDAR წერტილოვანი ღრუბლის ორიენტაციის სინქრონიზაცია.
+            </p>
+            <ul class="card-specs-list">
+              <li><i class="fa-solid fa-check"></i> <span>LiDAR Point Cloud (.las, .e57, .rcp) მხარდაჭერა</span></li>
+              <li><i class="fa-solid fa-check"></i> <span>საქართველოს სახელმწიფო კოორდინატები (UTM/WGS84)</span></li>
+              <li><i class="fa-solid fa-check"></i> <span>Revit & ArchiCAD კოორდინატების ავტო-გასწორება</span></li>
+            </ul>
+          </div>
+          <div class="card-action-footer">
+            <button type="button" class="btn-download-action" data-filename="BIMX-Coordinate-Master-v2.4.exe">
+              <i class="fa-solid fa-download"></i>
+              <span data-i18n="apps_download_btn">ჩამოტვირთვა (.EXE)</span>
+            </button>
+            <button type="button" class="btn-docs-action" title="Documentation">
+              <i class="fa-solid fa-book"></i>
+              <span data-i18n="apps_docs_btn">დოკუმენტაცია</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- App Card 2: BoQ & Cost Engine -->
+        <div class="catalog-item-card anim-reveal" data-category="desktop" data-id="app-2" style="transition-delay: 0.1s;">
+          <div>
+            <div class="card-top-badge-row">
+              <span class="platform-pill">
+                <i class="fa-solid fa-calculator"></i> Desktop App
+              </span>
+              <span class="version-pill">
+                <i class="fa-solid fa-code-branch"></i> v1.8.5 · 35 MB
+              </span>
+            </div>
+            <h3 class="card-title-lg" data-i18n="app_2_title">BIMX BoQ & Cost Engine</h3>
+            <p class="card-desc-body" data-i18n="app_2_desc">
+              Revit და IFC მოდელებიდან მასალათა უწყისების წამიერი ექსპორტი Excel-ში და ავტომატური ხარჯთაღრიცხვა ლოკალური ფასებით.
+            </p>
+            <ul class="card-specs-list">
+              <li><i class="fa-solid fa-check"></i> <span>მშენებლობის ფასების ლოკალური ბაზა (საქართველო)</span></li>
+              <li><i class="fa-solid fa-check"></i> <span>Excel (.xlsx) და PDF უწყისების ავტო-გენერაცია</span></li>
+              <li><i class="fa-solid fa-check"></i> <span>LOD 200-400 მასალების ავტომატური გადათვლა</span></li>
+            </ul>
+          </div>
+          <div class="card-action-footer">
+            <button type="button" class="btn-download-action" data-filename="BIMX-BoQ-Cost-Engine-v1.8.exe">
+              <i class="fa-solid fa-download"></i>
+              <span data-i18n="apps_download_btn">ჩამოტვირთვა (.EXE)</span>
+            </button>
+            <button type="button" class="btn-docs-action" title="Documentation">
+              <i class="fa-solid fa-book"></i>
+              <span data-i18n="apps_docs_btn">დოკუმენტაცია</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- App Card 3: Model Auditor -->
+        <div class="catalog-item-card anim-reveal" data-category="cloud" data-id="app-3" style="transition-delay: 0.2s;">
+          <div>
+            <div class="card-top-badge-row">
+              <span class="platform-pill">
+                <i class="fa-solid fa-cloud"></i> Cloud & Desktop
+              </span>
+              <span class="version-pill">
+                <i class="fa-solid fa-code-branch"></i> v3.1.2 · 62 MB
+              </span>
+            </div>
+            <h3 class="card-title-lg" data-i18n="app_3_title">BIMX Model Auditor</h3>
+            <p class="card-desc-body" data-i18n="app_3_desc">
+              BIM მოდელების ხარისხის ავტომატური შემოწმება ISO 19650 სტანდარტთან და ეროვნულ სამშენებლო ნორმებთან შესაბამისობაზე.
+            </p>
+            <ul class="card-specs-list">
+              <li><i class="fa-solid fa-check"></i> <span>ISO 19650-1/2 და AIA E202 შემოწმების წესები</span></li>
+              <li><i class="fa-solid fa-check"></i> <span>გეომეტრიული დეფექტების და პარამეტრების ფილტრი</span></li>
+              <li><i class="fa-solid fa-check"></i> <span>ინტერაქტიული HTML და BCF 2.1 რეპორტები</span></li>
+            </ul>
+          </div>
+          <div class="card-action-footer">
+            <button type="button" class="btn-download-action" data-filename="BIMX-Model-Auditor-v3.1.exe">
+              <i class="fa-solid fa-download"></i>
+              <span data-i18n="apps_download_btn">ჩამოტვირთვა (.EXE)</span>
+            </button>
+            <button type="button" class="btn-docs-action" title="Documentation">
+              <i class="fa-solid fa-book"></i>
+              <span data-i18n="apps_docs_btn">დოკუმენტაცია</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Empty State -->
+      <div class="catalog-empty-state" id="catalogEmptyState">
+        <i class="fa-solid fa-box-open"></i>
+        <h4>შესატყვისი აპლიკაცია ვერ მოიძებნა</h4>
+        <p>სცადეთ სხვა საძიებო სიტყვა ან შეცვალეთ კატეგორიის ფილტრი.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       Upload Modal Dialog (For Standalone Applications)
+       ========================================================================== -->
+  <div class="upload-modal-overlay" id="uploadModalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="upload-modal-box">
+      <div class="modal-header-row">
+        <h3 class="modal-header-title" id="modalTitle">
+          <i class="fa-solid fa-cloud-arrow-up" style="color: var(--cyan-neon);"></i>
+          <span data-i18n="modal_app_title">აპლიკაციის ატვირთვა / დამატება</span>
+        </h3>
+        <button type="button" class="modal-close-btn" id="closeUploadModalBtn" aria-label="Close modal">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="uploadAppForm">
+        <!-- Drag & Drop Zone -->
+        <div class="modal-dropzone" id="modalDropzone">
+          <i class="fa-solid fa-file-arrow-up"></i>
+          <p class="dropzone-lead">ჩააგდეთ საინსტალაციო ფაილი ან დააჭირეთ ასარჩევად</p>
+          <p class="dropzone-formats">მხარდაჭერილი ფორმატები: .exe, .msi, .zip, .rar, .7z (მაქს. 500 MB)</p>
+          <input type="file" id="modalFileInput" style="display: none;" accept=".exe,.msi,.zip,.rar,.7z">
+          <div class="selected-file-badge" id="selectedFileBadge">
+            <i class="fa-solid fa-file-check"></i>
+            <span id="selectedFileName">file.exe</span>
+          </div>
+        </div>
+
+        <div class="modal-form-grid">
+          <div class="modal-field-group">
+            <label for="appName" data-i18n="modal_lbl_name">დასახელება</label>
+            <input type="text" id="appName" class="modal-input-field" placeholder="მაგ. BIMX Batch Processor" required>
+          </div>
+          <div class="modal-field-group">
+            <label for="appVersion" data-i18n="modal_lbl_ver">ვერსია</label>
+            <input type="text" id="appVersion" class="modal-input-field" placeholder="მაგ. v1.0.0" required>
+          </div>
+        </div>
+
+        <div class="modal-form-grid">
+          <div class="modal-field-group">
+            <label for="appCategory" data-i18n="modal_lbl_cat">კატეგორია / პლატფორმა</label>
+            <select id="appCategory" class="modal-input-field">
+              <option value="desktop">Windows Desktop</option>
+              <option value="cloud">Cloud & Web</option>
+            </select>
+          </div>
+          <div class="modal-field-group">
+            <label for="appFileSize">ფაილის ზომა / თავსებადობა</label>
+            <input type="text" id="appFileSize" class="modal-input-field" placeholder="მაგ. 42 MB · Windows 11">
+          </div>
+        </div>
+
+        <div class="modal-form-grid full-width">
+          <div class="modal-field-group">
+            <label for="appDesc" data-i18n="modal_lbl_desc">მოკლე აღწერა და ფუნქციონალი</label>
+            <textarea id="appDesc" class="modal-input-field" rows="3" placeholder="აღწერეთ პროგრამის ძირითადი დანიშნულება და შესაძლებლობები..." required></textarea>
+          </div>
+        </div>
+
+        <button type="submit" class="modal-submit-btn" id="uploadSubmitBtn">
+          <i class="fa-solid fa-check"></i>
+          <span data-i18n="modal_submit_btn">ატვირთვა და გამოქვეყნება</span>
+        </button>
+
+        <div class="modal-alert-success" id="modalAlertSuccess">
+          <i class="fa-solid fa-circle-check"></i>
+          <span data-i18n="modal_success_msg">მადლობა! აპლიკაცია წარმატებით აიტვირთა და დაემატა საიტის კატალოგში.</span>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       Footer
+       ========================================================================== -->
+  <footer class="footer-widescreen">
+    <div class="container-fluid">
+      <div class="footer-top-split">
+        <div>
+          <a href="index.html" class="brand-logo-link">
+            <img src="assets/images/logo.png" alt="BIMX Studio" class="brand-logo-img">
+          </a>
+          <p class="label-hud" style="margin-top: 14px; max-width: 400px;" data-i18n="footer_tagline">
+            Building Information Modeling & Digital Engineering Excellence.
+          </p>
+        </div>
+
+        <div class="socials-round-list">
+          <a href="https://www.instagram.com/_bim_x_/" target="_blank" class="round-social-btn" aria-label="Instagram">
+            <i class="fa-brands fa-instagram"></i>
+          </a>
+          <a href="https://wa.me/995599000000" target="_blank" class="round-social-btn" aria-label="WhatsApp">
+            <i class="fa-brands fa-whatsapp"></i>
+          </a>
+          <a href="https://www.facebook.com" target="_blank" class="round-social-btn" aria-label="Facebook">
+            <i class="fa-brands fa-facebook-f"></i>
+          </a>
+          <a href="https://www.linkedin.com" target="_blank" class="round-social-btn" aria-label="LinkedIn">
+            <i class="fa-brands fa-linkedin-in"></i>
+          </a>
+        </div>
+      </div>
+
+      <div class="footer-bottom-split">
+        <p>&copy; 2026 BIMX Studio. <span data-i18n="footer_rights">ყველა უფლება დაცულია.</span></p>
+        <p class="label-hud">Autonomous BIM Platform · Powered by Antigravity</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="translations.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

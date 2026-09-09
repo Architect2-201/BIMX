@@ -25,8 +25,15 @@ const server = http.createServer((req, res) => {
     reqPath = '/index.html';
   }
 
-  const safePath = path.normalize(reqPath).replace(/^(\.\.[\/\\])+/, '');
-  const filePath = path.join(__dirname, safePath);
+  let safePath = path.normalize(reqPath).replace(/^(\.\.[\/\\])+/, '');
+  let filePath = path.join(__dirname, safePath);
+
+  // If file doesn't exist and has no extension, try with .html
+  if (!fs.existsSync(filePath) && !path.extname(filePath)) {
+    if (fs.existsSync(filePath + '.html')) {
+      filePath = filePath + '.html';
+    }
+  }
 
   fs.stat(filePath, (err, stats) => {
     if (err || !stats.isFile()) {
