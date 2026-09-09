@@ -200,9 +200,16 @@
             </div>
             <input type="range" id="sliderFootprint" class="slider-custom" min="50" max="3000" step="10" value="450">
             <div id="customFootprintIndicator" class="custom-footprint-badge" style="display: none;">
-              <i class="fa-solid fa-draw-polygon" style="color: var(--cyan-neon);"></i>
-              <span>დახაზულია ხელით რუკაზე</span>
-              <button type="button" id="btnResetToAutoFootprint" class="btn-reset-footprint" title="ავტომატურ ფორმაზე დაბრუნება">ავტო ↺</button>
+              <span style="display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-draw-polygon" style="color: #10b981;"></i>
+                <span>დახაზულია ხელით</span>
+              </span>
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <button type="button" id="btnEditFootprintQuick" class="btn-reset-footprint" title="ნახაზის კორექტირება">
+                  <i class="fa-solid fa-pen"></i> კორექტირება
+                </button>
+                <button type="button" id="btnResetToAutoFootprint" class="btn-reset-footprint" title="ავტომატურ ფორმაზე დაბრუნება">ავტო ↺</button>
+              </div>
             </div>
 
             <!-- Floor Height & Total Height Readout -->
@@ -291,14 +298,30 @@
           </div>
 
           <div class="viewport-tools-group">
-            <!-- 2D Drawing Tools -->
+            <!-- 2D Drawing & Correction Tools -->
             <button type="button" class="tool-btn-draw" id="btnDrawBuilding" title="ნაკვეთზე შენობის ფორმის დახაზვა">
               <i class="fa-solid fa-pen-ruler"></i>
               <span data-i18n="tool_draw_building">შენობის დახაზვა</span>
             </button>
+            <button type="button" class="tool-btn-draw tool-btn-edit" id="btnEditDraw" style="display: none;" title="ნახაზის კორექტირება">
+              <i class="fa-solid fa-pen-to-square"></i>
+              <span data-i18n="tool_edit_draw">კორექტირება</span>
+            </button>
             <button type="button" class="tool-btn-draw tool-btn-finish" id="btnFinishDraw" style="display: none;" title="ნახაზის შეკვრა და 3D-ში გადატანა">
               <i class="fa-solid fa-check"></i>
               <span data-i18n="tool_finish_draw">დაასრულე</span>
+            </button>
+            <button type="button" class="tool-btn-draw tool-btn-save-edit" id="btnSaveEditDraw" style="display: none;" title="კორექტირების შენახვა">
+              <i class="fa-solid fa-check-double"></i>
+              <span data-i18n="tool_save_edit">შენახვა</span>
+            </button>
+            <button type="button" class="tool-btn-draw tool-btn-cancel-edit" id="btnCancelEditDraw" style="display: none;" title="კორექტირების გაუქმება">
+              <i class="fa-solid fa-xmark"></i>
+              <span data-i18n="tool_cancel_edit">გაუქმება</span>
+            </button>
+            <button type="button" class="tool-btn-draw tool-btn-undo" id="btnUndoPoint" style="display: none;" title="ბოლო წერტილის გაუქმება">
+              <i class="fa-solid fa-rotate-left"></i>
+              <span data-i18n="tool_undo_point">უკან</span>
             </button>
             <button type="button" class="tool-btn-draw tool-btn-clear" id="btnClearDraw" style="display: none;" title="ნახაზის გასუფთავება">
               <i class="fa-solid fa-trash-can"></i>

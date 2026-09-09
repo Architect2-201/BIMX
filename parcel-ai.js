@@ -22,8 +22,10 @@ document.addEventListener('DOMContentLoaded', () => {
     mapLayerType: 'satellite', // 'satellite' or 'vector'
     measureMode: null, // null, 'distance', 'area'
     isDrawingMode: false,
+    isEditMode: false,
     drawnPoints: [], // [[lat, lng], ...]
     customFootprint: null, // [[lat, lng], ...] or null
+    editBackupPoints: [], // backup for canceling edit
     xRayMode: false
   };
 
@@ -375,17 +377,14 @@ document.addEventListener('DOMContentLoaded', () => {
       state.customFootprint = null;
       state.drawnPoints = [];
       state.isDrawingMode = false;
+      state.isEditMode = false;
+      state.editBackupPoints = [];
       if (drawingLayerGroup) drawingLayerGroup.clearLayers();
       const customBadge = document.getElementById('customFootprintIndicator');
       if (customBadge) customBadge.style.display = 'none';
-      const btnDraw = document.getElementById('btnDrawBuilding');
-      if (btnDraw) btnDraw.classList.remove('active');
-      const btnFinish = document.getElementById('btnFinishDraw');
-      if (btnFinish) btnFinish.style.display = 'none';
-      const btnClear = document.getElementById('btnClearDraw');
-      if (btnClear) btnClear.style.display = 'none';
       const banner = document.getElementById('drawingGuideBanner');
       if (banner) banner.style.display = 'none';
+      updateToolbarButtons();
 
       // Render Plot on Leaflet Map
       renderParcelOnMap(parcelData);
@@ -1226,10 +1225,56 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     9b. Interactive Building Footprint Drawing Engine (2D Leaflet GIS)
+     9b. Interactive Building Footprint Drawing & Correction Engine (2D Leaflet GIS)
      ========================================================================== */
+  function updateToolbarButtons() {
+    const btnDraw = document.getElementById('btnDrawBuilding');
+    const btnEdit = document.getElementById('btnEditDraw');
+    const btnFinish = document.getElementById('btnFinishDraw');
+    const btnSave = document.getElementById('btnSaveEditDraw');
+    const btnCancel = document.getElementById('btnCancelEditDraw');
+    const btnUndo = document.getElementById('btnUndoPoint');
+    const btnClear = document.getElementById('btnClearDraw');
+
+    if (state.isDrawingMode) {
+      if (btnDraw) { btnDraw.style.display = 'inline-flex'; btnDraw.classList.add('active'); }
+      if (btnEdit) btnEdit.style.display = 'none';
+      if (btnSave) btnSave.style.display = 'none';
+      if (btnCancel) btnCancel.style.display = 'none';
+      if (btnFinish) btnFinish.style.display = state.drawnPoints.length >= 3 ? 'inline-flex' : 'none';
+      if (btnUndo) btnUndo.style.display = state.drawnPoints.length > 0 ? 'inline-flex' : 'none';
+      if (btnClear) btnClear.style.display = state.drawnPoints.length > 0 ? 'inline-flex' : 'none';
+    } else if (state.isEditMode) {
+      if (btnDraw) btnDraw.style.display = 'none';
+      if (btnEdit) btnEdit.style.display = 'none';
+      if (btnFinish) btnFinish.style.display = 'none';
+      if (btnUndo) btnUndo.style.display = 'none';
+      if (btnSave) btnSave.style.display = 'inline-flex';
+      if (btnCancel) btnCancel.style.display = 'inline-flex';
+      if (btnClear) btnClear.style.display = 'inline-flex';
+    } else {
+      // Normal View Mode
+      const hasCustom = !!(state.customFootprint && state.customFootprint.length >= 3);
+      if (btnDraw) { btnDraw.style.display = 'inline-flex'; btnDraw.classList.remove('active'); }
+      if (btnEdit) btnEdit.style.display = hasCustom ? 'inline-flex' : 'none';
+      if (btnSave) btnSave.style.display = 'none';
+      if (btnCancel) btnCancel.style.display = 'none';
+      if (btnFinish) btnFinish.style.display = 'none';
+      if (btnUndo) btnUndo.style.display = 'none';
+      if (btnClear) btnClear.style.display = hasCustom ? 'inline-flex' : 'none';
+    }
+  }
+
+  function computePolygonArea(points) {
+    if (!points || points.length < 3) return 0;
+    const ring = points.map(pt => [pt[1], pt[0]]);
+    ring.push([points[0][1], points[0][0]]);
+    const poly = turf.polygon([ring]);
+    return Math.round(turf.area(poly));
+  }
+
   function handleMapClick(e) {
-    if (!state.isDrawingMode) return;
+    if (!state.isDrawingMode || state.isEditMode) return;
     const pt = [e.latlng.lat, e.latlng.lng];
     state.drawnPoints.push(pt);
     updateDrawingVisualization();
@@ -1243,11 +1288,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const banner = document.getElementById('drawingGuideBanner');
     const bannerText = document.getElementById('drawingGuideText');
     const liveAreaBadge = document.getElementById('drawingLiveAreaBadge');
-    const btnFinish = document.getElementById('btnFinishDraw');
-    const btnClear = document.getElementById('btnClearDraw');
 
     if (banner) banner.style.display = 'flex';
-    if (btnClear) btnClear.style.display = count > 0 ? 'inline-flex' : 'none';
+    updateToolbarButtons();
 
     // Draw vertex dots in vibrant Emerald Green (#10b981) / Gold anchor
     state.drawnPoints.forEach((pt, idx) => {
@@ -1296,19 +1339,12 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       drawingLayerGroup.addLayer(previewPoly);
 
-      // Compute live area with Turf.js
-      const ring = state.drawnPoints.map(pt => [pt[1], pt[0]]);
-      ring.push([state.drawnPoints[0][1], state.drawnPoints[0][0]]);
-      const poly = turf.polygon([ring]);
-      const areaSqM = Math.round(turf.area(poly));
-
+      const areaSqM = computePolygonArea(state.drawnPoints);
       if (liveAreaBadge) liveAreaBadge.textContent = `${areaSqM.toLocaleString()} მ²`;
       if (bannerText) bannerText.textContent = translations[state.currentLang].drawing_guide_close || 'დააკლიკე პირველ წერტილს ან „დაასრულე“ ღილაკს შესაკრავად';
-      if (btnFinish) btnFinish.style.display = 'inline-flex';
     } else {
       if (liveAreaBadge) liveAreaBadge.textContent = '0 მ²';
       if (bannerText) bannerText.textContent = translations[state.currentLang].drawing_guide_start || 'დააკლიკე რუკაზე შენობის ფორმის დასახაზად (მინ. 3 წერტილი)';
-      if (btnFinish) btnFinish.style.display = 'none';
     }
   }
 
@@ -1316,22 +1352,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!state.activeParcel) {
       searchParcel('01.15.02.038.003');
     }
+    if (state.isEditMode) cancelFootprintEdit();
+
     state.isDrawingMode = true;
+    state.isEditMode = false;
     state.drawnPoints = [];
     if (drawingLayerGroup) drawingLayerGroup.clearLayers();
     if (parcelPolygonLayer) parcelPolygonLayer.closePopup();
 
     const mapViewport = document.getElementById('mapViewport');
     if (mapViewport) mapViewport.classList.add('map-drawing-active');
-
-    const btnDraw = document.getElementById('btnDrawBuilding');
-    if (btnDraw) btnDraw.classList.add('active');
-
-    const btnFinish = document.getElementById('btnFinishDraw');
-    if (btnFinish) btnFinish.style.display = 'none';
-
-    const btnClear = document.getElementById('btnClearDraw');
-    if (btnClear) btnClear.style.display = 'inline-flex';
 
     if (state.currentMode === '3d') {
       setMode('combined');
@@ -1344,46 +1374,25 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state.drawnPoints.length < 3) return;
 
     state.isDrawingMode = false;
+    state.isEditMode = false;
     state.customFootprint = [...state.drawnPoints];
 
     const mapViewport = document.getElementById('mapViewport');
     if (mapViewport) mapViewport.classList.remove('map-drawing-active');
 
-    const btnDraw = document.getElementById('btnDrawBuilding');
-    if (btnDraw) btnDraw.classList.remove('active');
-
-    const btnFinish = document.getElementById('btnFinishDraw');
-    if (btnFinish) btnFinish.style.display = 'none';
-
     const banner = document.getElementById('drawingGuideBanner');
     if (banner) banner.style.display = 'none';
 
     // Compute final area with Turf.js
-    const ring = state.customFootprint.map(pt => [pt[1], pt[0]]);
-    ring.push([state.customFootprint[0][1], state.customFootprint[0][0]]);
-    const poly = turf.polygon([ring]);
-    const areaSqM = Math.round(turf.area(poly));
+    const areaSqM = computePolygonArea(state.customFootprint);
 
     // Render finalized clean footprint polygon on map in distinct Emerald Green (#10b981)
-    if (drawingLayerGroup) {
-      drawingLayerGroup.clearLayers();
-      const finalPoly = L.polygon(state.customFootprint, {
-        color: '#10b981',
-        weight: 3,
-        fillColor: '#10b981',
-        fillOpacity: 0.25,
-        dashArray: '5, 5'
-      });
-      finalPoly.bindTooltip(`დახაზული შენობის კონტური: ${areaSqM.toLocaleString()} მ²`, {
-        permanent: false,
-        direction: 'center',
-        className: 'custom-footprint-map-tooltip'
-      });
-      drawingLayerGroup.addLayer(finalPoly);
-    }
+    renderFinalCustomPolygon(areaSqM);
 
     const customBadge = document.getElementById('customFootprintIndicator');
     if (customBadge) customBadge.style.display = 'flex';
+
+    updateToolbarButtons();
 
     if (state.activeConcept) {
       state.activeConcept.footprint = areaSqM;
@@ -1395,8 +1404,149 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function renderFinalCustomPolygon(areaSqM) {
+    if (!drawingLayerGroup || !state.customFootprint || state.customFootprint.length < 3) return;
+    drawingLayerGroup.clearLayers();
+    const finalPoly = L.polygon(state.customFootprint, {
+      color: '#10b981',
+      weight: 3,
+      fillColor: '#10b981',
+      fillOpacity: 0.25,
+      dashArray: '5, 5'
+    });
+    const areaText = areaSqM !== undefined ? areaSqM : computePolygonArea(state.customFootprint);
+    finalPoly.bindTooltip(`დახაზული შენობის კონტური: ${areaText.toLocaleString()} მ²`, {
+      permanent: false,
+      direction: 'center',
+      className: 'custom-footprint-map-tooltip'
+    });
+    drawingLayerGroup.addLayer(finalPoly);
+  }
+
+  /* Interactive Footprint Correction / Modification Engine */
+  function startEditingFootprint() {
+    if (!state.customFootprint || state.customFootprint.length < 3) return;
+
+    state.isEditMode = true;
+    state.isDrawingMode = false;
+    state.editBackupPoints = JSON.parse(JSON.stringify(state.customFootprint));
+
+    if (parcelPolygonLayer) parcelPolygonLayer.closePopup();
+
+    const mapViewport = document.getElementById('mapViewport');
+    if (mapViewport) mapViewport.classList.add('map-drawing-active');
+
+    if (state.currentMode === '3d') {
+      setMode('combined');
+    }
+
+    updateToolbarButtons();
+
+    const banner = document.getElementById('drawingGuideBanner');
+    const bannerText = document.getElementById('drawingGuideText');
+    if (banner) banner.style.display = 'flex';
+    if (bannerText) {
+      bannerText.textContent = translations[state.currentLang].drawing_guide_edit || 'გადააადგილე წერტილები ფორმის საკორექტირებლად და დააჭირე „შენახვას“';
+    }
+
+    renderEditableFootprint();
+  }
+
+  function renderEditableFootprint() {
+    if (!drawingLayerGroup || !state.customFootprint) return;
+    drawingLayerGroup.clearLayers();
+
+    const editPoly = L.polygon(state.customFootprint, {
+      color: '#10b981',
+      weight: 3,
+      fillColor: '#10b981',
+      fillOpacity: 0.25,
+      dashArray: '4, 4'
+    });
+    drawingLayerGroup.addLayer(editPoly);
+
+    const liveAreaBadge = document.getElementById('drawingLiveAreaBadge');
+    if (liveAreaBadge) {
+      liveAreaBadge.textContent = `${computePolygonArea(state.customFootprint).toLocaleString()} მ²`;
+    }
+
+    state.customFootprint.forEach((pt, idx) => {
+      const editIcon = L.divIcon({
+        className: 'drawing-edit-handle',
+        html: `<span class="edit-handle-dot">${idx + 1}</span>`,
+        iconSize: [22, 22],
+        iconAnchor: [11, 11]
+      });
+
+      const marker = L.marker(pt, {
+        draggable: true,
+        icon: editIcon,
+        zIndexOffset: 1000
+      });
+
+      marker.on('drag', (ev) => {
+        const latlng = ev.target.getLatLng();
+        state.customFootprint[idx] = [latlng.lat, latlng.lng];
+        editPoly.setLatLngs(state.customFootprint);
+
+        const currentArea = computePolygonArea(state.customFootprint);
+        if (liveAreaBadge) liveAreaBadge.textContent = `${currentArea.toLocaleString()} მ²`;
+      });
+
+      marker.on('dragend', () => {
+        const currentArea = computePolygonArea(state.customFootprint);
+        if (state.activeConcept) {
+          state.activeConcept.footprint = currentArea;
+          applyConceptToState(state.activeConcept);
+        }
+      });
+
+      drawingLayerGroup.addLayer(marker);
+    });
+  }
+
+  function saveFootprintEdit() {
+    state.isEditMode = false;
+
+    const mapViewport = document.getElementById('mapViewport');
+    if (mapViewport) mapViewport.classList.remove('map-drawing-active');
+
+    const banner = document.getElementById('drawingGuideBanner');
+    if (banner) banner.style.display = 'none';
+
+    const finalArea = computePolygonArea(state.customFootprint);
+    renderFinalCustomPolygon(finalArea);
+    updateToolbarButtons();
+
+    if (state.activeConcept) {
+      state.activeConcept.footprint = finalArea;
+      applyConceptToState(state.activeConcept);
+    }
+  }
+
+  function cancelFootprintEdit() {
+    state.isEditMode = false;
+    state.customFootprint = JSON.parse(JSON.stringify(state.editBackupPoints));
+
+    const mapViewport = document.getElementById('mapViewport');
+    if (mapViewport) mapViewport.classList.remove('map-drawing-active');
+
+    const banner = document.getElementById('drawingGuideBanner');
+    if (banner) banner.style.display = 'none';
+
+    const originalArea = computePolygonArea(state.customFootprint);
+    renderFinalCustomPolygon(originalArea);
+    updateToolbarButtons();
+
+    if (state.activeConcept) {
+      state.activeConcept.footprint = originalArea;
+      applyConceptToState(state.activeConcept);
+    }
+  }
+
   function clearDrawing() {
     state.isDrawingMode = false;
+    state.isEditMode = false;
     state.drawnPoints = [];
     state.customFootprint = null;
     if (drawingLayerGroup) drawingLayerGroup.clearLayers();
@@ -1404,20 +1554,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const mapViewport = document.getElementById('mapViewport');
     if (mapViewport) mapViewport.classList.remove('map-drawing-active');
 
-    const btnDraw = document.getElementById('btnDrawBuilding');
-    if (btnDraw) btnDraw.classList.remove('active');
-
-    const btnFinish = document.getElementById('btnFinishDraw');
-    if (btnFinish) btnFinish.style.display = 'none';
-
-    const btnClear = document.getElementById('btnClearDraw');
-    if (btnClear) btnClear.style.display = 'none';
-
     const banner = document.getElementById('drawingGuideBanner');
     if (banner) banner.style.display = 'none';
 
     const customBadge = document.getElementById('customFootprintIndicator');
     if (customBadge) customBadge.style.display = 'none';
+
+    updateToolbarButtons();
 
     if (state.activeParcel) {
       generateDefaultConcept(state.activeParcel);
@@ -1506,10 +1649,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Drawing Toolbar Buttons
+  // Drawing & Correction Toolbar Buttons
   const btnDrawBuilding = document.getElementById('btnDrawBuilding');
+  const btnEditDraw = document.getElementById('btnEditDraw');
   const btnFinishDraw = document.getElementById('btnFinishDraw');
+  const btnSaveEditDraw = document.getElementById('btnSaveEditDraw');
+  const btnCancelEditDraw = document.getElementById('btnCancelEditDraw');
+  const btnUndoPoint = document.getElementById('btnUndoPoint');
   const btnClearDraw = document.getElementById('btnClearDraw');
+  const btnEditFootprintQuick = document.getElementById('btnEditFootprintQuick');
   const btnToggleXRay = document.getElementById('btnToggleXRay');
 
   if (btnDrawBuilding) {
@@ -1522,9 +1670,42 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  if (btnEditDraw) {
+    btnEditDraw.addEventListener('click', () => {
+      startEditingFootprint();
+    });
+  }
+
+  if (btnEditFootprintQuick) {
+    btnEditFootprintQuick.addEventListener('click', () => {
+      startEditingFootprint();
+    });
+  }
+
   if (btnFinishDraw) {
     btnFinishDraw.addEventListener('click', () => {
       finishDrawing();
+    });
+  }
+
+  if (btnSaveEditDraw) {
+    btnSaveEditDraw.addEventListener('click', () => {
+      saveFootprintEdit();
+    });
+  }
+
+  if (btnCancelEditDraw) {
+    btnCancelEditDraw.addEventListener('click', () => {
+      cancelFootprintEdit();
+    });
+  }
+
+  if (btnUndoPoint) {
+    btnUndoPoint.addEventListener('click', () => {
+      if (state.isDrawingMode && state.drawnPoints.length > 0) {
+        state.drawnPoints.pop();
+        updateDrawingVisualization();
+      }
     });
   }
 

@@ -266,8 +266,12 @@ const translations = {
 
     // Drawing & Compliance Tools
     tool_draw_building: "შენობის დახაზვა",
+    tool_edit_draw: "ნახაზის კორექტირება",
     tool_finish_draw: "დაასრულე ნახაზი",
+    tool_undo_point: "უკან",
     tool_clear_draw: "ნახაზის წაშლა",
+    tool_save_edit: "შენახვა",
+    tool_cancel_edit: "გაუქმება",
     tool_xray: "მიწისქვეშა ხედვა (X-Ray)",
     compliance_title: "კოეფიციენტების კონტროლი",
     compliance_fit: "ეტევი კოეფიციენტებში (ყველა ნორმა დაცულია)",
@@ -280,6 +284,7 @@ const translations = {
     compliance_k3_exceed: "გამწვანების დეფიციტი!",
     drawing_guide_start: "დააკლიკე რუკაზე შენობის ფორმის დასახაზად (მინ. 3 წერტილი)",
     drawing_guide_close: "დააკლიკე პირველ წერტილს ან „დაასრულე“ ღილაკს შესაკრავად",
+    drawing_guide_edit: "გადააადგილე წერტილები ფორმის საკორექტირებლად და დააჭირე „შენახვას“",
 
     // Modes
     mode_map: "რუკა",
@@ -615,8 +620,12 @@ const translations = {
 
     // Drawing & Compliance Tools
     tool_draw_building: "Draw Building",
+    tool_edit_draw: "Edit Footprint",
     tool_finish_draw: "Finish Drawing",
+    tool_undo_point: "Undo",
     tool_clear_draw: "Clear Drawing",
+    tool_save_edit: "Save Changes",
+    tool_cancel_edit: "Cancel",
     tool_xray: "Underground View (X-Ray)",
     compliance_title: "Zoning & Ratio Compliance",
     compliance_fit: "Within Legal Ratios (All Compliant)",
@@ -629,6 +638,7 @@ const translations = {
     compliance_k3_exceed: "Greenery Deficit!",
     drawing_guide_start: "Click on the map to draw building footprint (min 3 points)",
     drawing_guide_close: "Click start point or 'Finish' button to complete polygon",
+    drawing_guide_edit: "Drag points to reshape footprint and click 'Save Changes'",
 
     // Modes
     mode_map: "Map View",
