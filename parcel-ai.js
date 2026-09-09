@@ -20,7 +20,11 @@ document.addEventListener('DOMContentLoaded', () => {
     },
     activeVariantKey: 'A',
     mapLayerType: 'satellite', // 'satellite' or 'vector'
-    measureMode: null // null, 'distance', 'area'
+    measureMode: null, // null, 'distance', 'area'
+    isDrawingMode: false,
+    drawnPoints: [], // [[lat, lng], ...]
+    customFootprint: null, // [[lat, lng], ...] or null
+    xRayMode: false
   };
 
   // Authentic Cadastral Registry across Georgia (Real GPS coordinates and geometries)
@@ -140,6 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let map = null;
   let parcelPolygonLayer = null;
   let buildingFootprintLayer = null;
+  let drawingLayerGroup = null;
   let tileLayerVector = null;
   let tileLayerSatellite = null;
 
@@ -167,13 +172,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Start with Satellite
     tileLayerSatellite.addTo(map);
 
+    // Layer group for interactive user drawing
+    drawingLayerGroup = L.layerGroup().addTo(map);
+
     // Add scale bar
     L.control.scale({ position: 'bottomleft', imperial: false }).addTo(map);
 
-    // Map Click & Tools
+    // Map Click & Drawing Handler
     map.on('click', (e) => {
-      if (state.measureMode === 'distance') {
-        // Measurement logic
+      if (state.isDrawingMode) {
+        handleMapClick(e);
       }
     });
   }
@@ -362,6 +370,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. If parcel is resolved (either local or live NAPR):
     if (parcelData && parcelData.coordinates && parcelData.coordinates.length > 2) {
       state.activeParcel = parcelData;
+
+      // Reset any active custom drawing for new parcel
+      state.customFootprint = null;
+      state.drawnPoints = [];
+      state.isDrawingMode = false;
+      if (drawingLayerGroup) drawingLayerGroup.clearLayers();
+      const customBadge = document.getElementById('customFootprintIndicator');
+      if (customBadge) customBadge.style.display = 'none';
+      const btnDraw = document.getElementById('btnDrawBuilding');
+      if (btnDraw) btnDraw.classList.remove('active');
+      const btnFinish = document.getElementById('btnFinishDraw');
+      if (btnFinish) btnFinish.style.display = 'none';
+      const btnClear = document.getElementById('btnClearDraw');
+      if (btnClear) btnClear.style.display = 'none';
+      const banner = document.getElementById('drawingGuideBanner');
+      if (banner) banner.style.display = 'none';
 
       // Render Plot on Leaflet Map
       renderParcelOnMap(parcelData);
@@ -580,6 +604,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function generateDefaultConcept(parcel) {
     const defaultParams = {
       buildingType: 'residential',
+      floorsAbove: 5,
+      floorsBelow: 1,
       floors: 5,
       totalArea: Math.round(parcel.area * 1.8),
       groundFloorUse: 'commercial',
@@ -596,62 +622,83 @@ document.addEventListener('DOMContentLoaded', () => {
     const parcel = state.activeParcel;
     if (!parcel) return;
 
-    // Calculate footprint
-    let footprint = params.totalArea ? Math.round(params.totalArea / params.floors) : Math.round(parcel.area * 0.38);
-
-    // Safeguard: building footprint cannot exceed 60% of plot
-    const maxFootprint = Math.round(parcel.area * 0.65);
-    if (footprint > maxFootprint) {
-      footprint = maxFootprint;
+    // Determine footprint area: custom drawn footprint takes priority!
+    let footprint;
+    if (state.customFootprint && state.customFootprint.length >= 3) {
+      const ring = state.customFootprint.map(pt => [pt[1], pt[0]]);
+      ring.push([state.customFootprint[0][1], state.customFootprint[0][0]]);
+      const poly = turf.polygon([ring]);
+      footprint = Math.round(turf.area(poly));
+    } else {
+      footprint = params.footprint || (params.totalArea ? Math.round(params.totalArea / (params.floorsAbove || params.floors || 5)) : Math.round(parcel.area * 0.38));
+      const maxFootprint = Math.round(parcel.area * 0.85);
+      if (footprint > maxFootprint) footprint = maxFootprint;
     }
 
+    const floorsAbove = params.floorsAbove !== undefined ? params.floorsAbove : (params.floors || 5);
+    const floorsBelow = params.floorsBelow !== undefined ? params.floorsBelow : 1;
+    const floorH = params.floorHeight || 3.3;
+
     params.footprint = footprint;
-    params.totalArea = footprint * params.floors;
-    params.freeLand = parcel.area - footprint;
+    params.floorsAbove = floorsAbove;
+    params.floorsBelow = floorsBelow;
+    params.floors = floorsAbove;
+    params.floorHeight = floorH;
+    params.totalArea = footprint * floorsAbove;
+    params.freeLand = Math.max(0, parcel.area - footprint);
     params.k1Ratio = (footprint / parcel.area).toFixed(2);
     params.k2Ratio = (params.totalArea / parcel.area).toFixed(2);
 
     state.activeConcept = params;
 
-    // Sync input sliders
+    // Sync input sliders & readouts
     syncSlidersUI(params);
 
-    // Generate 2D footprint on Leaflet map
-    renderFootprintOnMap(parcel, params);
-
-    // Generate 3D Building Massing on Three.js WebGL
+    // Generate 3D Building Massing on Three.js WebGL (using extruded polygon)
     renderBuilding3D(parcel, params);
 
-    // Update Right Panel AI Assessment
+    // Update Right Panel AI Assessment & Real-Time Zoning Compliance (ეტევი / ცდები)
     updateAssessmentUI(parcel, params);
+    updateComplianceUI(parcel, params);
   }
 
   /* ==========================================================================
-     6. Turf.js Footprint Generation (Contained inside Plot Polygon)
+     6. Turf.js Footprint Generation (Supports Custom User Polygon & Auto Rectangle)
      ========================================================================== */
   function computeFootprintGeometry(parcel, concept) {
+    // 1. If user drew a custom footprint on the map:
+    if (state.customFootprint && state.customFootprint.length >= 3) {
+      const customLocal = gpsToLocalMeters(state.customFootprint);
+      const xs = customLocal.map(p => p.x);
+      const ys = customLocal.map(p => p.y);
+      const minX = Math.min(...xs);
+      const maxX = Math.max(...xs);
+      const minY = Math.min(...ys);
+      const maxY = Math.max(...ys);
+
+      return {
+        width: maxX - minX,
+        length: maxY - minY,
+        corners: customLocal,
+        isCustom: true
+      };
+    }
+
+    // 2. Otherwise: procedural auto-concept rectangle
     const localPoints = gpsToLocalMeters(parcel.coordinates);
     if (localPoints.length < 3) return null;
 
-    // Find bounding box & dimensions
     const xs = localPoints.map(p => p.x);
     const ys = localPoints.map(p => p.y);
-    const minX = Math.min(...xs);
-    const maxX = Math.max(...xs);
-    const minY = Math.min(...ys);
-    const maxY = Math.max(...ys);
+    const parcelW = Math.max(...xs) - Math.min(...xs);
+    const parcelH = Math.max(...ys) - Math.min(...ys);
 
-    const parcelW = maxX - minX;
-    const parcelH = maxY - minY;
-
-    // Determine building width and length based on target footprint area
     const targetArea = concept.footprint;
-    const aspectRatio = 1.35; // Architectural golden proportion
+    const aspectRatio = 1.35;
     let bldgW = Math.sqrt(targetArea / aspectRatio);
     let bldgL = bldgW * aspectRatio;
 
-    // Safety setback factor (keep away from parcel edges)
-    const setback = 4.0; // 4 meters
+    const setback = 4.0;
     const maxAllowedW = Math.max(10, parcelW - setback * 2);
     const maxAllowedL = Math.max(10, parcelH - setback * 2);
 
@@ -667,7 +714,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const halfW = bldgW / 2;
     const halfL = bldgL / 2;
 
-    // Centered at local origin (0, 0)
     let corners = [
       { x: -halfW, y: -halfL },
       { x: halfW, y: -halfL },
@@ -675,7 +721,6 @@ document.addEventListener('DOMContentLoaded', () => {
       { x: -halfW, y: halfL }
     ];
 
-    // Apply rotation
     const rad = (concept.rotation || 0) * Math.PI / 180;
     const cos = Math.cos(rad);
     const sin = Math.sin(rad);
@@ -688,7 +733,8 @@ document.addEventListener('DOMContentLoaded', () => {
     return {
       width: bldgW,
       length: bldgL,
-      corners: rotatedCorners
+      corners: rotatedCorners,
+      isCustom: false
     };
   }
 
@@ -702,24 +748,31 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     7. Three.js 3D Procedural Architectural Massing Generator
+     7. Three.js 3D Procedural Architectural Massing & Custom Polygon Extruder
      ========================================================================== */
   function renderBuilding3D(parcel, concept) {
     if (!buildingGroup || !scene) return;
 
-    // Remove existing building
+    // Remove existing building elements
     while (buildingGroup.children.length > 0) {
       buildingGroup.remove(buildingGroup.children[0]);
     }
 
     const fp = computeFootprintGeometry(parcel, concept);
-    if (!fp) return;
+    if (!fp || !fp.corners || fp.corners.length < 3) return;
 
-    const floors = concept.floors || 5;
+    const floorsAbove = concept.floorsAbove !== undefined ? concept.floorsAbove : (concept.floors || 5);
+    const floorsBelow = concept.floorsBelow !== undefined ? concept.floorsBelow : 1;
     const floorH = concept.floorHeight || 3.3;
-    const totalH = floors * floorH;
-    const bldgW = fp.width;
-    const bldgL = fp.length;
+    const totalAboveH = floorsAbove * floorH;
+
+    // Construct 2D shape in local horizontal meters
+    const shape = new THREE.Shape();
+    fp.corners.forEach((pt, idx) => {
+      if (idx === 0) shape.moveTo(pt.x, -pt.y);
+      else shape.lineTo(pt.x, -pt.y);
+    });
+    shape.closePath();
 
     // Material Selection
     let wallColor = new THREE.Color(concept.facadeColor || 0xf1f5f9);
@@ -738,8 +791,10 @@ document.addEventListener('DOMContentLoaded', () => {
       metalness = 0.5;
     }
 
-    const slabColor = 0xffffff;
-    const glassColor = 0x0284c7;
+    const slabMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 0.3
+    });
 
     const wallMat = new THREE.MeshStandardMaterial({
       color: wallColor,
@@ -747,69 +802,87 @@ document.addEventListener('DOMContentLoaded', () => {
       metalness: metalness
     });
 
-    const slabMat = new THREE.MeshStandardMaterial({
-      color: slabColor,
-      roughness: 0.3
-    });
-
     const glassMat = new THREE.MeshStandardMaterial({
-      color: glassColor,
+      color: 0x0284c7,
       roughness: 0.1,
       metalness: 0.9,
       transparent: true,
       opacity: 0.75
     });
 
-    // Subdivided Floor Plating
-    for (let f = 0; f < floors; f++) {
+    const subterraneanMat = new THREE.MeshStandardMaterial({
+      color: 0x1e293b,
+      roughness: 0.8,
+      metalness: 0.3,
+      transparent: true,
+      opacity: state.xRayMode ? 0.95 : 0.75
+    });
+
+    const subterraneanEdgeMat = new THREE.LineBasicMaterial({
+      color: 0x00f0ff,
+      transparent: true,
+      opacity: 0.8
+    });
+
+    // 1. Extrude Above-Ground Floors (Y >= 0)
+    for (let f = 0; f < floorsAbove; f++) {
       const isGround = f === 0;
       const currentY = f * floorH;
       const curHeight = isGround ? floorH * 1.15 : floorH;
 
       // Floor Slab
-      const slabGeom = new THREE.BoxGeometry(bldgW + 0.6, 0.35, bldgL + 0.6);
+      const slabGeom = new THREE.ExtrudeGeometry(shape, { depth: 0.35, bevelEnabled: false });
       const slabMesh = new THREE.Mesh(slabGeom, slabMat);
+      slabMesh.rotation.x = -Math.PI / 2;
       slabMesh.position.set(0, currentY, 0);
       slabMesh.castShadow = true;
       slabMesh.receiveShadow = true;
       buildingGroup.add(slabMesh);
 
       // Floor Core / Glazing Walls
-      const floorGeom = new THREE.BoxGeometry(bldgW, curHeight - 0.35, bldgL);
       const curMat = (isGround && concept.groundFloorUse === 'commercial') ? glassMat : wallMat;
-      const floorMesh = new THREE.Mesh(floorGeom, curMat);
-      floorMesh.position.set(0, currentY + curHeight / 2, 0);
-      floorMesh.castShadow = true;
-      floorMesh.receiveShadow = true;
-      buildingGroup.add(floorMesh);
-
-      // Add window rhythm frames on upper floors
-      if (!isGround && concept.facadeMaterial !== 'glass') {
-        const winBoxGeom = new THREE.BoxGeometry(bldgW + 0.1, curHeight * 0.55, bldgL + 0.1);
-        const winMesh = new THREE.Mesh(winBoxGeom, glassMat);
-        winMesh.position.set(0, currentY + curHeight / 2, 0);
-        buildingGroup.add(winMesh);
-      }
+      const wallGeom = new THREE.ExtrudeGeometry(shape, { depth: curHeight - 0.35, bevelEnabled: false });
+      const wallMesh = new THREE.Mesh(wallGeom, curMat);
+      wallMesh.rotation.x = -Math.PI / 2;
+      wallMesh.position.set(0, currentY + 0.35, 0);
+      wallMesh.castShadow = true;
+      wallMesh.receiveShadow = true;
+      buildingGroup.add(wallMesh);
     }
 
-    // Roof Parapet / Terrace
-    const roofSlabGeom = new THREE.BoxGeometry(bldgW + 0.8, 0.5, bldgL + 0.8);
+    // Roof Slab & Parapet
+    const roofSlabGeom = new THREE.ExtrudeGeometry(shape, { depth: 0.45, bevelEnabled: false });
     const roofMesh = new THREE.Mesh(roofSlabGeom, slabMat);
-    roofMesh.position.set(0, totalH, 0);
+    roofMesh.rotation.x = -Math.PI / 2;
+    roofMesh.position.set(0, totalAboveH, 0);
     roofMesh.castShadow = true;
     buildingGroup.add(roofMesh);
 
-    const parapetGeom = new THREE.BoxGeometry(bldgW, 1.0, bldgL);
+    const parapetGeom = new THREE.ExtrudeGeometry(shape, { depth: 0.8, bevelEnabled: false });
     const parapetMesh = new THREE.Mesh(parapetGeom, wallMat);
-    parapetMesh.position.set(0, totalH + 0.5, 0);
+    parapetMesh.rotation.x = -Math.PI / 2;
+    parapetMesh.position.set(0, totalAboveH + 0.45, 0);
     buildingGroup.add(parapetMesh);
 
-    // Apply rotation
-    buildingGroup.rotation.y = (concept.rotation || 0) * Math.PI / 180;
+    // 2. Extrude Minus Floors / Subterranean Levels (Y < 0)
+    for (let b = 1; b <= floorsBelow; b++) {
+      const btmY = -b * floorH;
+      const basementGeom = new THREE.ExtrudeGeometry(shape, { depth: floorH - 0.12, bevelEnabled: false });
+      const basementMesh = new THREE.Mesh(basementGeom, subterraneanMat);
+      basementMesh.rotation.x = -Math.PI / 2;
+      basementMesh.position.set(0, btmY, 0);
+      buildingGroup.add(basementMesh);
 
-    // Adjust camera target to center of building mass
+      const edges = new THREE.EdgesGeometry(basementGeom);
+      const line = new THREE.LineSegments(edges, subterraneanEdgeMat);
+      line.rotation.x = -Math.PI / 2;
+      line.position.set(0, btmY, 0);
+      buildingGroup.add(line);
+    }
+
+    // Adjust camera target to center of mass
     if (controls) {
-      controls.target.set(0, totalH / 2, 0);
+      controls.target.set(0, totalAboveH / 2, 0);
     }
   }
 
@@ -840,12 +913,157 @@ document.addEventListener('DOMContentLoaded', () => {
       if (el) el.textContent = val;
     };
 
+    const floorsAbove = concept.floorsAbove || concept.floors || 5;
     set('assessFootprint', `${concept.footprint.toLocaleString()} მ²`);
     set('assessFreeLand', `${concept.freeLand.toLocaleString()} მ²`);
-    set('assessFloors', `${concept.floors}`);
+    set('assessFloors', `+${floorsAbove}`);
     set('assessTotalGFA', `${concept.totalArea.toLocaleString()} მ²`);
     set('assessCoverage', `${Math.round(concept.k1Ratio * 100)}% (K1: ${concept.k1Ratio})`);
     set('assessFunction', concept.buildingType.toUpperCase());
+  }
+
+  /* ==========================================================================
+     8b. Real-Time Zoning & Ratio Compliance Calculator (ეტევი / ცდები)
+     ========================================================================== */
+  function updateComplianceUI(parcel, concept) {
+    if (!parcel || !concept) return;
+
+    const footprint = concept.footprint || 0;
+    const parcelArea = parcel.area || 1;
+    const floorsAbove = concept.floorsAbove !== undefined ? concept.floorsAbove : (concept.floors || 5);
+    const floorsBelow = concept.floorsBelow !== undefined ? concept.floorsBelow : 1;
+
+    const totalAboveGFA = footprint * floorsAbove;
+    const totalUndergroundGFA = footprint * floorsBelow;
+
+    const k1Allowed = parcel.k1 || 0.50;
+    const k2Allowed = parcel.k2 || 2.20;
+    const k3Allowed = parcel.k3 || 0.30;
+
+    const k1Actual = footprint / parcelArea;
+    const k2Actual = totalAboveGFA / parcelArea;
+    const k3Actual = (parcelArea - footprint) / parcelArea;
+
+    const k1Fit = k1Actual <= (k1Allowed + 0.005);
+    const k2Fit = k2Actual <= (k2Allowed + 0.005);
+    const k3Fit = k3Actual >= (k3Allowed - 0.005);
+    const allFit = k1Fit && k2Fit && k3Fit;
+
+    // Overall Compliance Status Banner
+    const banner = document.getElementById('complianceBanner');
+    const bannerTitle = document.getElementById('complianceBannerTitle');
+    const bannerSub = document.getElementById('complianceBannerSubtitle');
+    const bannerIcon = document.getElementById('complianceBannerIcon');
+
+    if (banner) {
+      banner.className = `compliance-status-banner ${allFit ? 'fit' : 'exceed'}`;
+      if (bannerTitle) {
+        bannerTitle.textContent = allFit
+          ? (translations[state.currentLang].compliance_fit || 'ეტევი კოეფიციენტებში (ყველა ნორმა დაცულია)')
+          : (translations[state.currentLang].compliance_exceed || 'ცდები კოეფიციენტებს! (დაფიქსირდა გადაცდომა)');
+      }
+      if (bannerSub) {
+        if (allFit) {
+          bannerSub.textContent = 'მოცემული მოცულობა და სართულიანობა სრულ შესაბამისობაშია ქალაქმშენებლობით რეგულაციებთან.';
+        } else {
+          const violations = [];
+          if (!k1Fit) violations.push('K1 (საძირკველი)');
+          if (!k2Fit) violations.push('K2 (ინტენსივობა/სართულები)');
+          if (!k3Fit) violations.push('K3 (გამწვანება)');
+          bannerSub.textContent = `გადაჭარბებულია: ${violations.join(', ')}. შეამცირეთ სართულები ან საძირკვლის ფართობი.`;
+        }
+      }
+      if (bannerIcon) {
+        bannerIcon.className = allFit ? 'fa-solid fa-shield-check' : 'fa-solid fa-triangle-exclamation';
+      }
+    }
+
+    // K1 Row
+    const k1ActualEl = document.getElementById('k1ActualVal');
+    const k1AllowedEl = document.getElementById('k1AllowedVal');
+    const badgeK1 = document.getElementById('badgeK1Status');
+    const k1Delta = document.getElementById('k1DeltaMsg');
+    const k1Meter = document.getElementById('k1MeterFill');
+
+    if (k1ActualEl) k1ActualEl.textContent = k1Actual.toFixed(2);
+    if (k1AllowedEl) k1AllowedEl.textContent = k1Allowed.toFixed(2);
+    if (badgeK1) {
+      badgeK1.className = `ratio-status-badge ${k1Fit ? 'fit' : 'exceed'}`;
+      badgeK1.textContent = k1Fit ? 'ეტევი' : 'ცდები';
+    }
+    if (k1Delta) {
+      k1Delta.className = `ratio-delta-msg ${k1Fit ? 'fit' : 'exceed'}`;
+      if (k1Fit) {
+        const remaining = Math.max(0, Math.round(parcelArea * k1Allowed - footprint));
+        k1Delta.textContent = `დარჩენილია ${remaining.toLocaleString()} მ²`;
+      } else {
+        const over = Math.round(footprint - parcelArea * k1Allowed);
+        k1Delta.textContent = `გადაჭარბებულია +${over.toLocaleString()} მ²-ით!`;
+      }
+    }
+    if (k1Meter) {
+      k1Meter.className = `ratio-meter-fill ${k1Fit ? 'fit' : 'exceed'}`;
+      k1Meter.style.width = `${Math.min(100, Math.round(k1Actual / k1Allowed * 100))}%`;
+    }
+
+    // K2 Row
+    const k2ActualEl = document.getElementById('k2ActualVal');
+    const k2AllowedEl = document.getElementById('k2AllowedVal');
+    const badgeK2 = document.getElementById('badgeK2Status');
+    const k2Delta = document.getElementById('k2DeltaMsg');
+    const k2Meter = document.getElementById('k2MeterFill');
+
+    if (k2ActualEl) k2ActualEl.textContent = k2Actual.toFixed(2);
+    if (k2AllowedEl) k2AllowedEl.textContent = k2Allowed.toFixed(2);
+    if (badgeK2) {
+      badgeK2.className = `ratio-status-badge ${k2Fit ? 'fit' : 'exceed'}`;
+      badgeK2.textContent = k2Fit ? 'ეტევი' : 'ცდები';
+    }
+    if (k2Delta) {
+      k2Delta.className = `ratio-delta-msg ${k2Fit ? 'fit' : 'exceed'}`;
+      if (k2Fit) {
+        const remaining = Math.max(0, Math.round(parcelArea * k2Allowed - totalAboveGFA));
+        k2Delta.textContent = `დარჩენილია ${remaining.toLocaleString()} მ²`;
+      } else {
+        const over = Math.round(totalAboveGFA - parcelArea * k2Allowed);
+        k2Delta.textContent = `გადაჭარბებულია +${over.toLocaleString()} მ²-ით!`;
+      }
+    }
+    if (k2Meter) {
+      k2Meter.className = `ratio-meter-fill ${k2Fit ? 'fit' : 'exceed'}`;
+      k2Meter.style.width = `${Math.min(100, Math.round(k2Actual / k2Allowed * 100))}%`;
+    }
+
+    // K3 Row
+    const k3ActualEl = document.getElementById('k3ActualVal');
+    const k3AllowedEl = document.getElementById('k3AllowedVal');
+    const badgeK3 = document.getElementById('badgeK3Status');
+    const k3Delta = document.getElementById('k3DeltaMsg');
+    const k3Meter = document.getElementById('k3MeterFill');
+
+    if (k3ActualEl) k3ActualEl.textContent = k3Actual.toFixed(2);
+    if (k3AllowedEl) k3AllowedEl.textContent = k3Allowed.toFixed(2);
+    if (badgeK3) {
+      badgeK3.className = `ratio-status-badge ${k3Fit ? 'fit' : 'exceed'}`;
+      badgeK3.textContent = k3Fit ? 'ეტევი' : 'ცდები';
+    }
+    if (k3Delta) {
+      k3Delta.className = `ratio-delta-msg ${k3Fit ? 'fit' : 'exceed'}`;
+      if (k3Fit) {
+        k3Delta.textContent = 'ნორმაშია';
+      } else {
+        const deficit = Math.round(parcelArea * k3Allowed - (parcelArea - footprint));
+        k3Delta.textContent = `დეფიციტი: -${deficit.toLocaleString()} მ²`;
+      }
+    }
+    if (k3Meter) {
+      k3Meter.className = `ratio-meter-fill ${k3Fit ? 'fit' : 'exceed'}`;
+      k3Meter.style.width = `${Math.min(100, Math.round(k3Actual / k3Allowed * 100))}%`;
+    }
+
+    // Underground Floor Information
+    const underGFA = document.getElementById('assessUndergroundGFA');
+    if (underGFA) underGFA.textContent = `${totalUndergroundGFA.toLocaleString()} მ² (${floorsBelow} მინუს სართული)`;
   }
 
   function syncSlidersUI(concept) {
@@ -858,14 +1076,29 @@ document.addEventListener('DOMContentLoaded', () => {
       if (el) el.textContent = val;
     };
 
-    setVal('sliderFloors', concept.floors);
-    setDisplay('displayFloors', concept.floors);
+    const floorsAbove = concept.floorsAbove !== undefined ? concept.floorsAbove : (concept.floors || 5);
+    const floorsBelow = concept.floorsBelow !== undefined ? concept.floorsBelow : 1;
+    const floorH = concept.floorHeight || 3.3;
+
+    setVal('sliderFloors', floorsAbove);
+    setDisplay('displayFloors', `+${floorsAbove}`);
+
+    setVal('sliderBasementFloors', floorsBelow);
+    setDisplay('displayBasementFloors', `-${floorsBelow}`);
 
     setVal('sliderFootprint', concept.footprint);
-    setDisplay('displayFootprint', `${concept.footprint} მ²`);
+    setDisplay('displayFootprint', `${concept.footprint.toLocaleString()} მ²`);
 
-    setVal('sliderHeight', concept.floorHeight);
-    setDisplay('displayHeight', `${concept.floorHeight} მ`);
+    setVal('sliderHeight', floorH);
+    setDisplay('displayHeight', `${floorH} მ`);
+
+    setDisplay('displayTotalHeight', `${(floorsAbove * floorH).toFixed(1)} მ`);
+    setDisplay('displayBasementDepth', `-${(floorsBelow * floorH).toFixed(1)} მ`);
+
+    const customBadge = document.getElementById('customFootprintIndicator');
+    if (customBadge) {
+      customBadge.style.display = (state.customFootprint && state.customFootprint.length >= 3) ? 'flex' : 'none';
+    }
 
     setVal('sliderRotation', concept.rotation || 0);
     setDisplay('displayRotation', `${concept.rotation || 0}°`);
@@ -879,18 +1112,32 @@ document.addEventListener('DOMContentLoaded', () => {
      9. Interactive Sliders & Override Event Handlers
      ========================================================================== */
   const sliderFloors = document.getElementById('sliderFloors');
+  const sliderBasementFloors = document.getElementById('sliderBasementFloors');
   const sliderFootprint = document.getElementById('sliderFootprint');
   const sliderHeight = document.getElementById('sliderHeight');
   const sliderRotation = document.getElementById('sliderRotation');
   const selectMaterial = document.getElementById('selectMaterial');
   const selectStyle = document.getElementById('selectStyle');
   const selectGroundUse = document.getElementById('selectGroundUse');
+  const btnResetToAutoFootprint = document.getElementById('btnResetToAutoFootprint');
 
   if (sliderFloors) {
     sliderFloors.addEventListener('input', () => {
       if (!state.activeConcept) return;
-      state.activeConcept.floors = parseInt(sliderFloors.value, 10);
-      document.getElementById('displayFloors').textContent = sliderFloors.value;
+      const val = parseInt(sliderFloors.value, 10);
+      state.activeConcept.floorsAbove = val;
+      state.activeConcept.floors = val;
+      document.getElementById('displayFloors').textContent = `+${val}`;
+      applyConceptToState(state.activeConcept);
+    });
+  }
+
+  if (sliderBasementFloors) {
+    sliderBasementFloors.addEventListener('input', () => {
+      if (!state.activeConcept) return;
+      const val = parseInt(sliderBasementFloors.value, 10);
+      state.activeConcept.floorsBelow = val;
+      document.getElementById('displayBasementFloors').textContent = `-${val}`;
       applyConceptToState(state.activeConcept);
     });
   }
@@ -898,9 +1145,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (sliderFootprint) {
     sliderFootprint.addEventListener('input', () => {
       if (!state.activeConcept) return;
-      state.activeConcept.footprint = parseInt(sliderFootprint.value, 10);
-      state.activeConcept.totalArea = state.activeConcept.footprint * state.activeConcept.floors;
-      document.getElementById('displayFootprint').textContent = `${sliderFootprint.value} მ²`;
+      const val = parseInt(sliderFootprint.value, 10);
+      state.activeConcept.footprint = val;
+      // If user drags slider manually, clear custom drawn footprint to allow parametric resize
+      state.customFootprint = null;
+      if (drawingLayerGroup) drawingLayerGroup.clearLayers();
+      const customBadge = document.getElementById('customFootprintIndicator');
+      if (customBadge) customBadge.style.display = 'none';
+      document.getElementById('displayFootprint').textContent = `${val.toLocaleString()} მ²`;
       applyConceptToState(state.activeConcept);
     });
   }
@@ -908,8 +1160,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (sliderHeight) {
     sliderHeight.addEventListener('input', () => {
       if (!state.activeConcept) return;
-      state.activeConcept.floorHeight = parseFloat(sliderHeight.value);
-      document.getElementById('displayHeight').textContent = `${sliderHeight.value} მ`;
+      const val = parseFloat(sliderHeight.value);
+      state.activeConcept.floorHeight = val;
+      document.getElementById('displayHeight').textContent = `${val} მ`;
       applyConceptToState(state.activeConcept);
     });
   }
@@ -945,6 +1198,200 @@ document.addEventListener('DOMContentLoaded', () => {
       state.activeConcept.groundFloorUse = selectGroundUse.value;
       applyConceptToState(state.activeConcept);
     });
+  }
+
+  if (btnResetToAutoFootprint) {
+    btnResetToAutoFootprint.addEventListener('click', () => {
+      clearDrawing();
+    });
+  }
+
+  /* ==========================================================================
+     9b. Interactive Building Footprint Drawing Engine (2D Leaflet GIS)
+     ========================================================================== */
+  function handleMapClick(e) {
+    if (!state.isDrawingMode) return;
+    const pt = [e.latlng.lat, e.latlng.lng];
+    state.drawnPoints.push(pt);
+    updateDrawingVisualization();
+  }
+
+  function updateDrawingVisualization() {
+    if (!drawingLayerGroup) return;
+    drawingLayerGroup.clearLayers();
+
+    const count = state.drawnPoints.length;
+    const banner = document.getElementById('drawingGuideBanner');
+    const bannerText = document.getElementById('drawingGuideText');
+    const liveAreaBadge = document.getElementById('drawingLiveAreaBadge');
+    const btnFinish = document.getElementById('btnFinishDraw');
+    const btnClear = document.getElementById('btnClearDraw');
+
+    if (banner) banner.style.display = 'flex';
+    if (btnClear) btnClear.style.display = count > 0 ? 'inline-flex' : 'none';
+
+    // Draw vertex dots
+    state.drawnPoints.forEach((pt, idx) => {
+      const isFirst = idx === 0;
+      const marker = L.circleMarker(pt, {
+        radius: isFirst ? 8 : 6,
+        color: isFirst ? '#10b981' : '#00f0ff',
+        fillColor: '#ffffff',
+        fillOpacity: 1,
+        weight: 2.5,
+        className: 'drawing-vertex-marker'
+      });
+
+      if (isFirst && count >= 3) {
+        marker.bindTooltip('დააკლიკე შესაკრავად', { permanent: false, direction: 'top' });
+        marker.on('click', (ev) => {
+          L.DomEvent.stopPropagation(ev);
+          finishDrawing();
+        });
+      }
+
+      drawingLayerGroup.addLayer(marker);
+    });
+
+    if (count >= 2) {
+      const line = L.polyline(state.drawnPoints, {
+        color: '#00f0ff',
+        weight: 2.5,
+        dashArray: '5, 5'
+      });
+      drawingLayerGroup.addLayer(line);
+    }
+
+    if (count >= 3) {
+      const previewPoly = L.polygon(state.drawnPoints, {
+        color: '#00f0ff',
+        weight: 2,
+        fillColor: '#00f0ff',
+        fillOpacity: 0.18,
+        dashArray: '4, 4'
+      });
+      drawingLayerGroup.addLayer(previewPoly);
+
+      // Compute live area with Turf.js
+      const ring = state.drawnPoints.map(pt => [pt[1], pt[0]]);
+      ring.push([state.drawnPoints[0][1], state.drawnPoints[0][0]]);
+      const poly = turf.polygon([ring]);
+      const areaSqM = Math.round(turf.area(poly));
+
+      if (liveAreaBadge) liveAreaBadge.textContent = `${areaSqM.toLocaleString()} მ²`;
+      if (bannerText) bannerText.textContent = translations[state.currentLang].drawing_guide_close || 'დააკლიკე პირველ წერტილს ან „დაასრულე“ ღილაკს შესაკრავად';
+      if (btnFinish) btnFinish.style.display = 'inline-flex';
+    } else {
+      if (liveAreaBadge) liveAreaBadge.textContent = '0 მ²';
+      if (bannerText) bannerText.textContent = translations[state.currentLang].drawing_guide_start || 'დააკლიკე რუკაზე შენობის ფორმის დასახაზად (მინ. 3 წერტილი)';
+      if (btnFinish) btnFinish.style.display = 'none';
+    }
+  }
+
+  function startDrawing() {
+    if (!state.activeParcel) {
+      searchParcel('01.15.02.038.003');
+    }
+    state.isDrawingMode = true;
+    state.drawnPoints = [];
+    if (drawingLayerGroup) drawingLayerGroup.clearLayers();
+
+    const mapViewport = document.getElementById('mapViewport');
+    if (mapViewport) mapViewport.classList.add('map-drawing-active');
+
+    const btnDraw = document.getElementById('btnDrawBuilding');
+    if (btnDraw) btnDraw.classList.add('active');
+
+    const btnFinish = document.getElementById('btnFinishDraw');
+    if (btnFinish) btnFinish.style.display = 'none';
+
+    const btnClear = document.getElementById('btnClearDraw');
+    if (btnClear) btnClear.style.display = 'inline-flex';
+
+    if (state.currentMode === '3d') {
+      setMode('combined');
+    }
+
+    updateDrawingVisualization();
+  }
+
+  function finishDrawing() {
+    if (state.drawnPoints.length < 3) return;
+
+    state.isDrawingMode = false;
+    state.customFootprint = [...state.drawnPoints];
+
+    const mapViewport = document.getElementById('mapViewport');
+    if (mapViewport) mapViewport.classList.remove('map-drawing-active');
+
+    const btnDraw = document.getElementById('btnDrawBuilding');
+    if (btnDraw) btnDraw.classList.remove('active');
+
+    const btnFinish = document.getElementById('btnFinishDraw');
+    if (btnFinish) btnFinish.style.display = 'none';
+
+    const banner = document.getElementById('drawingGuideBanner');
+    if (banner) banner.style.display = 'none';
+
+    // Compute final area with Turf.js
+    const ring = state.customFootprint.map(pt => [pt[1], pt[0]]);
+    ring.push([state.customFootprint[0][1], state.customFootprint[0][0]]);
+    const poly = turf.polygon([ring]);
+    const areaSqM = Math.round(turf.area(poly));
+
+    // Render finalized clean footprint polygon on map
+    if (drawingLayerGroup) {
+      drawingLayerGroup.clearLayers();
+      const finalPoly = L.polygon(state.customFootprint, {
+        color: '#00f0ff',
+        weight: 2.5,
+        fillColor: '#00f0ff',
+        fillOpacity: 0.15,
+        dashArray: '5, 5'
+      });
+      drawingLayerGroup.addLayer(finalPoly);
+    }
+
+    const customBadge = document.getElementById('customFootprintIndicator');
+    if (customBadge) customBadge.style.display = 'flex';
+
+    if (state.activeConcept) {
+      state.activeConcept.footprint = areaSqM;
+      applyConceptToState(state.activeConcept);
+    }
+
+    if (state.currentMode === 'map' || state.currentMode === '2d') {
+      setMode('combined');
+    }
+  }
+
+  function clearDrawing() {
+    state.isDrawingMode = false;
+    state.drawnPoints = [];
+    state.customFootprint = null;
+    if (drawingLayerGroup) drawingLayerGroup.clearLayers();
+
+    const mapViewport = document.getElementById('mapViewport');
+    if (mapViewport) mapViewport.classList.remove('map-drawing-active');
+
+    const btnDraw = document.getElementById('btnDrawBuilding');
+    if (btnDraw) btnDraw.classList.remove('active');
+
+    const btnFinish = document.getElementById('btnFinishDraw');
+    if (btnFinish) btnFinish.style.display = 'none';
+
+    const btnClear = document.getElementById('btnClearDraw');
+    if (btnClear) btnClear.style.display = 'none';
+
+    const banner = document.getElementById('drawingGuideBanner');
+    if (banner) banner.style.display = 'none';
+
+    const customBadge = document.getElementById('customFootprintIndicator');
+    if (customBadge) customBadge.style.display = 'none';
+
+    if (state.activeParcel) {
+      generateDefaultConcept(state.activeParcel);
+    }
   }
 
   /* ==========================================================================
@@ -1025,6 +1472,53 @@ document.addEventListener('DOMContentLoaded', () => {
         camera.position.set(50, 45, 65);
       } else if (map && parcelPolygonLayer) {
         map.fitBounds(parcelPolygonLayer.getBounds(), { padding: [40, 40] });
+      }
+    });
+  }
+
+  // Drawing Toolbar Buttons
+  const btnDrawBuilding = document.getElementById('btnDrawBuilding');
+  const btnFinishDraw = document.getElementById('btnFinishDraw');
+  const btnClearDraw = document.getElementById('btnClearDraw');
+  const btnToggleXRay = document.getElementById('btnToggleXRay');
+
+  if (btnDrawBuilding) {
+    btnDrawBuilding.addEventListener('click', () => {
+      if (state.isDrawingMode) {
+        clearDrawing();
+      } else {
+        startDrawing();
+      }
+    });
+  }
+
+  if (btnFinishDraw) {
+    btnFinishDraw.addEventListener('click', () => {
+      finishDrawing();
+    });
+  }
+
+  if (btnClearDraw) {
+    btnClearDraw.addEventListener('click', () => {
+      clearDrawing();
+    });
+  }
+
+  if (btnToggleXRay) {
+    btnToggleXRay.addEventListener('click', () => {
+      state.xRayMode = !state.xRayMode;
+      btnToggleXRay.classList.toggle('active', state.xRayMode);
+      if (groundGroup) {
+        groundGroup.children.forEach(c => {
+          if (c.material && c.type === 'Mesh') {
+            c.material.transparent = true;
+            c.material.opacity = state.xRayMode ? 0.25 : 1.0;
+            c.material.needsUpdate = true;
+          }
+        });
+      }
+      if (state.activeParcel && state.activeConcept) {
+        renderBuilding3D(state.activeParcel, state.activeConcept);
       }
     });
   }

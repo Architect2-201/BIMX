@@ -179,26 +179,49 @@
               პარამეტრების კორექტირება
             </h3>
 
-            <!-- Floors Slider -->
+            <!-- Floors Slider: Plus Floors (Above Ground) -->
             <div class="control-field-row">
-              <label for="sliderFloors" data-i18n="param_floors">სართულიანობა</label>
-              <span class="control-val" id="displayFloors">5</span>
+              <label for="sliderFloors" data-i18n="param_floors_above">პლიუს სართულები (მიწისზედა)</label>
+              <span class="control-val badge-floors-plus" id="displayFloors">+5</span>
             </div>
-            <input type="range" id="sliderFloors" class="slider-custom" min="1" max="25" value="5">
+            <input type="range" id="sliderFloors" class="slider-custom" min="1" max="30" value="5">
 
-            <!-- Footprint Slider -->
+            <!-- Floors Slider: Minus Floors (Underground / Basement) -->
+            <div class="control-field-row">
+              <label for="sliderBasementFloors" data-i18n="param_floors_below">მინუს სართულები (მიწისქვეშა)</label>
+              <span class="control-val badge-floors-minus" id="displayBasementFloors">-1</span>
+            </div>
+            <input type="range" id="sliderBasementFloors" class="slider-custom" min="0" max="5" value="1">
+
+            <!-- Footprint Slider & Custom Draw Badge -->
             <div class="control-field-row">
               <label for="sliderFootprint" data-i18n="param_footprint">საძირკვლის ფართობი (Footprint)</label>
               <span class="control-val" id="displayFootprint">450 მ²</span>
             </div>
-            <input type="range" id="sliderFootprint" class="slider-custom" min="100" max="2500" step="25" value="450">
+            <input type="range" id="sliderFootprint" class="slider-custom" min="50" max="3000" step="10" value="450">
+            <div id="customFootprintIndicator" class="custom-footprint-badge" style="display: none;">
+              <i class="fa-solid fa-draw-polygon" style="color: var(--cyan-neon);"></i>
+              <span>დახაზულია ხელით რუკაზე</span>
+              <button type="button" id="btnResetToAutoFootprint" class="btn-reset-footprint" title="ავტომატურ ფორმაზე დაბრუნება">ავტო ↺</button>
+            </div>
 
-            <!-- Floor Height -->
+            <!-- Floor Height & Total Height Readout -->
             <div class="control-field-row">
               <label for="sliderHeight" data-i18n="param_height">სართულის სიმაღლე</label>
               <span class="control-val" id="displayHeight">3.3 მ</span>
             </div>
             <input type="range" id="sliderHeight" class="slider-custom" min="2.8" max="4.5" step="0.1" value="3.3">
+
+            <div class="height-depth-readout">
+              <div class="readout-item">
+                <span class="readout-label" data-i18n="param_total_height">ჯამური სიმაღლე:</span>
+                <strong id="displayTotalHeight" style="color: var(--cyan-neon);">16.5 მ</strong>
+              </div>
+              <div class="readout-item">
+                <span class="readout-label" data-i18n="param_basement_depth">მიწისქვეშა სიღრმე:</span>
+                <strong id="displayBasementDepth" style="color: var(--text-secondary);">-3.3 მ</strong>
+              </div>
+            </div>
 
             <!-- Building Rotation on Site -->
             <div class="control-field-row">
@@ -268,6 +291,25 @@
           </div>
 
           <div class="viewport-tools-group">
+            <!-- 2D Drawing Tools -->
+            <button type="button" class="tool-btn-draw" id="btnDrawBuilding" title="ნაკვეთზე შენობის ფორმის დახაზვა">
+              <i class="fa-solid fa-pen-ruler"></i>
+              <span data-i18n="tool_draw_building">შენობის დახაზვა</span>
+            </button>
+            <button type="button" class="tool-btn-draw tool-btn-finish" id="btnFinishDraw" style="display: none;" title="ნახაზის შეკვრა და 3D-ში გადატანა">
+              <i class="fa-solid fa-check"></i>
+              <span data-i18n="tool_finish_draw">დაასრულე</span>
+            </button>
+            <button type="button" class="tool-btn-draw tool-btn-clear" id="btnClearDraw" style="display: none;" title="ნახაზის გასუფთავება">
+              <i class="fa-solid fa-trash-can"></i>
+              <span data-i18n="tool_clear_draw">წაშლა</span>
+            </button>
+
+            <!-- 3D X-Ray / Underground View Toggle -->
+            <button type="button" class="tool-icon-btn" id="btnToggleXRay" title="მიწისქვეშა სართულების ხედვა (X-Ray)">
+              <i class="fa-solid fa-layer-group"></i>
+            </button>
+
             <button type="button" class="tool-icon-btn active" id="btnToggleSatellite" title="Satellite Imagery">
               <i class="fa-solid fa-earth-americas"></i>
             </button>
@@ -279,6 +321,13 @@
 
         <!-- Viewport Stage -->
         <div class="viewport-stage mode-3d" id="viewportStage">
+          <!-- Live Drawing Guide Toast / Banner -->
+          <div id="drawingGuideBanner" class="drawing-guide-banner" style="display: none;">
+            <i class="fa-solid fa-pen-nib" style="color: var(--cyan-neon);"></i>
+            <span id="drawingGuideText" data-i18n="drawing_guide_start">დააკლიკე რუკაზე შენობის ფორმის დასახაზად (მინ. 3 წერტილი)</span>
+            <span id="drawingLiveAreaBadge" class="drawing-live-area">0 მ²</span>
+          </div>
+
           <!-- 2D Leaflet Map Layer -->
           <div id="mapViewport" role="region" aria-label="GIS Map View"></div>
 
@@ -399,7 +448,77 @@
             </div>
           </div>
 
-          <!-- Section 3: Urban Planning & Regulations -->
+          <!-- Section 3: Real-Time Urban Zoning Compliance Card (ეტევი / ცდები) -->
+          <div class="section-block-analytic compliance-card-wrapper" id="complianceBlock">
+            <div class="analytic-header-row">
+              <h3 data-i18n="compliance_title">კოეფიციენტების კონტროლი</h3>
+              <span class="provenance-tag-pill calculated" data-i18n="badge_calculated">რეალურ დროში</span>
+            </div>
+
+            <!-- Overall Compliance Status Banner -->
+            <div class="compliance-status-banner fit" id="complianceBanner">
+              <div class="compliance-banner-icon">
+                <i class="fa-solid fa-shield-check" id="complianceBannerIcon"></i>
+              </div>
+              <div class="compliance-banner-text">
+                <strong id="complianceBannerTitle" data-i18n="compliance_fit">ეტევი კოეფიციენტებში</strong>
+                <span id="complianceBannerSubtitle">ყველა ნორმა დაცულია მოცემული კონცეფციისთვის</span>
+              </div>
+            </div>
+
+            <!-- K1 (Building Footprint Ratio) -->
+            <div class="compliance-ratio-row" id="complianceK1Row">
+              <div class="ratio-header">
+                <span class="ratio-name">K1 (განაშენიანება)</span>
+                <span class="ratio-status-badge fit" id="badgeK1Status">ეტევი</span>
+              </div>
+              <div class="ratio-numbers">
+                <span>ფაქტობრივი: <strong id="k1ActualVal">0.36</strong> / დასაშვები: <strong id="k1AllowedVal">0.50</strong></span>
+                <span class="ratio-delta-msg" id="k1DeltaMsg">დარჩენილია 175 მ²</span>
+              </div>
+              <div class="ratio-meter-track">
+                <div class="ratio-meter-fill fit" id="k1MeterFill" style="width: 72%;"></div>
+              </div>
+            </div>
+
+            <!-- K2 (Total Floor Area Ratio - Above Ground only) -->
+            <div class="compliance-ratio-row" id="complianceK2Row">
+              <div class="ratio-header">
+                <span class="ratio-name">K2 (ინტენსივობა)</span>
+                <span class="ratio-status-badge fit" id="badgeK2Status">ეტევი</span>
+              </div>
+              <div class="ratio-numbers">
+                <span>ფაქტობრივი: <strong id="k2ActualVal">1.80</strong> / დასაშვები: <strong id="k2AllowedVal">3.50</strong></span>
+                <span class="ratio-delta-msg" id="k2DeltaMsg">დარჩენილია 2,125 მ²</span>
+              </div>
+              <div class="ratio-meter-track">
+                <div class="ratio-meter-fill fit" id="k2MeterFill" style="width: 51%;"></div>
+              </div>
+            </div>
+
+            <!-- K3 (Greenery / Open Ground Ratio) -->
+            <div class="compliance-ratio-row" id="complianceK3Row">
+              <div class="ratio-header">
+                <span class="ratio-name">K3 (გამწვანება/ეზო)</span>
+                <span class="ratio-status-badge fit" id="badgeK3Status">ეტევი</span>
+              </div>
+              <div class="ratio-numbers">
+                <span>ფაქტობრივი: <strong id="k3ActualVal">0.64</strong> / მინიმალური: <strong id="k3AllowedVal">0.20</strong></span>
+                <span class="ratio-delta-msg" id="k3DeltaMsg">ნორმაშია</span>
+              </div>
+              <div class="ratio-meter-track">
+                <div class="ratio-meter-fill fit" id="k3MeterFill" style="width: 80%;"></div>
+              </div>
+            </div>
+
+            <!-- Underground Floor Details -->
+            <div class="underground-info-row">
+              <i class="fa-solid fa-arrow-down" style="color: var(--cyan-neon);"></i>
+              <span>მიწისქვეშა ფართობი: <strong id="assessUndergroundGFA">450 მ²</strong> (არ ითვლება K2-ში)</span>
+            </div>
+          </div>
+
+          <!-- Section 3b: Urban Planning & Zone Info -->
           <div class="section-block-analytic">
             <div class="analytic-header-row">
               <h3 data-i18n="urban_title">ქალაქმშენებლობითი მონაცემები</h3>
