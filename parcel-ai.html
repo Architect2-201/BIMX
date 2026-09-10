@@ -1195,39 +1195,122 @@
             <div class="solar-toggles-grid">
               <label class="solar-toggle-item">
                 <input type="checkbox" id="chkShowSunPath" checked>
-                <span>მზის ტრაექტორია</span>
+                <span data-i18n="solar_toggle_path">მზის ტრაექტორია</span>
+              </label>
+              <label class="solar-toggle-item highlight-toggle">
+                <input type="checkbox" id="chkShowThermalHeatmap" checked>
+                <span data-i18n="solar_toggle_heatmap" style="color: #fde047; font-weight: 700;">თერმული რუკა (Heatmap)</span>
               </label>
               <label class="solar-toggle-item">
                 <input type="checkbox" id="chkShowSeasonalArcs" checked>
-                <span>4 სეზონის რკალები</span>
+                <span data-i18n="solar_toggle_seasons">4 სეზონის რკალები</span>
               </label>
               <label class="solar-toggle-item">
                 <input type="checkbox" id="chkShowHourMarkers" checked>
-                <span>საათობრივი ნიშნულები</span>
+                <span data-i18n="solar_toggle_hours">საათობრივი ნიშნულები</span>
               </label>
               <label class="solar-toggle-item">
                 <input type="checkbox" id="chkShowCompassRing" checked>
-                <span>ჰორიზონტი & კომპასი</span>
+                <span data-i18n="solar_toggle_compass">ჰორიზონტი & კომპასი</span>
               </label>
             </div>
 
             <!-- Real-time Astronomical Metrics -->
             <div class="solar-metrics-grid">
               <div class="solar-metric-box">
-                <span class="metric-k">მზის სიმაღლე (Alt)</span>
+                <span class="metric-k" data-i18n="solar_metric_altitude">მზის სიმაღლე (Alt)</span>
                 <strong class="metric-v altitude" id="solarAltitudeVal">+54.2°</strong>
               </div>
               <div class="solar-metric-box">
-                <span class="metric-k">აზიმუტი (Az)</span>
+                <span class="metric-k" data-i18n="solar_metric_azimuth">აზიმუტი (Az)</span>
                 <strong class="metric-v azimuth" id="solarAzimuthVal">180.5° (S)</strong>
               </div>
               <div class="solar-metric-box">
-                <span class="metric-k">აისი / დაისი</span>
+                <span class="metric-k" data-i18n="solar_metric_sunrise_sunset">აისი / დაისი</span>
                 <strong class="metric-v sunrise" id="solarSunriseSunsetVal">05:32 / 20:41</strong>
               </div>
               <div class="solar-metric-box">
-                <span class="metric-k">დღის ხანგრძლივობა</span>
+                <span class="metric-k" data-i18n="solar_metric_daylength">დღის ხანგრძლივობა</span>
                 <strong class="metric-v daylength" id="solarDayLengthVal">15სთ 09წთ</strong>
+              </div>
+            </div>
+
+            <!-- Building Thermal Impact & Facade Insolation Analysis -->
+            <div class="solar-thermal-container" id="solarThermalContainer">
+              <div class="solar-thermal-header">
+                <div class="thermal-header-title">
+                  <i class="fa-solid fa-temperature-three-quarters" style="color: #ef4444;"></i>
+                  <span data-i18n="solar_thermal_title">შენობაზე თერმული ზემოქმედება</span>
+                </div>
+                <!-- Thermal Legend Pills -->
+                <div class="thermal-legend-group">
+                  <span class="legend-pill hot" title=">650 W/m²"><span class="dot"></span> <span data-i18n="thermal_legend_hot">ცხელი</span></span>
+                  <span class="legend-pill warm" title="300-650 W/m²"><span class="dot"></span> <span data-i18n="thermal_legend_warm">თბილი</span></span>
+                  <span class="legend-pill cold" title="<300 W/m²"><span class="dot"></span> <span data-i18n="thermal_legend_cold">ცივი</span></span>
+                </div>
+              </div>
+
+              <!-- Facade Breakdown Cards Grid -->
+              <div class="thermal-facades-grid">
+                <!-- South Facade -->
+                <div class="thermal-facade-card" id="facadeCardSouth">
+                  <div class="facade-card-top">
+                    <span class="facade-name"><i class="fa-solid fa-compass" style="color: #ef4444;"></i> <span data-i18n="facade_south">სამხრეთი (South)</span></span>
+                    <span class="facade-status-badge hot" id="facadeStatusSouth">ცხელი</span>
+                  </div>
+                  <div class="facade-card-metric">
+                    <span class="facade-power" id="facadePowerSouth">840 W/m²</span>
+                    <span class="facade-recom" id="facadeRecomSouth" data-i18n="thermal_recom_shading">მზისგან დაცვა</span>
+                  </div>
+                </div>
+
+                <!-- North Facade -->
+                <div class="thermal-facade-card" id="facadeCardNorth">
+                  <div class="facade-card-top">
+                    <span class="facade-name"><i class="fa-solid fa-compass" style="color: #38bdf8;"></i> <span data-i18n="facade_north">ჩრდილოეთი (North)</span></span>
+                    <span class="facade-status-badge cold" id="facadeStatusNorth">ცივი</span>
+                  </div>
+                  <div class="facade-card-metric">
+                    <span class="facade-power" id="facadePowerNorth">80 W/m²</span>
+                    <span class="facade-recom" id="facadeRecomNorth" data-i18n="thermal_recom_insulation">თბოიზოლაცია</span>
+                  </div>
+                </div>
+
+                <!-- East Facade -->
+                <div class="thermal-facade-card" id="facadeCardEast">
+                  <div class="facade-card-top">
+                    <span class="facade-name"><i class="fa-solid fa-compass" style="color: #f59e0b;"></i> <span data-i18n="facade_east">აღმოსავლეთი (East)</span></span>
+                    <span class="facade-status-badge warm" id="facadeStatusEast">თბილი</span>
+                  </div>
+                  <div class="facade-card-metric">
+                    <span class="facade-power" id="facadePowerEast">420 W/m²</span>
+                    <span class="facade-recom" id="facadeRecomEast" data-i18n="thermal_recom_optimal">დილის ინსოლაცია</span>
+                  </div>
+                </div>
+
+                <!-- West Facade -->
+                <div class="thermal-facade-card" id="facadeCardWest">
+                  <div class="facade-card-top">
+                    <span class="facade-name"><i class="fa-solid fa-compass" style="color: #f97316;"></i> <span data-i18n="facade_west">დასავლეთი (West)</span></span>
+                    <span class="facade-status-badge hot" id="facadeStatusWest">ცხელი</span>
+                  </div>
+                  <div class="facade-card-metric">
+                    <span class="facade-power" id="facadePowerWest">760 W/m²</span>
+                    <span class="facade-recom" id="facadeRecomWest" data-i18n="thermal_recom_shading">საღამოს გადახურება</span>
+                  </div>
+                </div>
+
+                <!-- Roof -->
+                <div class="thermal-facade-card roof-card" id="facadeCardRoof">
+                  <div class="facade-card-top">
+                    <span class="facade-name"><i class="fa-solid fa-solar-panel" style="color: #eab308;"></i> <span data-i18n="facade_roof">სახურავი / PV პოტენციალი</span></span>
+                    <span class="facade-status-badge hot" id="facadeStatusRoof">მაღალი</span>
+                  </div>
+                  <div class="facade-card-metric">
+                    <span class="facade-power" id="facadePowerRoof">920 W/m²</span>
+                    <span class="facade-recom" id="facadeRecomRoof" data-i18n="thermal_recom_pv">PV გენერაცია</span>
+                  </div>
+                </div>
               </div>
             </div>
 

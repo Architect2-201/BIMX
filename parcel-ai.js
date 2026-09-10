@@ -47,9 +47,11 @@ document.addEventListener('DOMContentLoaded', () => {
     solarHour: 12.0,
     isSolarAnimating: false,
     showSunPath: true,
+    showThermalHeatmap: true,
     showSeasonalArcs: true,
     showHourMarkers: true,
     showCompassRing: true,
+    buildingThermalData: null,
     // Map Basemap Themes (Architectural GIS, Satellite, Voyager, Topo)
     mapTheme: 'dark',
     combinedMapTheme: 'satellite',
@@ -402,7 +404,7 @@ document.addEventListener('DOMContentLoaded', () => {
      3. Three.js 3D WebGL Massing Canvas Setup & Solar Engine
      ========================================================================== */
   let scene, camera, renderer, controls;
-  let buildingGroup, groundGroup, urbanGroup, terrainGroup, sunPathGroup, roadGroup;
+  let buildingGroup, groundGroup, urbanGroup, terrainGroup, sunPathGroup, roadGroup, solarHeatmapGroup;
   let sunLight, ambientLight, fillLight;
 
   function initThree() {
@@ -498,6 +500,7 @@ document.addEventListener('DOMContentLoaded', () => {
     roadGroup = new THREE.Group();
     buildingGroup = new THREE.Group();
     sunPathGroup = new THREE.Group();
+    solarHeatmapGroup = new THREE.Group();
 
     scene.add(terrainGroup);
     scene.add(groundGroup);
@@ -505,6 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
     scene.add(roadGroup);
     scene.add(buildingGroup);
     scene.add(sunPathGroup);
+    scene.add(solarHeatmapGroup);
 
     // Initialize SunCalc position & controls
     updateSolarLighting();
@@ -1203,6 +1207,338 @@ document.addEventListener('DOMContentLoaded', () => {
     sunPathGroup.visible = (state.currentMode === 'solar' && state.showSunPath !== false);
   }
 
+  // ==========================================================================
+  // Building Solar Thermal Exposure & Insolation Engine (Module 2C-Heatmap)
+  // Calculates direct and diffuse solar irradiance (W/m2) on building facades & roof.
+  // Classifies into: Hot (>=650 W/m2), Warm (300-650 W/m2), and Cold (<300 W/m2).
+  // ==========================================================================
+  function calculateBuildingThermalExposure(lat, lng, currentSunPos) {
+    const isDay = currentSunPos.altitudeDeg > 0;
+    const altRad = currentSunPos.altitudeRad;
+    const azRad = currentSunPos.azimuthRad;
+
+    // Unit vector pointing towards the sun
+    // az=0 (North) -> -Z; az=PI/2 (East) -> +X; az=PI (South) -> +Z; az=3PI/2 (West) -> -X
+    const sunVector = new THREE.Vector3(
+      Math.sin(azRad) * Math.cos(altRad),
+      Math.sin(altRad),
+      -Math.cos(azRad) * Math.cos(altRad)
+    );
+
+    let I_beam = 0;
+    let I_diff = 0;
+
+    if (isDay) {
+      // Atmospheric air mass (Kasten-Young model)
+      const altDegClamped = Math.max(0.5, currentSunPos.altitudeDeg);
+      const airMass = 1 / (Math.sin(altRad) + 0.50572 * Math.pow(altDegClamped + 6.07995, -1.6364));
+      // Direct normal beam irradiance (W/m2)
+      I_beam = Math.max(0, 1050 * Math.pow(0.7, Math.pow(airMass, 0.678)));
+      // Diffuse horizontal irradiance (W/m2)
+      I_diff = Math.max(0, 125 * Math.sin(altRad));
+    }
+
+    const facadeNormals = {
+      south: new THREE.Vector3(0, 0, 1),
+      north: new THREE.Vector3(0, 0, -1),
+      east: new THREE.Vector3(1, 0, 0),
+      west: new THREE.Vector3(-1, 0, 0),
+      roof: new THREE.Vector3(0, 1, 0)
+    };
+
+    const computeFaceData = (normal, isRoof = false) => {
+      if (!isDay) {
+        return {
+          power: 0,
+          status: 'cold',
+          colorHex: 0x1e3a8a,
+          colorCss: '#1e3a8a',
+          labelKa: 'ცივი (ღამე)',
+          labelEn: 'Cold (Night)',
+          recomKa: 'ღამის გაგრილება',
+          recomEn: 'Night Cooling'
+        };
+      }
+
+      const cosTheta = Math.max(0, normal.dot(sunVector));
+      let power = 0;
+      if (isRoof) {
+        power = Math.round(I_beam * Math.sin(altRad) + I_diff);
+      } else {
+        power = Math.round(I_beam * cosTheta + I_diff * 0.5);
+      }
+
+      let status = 'cold';
+      let colorHex = 0x38bdf8;
+      let colorCss = '#38bdf8';
+      let labelKa = 'ცივი მხარე';
+      let labelEn = 'Cold Zone';
+      let recomKa = 'თბოიზოლაცია';
+      let recomEn = 'Insulation';
+
+      if (power >= 650) {
+        status = 'hot';
+        colorHex = 0xef4444;
+        colorCss = '#ef4444';
+        labelKa = 'ცხელი მხარე';
+        labelEn = 'Hot Zone';
+        recomKa = isRoof ? 'მაღალი PV გენერაცია' : 'მზისგან დაცვა / ჟალუზი';
+        recomEn = isRoof ? 'High PV Generation' : 'Solar Shading Required';
+      } else if (power >= 300) {
+        status = 'warm';
+        colorHex = 0xf59e0b;
+        colorCss = '#f59e0b';
+        labelKa = 'თბილი მხარე';
+        labelEn = 'Warm Zone';
+        recomKa = isRoof ? 'საშუალო PV პოტენციალი' : 'ოპტიმალური ინსოლაცია';
+        recomEn = isRoof ? 'Moderate PV Potential' : 'Optimal Insolation';
+      }
+
+      return { power, status, colorHex, colorCss, labelKa, labelEn, recomKa, recomEn };
+    };
+
+    const thermalData = {
+      isDay,
+      sunVector,
+      I_beam: Math.round(I_beam),
+      I_diff: Math.round(I_diff),
+      south: computeFaceData(facadeNormals.south),
+      north: computeFaceData(facadeNormals.north),
+      east: computeFaceData(facadeNormals.east),
+      west: computeFaceData(facadeNormals.west),
+      roof: computeFaceData(facadeNormals.roof, true)
+    };
+
+    state.buildingThermalData = thermalData;
+    return thermalData;
+  }
+
+  function renderBuildingThermalHeatmap(thermalData) {
+    if (!solarHeatmapGroup || !scene) return;
+
+    // Clear existing meshes
+    while (solarHeatmapGroup.children.length > 0) {
+      const c = solarHeatmapGroup.children[0];
+      solarHeatmapGroup.remove(c);
+      if (c.geometry) c.geometry.dispose();
+      if (c.material) {
+        if (Array.isArray(c.material)) c.material.forEach(m => m.dispose());
+        else c.material.dispose();
+      }
+    }
+
+    const isSolarMode = (state.currentMode === 'solar');
+    const isVisible = isSolarMode && (state.showThermalHeatmap !== false);
+    solarHeatmapGroup.visible = isVisible;
+
+    if (!isVisible || !thermalData) return;
+
+    const parcel = state.activeParcel;
+    if (!parcel || !state.buildings || state.buildings.length === 0) return;
+
+    const sunVec = thermalData.sunVector;
+    const isDay = thermalData.isDay;
+
+    state.buildings.forEach((bldg) => {
+      const fp = computeFootprintGeometry(parcel, bldg);
+      if (!fp || !fp.corners || fp.corners.length < 3) return;
+
+      const floorsAbove = bldg.floorsAbove || 5;
+      const floorH = bldg.floorHeight || 3.3;
+      const totalAboveH = floorsAbove * floorH;
+      const corners = fp.corners;
+      const n = corners.length;
+
+      // Compute centroid for outward normal orientation
+      let cx = 0, cz = 0;
+      corners.forEach(p => { cx += p.x; cz += p.y; });
+      cx /= n; cz /= n;
+
+      // Render Each Facade Wall Segment with Dynamic Thermal Colors
+      for (let i = 0; i < n; i++) {
+        const p1 = corners[i];
+        const p2 = corners[(i + 1) % n];
+
+        const x1 = p1.x, z1 = p1.y;
+        const x2 = p2.x, z2 = p2.y;
+
+        const dx = x2 - x1;
+        const dz = z2 - z1;
+        const len = Math.hypot(dx, dz);
+        if (len < 0.05) continue;
+
+        const mx = (x1 + x2) / 2;
+        const mz = (z1 + z2) / 2;
+
+        const vx = mx - cx;
+        const vz = mz - cz;
+
+        let nx = dz / len;
+        let nz = -dx / len;
+        if (nx * vx + nz * vz < 0) {
+          nx = -nx;
+          nz = -nz;
+        }
+
+        const wallNormal = new THREE.Vector3(nx, 0, nz);
+        const cosTheta = isDay ? Math.max(0, wallNormal.dot(sunVec)) : 0;
+        const irradiance = isDay ? Math.round(thermalData.I_beam * cosTheta + thermalData.I_diff * 0.5) : 0;
+
+        let faceColor = 0x38bdf8;
+        let faceEmissive = 0x0284c7;
+        if (irradiance >= 650) {
+          faceColor = 0xef4444; // Crimson Hot
+          faceEmissive = 0xb91c1c;
+        } else if (irradiance >= 300) {
+          faceColor = 0xf59e0b; // Golden Warm
+          faceEmissive = 0xb45309;
+        } else {
+          faceColor = isDay ? 0x38bdf8 : 0x1e3a8a; // Azure Cold
+          faceEmissive = isDay ? 0x0369a1 : 0x0f172a;
+        }
+
+        const offset = 0.08;
+        const ox = nx * offset;
+        const oz = nz * offset;
+
+        const geom = new THREE.BufferGeometry();
+        const vertices = new Float32Array([
+          x1 + ox, 0, z1 + oz,
+          x2 + ox, 0, z2 + oz,
+          x2 + ox, totalAboveH, z2 + oz,
+
+          x1 + ox, 0, z1 + oz,
+          x2 + ox, totalAboveH, z2 + oz,
+          x1 + ox, totalAboveH, z1 + oz
+        ]);
+        geom.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+        geom.computeVertexNormals();
+
+        const mat = new THREE.MeshStandardMaterial({
+          color: faceColor,
+          emissive: faceEmissive,
+          emissiveIntensity: 0.35,
+          roughness: 0.3,
+          metalness: 0.1,
+          transparent: true,
+          opacity: 0.85,
+          side: THREE.DoubleSide
+        });
+
+        const wallMesh = new THREE.Mesh(geom, mat);
+        solarHeatmapGroup.add(wallMesh);
+
+        // Subtle architectural wireframe edge outline
+        const wireGeom = new THREE.EdgesGeometry(geom);
+        const wireMat = new THREE.LineBasicMaterial({
+          color: 0xffffff,
+          transparent: true,
+          opacity: 0.35
+        });
+        const wireLine = new THREE.LineSegments(wireGeom, wireMat);
+        solarHeatmapGroup.add(wireLine);
+      }
+
+      // Roof Thermal Slab Overlay
+      const roofShape = new THREE.Shape();
+      corners.forEach((pt, idx) => {
+        if (idx === 0) roofShape.moveTo(pt.x, -pt.y);
+        else roofShape.lineTo(pt.x, -pt.y);
+      });
+      roofShape.closePath();
+
+      const roofGeom = new THREE.ExtrudeGeometry(roofShape, { depth: 0.12, bevelEnabled: false });
+      const roofMat = new THREE.MeshStandardMaterial({
+        color: thermalData.roof.colorHex,
+        emissive: thermalData.roof.status === 'hot' ? 0xb91c1c : (thermalData.roof.status === 'warm' ? 0xb45309 : 0x0369a1),
+        emissiveIntensity: 0.35,
+        roughness: 0.25,
+        metalness: 0.1,
+        transparent: true,
+        opacity: 0.88
+      });
+      const roofMesh = new THREE.Mesh(roofGeom, roofMat);
+      roofMesh.rotation.x = -Math.PI / 2;
+      roofMesh.position.set(0, totalAboveH + 0.08, 0);
+      solarHeatmapGroup.add(roofMesh);
+
+      // 3D Cardinal Facade Thermal Indicators (Floating Badges)
+      const xs = corners.map(p => p.x);
+      const zs = corners.map(p => p.y);
+      const minX = Math.min(...xs), maxX = Math.max(...xs);
+      const minZ = Math.min(...zs), maxZ = Math.max(...zs);
+      const midY = totalAboveH * 0.55;
+
+      const isKa = (state.currentLang !== 'en');
+
+      const badges = [
+        {
+          text: isKa ? `სამხრეთი: ${thermalData.south.power} W/m² (${thermalData.south.labelKa})` : `South: ${thermalData.south.power} W/m² (${thermalData.south.labelEn})`,
+          pos: [cx, midY, maxZ + 4.5],
+          color: thermalData.south.colorCss,
+          bg: 'rgba(15, 23, 42, 0.85)'
+        },
+        {
+          text: isKa ? `ჩრდილოეთი: ${thermalData.north.power} W/m² (${thermalData.north.labelKa})` : `North: ${thermalData.north.power} W/m² (${thermalData.north.labelEn})`,
+          pos: [cx, midY, minZ - 4.5],
+          color: thermalData.north.colorCss,
+          bg: 'rgba(15, 23, 42, 0.85)'
+        },
+        {
+          text: isKa ? `აღმოსავლეთი: ${thermalData.east.power} W/m² (${thermalData.east.labelKa})` : `East: ${thermalData.east.power} W/m² (${thermalData.east.labelEn})`,
+          pos: [maxX + 4.5, midY, cz],
+          color: thermalData.east.colorCss,
+          bg: 'rgba(15, 23, 42, 0.85)'
+        },
+        {
+          text: isKa ? `დასავლეთი: ${thermalData.west.power} W/m² (${thermalData.west.labelKa})` : `West: ${thermalData.west.power} W/m² (${thermalData.west.labelEn})`,
+          pos: [minX - 4.5, midY, cz],
+          color: thermalData.west.colorCss,
+          bg: 'rgba(15, 23, 42, 0.85)'
+        }
+      ];
+
+      badges.forEach(b => {
+        const sprite = createTextSprite(b.text, b.color, 24, b.bg);
+        sprite.position.set(b.pos[0], b.pos[1], b.pos[2]);
+        sprite.scale.set(11, 2.4, 1);
+        solarHeatmapGroup.add(sprite);
+      });
+    });
+  }
+
+  function updateThermalUiCards(thermalData) {
+    if (!thermalData) return;
+    const isKa = (state.currentLang !== 'en');
+
+    const updateCard = (cardId, statusId, powerId, recomId, data, defaultRecomKa, defaultRecomEn) => {
+      const card = document.getElementById(cardId);
+      const statusEl = document.getElementById(statusId);
+      const powerEl = document.getElementById(powerId);
+      const recomEl = document.getElementById(recomId);
+
+      if (statusEl) {
+        statusEl.className = `facade-status-badge ${data.status}`;
+        statusEl.textContent = isKa ? data.labelKa : data.labelEn;
+      }
+      if (powerEl) {
+        powerEl.textContent = `${data.power} W/m²`;
+      }
+      if (recomEl) {
+        recomEl.textContent = isKa ? (data.recomKa || defaultRecomKa) : (data.recomEn || defaultRecomEn);
+      }
+      if (card) {
+        card.style.borderColor = (data.status === 'hot' ? 'rgba(239, 68, 68, 0.5)' : (data.status === 'warm' ? 'rgba(245, 158, 11, 0.5)' : 'rgba(56, 189, 248, 0.5)'));
+      }
+    };
+
+    updateCard('facadeCardSouth', 'facadeStatusSouth', 'facadePowerSouth', 'facadeRecomSouth', thermalData.south, 'მზისგან დაცვა', 'Solar Shading');
+    updateCard('facadeCardNorth', 'facadeStatusNorth', 'facadePowerNorth', 'facadeRecomNorth', thermalData.north, 'თბოიზოლაცია', 'Insulation');
+    updateCard('facadeCardEast', 'facadeStatusEast', 'facadePowerEast', 'facadeRecomEast', thermalData.east, 'დილის ინსოლაცია', 'Morning Sun');
+    updateCard('facadeCardWest', 'facadeStatusWest', 'facadePowerWest', 'facadeRecomWest', thermalData.west, 'საღამოს გადახურება', 'Afternoon Heat');
+    updateCard('facadeCardRoof', 'facadeStatusRoof', 'facadePowerRoof', 'facadeRecomRoof', thermalData.roof, 'PV გენერაცია', 'PV Potential');
+  }
+
   // Master Solar Lighting & HUD Telemetry Updater
   function updateSolarLighting() {
     if (!sunLight) return;
@@ -1259,6 +1595,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update 3D Sun Path, Heliodon and Cardinal Indicators
     updateSunPathVisualization(lat, lng, currentSunPos, sunTimes);
+
+    // Calculate Building Solar Thermal Exposure & Render 3D Heatmap
+    const thermalData = calculateBuildingThermalExposure(lat, lng, currentSunPos);
+    renderBuildingThermalHeatmap(thermalData);
+    updateThermalUiCards(thermalData);
 
     // Update UI Badges & Telemetry
     const isKa = (state.currentLang !== 'en');
@@ -1463,6 +1804,17 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
+    const chkThermal = document.getElementById('chkShowThermalHeatmap');
+    if (chkThermal) {
+      chkThermal.addEventListener('change', (e) => {
+        state.showThermalHeatmap = e.target.checked;
+        if (solarHeatmapGroup) {
+          solarHeatmapGroup.visible = (state.currentMode === 'solar' && !!state.showThermalHeatmap);
+        }
+        updateSolarLighting();
+      });
+    }
+
     // Export Handlers
     if (btnExportPhoto) {
       btnExportPhoto.addEventListener('click', () => {
@@ -1511,6 +1863,80 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Draw WebGL snapshot
     ctx.drawImage(webglCanvas, 0, 0);
+
+    // Draw Top-Left Glassmorphism HUD Card: Building Thermal Exposure (ცხელი / თბილი / ცივი)
+    const thermal = state.buildingThermalData || calculateBuildingThermalExposure(lat, lng, sp);
+    if (thermal) {
+      const cardX = 24;
+      const cardY = 24;
+      const cardW = Math.min(420, Math.round(exportCanvas.width * 0.38));
+      const cardH = 222;
+
+      ctx.save();
+      ctx.fillStyle = 'rgba(10, 15, 29, 0.88)';
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+      ctx.lineWidth = 1.5;
+
+      if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(cardX, cardY, cardW, cardH, 10);
+        ctx.fill();
+        ctx.stroke();
+      } else {
+        ctx.fillRect(cardX, cardY, cardW, cardH);
+        ctx.strokeRect(cardX, cardY, cardW, cardH);
+      }
+
+      // Title
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.fillText(isKa ? '☀️ შენობის თერმული ზემოქმედება' : '☀️ Building Thermal Exposure', cardX + 16, cardY + 26);
+
+      // Legend row
+      ctx.font = '10px sans-serif';
+      ctx.fillStyle = '#ef4444';
+      ctx.fillText(isKa ? '● ცხელი >650' : '● Hot >650', cardX + 16, cardY + 46);
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillText(isKa ? '● თბილი 300-650' : '● Warm 300-650', cardX + 115, cardY + 46);
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillText(isKa ? '● ცივი <300 W/m²' : '● Cold <300 W/m²', cardX + 225, cardY + 46);
+
+      // Separator
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+      ctx.fillRect(cardX + 16, cardY + 54, cardW - 32, 1);
+
+      // Facade entries
+      const facades = [
+        { name: isKa ? 'სამხრეთის ფასადი (South)' : 'South Facade', d: thermal.south },
+        { name: isKa ? 'ჩრდილოეთის ფასადი (North)' : 'North Facade', d: thermal.north },
+        { name: isKa ? 'აღმოსავლეთის ფასადი (East)' : 'East Facade', d: thermal.east },
+        { name: isKa ? 'დასავლეთის ფასადი (West)' : 'West Facade', d: thermal.west },
+        { name: isKa ? 'სახურავის სიბრტყე (Roof)' : 'Roof Surface', d: thermal.roof }
+      ];
+
+      let rowY = cardY + 76;
+      facades.forEach(f => {
+        const color = f.d.status === 'hot' ? '#ef4444' : (f.d.status === 'warm' ? '#f59e0b' : '#38bdf8');
+        const statusLabel = isKa ? f.d.labelKa : f.d.labelEn;
+
+        ctx.font = '12px sans-serif';
+        ctx.fillStyle = '#cbd5e1';
+        ctx.fillText(f.name, cardX + 16, rowY);
+
+        ctx.font = 'bold 12px monospace';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(`${f.d.power} W/m²`, cardX + cardW - 145, rowY);
+
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillStyle = color;
+        ctx.fillText(statusLabel, cardX + cardW - 68, rowY);
+
+        rowY += 28;
+      });
+
+      ctx.restore();
+    }
 
     // Draw Sleek Bottom Architectural Overlay Bar
     const barH = Math.max(90, Math.round(exportCanvas.height * 0.12));
@@ -1698,6 +2124,71 @@ document.addEventListener('DOMContentLoaded', () => {
           1: { font: fontName, cellWidth: pageWidth - 185 - 14 - 48 }
         }
       });
+    }
+
+    // Building Facade Solar Thermal Insolation Table (Page 1)
+    const thermal = state.buildingThermalData || calculateBuildingThermalExposure(lat, lng, sp);
+    if (thermal) {
+      const thermalStartY = 153;
+      doc.setFont(fontName, 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text(
+        isKa ? 'შენობის ფასადების თერმული ზემოქმედება და მზის რადიაცია (ინსოლაცია)' : 'Building Facade Solar Thermal Exposure & Surface Irradiance',
+        14, thermalStartY - 2.5
+      );
+
+      const thermalTableData = isKa ? [
+        ['სამხრეთის ფასადი (South)', thermal.south.labelKa, `${thermal.south.power} W/m²`, 'მაღალი ინსოლაცია დღის განმავლობაში', thermal.south.recomKa || 'მზისგან დამცავი ლამელები / მინაპაკეტი'],
+        ['ჩრდილოეთის ფასადი (North)', thermal.north.labelKa, `${thermal.north.power} W/m²`, 'დიფუზური გაბნეული შუქი, პირდაპირი მზის გარეშე', thermal.north.recomKa || 'გაძლიერებული თბოიზოლაცია (U-value < 0.8)'],
+        ['აღმოსავლეთის ფასადი (East)', thermal.east.labelKa, `${thermal.east.power} W/m²`, 'დილის ინტენსიური განათება და გათბობა', thermal.east.recomKa || 'დილის განათების ოპტიმიზაცია, რბილი დაჩრდილვა'],
+        ['დასავლეთის ფასადი (West)', thermal.west.labelKa, `${thermal.west.power} W/m²`, 'ნაშუადღევის და საღამოს კრიტიკული გადახურება', thermal.west.recomKa || 'ვერტიკალური ჟალუზები, ექსტერიერის დაჩრდილვა'],
+        ['სახურავის სიბრტყე (Roof)', thermal.roof.labelKa, `${thermal.roof.power} W/m²`, 'მზის მაქსიმალური პირდაპირი ნაკადი', thermal.roof.recomKa || 'მზის პანელების (PV Solar) ოპტიმალური ზონა']
+      ] : [
+        ['South Facade', thermal.south.labelEn, `${thermal.south.power} W/m²`, 'High diurnal solar exposure', thermal.south.recomEn || 'Horizontal Brise-soleil / Solar control glass'],
+        ['North Facade', thermal.north.labelEn, `${thermal.north.power} W/m²`, 'Diffuse daylight, no direct solar glare', thermal.north.recomEn || 'Enhanced thermal insulation (U-value < 0.8)'],
+        ['East Facade', thermal.east.labelEn, `${thermal.east.power} W/m²`, 'Morning illumination & solar warm-up', thermal.east.recomEn || 'Morning daylight utilization, light shading'],
+        ['West Facade', thermal.west.labelEn, `${thermal.west.power} W/m²`, 'Afternoon intense heat accumulation', thermal.west.recomEn || 'Vertical louvers, exterior thermal blinds'],
+        ['Roof Surface', thermal.roof.labelEn, `${thermal.roof.power} W/m²`, 'Peak vertical solar irradiance', thermal.roof.recomEn || 'Optimal Photovoltaic (PV) rooftop potential']
+      ];
+
+      if (doc.autoTable) {
+        doc.autoTable({
+          startY: thermalStartY,
+          head: [
+            isKa
+              ? ['ფასადი / ზედაპირი', 'თერმული სტატუსი', 'სიმძლავრე', 'დღიური ექსპოზიცია', 'ენერგოეფექტურობის რეკომენდაცია']
+              : ['Facade / Surface', 'Thermal Status', 'Irradiance', 'Diurnal Exposure', 'Energy Efficiency Recommendation']
+          ],
+          body: thermalTableData,
+          theme: 'grid',
+          styles: { fontSize: 7.2, cellPadding: 2.2, font: fontName },
+          headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], font: fontName, fontStyle: 'bold' },
+          didParseCell: function (data) {
+            if (data.section === 'body' && data.column.index === 1) {
+              const val = data.cell.raw;
+              if (val && (val.includes('ცხელი') || val.includes('Hot'))) {
+                data.cell.styles.textColor = [220, 38, 38];
+                data.cell.styles.fontStyle = 'bold';
+              } else if (val && (val.includes('თბილი') || val.includes('Warm'))) {
+                data.cell.styles.textColor = [217, 119, 6];
+                data.cell.styles.fontStyle = 'bold';
+              } else if (val && (val.includes('ცივი') || val.includes('Cold'))) {
+                data.cell.styles.textColor = [2, 132, 199];
+                data.cell.styles.fontStyle = 'bold';
+              }
+            }
+          },
+          columnStyles: {
+            0: { font: fontName, fontStyle: 'bold', fillColor: [248, 250, 252], cellWidth: 42 },
+            1: { font: fontName, cellWidth: 26 },
+            2: { font: fontName, cellWidth: 24 },
+            3: { font: fontName, cellWidth: 70 },
+            4: { font: fontName, cellWidth: pageWidth - 28 - (42 + 26 + 24 + 70) }
+          },
+          margin: { left: 14, right: 14 }
+        });
+      }
     }
 
     // Bottom Summary Note
@@ -1889,9 +2380,109 @@ document.addEventListener('DOMContentLoaded', () => {
         body: hourlyBody,
         theme: 'striped',
         styles: { fontSize: 7.5, cellPadding: 2.2, font: fontName, halign: 'center' },
-        headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], font: fontName },
         columnStyles: {
           0: { halign: 'left', fontStyle: 'bold', fillColor: [241, 245, 249], cellWidth: 42 }
+        },
+        margin: { left: 14, right: 14 }
+      });
+    }
+
+    // Seasonal Thermal Shift & Passive Shading Strategy Guidelines (Page 2)
+    const stratY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 8 : 130;
+    doc.setFont(fontName, 'bold');
+    doc.setFontSize(8.8);
+    doc.setTextColor(15, 23, 42);
+    doc.text(
+      isKa
+        ? 'შენობის სეზონური თერმული ზემოქმედება და ენერგოეფექტური დაჩრდილვის სტრატეგია'
+        : 'Seasonal Building Thermal Shift & Passive Shading Strategy Guidelines',
+      14, stratY
+    );
+
+    const stratData = isKa ? [
+      [
+        'ზაფხულის პიკური გადახურება (21 ივნისი)',
+        'ცხელი (>650-850 W/m²)',
+        'სახურავი, სამხრეთი და დასავლეთის ფასადები',
+        'ჰორიზონტალური ლამელები (Brise-soleil) სამხრეთით, გარე ვერტიკალური ჟალუზები დასავლეთით; მზისგან დამცავი მინაპაკეტი (g < 0.35).'
+      ],
+      [
+        'ზამთრის პასიური გათბობა (21 დეკემბერი)',
+        'თბილი / ცივი',
+        'სამხრეთის ფასადი (თბილი), ჩრდილოეთი (ცივი)',
+        'მზის დაბალი კუთხე (25°) უზრუნველყოფს სამხრეთის ოთახების უფასო პასიურ გათბობას. ჩრდილოეთის ფასადზე მაღალი თბოიზოლაცია (U < 0.8 W/m²K).'
+      ],
+      [
+        'გარდამავალი სეზონები (მარტი / სექტემბერი)',
+        'თბილი (300-600 W/m²)',
+        'სამხრეთი და აღმოსავლეთის ფასადები',
+        'ოპტიმალური ბუნებრივი დღის განათება და კომფორტული მიკროკლიმატი გადახურების გარეშე.'
+      ],
+      [
+        'სახურავის მზის ელექტროსადგური (PV Solar)',
+        'მაქსიმალური ინსოლაცია',
+        'სახურავის ჰორიზონტალური სიბრტყე',
+        'წლიური ინსოლაცია აღემატება 1,450–1,650 კვტ.სთ/მ²-ს. რეკომენდებულია 10-15° ან 30° სამხრეთით დახრილი ფოტოელექტრული (PV) პანელების ინსტალაცია.'
+      ]
+    ] : [
+      [
+        'Summer Peak Overheating (Jun 21)',
+        'Hot (>650-850 W/m²)',
+        'Roof, South, and West Facades',
+        'Horizontal Brise-soleil on South, exterior vertical louvers on West; high-performance solar control glazing (g < 0.35).'
+      ],
+      [
+        'Winter Passive Solar Gain (Dec 21)',
+        'Warm / Cold',
+        'South (Warm solar gain), North (Cold)',
+        'Low sun angle (25°) penetrates deep for free passive heating. High thermal insulation on North envelope (U < 0.8 W/m²K).'
+      ],
+      [
+        'Equinox Transitions (Mar / Sep)',
+        'Warm (300-600 W/m²)',
+        'South and East Facades',
+        'Balanced natural daylighting and pleasant indoor microclimate without excessive cooling load.'
+      ],
+      [
+        'Rooftop Solar PV Potential',
+        'Peak Direct Radiation',
+        'Horizontal Roof Plane',
+        'Annual global horizontal irradiance exceeds 1,450-1,650 kWh/m². Recommended 15°-30° South-tilted photovoltaic panel arrays.'
+      ]
+    ];
+
+    if (doc.autoTable) {
+      doc.autoTable({
+        startY: stratY + 3,
+        head: [
+          isKa
+            ? ['სეზონური ციკლი', 'თერმული ინტენსივობა', 'დაუცველი ზონები', 'არქიტექტურული და ენერგოეფექტური გადაწყვეტა']
+            : ['Seasonal Cycle', 'Thermal Intensity', 'Vulnerable Facades', 'Architectural & Energy Efficiency Solution']
+        ],
+        body: stratData,
+        theme: 'grid',
+        styles: { fontSize: 7.2, cellPadding: 2.2, font: fontName },
+        headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], font: fontName, fontStyle: 'bold' },
+        didParseCell: function (data) {
+          if (data.section === 'body' && data.column.index === 1) {
+            const val = data.cell.raw;
+            if (val && (val.includes('ცხელი') || val.includes('Hot'))) {
+              data.cell.styles.textColor = [220, 38, 38];
+              data.cell.styles.fontStyle = 'bold';
+            } else if (val && (val.includes('თბილი') || val.includes('Warm'))) {
+              data.cell.styles.textColor = [217, 119, 6];
+              data.cell.styles.fontStyle = 'bold';
+            } else if (val && (val.includes('მაქსიმალური') || val.includes('Peak'))) {
+              data.cell.styles.textColor = [16, 185, 129];
+              data.cell.styles.fontStyle = 'bold';
+            }
+          }
+        },
+        columnStyles: {
+          0: { font: fontName, fontStyle: 'bold', fillColor: [248, 250, 252], cellWidth: 48 },
+          1: { font: fontName, cellWidth: 32 },
+          2: { font: fontName, cellWidth: 50 },
+          3: { font: fontName, cellWidth: pageWidth - 28 - (48 + 32 + 50) }
         },
         margin: { left: 14, right: 14 }
       });
@@ -5634,6 +6225,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (threeViewport) threeViewport.style.display = 'none';
       if (solarControlPanel) solarControlPanel.style.display = 'none';
       if (sunPathGroup) sunPathGroup.visible = false; // Strictly hidden in Map mode
+      if (solarHeatmapGroup) solarHeatmapGroup.visible = false; // Strictly hidden in Map mode
       if (mapThemeSwitcher) mapThemeSwitcher.style.display = 'flex';
       if (mapTelemetry) mapTelemetry.style.display = 'flex';
 
@@ -5652,6 +6244,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (threeViewport) threeViewport.style.display = 'none';
       if (solarControlPanel) solarControlPanel.style.display = 'none';
       if (sunPathGroup) sunPathGroup.visible = false; // Strictly hidden in 2D mode
+      if (solarHeatmapGroup) solarHeatmapGroup.visible = false; // Strictly hidden in 2D mode
       if (mapThemeSwitcher) mapThemeSwitcher.style.display = 'flex';
       if (mapTelemetry) mapTelemetry.style.display = 'flex';
 
@@ -5669,6 +6262,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (threeViewport) threeViewport.style.display = 'block';
       if (solarControlPanel) solarControlPanel.style.display = 'none';
       if (sunPathGroup) sunPathGroup.visible = false; // Strictly hidden in 3D Concept mode
+      if (solarHeatmapGroup) solarHeatmapGroup.visible = false; // Strictly hidden in 3D Concept mode
       if (mapThemeSwitcher) mapThemeSwitcher.style.display = 'none';
       if (mapTelemetry) mapTelemetry.style.display = 'none';
       onWindowResize();
@@ -5677,6 +6271,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (threeViewport) threeViewport.style.display = 'block';
       if (solarControlPanel) solarControlPanel.style.display = 'flex';
       if (sunPathGroup) sunPathGroup.visible = (state.showSunPath !== false); // Strictly visible ONLY in solar mode
+      if (solarHeatmapGroup) solarHeatmapGroup.visible = (state.showThermalHeatmap !== false); // Strictly visible ONLY in solar mode
       if (mapThemeSwitcher) mapThemeSwitcher.style.display = 'none';
       if (mapTelemetry) mapTelemetry.style.display = 'none';
       onWindowResize();
@@ -5691,6 +6286,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (threeViewport) threeViewport.style.display = 'block';
       if (solarControlPanel) solarControlPanel.style.display = 'none';
       if (sunPathGroup) sunPathGroup.visible = false; // Strictly hidden in Combined mode
+      if (solarHeatmapGroup) solarHeatmapGroup.visible = false; // Strictly hidden in Combined mode
       if (mapThemeSwitcher) mapThemeSwitcher.style.display = 'none';
       if (mapTelemetry) mapTelemetry.style.display = 'none';
 
