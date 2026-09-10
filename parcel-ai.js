@@ -1253,8 +1253,8 @@ document.addEventListener('DOMContentLoaded', () => {
           status: 'cold',
           colorHex: 0x1e3a8a,
           colorCss: '#1e3a8a',
-          labelKa: 'ცივი (ღამე)',
-          labelEn: 'Cold (Night)',
+          labelKa: 'ღამე',
+          labelEn: 'Night',
           recomKa: 'ღამის გაგრილება',
           recomEn: 'Night Cooling'
         };
@@ -1271,8 +1271,8 @@ document.addEventListener('DOMContentLoaded', () => {
       let status = 'cold';
       let colorHex = 0x38bdf8;
       let colorCss = '#38bdf8';
-      let labelKa = 'ცივი მხარე';
-      let labelEn = 'Cold Zone';
+      let labelKa = 'ცივი';
+      let labelEn = 'Cold';
       let recomKa = 'თბოიზოლაცია';
       let recomEn = 'Insulation';
 
@@ -1280,18 +1280,18 @@ document.addEventListener('DOMContentLoaded', () => {
         status = 'hot';
         colorHex = 0xef4444;
         colorCss = '#ef4444';
-        labelKa = 'ცხელი მხარე';
-        labelEn = 'Hot Zone';
-        recomKa = isRoof ? 'მაღალი PV გენერაცია' : 'მზისგან დაცვა / ჟალუზი';
-        recomEn = isRoof ? 'High PV Generation' : 'Solar Shading Required';
+        labelKa = 'ცხელი';
+        labelEn = 'Hot';
+        recomKa = isRoof ? 'მაღალი PV გენერაცია' : 'მზისგან დაცვა';
+        recomEn = isRoof ? 'High PV Generation' : 'Solar Shading';
       } else if (power >= 300) {
         status = 'warm';
         colorHex = 0xf59e0b;
         colorCss = '#f59e0b';
-        labelKa = 'თბილი მხარე';
-        labelEn = 'Warm Zone';
-        recomKa = isRoof ? 'საშუალო PV პოტენციალი' : 'ოპტიმალური ინსოლაცია';
-        recomEn = isRoof ? 'Moderate PV Potential' : 'Optimal Insolation';
+        labelKa = 'თბილი';
+        labelEn = 'Warm';
+        recomKa = isRoof ? 'საშუალო PV პოტენციალი' : 'დილის ინსოლაცია';
+        recomEn = isRoof ? 'Moderate PV Potential' : 'Morning Sun';
       }
 
       return { power, status, colorHex, colorCss, labelKa, labelEn, recomKa, recomEn };
@@ -1415,24 +1415,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const parcel = state.activeParcel;
     if (!parcel) return;
 
-    // Ensure at least one building exists on the parcel
-    if (!state.buildings || state.buildings.length === 0) {
-      const defaultFp = Math.min(650, Math.max(150, Math.round((parcel.area || 1000) * 0.35)));
-      state.buildings = [createBuildingData(1, BUILDING_COLORS[0], defaultFp, 5, 1)];
-      state.buildings[0].isProcedural = true;
+    // Filter buildings that have valid footprints (existing OSM buildings, user-drawn buildings, or explicit AI concepts)
+    const validBuildings = (state.buildings || []).filter(bldg => {
+      const fp = computeFootprintGeometry(parcel, bldg);
+      return fp && fp.corners && fp.corners.length >= 3;
+    });
+
+    if (validBuildings.length === 0) {
+      return; // Strictly NO dummy box when no building is on parcel!
     }
 
     const sunVec = thermalData.sunVector;
     const isDay = thermalData.isDay;
     const isKa = (state.currentLang !== 'en');
 
-    state.buildings.forEach((bldg) => {
-      let fp = computeFootprintGeometry(parcel, bldg);
-      if (!fp || !fp.corners || fp.corners.length < 3) {
-        bldg.isProcedural = true;
-        if (!bldg.footprintArea) bldg.footprintArea = Math.min(650, Math.max(150, Math.round((parcel.area || 1000) * 0.35)));
-        fp = computeFootprintGeometry(parcel, bldg);
-      }
+    validBuildings.forEach((bldg, bldgIdx) => {
+      const fp = computeFootprintGeometry(parcel, bldg);
       if (!fp || !fp.corners || fp.corners.length < 3) return;
 
       const floorsAbove = bldg.floorsAbove || 5;
@@ -1682,63 +1680,66 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // 3. Floating 3D Telemetry Badges for South, North, East, West & Roof
-      const badgeOffset = 3.8;
-      const midY = totalAboveH * 0.55;
+      const isSelectedBldg = (bldg.id === state.selectedBuildingId) || (validBuildings.length === 1) || (bldgIdx === 0);
+      if (isSelectedBldg) {
+        const badgeOffset = 3.8;
+        const midY = totalAboveH * 0.55;
 
-      // South Facade (+Z)
-      const southSprite = createThermalBadgeSprite(
-        isKa ? 'სამხრეთის ფასადი' : 'South Facade',
-        thermalData.south.power,
-        thermalData.south.status,
-        isKa,
-        '🧭'
-      );
-      southSprite.position.set(cx, midY, maxZ + badgeOffset);
-      solarHeatmapGroup.add(southSprite);
+        // South Facade (+Z)
+        const southSprite = createThermalBadgeSprite(
+          isKa ? 'სამხრეთის ფასადი' : 'South Facade',
+          thermalData.south.power,
+          thermalData.south.status,
+          isKa,
+          '🧭'
+        );
+        southSprite.position.set(cx, midY, maxZ + badgeOffset);
+        solarHeatmapGroup.add(southSprite);
 
-      // North Facade (-Z)
-      const northSprite = createThermalBadgeSprite(
-        isKa ? 'ჩრდილოეთის ფასადი' : 'North Facade',
-        thermalData.north.power,
-        thermalData.north.status,
-        isKa,
-        '🧭'
-      );
-      northSprite.position.set(cx, midY, minZ - badgeOffset);
-      solarHeatmapGroup.add(northSprite);
+        // North Facade (-Z)
+        const northSprite = createThermalBadgeSprite(
+          isKa ? 'ჩრდილოეთის ფასადი' : 'North Facade',
+          thermalData.north.power,
+          thermalData.north.status,
+          isKa,
+          '🧭'
+        );
+        northSprite.position.set(cx, midY, minZ - badgeOffset);
+        solarHeatmapGroup.add(northSprite);
 
-      // East Facade (+X)
-      const eastSprite = createThermalBadgeSprite(
-        isKa ? 'აღმოსავლეთის ფასადი' : 'East Facade',
-        thermalData.east.power,
-        thermalData.east.status,
-        isKa,
-        '🧭'
-      );
-      eastSprite.position.set(maxX + badgeOffset, midY, cz);
-      solarHeatmapGroup.add(eastSprite);
+        // East Facade (+X)
+        const eastSprite = createThermalBadgeSprite(
+          isKa ? 'აღმოსავლეთის ფასადი' : 'East Facade',
+          thermalData.east.power,
+          thermalData.east.status,
+          isKa,
+          '🧭'
+        );
+        eastSprite.position.set(maxX + badgeOffset, midY, cz);
+        solarHeatmapGroup.add(eastSprite);
 
-      // West Facade (-X)
-      const westSprite = createThermalBadgeSprite(
-        isKa ? 'დასავლეთის ფასადი' : 'West Facade',
-        thermalData.west.power,
-        thermalData.west.status,
-        isKa,
-        '🧭'
-      );
-      westSprite.position.set(minX - badgeOffset, midY, cz);
-      solarHeatmapGroup.add(westSprite);
+        // West Facade (-X)
+        const westSprite = createThermalBadgeSprite(
+          isKa ? 'დასავლეთის ფასადი' : 'West Facade',
+          thermalData.west.power,
+          thermalData.west.status,
+          isKa,
+          '🧭'
+        );
+        westSprite.position.set(minX - badgeOffset, midY, cz);
+        solarHeatmapGroup.add(westSprite);
 
-      // Roof Surface (+Y)
-      const roofSprite = createThermalBadgeSprite(
-        isKa ? 'სახურავი / PV პოტენციალი' : 'Roof Surface / Solar PV',
-        thermalData.roof.power,
-        thermalData.roof.status,
-        isKa,
-        '☀️'
-      );
-      roofSprite.position.set(cx, totalAboveH + 3.2, cz);
-      solarHeatmapGroup.add(roofSprite);
+        // Roof Surface (+Y)
+        const roofSprite = createThermalBadgeSprite(
+          isKa ? 'სახურავი / PV პოტენციალი' : 'Roof Surface / Solar PV',
+          thermalData.roof.power,
+          thermalData.roof.status,
+          isKa,
+          '☀️'
+        );
+        roofSprite.position.set(cx, totalAboveH + 3.2, cz);
+        solarHeatmapGroup.add(roofSprite);
+      }
     });
   }
 
@@ -1834,6 +1835,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Calculate Building Solar Thermal Exposure & Render 3D Heatmap
     const thermalData = calculateBuildingThermalExposure(lat, lng, currentSunPos);
     renderBuildingThermalHeatmap(thermalData);
+    renderUrbanFabric3D(thermalData);
     updateThermalUiCards(thermalData);
 
     // Update UI Badges & Telemetry
@@ -2751,16 +2753,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     3c. Surrounding 3D Urban Extrusion (OpenStreetMap Overpass - Module 1B & 2B)
+     3c. Surrounding 3D Urban Extrusion & Dynamic Solar Thermal Modeling (OSM Overpass)
      ========================================================================== */
   async function loadSurroundingUrbanFabric(centerLat, centerLng) {
     if (!urbanGroup || !state.activeParcel) return;
-
-    while (urbanGroup.children.length > 0) {
-      const child = urbanGroup.children[0];
-      urbanGroup.remove(child);
-      if (child.geometry) child.geometry.dispose();
-    }
 
     try {
       const res = await fetch(`/api/overpass?lat=${centerLat}&lng=${centerLng}&radius=350`);
@@ -2769,32 +2765,119 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!data || !data.buildings || !data.buildings.length) return;
 
       const centerGps = { lat: centerLat, lng: centerLng };
+      state.urbanFabricBuildings = data.buildings;
+      state.urbanFabricCenter = centerGps;
 
+      // Classify buildings: inside active parcel vs surrounding urban fabric
+      const inParcel = [];
+      const outside = [];
+
+      data.buildings.forEach(bldg => {
+        if (!bldg.coordinates || bldg.coordinates.length < 3) return;
+        const cLat = bldg.coordinates.reduce((s, c) => s + c[0], 0) / bldg.coordinates.length;
+        const cLng = bldg.coordinates.reduce((s, c) => s + c[1], 0) / bldg.coordinates.length;
+        const isCentroidIn = isPointInPolygonGPS([cLat, cLng], state.activeParcel.coordinates);
+        const isAnyVertexIn = bldg.coordinates.some(pt => isPointInPolygonGPS(pt, state.activeParcel.coordinates));
+        if (isCentroidIn || isAnyVertexIn) {
+          inParcel.push(bldg);
+        } else {
+          outside.push(bldg);
+        }
+      });
+
+      state.existingParcelBuildings = inParcel;
+
+      // If parcel has existing buildings in OSM and user hasn't drawn custom building:
+      const userHasDrawn = (state.buildings || []).some(b => b.footprintCoords && !b.isExisting);
+      if (inParcel.length > 0 && !userHasDrawn) {
+        state.buildings = inParcel.map((b, i) => {
+          const area = Math.round(computePolygonArea(b.coordinates) || 200);
+          const floors = b.levels || Math.max(1, Math.round((b.height || 9) / 3.2));
+          const bldgData = createBuildingData(i + 1, BUILDING_COLORS[i % BUILDING_COLORS.length], area, floors, 1);
+          bldgData.footprintCoords = b.coordinates;
+          bldgData.height = b.height || (floors * 3.2);
+          bldgData.isExisting = true;
+          bldgData.isProcedural = false;
+          bldgData.name = b.name || (state.currentLang === 'en' ? `Existing Building #${i + 1}` : `არსებული შენობა #${i + 1}`);
+          bldgData.nameEn = b.name || `Existing Building #${i + 1}`;
+          return bldgData;
+        });
+        state.selectedBuildingId = state.buildings[0].id;
+        state.customFootprint = state.buildings[0].footprintCoords;
+
+        syncCurrentBuildingToActiveConcept();
+        renderBuildingTabsUI();
+        renderFloorMatrixUI();
+        renderAllBuildingsOnMap();
+        renderAllBuildings3D();
+        updateComplianceUI();
+      }
+
+      // Render the surrounding urban fabric (clay in 3D mode, dynamic thermal in solar mode)
+      renderUrbanFabric3D(state.buildingThermalData);
+
+      if (state.currentMode === 'solar') {
+        updateSolarLighting();
+      }
+    } catch (err) {
+      console.warn('Surrounding urban fabric fetch error:', err);
+    }
+  }
+
+  // Renders all surrounding 3D buildings outside the parcel
+  // In Solar Mode: dynamically calculates sun exposure on each facade and roof (Red = Hot, Amber = Warm, Blue = Cold)
+  // In GIS 3D Concept Mode: renders sleek architectural clay extrusion
+  function renderUrbanFabric3D(thermalData) {
+    if (!urbanGroup || !state.activeParcel || !state.urbanFabricBuildings) return;
+
+    while (urbanGroup.children.length > 0) {
+      const child = urbanGroup.children[0];
+      urbanGroup.remove(child);
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) {
+        if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+        else child.material.dispose();
+      }
+    }
+
+    const centerGps = state.urbanFabricCenter || {
+      lat: state.activeParcel.coordinates.reduce((sum, c) => sum + c[0], 0) / state.activeParcel.coordinates.length,
+      lng: state.activeParcel.coordinates.reduce((sum, c) => sum + c[1], 0) / state.activeParcel.coordinates.length
+    };
+
+    const isSolarMode = (state.currentMode === 'solar');
+    const buildings = state.urbanFabricBuildings;
+
+    // Filter buildings strictly outside the parcel
+    const outsideBuildings = buildings.filter(bldg => {
+      if (!bldg.coordinates || bldg.coordinates.length < 3) return false;
+      const cLat = bldg.coordinates.reduce((s, c) => s + c[0], 0) / bldg.coordinates.length;
+      const cLng = bldg.coordinates.reduce((s, c) => s + c[1], 0) / bldg.coordinates.length;
+      const isCentroidIn = isPointInPolygonGPS([cLat, cLng], state.activeParcel.coordinates);
+      const isAnyVertexIn = bldg.coordinates.some(pt => isPointInPolygonGPS(pt, state.activeParcel.coordinates));
+      return !(isCentroidIn || isAnyVertexIn);
+    });
+
+    if (outsideBuildings.length === 0) return;
+
+    if (!isSolarMode) {
+      // 1. Standard GIS Mode: Architectural Clay
       const clayMat = new THREE.MeshStandardMaterial({
         color: 0x1f293d,
         roughness: 0.85,
         metalness: 0.15,
         transparent: true,
-        opacity: 0.65,
-        wireframe: false
+        opacity: 0.65
       });
-
       const edgeLineMat = new THREE.LineBasicMaterial({
         color: 0x38bdf8,
         transparent: true,
         opacity: 0.35
       });
 
-      data.buildings.forEach(bldg => {
-        if (!bldg.coordinates || bldg.coordinates.length < 3) return;
-
+      outsideBuildings.forEach(bldg => {
         const localPts = gpsToLocalMeters(bldg.coordinates, centerGps);
         if (localPts.length < 3) return;
-
-        const avgX = localPts.reduce((s, p) => s + p.x, 0) / localPts.length;
-        const avgY = localPts.reduce((s, p) => s + p.y, 0) / localPts.length;
-        const parcelRadius = Math.max(22, Math.sqrt((state.activeParcel?.area || 1000) / Math.PI) * 0.95);
-        if (Math.hypot(avgX, avgY) < parcelRadius) return;
 
         const shape = new THREE.Shape();
         localPts.forEach((pt, idx) => {
@@ -2804,10 +2887,7 @@ document.addEventListener('DOMContentLoaded', () => {
         shape.closePath();
 
         const height = Math.max(6.0, Math.min(65.0, bldg.height || 9.0));
-        const extrudeGeom = new THREE.ExtrudeGeometry(shape, {
-          depth: height,
-          bevelEnabled: false
-        });
+        const extrudeGeom = new THREE.ExtrudeGeometry(shape, { depth: height, bevelEnabled: false });
 
         const mesh = new THREE.Mesh(extrudeGeom, clayMat);
         mesh.rotation.x = -Math.PI / 2;
@@ -2820,8 +2900,181 @@ document.addEventListener('DOMContentLoaded', () => {
         line.rotation.x = -Math.PI / 2;
         urbanGroup.add(line);
       });
-    } catch (err) {
-      console.warn('Surrounding urban fabric fetch error:', err);
+
+    } else {
+      // 2. Solar Mode: ALL surrounding buildings get dynamic thermal facade & roof exposure!
+      if (!thermalData) {
+        const lat = centerGps.lat, lng = centerGps.lng;
+        const date = state.solarDate || new Date(2026, 5, 21);
+        const hour = state.solarHour !== undefined ? state.solarHour : 12.0;
+        const sp = calculateSunPosition(date, hour, lat, lng);
+        thermalData = calculateBuildingThermalExposure(lat, lng, sp);
+      }
+
+      const sunVec = thermalData.sunVector;
+      const isDay = thermalData.isDay;
+
+      const materials = {
+        hot: new THREE.MeshStandardMaterial({
+          color: 0xef4444,
+          emissive: 0xdc2626,
+          emissiveIntensity: 0.42,
+          roughness: 0.3,
+          metalness: 0.1,
+          side: THREE.DoubleSide
+        }),
+        warm: new THREE.MeshStandardMaterial({
+          color: 0xf59e0b,
+          emissive: 0xd97706,
+          emissiveIntensity: 0.36,
+          roughness: 0.3,
+          metalness: 0.1,
+          side: THREE.DoubleSide
+        }),
+        cold: new THREE.MeshStandardMaterial({
+          color: 0x0284c7,
+          emissive: 0x0369a1,
+          emissiveIntensity: 0.28,
+          roughness: 0.35,
+          metalness: 0.1,
+          side: THREE.DoubleSide
+        }),
+        night: new THREE.MeshStandardMaterial({
+          color: 0x1e293b,
+          emissive: 0x0f172a,
+          emissiveIntensity: 0.15,
+          roughness: 0.75,
+          metalness: 0.2,
+          side: THREE.DoubleSide
+        })
+      };
+
+      const wallBatches = { hot: [], warm: [], cold: [], night: [] };
+      const roofBatches = { hot: [], warm: [], cold: [], night: [] };
+      const edgeLines = [];
+
+      // Roof irradiance tier
+      const roofIrradiance = isDay ? Math.round(thermalData.I_beam * Math.sin(thermalData.altitudeRad) + thermalData.I_diff) : 0;
+      let roofTier = 'cold';
+      if (!isDay) roofTier = 'night';
+      else if (roofIrradiance >= 650) roofTier = 'hot';
+      else if (roofIrradiance >= 300) roofTier = 'warm';
+
+      outsideBuildings.forEach(bldg => {
+        const localPts = gpsToLocalMeters(bldg.coordinates, centerGps);
+        if (localPts.length < 3) return;
+
+        const n = localPts.length;
+        const height = Math.max(6.0, Math.min(65.0, bldg.height || 9.0));
+
+        let cx = 0, cz = 0;
+        localPts.forEach(p => { cx += p.x; cz += p.y; });
+        cx /= n; cz /= n;
+
+        // Wall segments
+        for (let i = 0; i < n; i++) {
+          const p1 = localPts[i];
+          const p2 = localPts[(i + 1) % n];
+          const x1 = p1.x, z1 = p1.y;
+          const x2 = p2.x, z2 = p2.y;
+
+          const dx = x2 - x1;
+          const dz = z2 - z1;
+          const len = Math.hypot(dx, dz);
+          if (len < 0.1) continue;
+
+          const mx = (x1 + x2) / 2;
+          const mz = (z1 + z2) / 2;
+          const vx = mx - cx;
+          const vz = mz - cz;
+
+          let nx = dz / len;
+          let nz = -dx / len;
+          if (nx * vx + nz * vz < 0) {
+            nx = -nx;
+            nz = -nz;
+          }
+
+          const wallNormal = new THREE.Vector3(nx, 0, nz);
+          const cosTheta = isDay ? Math.max(0, wallNormal.dot(sunVec)) : 0;
+          const irradiance = isDay ? Math.round(thermalData.I_beam * cosTheta + thermalData.I_diff * 0.5) : 0;
+
+          let tier = 'cold';
+          if (!isDay) tier = 'night';
+          else if (irradiance >= 650) tier = 'hot';
+          else if (irradiance >= 300) tier = 'warm';
+
+          wallBatches[tier].push(
+            x1, 0, z1,
+            x2, height, z2,
+            x2, 0, z2,
+
+            x1, 0, z1,
+            x1, height, z1,
+            x2, height, z2
+          );
+
+          // Roof perimeter edge
+          edgeLines.push(x1, height, z1, x2, height, z2);
+          // Vertical corner edge
+          edgeLines.push(x1, 0, z1, x1, height, z1);
+        }
+
+        // Roof surface triangulation
+        try {
+          const shapePoints = localPts.map(p => new THREE.Vector2(p.x, -p.y));
+          const triangles = THREE.ShapeUtils.triangulateShape(shapePoints, []);
+          triangles.forEach(tri => {
+            const p0 = localPts[tri[0]], p1 = localPts[tri[1]], p2 = localPts[tri[2]];
+            roofBatches[roofTier].push(
+              p0.x, height, p0.y,
+              p1.x, height, p1.y,
+              p2.x, height, p2.y
+            );
+          });
+        } catch (e) {}
+      });
+
+      // Assemble batched meshes for walls
+      ['hot', 'warm', 'cold', 'night'].forEach(tier => {
+        const pts = wallBatches[tier];
+        if (pts && pts.length > 0) {
+          const geom = new THREE.BufferGeometry();
+          geom.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+          geom.computeVertexNormals();
+          const mesh = new THREE.Mesh(geom, materials[tier]);
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          urbanGroup.add(mesh);
+        }
+      });
+
+      // Assemble batched meshes for roofs
+      ['hot', 'warm', 'cold', 'night'].forEach(tier => {
+        const pts = roofBatches[tier];
+        if (pts && pts.length > 0) {
+          const geom = new THREE.BufferGeometry();
+          geom.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+          geom.computeVertexNormals();
+          const mesh = new THREE.Mesh(geom, materials[tier]);
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          urbanGroup.add(mesh);
+        }
+      });
+
+      // Assemble edge lines
+      if (edgeLines.length > 0) {
+        const edgeGeom = new THREE.BufferGeometry();
+        edgeGeom.setAttribute('position', new THREE.Float32BufferAttribute(edgeLines, 3));
+        const edgeMat = new THREE.LineBasicMaterial({
+          color: 0x38bdf8,
+          transparent: true,
+          opacity: 0.28
+        });
+        const line = new THREE.LineSegments(edgeGeom, edgeMat);
+        urbanGroup.add(line);
+      }
     }
   }
 
@@ -3084,6 +3337,31 @@ document.addEventListener('DOMContentLoaded', () => {
       controls.target.set(0, 5, 0);
       controls.update();
     }
+  }
+
+  // Robust point-in-polygon test for geographic GPS coordinates [lat, lng]
+  function isPointInPolygonGPS(point, polygon) {
+    if (!point || !polygon || polygon.length < 3) return false;
+    if (typeof turf !== 'undefined' && turf.booleanPointInPolygon && turf.point && turf.polygon) {
+      try {
+        const pt = turf.point([point[1], point[0]]); // [lng, lat]
+        const ring = polygon.map(p => [p[1], p[0]]);
+        if (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1]) {
+          ring.push([ring[0][0], ring[0][1]]);
+        }
+        return turf.booleanPointInPolygon(pt, turf.polygon([ring]));
+      } catch (e) {}
+    }
+    // Ray-casting algorithm fallback
+    const x = point[1], y = point[0];
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      const xi = polygon[i][1], yi = polygon[i][0];
+      const xj = polygon[j][1], yj = polygon[j][0];
+      const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
   }
 
   // Convert lat/lng array (or single [lat, lng]) to local meters using Equirectangular approximation anchored to parcel reference origin
@@ -4126,13 +4404,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function generateDefaultConcept(parcel) {
-    const defaultFootprint = Math.min(650, Math.max(150, Math.round((parcel.area || 1000) * 0.35)));
     state.buildings = [
-      createBuildingData(1, BUILDING_COLORS[0], defaultFootprint, 5, 1)
+      createBuildingData(1, BUILDING_COLORS[0], 0, 4, 1)
     ];
     state.buildings[0].footprintCoords = null;
-    state.buildings[0].footprintArea = defaultFootprint;
-    state.buildings[0].isProcedural = true;
+    state.buildings[0].footprintArea = 0;
+    state.buildings[0].isProcedural = false; // Strictly false: do not invent fake geometry
     state.selectedBuildingId = state.buildings[0].id;
     state.customFootprint = null;
 
@@ -4176,7 +4453,7 @@ document.addEventListener('DOMContentLoaded', () => {
       lng: parcel.coordinates.reduce((sum, c) => sum + c[1], 0) / parcel.coordinates.length
     };
 
-    // 1. If building has custom drawn GPS footprint:
+    // 1. If building has custom drawn GPS footprint or real existing OSM footprint:
     if (bldg.footprintCoords && bldg.footprintCoords.length >= 3) {
       const customLocal = gpsToLocalMeters(bldg.footprintCoords, parcelCenter);
       const xs = customLocal.map(p => p.x);
@@ -4187,17 +4464,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const maxY = Math.max(...ys);
 
       return {
-        width: maxX - minX,
-        length: maxY - minY,
+        width: Math.max(1, maxX - minX),
+        length: Math.max(1, maxY - minY),
         corners: customLocal,
         isCustom: true
       };
     }
 
-    // 2. Procedural auto-concept rectangle with spatial offset per building
-    if (!bldg.footprintArea) {
-      bldg.footprintArea = Math.min(650, Math.max(150, Math.round((parcel.area || 1000) * 0.35)));
-      bldg.isProcedural = true;
+    // 2. Procedural auto-concept rectangle ONLY if explicitly requested via AI prompt
+    if (!bldg.isProcedural || !bldg.footprintArea) {
+      return null;
     }
 
     // Otherwise: procedural auto-concept rectangle with spatial offset per building
@@ -6527,6 +6803,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (buildingGroup) buildingGroup.visible = true; // Restore normal textured building
       if (mapThemeSwitcher) mapThemeSwitcher.style.display = 'none';
       if (mapTelemetry) mapTelemetry.style.display = 'none';
+      renderUrbanFabric3D();
       onWindowResize();
     } else if (mode === 'solar') {
       if (mapViewport) mapViewport.style.display = 'none';
@@ -6554,6 +6831,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (buildingGroup) buildingGroup.visible = true; // Restore normal textured building
       if (mapThemeSwitcher) mapThemeSwitcher.style.display = 'none';
       if (mapTelemetry) mapTelemetry.style.display = 'none';
+      renderUrbanFabric3D();
 
       // In combined mode, show satellite aerial photo for real-world context alongside 3D
       switchMapBasemap(state.combinedMapTheme || 'satellite');
