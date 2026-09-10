@@ -1412,17 +1412,27 @@ document.addEventListener('DOMContentLoaded', () => {
       buildingGroup.visible = !isVisible;
     }
 
-    if (!isVisible || !thermalData) return;
-
     const parcel = state.activeParcel;
-    if (!parcel || !state.buildings || state.buildings.length === 0) return;
+    if (!parcel) return;
+
+    // Ensure at least one building exists on the parcel
+    if (!state.buildings || state.buildings.length === 0) {
+      const defaultFp = Math.min(650, Math.max(150, Math.round((parcel.area || 1000) * 0.35)));
+      state.buildings = [createBuildingData(1, BUILDING_COLORS[0], defaultFp, 5, 1)];
+      state.buildings[0].isProcedural = true;
+    }
 
     const sunVec = thermalData.sunVector;
     const isDay = thermalData.isDay;
     const isKa = (state.currentLang !== 'en');
 
     state.buildings.forEach((bldg) => {
-      const fp = computeFootprintGeometry(parcel, bldg);
+      let fp = computeFootprintGeometry(parcel, bldg);
+      if (!fp || !fp.corners || fp.corners.length < 3) {
+        bldg.isProcedural = true;
+        if (!bldg.footprintArea) bldg.footprintArea = Math.min(650, Math.max(150, Math.round((parcel.area || 1000) * 0.35)));
+        fp = computeFootprintGeometry(parcel, bldg);
+      }
       if (!fp || !fp.corners || fp.corners.length < 3) return;
 
       const floorsAbove = bldg.floorsAbove || 5;
@@ -2783,7 +2793,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const avgX = localPts.reduce((s, p) => s + p.x, 0) / localPts.length;
         const avgY = localPts.reduce((s, p) => s + p.y, 0) / localPts.length;
-        if (Math.hypot(avgX, avgY) < 14) return;
+        const parcelRadius = Math.max(22, Math.sqrt((state.activeParcel?.area || 1000) / Math.PI) * 0.95);
+        if (Math.hypot(avgX, avgY) < parcelRadius) return;
 
         const shape = new THREE.Shape();
         localPts.forEach((pt, idx) => {
@@ -4115,12 +4126,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function generateDefaultConcept(parcel) {
+    const defaultFootprint = Math.min(650, Math.max(150, Math.round((parcel.area || 1000) * 0.35)));
     state.buildings = [
-      createBuildingData(1, BUILDING_COLORS[0], 0, 5, 1)
+      createBuildingData(1, BUILDING_COLORS[0], defaultFootprint, 5, 1)
     ];
     state.buildings[0].footprintCoords = null;
-    state.buildings[0].footprintArea = 0;
-    state.buildings[0].isProcedural = false;
+    state.buildings[0].footprintArea = defaultFootprint;
+    state.buildings[0].isProcedural = true;
     state.selectedBuildingId = state.buildings[0].id;
     state.customFootprint = null;
 
@@ -4182,9 +4194,10 @@ document.addEventListener('DOMContentLoaded', () => {
       };
     }
 
-    // 2. Strict: If building has NOT been drawn yet and is not an explicit procedural AI concept, do NOT generate dummy geometry
-    if (!bldg.isProcedural) {
-      return null;
+    // 2. Procedural auto-concept rectangle with spatial offset per building
+    if (!bldg.footprintArea) {
+      bldg.footprintArea = Math.min(650, Math.max(150, Math.round((parcel.area || 1000) * 0.35)));
+      bldg.isProcedural = true;
     }
 
     // Otherwise: procedural auto-concept rectangle with spatial offset per building
@@ -6528,8 +6541,8 @@ document.addEventListener('DOMContentLoaded', () => {
       onWindowResize();
       updateSolarLighting();
       if (controls && camera) {
-        camera.position.set(75, 65, 95);
-        controls.target.set(0, 6, 0);
+        camera.position.set(38, 28, 48);
+        controls.target.set(0, 10, 0);
         controls.update();
       }
     } else if (mode === 'combined') {
