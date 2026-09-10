@@ -38,9 +38,13 @@ document.addEventListener('DOMContentLoaded', () => {
       k3: null
     },
     // Solar Insolation & Shadow Engine State (Module 2C)
-    solarDate: new Date(2026, 2, 21), // Spring equinox default
+    solarDate: new Date(2026, 5, 21), // Summer solstice default (06-21)
     solarHour: 12.0,
     isSolarAnimating: false,
+    showSunPath: true,
+    showSeasonalArcs: true,
+    showHourMarkers: true,
+    showCompassRing: true,
     // Surrounding 3D Urban Fabric (Module 1B & 2B)
     urbanBuildings: [],
     // 3D DEM Terrain & Slope (Module 1C & 2A)
@@ -292,7 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
      3. Three.js 3D WebGL Massing Canvas Setup & Solar Engine
      ========================================================================== */
   let scene, camera, renderer, controls;
-  let buildingGroup, groundGroup, urbanGroup, terrainGroup;
+  let buildingGroup, groundGroup, urbanGroup, terrainGroup, sunPathGroup;
   let sunLight, ambientLight, fillLight;
 
   function initThree() {
@@ -386,11 +390,13 @@ document.addEventListener('DOMContentLoaded', () => {
     groundGroup = new THREE.Group();
     urbanGroup = new THREE.Group();
     buildingGroup = new THREE.Group();
+    sunPathGroup = new THREE.Group();
 
     scene.add(terrainGroup);
     scene.add(groundGroup);
     scene.add(urbanGroup);
     scene.add(buildingGroup);
+    scene.add(sunPathGroup);
 
     // Initialize SunCalc position & controls
     updateSolarLighting();
@@ -401,8 +407,8 @@ document.addEventListener('DOMContentLoaded', () => {
       requestAnimationFrame(animate);
       if (controls) controls.update();
       if (state.isSolarAnimating) {
-        state.solarHour += 0.04;
-        if (state.solarHour > 20) state.solarHour = 6;
+        state.solarHour += 0.05;
+        if (state.solarHour > 24) state.solarHour = 0;
         const slider = document.getElementById('solarTimeSlider');
         if (slider) slider.value = state.solarHour;
         updateSolarLighting();
@@ -747,8 +753,346 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     3b. Solar Insolation & Shadow Engine (SunCalc - Module 2C)
+     3b. Advanced 3D Sun Path, Heliodon & Solar Insolation Engine (Module 2C)
      ========================================================================== */
+
+  // Exact Astronomical Solar Position (SunCalc or NOAA Solar Algorithm Fallback)
+  function calculateSunPosition(date, hour, lat, lng) {
+    const d = new Date(date);
+    const h = Math.floor(hour);
+    const m = Math.round((hour % 1) * 60);
+    d.setHours(h, m, 0, 0);
+
+    if (typeof SunCalc !== 'undefined' && SunCalc.getPosition) {
+      const pos = SunCalc.getPosition(d, lat, lng);
+      const altDeg = (pos.altitude * 180) / Math.PI;
+      const azDeg = ((pos.azimuth * 180 / Math.PI) + 180) % 360;
+      return {
+        altitudeRad: pos.altitude,
+        altitudeDeg: altDeg,
+        azimuthRad: pos.azimuth,
+        azimuthDeg: azDeg,
+        isDay: altDeg > 0,
+        date: d
+      };
+    }
+
+    // NOAA Astronomical Approximation Fallback
+    const startOfYear = new Date(d.getFullYear(), 0, 1);
+    const dayOfYear = Math.floor((d - startOfYear) / (1000 * 60 * 60 * 24)) + 1;
+    const b = (2 * Math.PI / 365) * (dayOfYear - 81);
+    const eot = 9.87 * Math.sin(2 * b) - 7.53 * Math.cos(b) - 1.5 * Math.sin(b); // Equation of time (mins)
+    const solarDec = 23.45 * Math.sin((2 * Math.PI / 365) * (dayOfYear - 81)); // Declination in deg
+    const decRad = (solarDec * Math.PI) / 180;
+    const latRad = (lat * Math.PI) / 180;
+
+    const timeOffset = (lng - 45) * 4 + eot; // UTC+4 Georgia reference meridian
+    const trueSolarTime = hour * 60 + timeOffset;
+    const hourAngle = (trueSolarTime / 4 - 180) * (Math.PI / 180);
+
+    const sinAlt = Math.sin(latRad) * Math.sin(decRad) + Math.cos(latRad) * Math.cos(decRad) * Math.cos(hourAngle);
+    const altRad = Math.asin(Math.max(-1, Math.min(1, sinAlt)));
+    const cosAlt = Math.cos(altRad);
+
+    let azRad = 0;
+    if (cosAlt > 0.001) {
+      const cosAz = (Math.sin(decRad) - Math.sin(latRad) * sinAlt) / (Math.cos(latRad) * cosAlt);
+      azRad = Math.acos(Math.max(-1, Math.min(1, cosAz)));
+      if (Math.sin(hourAngle) > 0) azRad = 2 * Math.PI - azRad;
+    }
+
+    const altDeg = (altRad * 180) / Math.PI;
+    const azDeg = (azRad * 180) / Math.PI;
+    return {
+      altitudeRad: altRad,
+      altitudeDeg: altDeg,
+      azimuthRad: azRad - Math.PI,
+      azimuthDeg: azDeg,
+      isDay: altDeg > 0,
+      date: d
+    };
+  }
+
+  // Calculate Sunrise, Sunset and Daylight duration for given Date and GPS coordinates
+  function calculateSunTimes(date, lat, lng) {
+    const d = new Date(date);
+    d.setHours(12, 0, 0, 0);
+
+    if (typeof SunCalc !== 'undefined' && SunCalc.getTimes) {
+      try {
+        const times = SunCalc.getTimes(d, lat, lng);
+        const sr = times.sunrise || new Date(d.getFullYear(), d.getMonth(), d.getDate(), 5, 30);
+        const ss = times.sunset || new Date(d.getFullYear(), d.getMonth(), d.getDate(), 20, 30);
+        const dayMs = Math.max(0, ss.getTime() - sr.getTime());
+        const dayHours = Math.floor(dayMs / (1000 * 60 * 60));
+        const dayMins = Math.floor((dayMs % (1000 * 60 * 60)) / (1000 * 60));
+        const srH = String(sr.getHours()).padStart(2, '0');
+        const srM = String(sr.getMinutes()).padStart(2, '0');
+        const ssH = String(ss.getHours()).padStart(2, '0');
+        const ssM = String(ss.getMinutes()).padStart(2, '0');
+        return {
+          sunrise: sr,
+          sunset: ss,
+          sunriseStr: `${srH}:${srM}`,
+          sunsetStr: `${ssH}:${ssM}`,
+          dayLengthStrKa: `${dayHours}სთ ${dayMins}წთ`,
+          dayLengthStrEn: `${dayHours}h ${dayMins}m`,
+          dayLengthHours: dayMs / (1000 * 60 * 60)
+        };
+      } catch (err) {
+        console.warn('SunCalc times notice:', err);
+      }
+    }
+
+    // Default approximation for Georgia
+    const m = d.getMonth();
+    let approxDayH = 12;
+    if (m >= 4 && m <= 7) approxDayH = 15;
+    else if (m === 11 || m === 0 || m === 1) approxDayH = 9.2;
+    return {
+      sunriseStr: '05:32',
+      sunsetStr: '20:41',
+      dayLengthStrKa: `${Math.floor(approxDayH)}სთ 15წთ`,
+      dayLengthStrEn: `${Math.floor(approxDayH)}h 15m`,
+      dayLengthHours: approxDayH
+    };
+  }
+
+  // Helper: Create crisp text sprites for cardinal directions and hour markers in 3D scene
+  function createTextSprite(text, color = '#ffffff', fontSize = 28, bgColor = null) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, 256, 64);
+    if (bgColor) {
+      ctx.fillStyle = bgColor;
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(8, 8, 240, 48, 12);
+      } else {
+        ctx.rect(8, 8, 240, 48);
+      }
+      ctx.fill();
+    }
+    ctx.font = `bold ${fontSize}px sans-serif`;
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 128, 32);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.minFilter = THREE.LinearFilter;
+    const mat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false });
+    const sprite = new THREE.Sprite(mat);
+    sprite.scale.set(10, 2.5, 1);
+    return sprite;
+  }
+
+  // 3D Heliodon & Sun Path Geometry Visualizer
+  function updateSunPathVisualization(lat, lng, currentSunPos, sunTimes) {
+    if (!sunPathGroup || !scene) return;
+
+    // Clear existing heliodon objects
+    while (sunPathGroup.children.length > 0) {
+      const c = sunPathGroup.children[0];
+      sunPathGroup.remove(c);
+      if (c.geometry) c.geometry.dispose();
+    }
+
+    const radius = 95; // Sky dome radius in meters
+
+    // 1. Compass Horizon Ground Ring & Cardinal Letters
+    if (state.showCompassRing !== false) {
+      const ringSegments = 64;
+      const ringPoints = [];
+      for (let i = 0; i <= ringSegments; i++) {
+        const theta = (i / ringSegments) * Math.PI * 2;
+        ringPoints.push(new THREE.Vector3(radius * Math.sin(theta), 0.1, -radius * Math.cos(theta)));
+      }
+      const ringGeom = new THREE.BufferGeometry().setFromPoints(ringPoints);
+      const ringMat = new THREE.LineBasicMaterial({
+        color: 0x00f0ff,
+        transparent: true,
+        opacity: 0.35,
+        linewidth: 1.5
+      });
+      const ringLine = new THREE.Line(ringGeom, ringMat);
+      sunPathGroup.add(ringLine);
+
+      // Cardinal Direction Sprites: N (North/ჩ), S (South/ს), E (East/ა), W (West/დ)
+      const isKa = (state.currentLang !== 'en');
+      const cardinalMarkers = [
+        { text: isKa ? 'N (ჩრდილოეთი)' : 'N (North)', pos: [0, 1.2, -radius - 4], color: '#38bdf8' },
+        { text: isKa ? 'S (სამხრეთი)' : 'S (South)', pos: [0, 1.2, radius + 4], color: '#f59e0b' },
+        { text: isKa ? 'E (აღმოსავლეთი)' : 'E (East)', pos: [radius + 4, 1.2, 0], color: '#fbbf24' },
+        { text: isKa ? 'W (დასავლეთი)' : 'W (West)', pos: [-radius - 4, 1.2, 0], color: '#c084fc' }
+      ];
+
+      cardinalMarkers.forEach(cm => {
+        const sprite = createTextSprite(cm.text, cm.color, 24, 'rgba(10, 15, 29, 0.7)');
+        sprite.position.set(cm.pos[0], cm.pos[1], cm.pos[2]);
+        sprite.scale.set(16, 4, 1);
+        sunPathGroup.add(sprite);
+      });
+    }
+
+    // 2. Seasonal Solstices & Equinoxes Reference Arcs
+    if (state.showSeasonalArcs !== false) {
+      const seasonalDates = [
+        { label: 'Summer', date: new Date(2026, 5, 21), color: 0xf59e0b, opacity: 0.35 },
+        { label: 'Equinox', date: new Date(2026, 2, 21), color: 0xeab308, opacity: 0.3 },
+        { label: 'Winter', date: new Date(2026, 11, 21), color: 0xea580c, opacity: 0.28 }
+      ];
+
+      seasonalDates.forEach(sd => {
+        const dayPts = [];
+        for (let h = 0; h <= 24; h += 0.2) {
+          const sp = calculateSunPosition(sd.date, h, lat, lng);
+          if (sp.altitudeDeg >= 0) {
+            const px = radius * Math.sin(sp.azimuthRad) * Math.cos(sp.altitudeRad);
+            const py = radius * Math.sin(sp.altitudeRad);
+            const pz = -radius * Math.cos(sp.azimuthRad) * Math.cos(sp.altitudeRad);
+            dayPts.push(new THREE.Vector3(px, Math.max(0.1, py), pz));
+          }
+        }
+        if (dayPts.length > 2) {
+          const arcGeom = new THREE.BufferGeometry().setFromPoints(dayPts);
+          const arcMat = new THREE.LineBasicMaterial({
+            color: sd.color,
+            transparent: true,
+            opacity: sd.opacity,
+            linewidth: 1
+          });
+          const arcLine = new THREE.Line(arcGeom, arcMat);
+          sunPathGroup.add(arcLine);
+        }
+      });
+    }
+
+    // 3. Current Selected Date Sun Path Arc (24-Hour Day & Night Trajectory)
+    if (state.showSunPath !== false) {
+      const activeDate = state.solarDate || new Date(2026, 5, 21);
+      const dayTrajectoryPts = [];
+      const nightTrajectoryPts = [];
+
+      for (let h = 0; h <= 24; h += 0.15) {
+        const sp = calculateSunPosition(activeDate, h, lat, lng);
+        const px = radius * Math.sin(sp.azimuthRad) * Math.cos(sp.altitudeRad);
+        const py = radius * Math.sin(sp.altitudeRad);
+        const pz = -radius * Math.cos(sp.azimuthRad) * Math.cos(sp.altitudeRad);
+        const pt = new THREE.Vector3(px, py, pz);
+
+        if (sp.altitudeDeg >= 0) {
+          dayTrajectoryPts.push(pt);
+        } else {
+          nightTrajectoryPts.push(pt);
+        }
+      }
+
+      // Luminous Daytime Sun Arc
+      if (dayTrajectoryPts.length > 2) {
+        const dayGeom = new THREE.BufferGeometry().setFromPoints(dayTrajectoryPts);
+        const dayMat = new THREE.LineBasicMaterial({
+          color: 0xf59e0b,
+          transparent: true,
+          opacity: 0.95,
+          linewidth: 3.5
+        });
+        const dayLine = new THREE.Line(dayGeom, dayMat);
+        sunPathGroup.add(dayLine);
+      }
+
+      // Translucent Nighttime Sun Arc (Trajectory beneath horizon)
+      if (nightTrajectoryPts.length > 2) {
+        const nightGeom = new THREE.BufferGeometry().setFromPoints(nightTrajectoryPts);
+        const nightMat = new THREE.LineDashedMaterial({
+          color: 0x6366f1,
+          transparent: true,
+          opacity: 0.45,
+          dashSize: 3,
+          gapSize: 2,
+          linewidth: 1.5
+        });
+        const nightLine = new THREE.Line(nightGeom, nightMat);
+        nightLine.computeLineDistances();
+        sunPathGroup.add(nightLine);
+      }
+    }
+
+    // 4. Hourly Nodes & Labels on Current Sun Path
+    if (state.showHourMarkers !== false) {
+      const activeDate = state.solarDate || new Date(2026, 5, 21);
+      const hoursToMark = [6, 8, 10, 12, 14, 16, 18, 20];
+
+      hoursToMark.forEach(hr => {
+        const sp = calculateSunPosition(activeDate, hr, lat, lng);
+        if (sp.altitudeDeg >= -2) {
+          const px = radius * Math.sin(sp.azimuthRad) * Math.cos(sp.altitudeRad);
+          const py = Math.max(0.5, radius * Math.sin(sp.altitudeRad));
+          const pz = -radius * Math.cos(sp.azimuthRad) * Math.cos(sp.altitudeRad);
+
+          // Small Node Sphere
+          const nodeGeom = new THREE.SphereGeometry(1.4, 12, 12);
+          const nodeMat = new THREE.MeshBasicMaterial({ color: hr === 12 ? 0xfef08a : 0xfbbf24 });
+          const nodeMesh = new THREE.Mesh(nodeGeom, nodeMat);
+          nodeMesh.position.set(px, py, pz);
+          sunPathGroup.add(nodeMesh);
+
+          // Time Label Sprite
+          const labelSprite = createTextSprite(`${hr}:00`, '#ffffff', 26, 'rgba(15, 23, 42, 0.75)');
+          labelSprite.position.set(px, py + 3.2, pz);
+          labelSprite.scale.set(7, 1.8, 1);
+          sunPathGroup.add(labelSprite);
+        }
+      });
+    }
+
+    // 5. Physical Glowing 3D Sun Body (Or Twilight/Moon Node at Night)
+    const sunX = radius * Math.sin(currentSunPos.azimuthRad) * Math.cos(currentSunPos.altitudeRad);
+    const sunY = radius * Math.sin(currentSunPos.altitudeRad);
+    const sunZ = -radius * Math.cos(currentSunPos.azimuthRad) * Math.cos(currentSunPos.altitudeRad);
+
+    const isDay = currentSunPos.altitudeDeg > 0;
+    const sunColor = isDay ? 0xffea00 : 0x818cf8;
+    const sunGeom = new THREE.SphereGeometry(isDay ? 3.8 : 2.8, 24, 24);
+    const sunMat = new THREE.MeshBasicMaterial({
+      color: sunColor,
+      transparent: true,
+      opacity: isDay ? 1.0 : 0.65
+    });
+    const sunMesh = new THREE.Mesh(sunGeom, sunMat);
+    sunMesh.position.set(sunX, sunY, sunZ);
+    sunPathGroup.add(sunMesh);
+
+    // Glowing Sun Corona Halo
+    if (isDay) {
+      const haloGeom = new THREE.SphereGeometry(6.2, 16, 16);
+      const haloMat = new THREE.MeshBasicMaterial({
+        color: 0xf59e0b,
+        transparent: true,
+        opacity: 0.35,
+        wireframe: false
+      });
+      const haloMesh = new THREE.Mesh(haloGeom, haloMat);
+      haloMesh.position.set(sunX, sunY, sunZ);
+      sunPathGroup.add(haloMesh);
+
+      // Direct Solar Incident Ray (Line connecting Sun to Building Origin)
+      const rayPoints = [new THREE.Vector3(sunX, sunY, sunZ), new THREE.Vector3(0, 4, 0)];
+      const rayGeom = new THREE.BufferGeometry().setFromPoints(rayPoints);
+      const rayMat = new THREE.LineBasicMaterial({
+        color: 0xfef08a,
+        transparent: true,
+        opacity: 0.45,
+        linewidth: 2
+      });
+      const rayLine = new THREE.Line(rayGeom, rayMat);
+      sunPathGroup.add(rayLine);
+    }
+  }
+
+  // Master Solar Lighting & HUD Telemetry Updater
   function updateSolarLighting() {
     if (!sunLight) return;
 
@@ -760,71 +1104,117 @@ document.addEventListener('DOMContentLoaded', () => {
       lng = parcel.coordinates.reduce((sum, c) => sum + c[1], 0) / parcel.coordinates.length;
     }
 
-    const date = state.solarDate ? new Date(state.solarDate) : new Date(2026, 2, 21);
+    const date = state.solarDate ? new Date(state.solarDate) : new Date(2026, 5, 21);
     const hour = state.solarHour !== undefined ? state.solarHour : 12.0;
-    const h = Math.floor(hour);
-    const m = Math.round((hour % 1) * 60);
-    date.setHours(h, m, 0, 0);
 
-    let altitudeDeg = 50;
-    let azimuthDeg = 180;
+    // Calculate exact astronomical solar position & solar times
+    const currentSunPos = calculateSunPosition(date, hour, lat, lng);
+    const sunTimes = calculateSunTimes(date, lat, lng);
 
-    if (typeof SunCalc !== 'undefined') {
-      const sunPos = SunCalc.getPosition(date, lat, lng);
-      altitudeDeg = (sunPos.altitude * 180) / Math.PI;
-      azimuthDeg = ((sunPos.azimuth * 180 / Math.PI) + 180) % 360;
+    const altitudeDeg = currentSunPos.altitudeDeg;
+    const azimuthDeg = currentSunPos.azimuthDeg;
 
-      const dist = 180;
-      const altRad = Math.max(0.04, sunPos.altitude);
-      const azRad = sunPos.azimuth;
+    // Position directional sunlight
+    const dist = 180;
+    const altRad = Math.max(0.04, currentSunPos.altitudeRad);
+    const azRad = currentSunPos.azimuthRad;
 
-      sunLight.position.x = dist * Math.sin(azRad) * Math.cos(altRad);
-      sunLight.position.y = Math.max(12, dist * Math.sin(altRad));
-      sunLight.position.z = -dist * Math.cos(azRad) * Math.cos(altRad);
+    sunLight.position.x = dist * Math.sin(azRad) * Math.cos(altRad);
+    sunLight.position.y = Math.max(12, dist * Math.sin(altRad));
+    sunLight.position.z = -dist * Math.cos(azRad) * Math.cos(altRad);
 
-      if (altitudeDeg <= 0) {
-        sunLight.intensity = 0.05;
-        sunLight.color.setHex(0x1e293b);
-      } else if (altitudeDeg < 15) {
-        sunLight.intensity = 0.55;
-        sunLight.color.setHex(0xf97316);
-      } else if (altitudeDeg < 35) {
-        sunLight.intensity = 0.85;
-        sunLight.color.setHex(0xfde047);
-      } else {
-        sunLight.intensity = 1.15;
-        sunLight.color.setHex(0xfff7ed);
-      }
-
-      if (ambientLight) {
-        ambientLight.intensity = altitudeDeg <= 0 ? 0.2 : 0.45 + (altitudeDeg / 90) * 0.25;
-      }
+    // Modulate lighting intensity & atmospheric coloration
+    if (altitudeDeg <= 0) {
+      // Night / Below Horizon
+      sunLight.intensity = 0.05;
+      sunLight.color.setHex(0x1e293b);
+      if (ambientLight) ambientLight.intensity = 0.22;
+    } else if (altitudeDeg < 12) {
+      // Dawn / Dusk (Sunrise / Sunset golden hour)
+      sunLight.intensity = 0.65;
+      sunLight.color.setHex(0xf97316);
+      if (ambientLight) ambientLight.intensity = 0.42;
+    } else if (altitudeDeg < 35) {
+      // Morning / Afternoon
+      sunLight.intensity = 0.95;
+      sunLight.color.setHex(0xfde047);
+      if (ambientLight) ambientLight.intensity = 0.55;
     } else {
-      const angle = ((hour - 6) / 14) * Math.PI;
-      sunLight.position.x = 120 * Math.cos(angle);
-      sunLight.position.y = Math.max(15, 130 * Math.sin(angle));
-      sunLight.position.z = 40;
+      // High Noon Daylight
+      sunLight.intensity = 1.25;
+      sunLight.color.setHex(0xfffaed);
+      if (ambientLight) ambientLight.intensity = 0.68;
     }
 
+    // Update 3D Sun Path, Heliodon and Cardinal Indicators
+    updateSunPathVisualization(lat, lng, currentSunPos, sunTimes);
+
+    // Update UI Badges & Telemetry
+    const isKa = (state.currentLang !== 'en');
+    const h = Math.floor(hour);
+    const m = Math.round((hour % 1) * 60);
+    const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+
     const badgeTime = document.getElementById('solarTimeBadge');
-    if (badgeTime) {
-      const hh = String(h).padStart(2, '0');
-      const mm = String(m).padStart(2, '0');
-      badgeTime.textContent = `${hh}:${mm}`;
+    if (badgeTime) badgeTime.textContent = timeStr;
+
+    const dayNightBadge = document.getElementById('solarDayNightBadge');
+    if (dayNightBadge) {
+      if (currentSunPos.isDay) {
+        dayNightBadge.className = 'solar-status-pill day';
+        dayNightBadge.innerHTML = `<i class="fa-solid fa-sun"></i> <span>${isKa ? 'დღე' : 'Daylight'}</span>`;
+      } else {
+        dayNightBadge.className = 'solar-status-pill night';
+        dayNightBadge.innerHTML = `<i class="fa-solid fa-moon"></i> <span>${isKa ? 'ღამე' : 'Night'}</span>`;
+      }
     }
 
     const altVal = document.getElementById('solarAltitudeVal');
-    if (altVal) altVal.textContent = `${Math.max(0, altitudeDeg).toFixed(1)}°`;
+    if (altVal) {
+      const sign = altitudeDeg >= 0 ? '+' : '';
+      altVal.textContent = `${sign}${altitudeDeg.toFixed(1)}°`;
+      altVal.style.color = currentSunPos.isDay ? '#fbbf24' : '#818cf8';
+    }
 
     const azVal = document.getElementById('solarAzimuthVal');
-    if (azVal) azVal.textContent = `${azimuthDeg.toFixed(1)}°`;
+    if (azVal) {
+      let cardinal = 'N';
+      if (azimuthDeg >= 45 && azimuthDeg < 135) cardinal = 'E';
+      else if (azimuthDeg >= 135 && azimuthDeg < 225) cardinal = 'S';
+      else if (azimuthDeg >= 225 && azimuthDeg < 315) cardinal = 'W';
+      azVal.textContent = `${azimuthDeg.toFixed(1)}° (${cardinal})`;
+    }
+
+    const srSsVal = document.getElementById('solarSunriseSunsetVal');
+    if (srSsVal) srSsVal.textContent = `${sunTimes.sunriseStr} / ${sunTimes.sunsetStr}`;
+
+    const dayLenVal = document.getElementById('solarDayLengthVal');
+    if (dayLenVal) dayLenVal.textContent = isKa ? sunTimes.dayLengthStrKa : sunTimes.dayLengthStrEn;
   }
 
+  // Setup Solar Controls, Date Pickers, Quick Presets & Export Triggers
   function setupSolarControls() {
     const slider = document.getElementById('solarTimeSlider');
     const playBtn = document.getElementById('btnPlaySolarAnimation');
     const playIcon = document.getElementById('iconSolarPlay');
     const dateChips = document.querySelectorAll('.btn-solar-chip');
+    const customDatePicker = document.getElementById('solarCustomDatePicker');
+
+    // Quick Time Preset Buttons
+    const btnSunrise = document.getElementById('btnSolarQuickSunrise');
+    const btnNoon = document.getElementById('btnSolarQuickNoon');
+    const btnSunset = document.getElementById('btnSolarQuickSunset');
+    const btnNight = document.getElementById('btnSolarQuickNight');
+
+    // Visual Toggles
+    const chkSunPath = document.getElementById('chkShowSunPath');
+    const chkSeasonal = document.getElementById('chkShowSeasonalArcs');
+    const chkHours = document.getElementById('chkShowHourMarkers');
+    const chkCompass = document.getElementById('chkShowCompassRing');
+
+    // Export Buttons
+    const btnExportPhoto = document.getElementById('btnExportSolarPhoto');
+    const btnExportPdf = document.getElementById('btnExportSolarPdf');
 
     if (slider) {
       slider.addEventListener('input', (e) => {
@@ -842,6 +1232,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
+    // Quick Season Date Chips
     dateChips.forEach(chip => {
       chip.addEventListener('click', () => {
         dateChips.forEach(c => c.classList.remove('active'));
@@ -851,9 +1242,549 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (dtStr === '06-21') state.solarDate = new Date(2026, 5, 21);
         else if (dtStr === '09-21') state.solarDate = new Date(2026, 8, 21);
         else if (dtStr === '12-21') state.solarDate = new Date(2026, 11, 21);
+
+        if (customDatePicker) {
+          const y = state.solarDate.getFullYear();
+          const m = String(state.solarDate.getMonth() + 1).padStart(2, '0');
+          const d = String(state.solarDate.getDate()).padStart(2, '0');
+          customDatePicker.value = `${y}-${m}-${d}`;
+        }
         updateSolarLighting();
       });
     });
+
+    if (customDatePicker) {
+      customDatePicker.addEventListener('change', (e) => {
+        const val = e.target.value;
+        if (val) {
+          const parts = val.split('-');
+          state.solarDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+          dateChips.forEach(c => c.classList.remove('active'));
+          updateSolarLighting();
+        }
+      });
+    }
+
+    // Quick Time Presets
+    const setQuickTime = (hr) => {
+      state.solarHour = hr;
+      if (slider) slider.value = hr;
+      const allQuick = [btnSunrise, btnNoon, btnSunset, btnNight];
+      allQuick.forEach(b => b && b.classList.remove('active'));
+      updateSolarLighting();
+    };
+
+    if (btnSunrise) {
+      btnSunrise.addEventListener('click', () => {
+        const parcel = state.activeParcel;
+        let lat = 41.7151, lng = 44.8271;
+        if (parcel && parcel.coordinates && parcel.coordinates.length > 0) {
+          lat = parcel.coordinates.reduce((sum, c) => sum + c[0], 0) / parcel.coordinates.length;
+          lng = parcel.coordinates.reduce((sum, c) => sum + c[1], 0) / parcel.coordinates.length;
+        }
+        const st = calculateSunTimes(state.solarDate || new Date(2026, 5, 21), lat, lng);
+        const parts = st.sunriseStr.split(':');
+        const hr = parseFloat(parts[0]) + parseFloat(parts[1]) / 60;
+        setQuickTime(hr);
+        btnSunrise.classList.add('active');
+      });
+    }
+
+    if (btnNoon) {
+      btnNoon.addEventListener('click', () => {
+        setQuickTime(12.0);
+        btnNoon.classList.add('active');
+      });
+    }
+
+    if (btnSunset) {
+      btnSunset.addEventListener('click', () => {
+        const parcel = state.activeParcel;
+        let lat = 41.7151, lng = 44.8271;
+        if (parcel && parcel.coordinates && parcel.coordinates.length > 0) {
+          lat = parcel.coordinates.reduce((sum, c) => sum + c[0], 0) / parcel.coordinates.length;
+          lng = parcel.coordinates.reduce((sum, c) => sum + c[1], 0) / parcel.coordinates.length;
+        }
+        const st = calculateSunTimes(state.solarDate || new Date(2026, 5, 21), lat, lng);
+        const parts = st.sunsetStr.split(':');
+        const hr = parseFloat(parts[0]) + parseFloat(parts[1]) / 60;
+        setQuickTime(hr);
+        btnSunset.classList.add('active');
+      });
+    }
+
+    if (btnNight) {
+      btnNight.addEventListener('click', () => {
+        setQuickTime(22.0);
+        btnNight.classList.add('active');
+      });
+    }
+
+    // Heliodon Toggles
+    if (chkSunPath) {
+      chkSunPath.addEventListener('change', (e) => {
+        state.showSunPath = e.target.checked;
+        updateSolarLighting();
+      });
+    }
+
+    if (chkSeasonal) {
+      chkSeasonal.addEventListener('change', (e) => {
+        state.showSeasonalArcs = e.target.checked;
+        updateSolarLighting();
+      });
+    }
+
+    if (chkHours) {
+      chkHours.addEventListener('change', (e) => {
+        state.showHourMarkers = e.target.checked;
+        updateSolarLighting();
+      });
+    }
+
+    if (chkCompass) {
+      chkCompass.addEventListener('change', (e) => {
+        state.showCompassRing = e.target.checked;
+        updateSolarLighting();
+      });
+    }
+
+    // Export Handlers
+    if (btnExportPhoto) {
+      btnExportPhoto.addEventListener('click', () => {
+        exportSolarPhoto();
+      });
+    }
+
+    if (btnExportPdf) {
+      btnExportPdf.addEventListener('click', () => {
+        exportSolarPdf();
+      });
+    }
+  }
+
+  // Export 3D Sun Path Simulation as High-Res Architectural Photo
+  function exportSolarPhoto() {
+    if (!renderer) return;
+    const isKa = (state.currentLang !== 'en');
+    const parcel = state.activeParcel || { code: '01.11.13.002.264', address: 'თბილისი', area: 1250 };
+
+    let lat = 41.7151, lng = 44.8271;
+    if (parcel.coordinates && parcel.coordinates.length > 0) {
+      lat = parcel.coordinates.reduce((sum, c) => sum + c[0], 0) / parcel.coordinates.length;
+      lng = parcel.coordinates.reduce((sum, c) => sum + c[1], 0) / parcel.coordinates.length;
+    }
+
+    const date = state.solarDate || new Date(2026, 5, 21);
+    const hour = state.solarHour !== undefined ? state.solarHour : 12.0;
+    const sp = calculateSunPosition(date, hour, lat, lng);
+    const st = calculateSunTimes(date, lat, lng);
+
+    const h = Math.floor(hour);
+    const m = Math.round((hour % 1) * 60);
+    const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    const dateFormatted = date.toLocaleDateString(isKa ? 'ka-GE' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    // Render current frame to ensure buffer is full
+    renderer.render(scene, camera);
+    const webglCanvas = renderer.domElement;
+
+    // Create presentation composite canvas
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = webglCanvas.width;
+    exportCanvas.height = webglCanvas.height;
+    const ctx = exportCanvas.getContext('2d');
+
+    // Draw WebGL snapshot
+    ctx.drawImage(webglCanvas, 0, 0);
+
+    // Draw Sleek Bottom Architectural Overlay Bar
+    const barH = Math.max(90, Math.round(exportCanvas.height * 0.12));
+    const barY = exportCanvas.height - barH;
+
+    // Gradient banner background
+    const grad = ctx.createLinearGradient(0, barY, 0, exportCanvas.height);
+    grad.addColorStop(0, 'rgba(10, 15, 29, 0.0)');
+    grad.addColorStop(0.2, 'rgba(10, 15, 29, 0.88)');
+    grad.addColorStop(1, 'rgba(10, 15, 29, 0.98)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, barY, exportCanvas.width, barH);
+
+    // Accent line
+    ctx.fillStyle = '#00f0ff';
+    ctx.fillRect(0, barY + Math.round(barH * 0.2), exportCanvas.width, 2);
+
+    // Left Section: Project details
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 22px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(isKa ? `BIMX მზის ინსოლაციისა და ტრაექტორიის ანალიზი` : `BIMX Solar Insolation & Sun Path Analysis`, 30, barY + Math.round(barH * 0.52));
+
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '14px sans-serif';
+    ctx.fillText(
+      isKa
+        ? `საკადასტრო კოდი: ${parcel.code} · ${parcel.address} (${parcel.area.toLocaleString()} მ²)`
+        : `Cadastral Code: ${parcel.code} · ${parcel.addressEn || parcel.address} (${parcel.area.toLocaleString()} m²)`,
+      30, barY + Math.round(barH * 0.82)
+    );
+
+    // Right Section: Solar Metrics
+    ctx.textAlign = 'right';
+    const sign = sp.altitudeDeg >= 0 ? '+' : '';
+    ctx.fillStyle = '#fde047';
+    ctx.font = 'bold 20px monospace';
+    ctx.fillText(`${dateFormatted} · ${timeStr} (${sign}${sp.altitudeDeg.toFixed(1)}°)`, exportCanvas.width - 30, barY + Math.round(barH * 0.52));
+
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = '14px monospace';
+    ctx.fillText(
+      isKa
+        ? `აზიმუტი: ${sp.azimuthDeg.toFixed(1)}° · აისი: ${st.sunriseStr} · დაისი: ${st.sunsetStr} · ${sp.isDay ? '☀️ დღე' : '🌙 ღამე'}`
+        : `Azimuth: ${sp.azimuthDeg.toFixed(1)}° · Sunrise: ${st.sunriseStr} · Sunset: ${st.sunsetStr} · ${sp.isDay ? '☀️ Day' : '🌙 Night'}`,
+      exportCanvas.width - 30, barY + Math.round(barH * 0.82)
+    );
+
+    // Download PNG
+    const link = document.createElement('a');
+    link.download = `BIMX_მზის_ანალიზი_${parcel.code}_${timeStr.replace(':', '-')}.png`;
+    link.href = exportCanvas.toDataURL('image/png');
+    link.click();
+  }
+
+  // Export Comprehensive Multi-Season Solar Feasibility & Insolation Study PDF
+  function exportSolarPdf() {
+    const isKa = (state.currentLang !== 'en');
+    if (!state.activeParcel) {
+      alert(isKa ? 'გთხოვთ, ჯერ აირჩიოთ ნაკვეთი.' : 'Please select a parcel first.');
+      return;
+    }
+    const jsPdfClass = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+    if (!jsPdfClass) {
+      window.print();
+      return;
+    }
+
+    const parcel = state.activeParcel;
+    let lat = 41.7151, lng = 44.8271;
+    if (parcel.coordinates && parcel.coordinates.length > 0) {
+      lat = parcel.coordinates.reduce((sum, c) => sum + c[0], 0) / parcel.coordinates.length;
+      lng = parcel.coordinates.reduce((sum, c) => sum + c[1], 0) / parcel.coordinates.length;
+    }
+
+    const doc = new jsPdfClass({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    // Register embedded Noto Sans Georgian font if available
+    let fontName = 'helvetica';
+    if (window.GEORGIAN_FONT_REGULAR_B64) {
+      try {
+        doc.addFileToVFS('NotoSansGeorgian-Regular.ttf', window.GEORGIAN_FONT_REGULAR_B64);
+        doc.addFont('NotoSansGeorgian-Regular.ttf', 'NotoSansGeorgian', 'normal');
+        if (window.GEORGIAN_FONT_BOLD_B64) {
+          doc.addFileToVFS('NotoSansGeorgian-Bold.ttf', window.GEORGIAN_FONT_BOLD_B64);
+          doc.addFont('NotoSansGeorgian-Bold.ttf', 'NotoSansGeorgian', 'bold');
+        }
+        fontName = 'NotoSansGeorgian';
+      } catch (err) {
+        console.warn('Solar PDF font notice:', err);
+      }
+    }
+
+    const date = state.solarDate || new Date(2026, 5, 21);
+    const hour = state.solarHour !== undefined ? state.solarHour : 12.0;
+    const sp = calculateSunPosition(date, hour, lat, lng);
+    const st = calculateSunTimes(date, lat, lng);
+
+    const h = Math.floor(hour);
+    const m = Math.round((hour % 1) * 60);
+    const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    const dateFormatted = date.toLocaleDateString(isKa ? 'ka-GE' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    // ================= PAGE 1: 3D Sun Path Render & Current Solar State =================
+    // Header Banner
+    doc.setFillColor(10, 15, 29);
+    doc.rect(0, 0, pageWidth, 28, 'F');
+    doc.setFillColor(0, 240, 255);
+    doc.rect(0, 27.2, pageWidth, 0.8, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont(fontName, 'bold');
+    doc.setFontSize(13);
+    doc.text(isKa ? 'მზის ინსოლაციის, ტრაექტორიისა და ჩრდილების კვლევა (SUNCALC 3D)' : '3D SOLAR INSOLATION, SUN PATH & SHADOW STUDY', 14, 12);
+
+    doc.setFontSize(8);
+    doc.setFont(fontName, 'normal');
+    doc.setTextColor(148, 163, 184);
+    doc.text(
+      isKa
+        ? `საკადასტრო კოდი: ${parcel.code} · ${parcel.address} (${parcel.area.toLocaleString()} მ²) · დადგენილება 14-39`
+        : `Parcel: ${parcel.code} · ${parcel.addressEn || parcel.address} (${parcel.area.toLocaleString()} m²) · Resolution 14-39`,
+      14, 18
+    );
+
+    // Render & Capture Current 3D Canvas
+    let imgData = null;
+    try {
+      if (renderer) {
+        renderer.render(scene, camera);
+        imgData = renderer.domElement.toDataURL('image/png');
+      }
+    } catch (e) {
+      console.warn('Canvas capture warning:', e);
+    }
+
+    if (imgData) {
+      const renderW = 165;
+      const renderH = 115;
+      doc.addImage(imgData, 'PNG', 14, 34, renderW, renderH);
+
+      // Frame around 3D render
+      doc.setDrawColor(56, 189, 248);
+      doc.setLineWidth(0.3);
+      doc.rect(14, 34, renderW, renderH);
+    }
+
+    // Right Side Table: Current Astronomical Profile
+    const sign = sp.altitudeDeg >= 0 ? '+' : '';
+    const shadowFactor = sp.altitudeDeg > 5 ? (1 / Math.tan((sp.altitudeDeg * Math.PI) / 180)).toFixed(2) + '×' : (isKa ? 'მაქსიმალური (ჰორიზონტალური)' : 'Maximum');
+
+    const currentSolarMetrics = isKa ? [
+      ['არჩეული თარიღი და სეზონი', dateFormatted],
+      ['სიმულაციის საათი', `${timeStr} (${sp.isDay ? 'დღის მონაკვეთი' : 'ღამის მონაკვეთი'})`],
+      ['მზის სიმაღლის კუთხე (Alt)', `${sign}${sp.altitudeDeg.toFixed(1)}°`],
+      ['მზის აზიმუტი (Az)', `${sp.azimuthDeg.toFixed(1)}°`],
+      ['მზის ამოსვლა (აისი)', st.sunriseStr],
+      ['მზის ჩასვლა (დაისი)', st.sunsetStr],
+      ['დღის ხანგრძლივობა', st.dayLengthStrKa],
+      ['ჩრდილის სიგრძის ინდექსი', shadowFactor],
+      ['გეოგრაფიული კოორდინატები', `${lat.toFixed(4)}° N, ${lng.toFixed(4)}° E`]
+    ] : [
+      ['Selected Date & Season', dateFormatted],
+      ['Simulation Time', `${timeStr} (${sp.isDay ? 'Daylight' : 'Night'})`],
+      ['Solar Altitude Angle (Alt)', `${sign}${sp.altitudeDeg.toFixed(1)}°`],
+      ['Solar Azimuth Angle (Az)', `${sp.azimuthDeg.toFixed(1)}°`],
+      ['Sunrise Time', st.sunriseStr],
+      ['Sunset Time', st.sunsetStr],
+      ['Daylight Duration', st.dayLengthStrEn],
+      ['Shadow Length Factor', shadowFactor],
+      ['GPS Coordinates', `${lat.toFixed(4)}° N, ${lng.toFixed(4)}° E`]
+    ];
+
+    if (doc.autoTable) {
+      doc.autoTable({
+        startY: 34,
+        margin: { left: 185, right: 14 },
+        body: currentSolarMetrics,
+        theme: 'striped',
+        styles: { fontSize: 7.8, cellPadding: 2.6, font: fontName },
+        columnStyles: {
+          0: { font: fontName, fontStyle: 'bold', fillColor: [241, 245, 249], textColor: [15, 23, 42], cellWidth: 48 },
+          1: { font: fontName, cellWidth: pageWidth - 185 - 14 - 48 }
+        }
+      });
+    }
+
+    // Bottom Summary Note
+    doc.setFont(fontName, 'normal');
+    doc.setFontSize(7.2);
+    doc.setTextColor(100, 116, 139);
+    doc.text(
+      isKa
+        ? 'შენიშვნა: მზის ინსოლაციის მოდელირება ეფუძნება ასტრონომიულ ალგორითმს და ასახავს მზის ზუსტ სიმაღლეს, აზიმუტსა და შენობის მოცულობით ჩრდილებს ნაკვეთის რელიეფზე.'
+        : 'Note: Solar insolation modeling utilizes verified astronomical algorithms to compute precise solar elevation, azimuth, and volumetric building shadow vectors.',
+      14, pageHeight - 8
+    );
+
+    // ================= PAGE 2: 4-Season Annual Comparative Matrix =================
+    doc.addPage();
+
+    // Page 2 Header Banner
+    doc.setFillColor(10, 15, 29);
+    doc.rect(0, 0, pageWidth, 28, 'F');
+    doc.setFillColor(245, 158, 11);
+    doc.rect(0, 27.2, pageWidth, 0.8, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont(fontName, 'bold');
+    doc.setFontSize(13);
+    doc.text(
+      isKa ? 'წლის 4 სეზონის შედარებითი ინსოლაციური ანალიზი (ნაბუნიობა და ბუნიობა)' : '4-SEASON ANNUAL COMPARATIVE INSOLATION MATRIX (SOLSTICES & EQUINOXES)',
+      14, 12
+    );
+
+    doc.setFontSize(8);
+    doc.setFont(fontName, 'normal');
+    doc.setTextColor(148, 163, 184);
+    doc.text(
+      isKa
+        ? 'ზაფხულის, ზამთრისა და ბუნიობის მზის ტრაექტორიები, დღე-ღამის ხანგრძლივობა და ჩრდილის მაქსიმალური ექსპოზიცია'
+        : 'Comparative solar elevation, daylight duration, and shadow footprint across Solstices and Equinoxes',
+      14, 18
+    );
+
+    // 4 Seasons Comparative Data
+    const summerTimes = calculateSunTimes(new Date(2026, 5, 21), lat, lng);
+    const winterTimes = calculateSunTimes(new Date(2026, 11, 21), lat, lng);
+    const equinoxTimes = calculateSunTimes(new Date(2026, 2, 21), lat, lng);
+
+    const summerNoon = calculateSunPosition(new Date(2026, 5, 21), 12, lat, lng);
+    const winterNoon = calculateSunPosition(new Date(2026, 11, 21), 12, lat, lng);
+    const equinoxNoon = calculateSunPosition(new Date(2026, 2, 21), 12, lat, lng);
+
+    const seasonMatrixData = isKa ? [
+      [
+        '21 ივნისი (ზაფხულის ნაბუნიობა)',
+        `${summerNoon.altitudeDeg.toFixed(1)}° (უმაღლესი)`,
+        summerTimes.sunriseStr,
+        summerTimes.sunsetStr,
+        summerTimes.dayLengthStrKa,
+        '0.33× (უმცირესი)',
+        'მაქსიმალური მზის ენერგია და ინსოლაცია, მინიმალური ჩრდილი მეზობლებზე.'
+      ],
+      [
+        '21 მარტი (გაზაფხულის ბუნიობა)',
+        `${equinoxNoon.altitudeDeg.toFixed(1)}° (საშუალო)`,
+        equinoxTimes.sunriseStr,
+        equinoxTimes.sunsetStr,
+        equinoxTimes.dayLengthStrKa,
+        '0.90× (ბალანსირებული)',
+        'დღისა და ღამის თანაბარი განაწილება (12 სთ / 12 სთ), სტანდარტული ჩრდილის არეალი.'
+      ],
+      [
+        '21 სექტემბერი (შემოდგომის ბუნიობა)',
+        `${equinoxNoon.altitudeDeg.toFixed(1)}° (საშუალო)`,
+        equinoxTimes.sunriseStr,
+        equinoxTimes.sunsetStr,
+        equinoxTimes.dayLengthStrKa,
+        '0.90× (ბალანსირებული)',
+        'გარდამავალი სეზონი, მზის ოპტიმალური ინსოლაცია საცხოვრებელ ოთახებში.'
+      ],
+      [
+        '21 დეკემბერი (ზამთრის ნაბუნიობა)',
+        `${winterNoon.altitudeDeg.toFixed(1)}° (უმდაბლესი)`,
+        winterTimes.sunriseStr,
+        winterTimes.sunsetStr,
+        winterTimes.dayLengthStrKa,
+        '2.15× (მაქსიმალური)',
+        'გრძელი ჩრდილები, კრიტიკული შემოწმება დადგენილება 14-39-ის მიჯნის ნორმებზე.'
+      ]
+    ] : [
+      [
+        'June 21 (Summer Solstice)',
+        `${summerNoon.altitudeDeg.toFixed(1)}° (Peak)`,
+        summerTimes.sunriseStr,
+        summerTimes.sunsetStr,
+        summerTimes.dayLengthStrEn,
+        '0.33× (Minimal)',
+        'Maximum solar irradiance, shortest building shadows on adjacent sites.'
+      ],
+      [
+        'March 21 (Vernal Equinox)',
+        `${equinoxNoon.altitudeDeg.toFixed(1)}° (Mid)`,
+        equinoxTimes.sunriseStr,
+        equinoxTimes.sunsetStr,
+        equinoxTimes.dayLengthStrEn,
+        '0.90× (Standard)',
+        'Equal day and night distribution (12h / 12h), baseline regulatory shadow study.'
+      ],
+      [
+        'September 21 (Autumn Equinox)',
+        `${equinoxNoon.altitudeDeg.toFixed(1)}° (Mid)`,
+        equinoxTimes.sunriseStr,
+        equinoxTimes.sunsetStr,
+        equinoxTimes.dayLengthStrEn,
+        '0.90× (Standard)',
+        'Transitional solar arc, balanced passive heating and illumination.'
+      ],
+      [
+        'December 21 (Winter Solstice)',
+        `${winterNoon.altitudeDeg.toFixed(1)}° (Lowest)`,
+        winterTimes.sunriseStr,
+        winterTimes.sunsetStr,
+        winterTimes.dayLengthStrEn,
+        '2.15× (Maximum)',
+        'Longest building shadows, key test for Resolution 14-39 setback compliance.'
+      ]
+    ];
+
+    if (doc.autoTable) {
+      doc.autoTable({
+        startY: 34,
+        head: [
+          isKa
+            ? ['სეზონი / საკვანძო თარიღი', 'შუადღის მზე (Alt)', 'აისი', 'დაისი', 'დღის ხანგრძლივობა', 'ჩრდილის ფაქტორი', 'ქალაქმშენებლობითი შეფასება']
+            : ['Season / Key Date', 'Solar Noon Alt', 'Sunrise', 'Sunset', 'Daylight Hours', 'Shadow Multiplier', 'Urban Feasibility Assessment']
+        ],
+        body: seasonMatrixData,
+        theme: 'grid',
+        styles: { fontSize: 8, cellPadding: 3.5, font: fontName },
+        headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], font: fontName, fontStyle: 'bold' },
+        columnStyles: {
+          0: { font: fontName, fontStyle: 'bold', fillColor: [248, 250, 252], cellWidth: 42 },
+          1: { font: fontName, cellWidth: 26 },
+          2: { font: fontName, cellWidth: 16 },
+          3: { font: fontName, cellWidth: 16 },
+          4: { font: fontName, cellWidth: 28 },
+          5: { font: fontName, cellWidth: 24 },
+          6: { font: fontName, cellWidth: pageWidth - 28 - (42 + 26 + 16 + 16 + 28 + 24) }
+        },
+        margin: { left: 14, right: 14 }
+      });
+    }
+
+    // Hourly Sun Elevation Table across 24h for Equinox & Solstices
+    const hourlyHeader = isKa
+      ? ['სეზონი / დრო', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00 (ღამე)']
+      : ['Season / Time', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00 (Night)'];
+
+    const getHourlyRow = (label, dt) => {
+      const row = [label];
+      [6, 8, 10, 12, 14, 16, 18, 20, 22].forEach(hr => {
+        const p = calculateSunPosition(dt, hr, lat, lng);
+        if (p.altitudeDeg > 0) {
+          row.push(`+${p.altitudeDeg.toFixed(0)}°`);
+        } else {
+          row.push(isKa ? 'ღამე' : 'Night');
+        }
+      });
+      return row;
+    };
+
+    const hourlyBody = [
+      getHourlyRow(isKa ? 'ზაფხული (21 ივნ)' : 'Summer (Jun 21)', new Date(2026, 5, 21)),
+      getHourlyRow(isKa ? 'ბუნიობა (21 მარ/სექ)' : 'Equinox (Mar/Sep 21)', new Date(2026, 2, 21)),
+      getHourlyRow(isKa ? 'ზამთარი (21 დეკ)' : 'Winter (Dec 21)', new Date(2026, 11, 21))
+    ];
+
+    const currentY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 110;
+
+    doc.setFont(fontName, 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(15, 23, 42);
+    doc.text(
+      isKa ? 'დღე-ღამის 24-საათიანი საათობრივი მზის სიმაღლის პროფილი (Altitude)' : '24-Hour Diurnal Solar Elevation Profile (Altitude)',
+      14, currentY
+    );
+
+    if (doc.autoTable) {
+      doc.autoTable({
+        startY: currentY + 3,
+        head: [hourlyHeader],
+        body: hourlyBody,
+        theme: 'striped',
+        styles: { fontSize: 7.5, cellPadding: 2.2, font: fontName, halign: 'center' },
+        headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], font: fontName },
+        columnStyles: {
+          0: { halign: 'left', fontStyle: 'bold', fillColor: [241, 245, 249], cellWidth: 42 }
+        },
+        margin: { left: 14, right: 14 }
+      });
+    }
+
+    const pdfFileName = isKa ? `BIMX_მზის_ანალიზი_${parcel.code}_წლიური_კვლევა.pdf` : `BIMX_Solar_Analysis_${parcel.code}_Annual_Study.pdf`;
+    doc.save(pdfFileName);
   }
 
   /* ==========================================================================
@@ -3886,6 +4817,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (mapViewport) mapViewport.style.display = 'block';
       if (threeViewport) threeViewport.style.display = 'none';
       if (solarControlPanel) solarControlPanel.style.display = 'none';
+      if (sunPathGroup) sunPathGroup.visible = false;
       if (buildingFootprintLayer) {
         map.removeLayer(buildingFootprintLayer);
         buildingFootprintLayer = null;
@@ -3897,22 +4829,25 @@ document.addEventListener('DOMContentLoaded', () => {
       if (mapViewport) mapViewport.style.display = 'none';
       if (threeViewport) threeViewport.style.display = 'block';
       if (solarControlPanel) solarControlPanel.style.display = 'none';
+      if (sunPathGroup) sunPathGroup.visible = !!state.showSunPath;
       onWindowResize();
     } else if (mode === 'solar') {
       if (mapViewport) mapViewport.style.display = 'none';
       if (threeViewport) threeViewport.style.display = 'block';
       if (solarControlPanel) solarControlPanel.style.display = 'flex';
+      if (sunPathGroup) sunPathGroup.visible = true;
       onWindowResize();
       updateSolarLighting();
       if (controls && camera) {
-        camera.position.set(50, 55, 70);
-        controls.target.set(0, 4, 0);
+        camera.position.set(75, 65, 95);
+        controls.target.set(0, 6, 0);
         controls.update();
       }
     } else if (mode === 'combined') {
       if (mapViewport) mapViewport.style.display = 'block';
       if (threeViewport) threeViewport.style.display = 'block';
       if (solarControlPanel) solarControlPanel.style.display = 'none';
+      if (sunPathGroup) sunPathGroup.visible = !!state.showSunPath;
       if (buildingFootprintLayer) {
         map.removeLayer(buildingFootprintLayer);
         buildingFootprintLayer = null;

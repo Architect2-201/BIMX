@@ -999,32 +999,115 @@
           <!-- 3D Three.js WebGL Canvas Container -->
           <div id="threeViewport" role="region" aria-label="3D WebGL Canvas View"></div>
 
-          <!-- Floating Solar Insolation & Shadow Control Panel (SunCalc Engine) -->
+          <!-- Floating Solar Insolation & Shadow Control Panel (3D Sun Path & Heliodon Engine) -->
           <div class="solar-control-panel" id="solarControlPanel" style="display: none;">
             <div class="solar-header">
-              <span><i class="fa-solid fa-sun" style="margin-right: 6px;"></i> მზის ინსოლაცია & ჩრდილები</span>
-              <button type="button" class="btn-solar-play" id="btnPlaySolarAnimation" title="დღე-ღამის ციკლის ანიმაცია">
-                <i class="fa-solid fa-play" id="iconSolarPlay"></i>
+              <div class="solar-title-wrap">
+                <i class="fa-solid fa-sun solar-header-sun-icon"></i>
+                <div>
+                  <span class="solar-header-title">მზის ანალიზი & ტრაექტორია</span>
+                  <span class="solar-header-sub">3D Sun Path · Heliodon · დღე-ღამის ციკლი</span>
+                </div>
+              </div>
+              <div class="solar-header-actions">
+                <div class="solar-status-pill day" id="solarDayNightBadge" title="დღე / ღამის სტატუსი">
+                  <i class="fa-solid fa-sun"></i>
+                  <span>დღე</span>
+                </div>
+                <button type="button" class="btn-solar-play" id="btnPlaySolarAnimation" title="24-საათიანი დღე-ღამის ანიმაცია">
+                  <i class="fa-solid fa-play" id="iconSolarPlay"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Season Solstice / Equinox Selector -->
+            <div class="solar-section-row">
+              <div class="solar-label-row">
+                <span class="solar-section-label"><i class="fa-solid fa-calendar-days"></i> სეზონი და თარიღი:</span>
+                <input type="date" id="solarCustomDatePicker" class="solar-custom-date" value="2026-06-21" title="აირჩიე ნებისმიერი თარიღი">
+              </div>
+              <div class="solar-date-chips">
+                <button type="button" class="btn-solar-chip" data-date="03-21" title="21 მარტი: გაზაფხულის ბუნიობა (12 სთ დღე / 12 სთ ღამე)">21 მარ (ბუნიობა)</button>
+                <button type="button" class="btn-solar-chip active" data-date="06-21" title="21 ივნისი: ზაფხულის ნაბუნიობა (მაქსიმალური ინსოლაცია, უმაღლესი მზე)">21 ივნ (ზაფხული)</button>
+                <button type="button" class="btn-solar-chip" data-date="09-21" title="21 სექტემბერი: შემოდგომის ბუნიობა">21 სექ (ბუნიობა)</button>
+                <button type="button" class="btn-solar-chip" data-date="12-21" title="21 დეკემბერი: ზამთრის ნაბუნიობა (უმდაბლესი მზე, გრძელი ჩრდილები)">21 დეკ (ზამთარი)</button>
+              </div>
+            </div>
+
+            <!-- 24-Hour Time Slider with Quick Presets -->
+            <div class="solar-section-row">
+              <div class="solar-time-header">
+                <span class="solar-section-label"><i class="fa-solid fa-clock"></i> დღის დრო (24 სთ):</span>
+                <div class="solar-time-badge" id="solarTimeBadge">12:00</div>
+              </div>
+              <div class="solar-slider-wrap">
+                <input type="range" class="solar-time-slider" id="solarTimeSlider" min="0" max="24" step="0.25" value="12">
+                <div class="solar-slider-ticks">
+                  <span>00:00 (ღამე)</span>
+                  <span>06:00 (აისი)</span>
+                  <span>12:00 (შუადღე)</span>
+                  <span>18:00 (დაისი)</span>
+                  <span>24:00 (ღამე)</span>
+                </div>
+              </div>
+              <div class="solar-quick-time-buttons">
+                <button type="button" class="btn-solar-quick" id="btnSolarQuickSunrise"><i class="fa-solid fa-cloud-sun"></i> აისი</button>
+                <button type="button" class="btn-solar-quick active" id="btnSolarQuickNoon"><i class="fa-solid fa-sun"></i> 12:00 შუადღე</button>
+                <button type="button" class="btn-solar-quick" id="btnSolarQuickSunset"><i class="fa-solid fa-mountain-sun"></i> დაისი</button>
+                <button type="button" class="btn-solar-quick" id="btnSolarQuickNight"><i class="fa-solid fa-moon"></i> 22:00 ღამე</button>
+              </div>
+            </div>
+
+            <!-- 3D Sun Path Visual Toggles -->
+            <div class="solar-toggles-grid">
+              <label class="solar-toggle-item">
+                <input type="checkbox" id="chkShowSunPath" checked>
+                <span>მზის ტრაექტორია</span>
+              </label>
+              <label class="solar-toggle-item">
+                <input type="checkbox" id="chkShowSeasonalArcs" checked>
+                <span>4 სეზონის რკალები</span>
+              </label>
+              <label class="solar-toggle-item">
+                <input type="checkbox" id="chkShowHourMarkers" checked>
+                <span>საათობრივი ნიშნულები</span>
+              </label>
+              <label class="solar-toggle-item">
+                <input type="checkbox" id="chkShowCompassRing" checked>
+                <span>ჰორიზონტი & კომპასი</span>
+              </label>
+            </div>
+
+            <!-- Real-time Astronomical Metrics -->
+            <div class="solar-metrics-grid">
+              <div class="solar-metric-box">
+                <span class="metric-k">მზის სიმაღლე (Alt)</span>
+                <strong class="metric-v altitude" id="solarAltitudeVal">+54.2°</strong>
+              </div>
+              <div class="solar-metric-box">
+                <span class="metric-k">აზიმუტი (Az)</span>
+                <strong class="metric-v azimuth" id="solarAzimuthVal">180.5° (S)</strong>
+              </div>
+              <div class="solar-metric-box">
+                <span class="metric-k">აისი / დაისი</span>
+                <strong class="metric-v sunrise" id="solarSunriseSunsetVal">05:32 / 20:41</strong>
+              </div>
+              <div class="solar-metric-box">
+                <span class="metric-k">დღის ხანგრძლივობა</span>
+                <strong class="metric-v daylength" id="solarDayLengthVal">15სთ 09წთ</strong>
+              </div>
+            </div>
+
+            <!-- Export Buttons for Photo & PDF -->
+            <div class="solar-export-row">
+              <button type="button" class="btn-solar-export btn-export-photo" id="btnExportSolarPhoto" title="მზის ანალიზისა და ტრაექტორიის ფოტოს შენახვა">
+                <i class="fa-solid fa-camera"></i>
+                <span>ფოტოს ექსპორტი (PNG)</span>
               </button>
-            </div>
-            
-            <div class="solar-date-chips">
-              <button type="button" class="btn-solar-chip active" data-date="03-21">21 მარ (ბუნიობა)</button>
-              <button type="button" class="btn-solar-chip" data-date="06-21">21 ივნ (ზაფხული)</button>
-              <button type="button" class="btn-solar-chip" data-date="09-21">21 სექ (ბუნიობა)</button>
-              <button type="button" class="btn-solar-chip" data-date="12-21">21 დეკ (ზამთარი)</button>
-            </div>
-
-            <div class="solar-slider-row">
-              <span style="font-size: 0.72rem; color: #94a3b8;">06:00</span>
-              <input type="range" class="solar-time-slider" id="solarTimeSlider" min="6" max="20" step="0.25" value="12">
-              <span style="font-size: 0.72rem; color: #94a3b8;">20:00</span>
-              <div class="solar-time-badge" id="solarTimeBadge">12:00</div>
-            </div>
-
-            <div class="solar-metrics-readout">
-              <span>სიმაღლე (Alt): <strong id="solarAltitudeVal" style="color: #fbbf24;">54.2°</strong></span>
-              <span>აზიმუტი (Az): <strong id="solarAzimuthVal" style="color: #38bdf8;">180.5°</strong></span>
+              <button type="button" class="btn-solar-export btn-export-pdf" id="btnExportSolarPdf" title="4-სეზონიანი მზის ინსოლაციის PDF კვლევის გენერაცია">
+                <i class="fa-solid fa-file-pdf"></i>
+                <span>მზის ანალიზის PDF</span>
+              </button>
             </div>
           </div>
 
