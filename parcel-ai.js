@@ -878,12 +878,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof SunCalc !== 'undefined' && SunCalc.getPosition) {
       const pos = SunCalc.getPosition(d, lat, lng);
       const altDeg = (pos.altitude * 180) / Math.PI;
-      const azDeg = ((pos.azimuth * 180 / Math.PI) + 180) % 360;
+      
+      // SunCalc returns pos.azimuth where 0 = South, PI/2 = West, -PI/2 = East, PI/-PI = North
+      // Standard geographic azimuth (bearing from True North clockwise):
+      // North = 0 rad (0°), East = PI/2 rad (90°), South = PI rad (180°), West = 3*PI/2 rad (270°)
+      let geoAzRad = pos.azimuth + Math.PI;
+      geoAzRad = ((geoAzRad % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+      const geoAzDeg = (geoAzRad * 180) / Math.PI;
+
       return {
         altitudeRad: pos.altitude,
         altitudeDeg: altDeg,
-        azimuthRad: pos.azimuth,
-        azimuthDeg: azDeg,
+        azimuthRad: geoAzRad,
+        azimuthDeg: geoAzDeg,
         isDay: altDeg > 0,
         date: d
       };
@@ -918,7 +925,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return {
       altitudeRad: altRad,
       altitudeDeg: altDeg,
-      azimuthRad: azRad - Math.PI,
+      azimuthRad: azRad,
       azimuthDeg: azDeg,
       isDay: altDeg > 0,
       date: d
@@ -1012,39 +1019,114 @@ document.addEventListener('DOMContentLoaded', () => {
       if (c.geometry) c.geometry.dispose();
     }
 
-    const radius = 95; // Sky dome radius in meters
+    const radius = state.solarDomeRadius || 110; // Sky dome radius in meters (diameter = 2 * radius)
 
-    // 1. Compass Horizon Ground Ring & Cardinal Letters
+    // 1. Faint Ground Compass Rose & Horizon Coordinate System directly below the Sun
     if (state.showCompassRing !== false) {
-      const ringSegments = 64;
-      const ringPoints = [];
-      for (let i = 0; i <= ringSegments; i++) {
-        const theta = (i / ringSegments) * Math.PI * 2;
-        ringPoints.push(new THREE.Vector3(radius * Math.sin(theta), 0.1, -radius * Math.cos(theta)));
-      }
-      const ringGeom = new THREE.BufferGeometry().setFromPoints(ringPoints);
-      const ringMat = new THREE.LineBasicMaterial({
-        color: 0x00f0ff,
-        transparent: true,
-        opacity: 0.35,
-        linewidth: 1.5
-      });
-      const ringLine = new THREE.Line(ringGeom, ringMat);
-      sunPathGroup.add(ringLine);
-
-      // Cardinal Direction Sprites: N (North/ჩ), S (South/ს), E (East/ა), W (West/დ)
       const isKa = (state.currentLang !== 'en');
+      const groundY = 0.22; // subtle elevation above parcel & terrain to prevent z-fighting
+
+      // A. Concentric Compass Range Rings (Outer Horizon, Mid 66%, Inner 33%, Center Disc)
+      const ringRadii = [
+        { r: radius, color: 0x00f0ff, opacity: 0.38, lw: 2.0 },
+        { r: radius * 0.66, color: 0x38bdf8, opacity: 0.20, lw: 1.0 },
+        { r: radius * 0.33, color: 0x38bdf8, opacity: 0.16, lw: 1.0 },
+        { r: radius * 0.08, color: 0x00f0ff, opacity: 0.30, lw: 1.5 }
+      ];
+
+      ringRadii.forEach(rr => {
+        const ringSegs = 96;
+        const pts = [];
+        for (let i = 0; i <= ringSegs; i++) {
+          const theta = (i / ringSegs) * Math.PI * 2;
+          pts.push(new THREE.Vector3(rr.r * Math.sin(theta), groundY, -rr.r * Math.cos(theta)));
+        }
+        const geom = new THREE.BufferGeometry().setFromPoints(pts);
+        const mat = new THREE.LineBasicMaterial({
+          color: rr.color,
+          transparent: true,
+          opacity: rr.opacity,
+          linewidth: rr.lw
+        });
+        sunPathGroup.add(new THREE.Line(geom, mat));
+      });
+
+      // B. Cardinal Crosshair Axes with North Directional Arrow
+      // North Segment (0 to -radius in Z) with Arrow Pointer
+      const northAxisPts = [new THREE.Vector3(0, groundY, 0), new THREE.Vector3(0, groundY, -radius)];
+      const northAxisGeom = new THREE.BufferGeometry().setFromPoints(northAxisPts);
+      const northAxisMat = new THREE.LineBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.65, linewidth: 2 });
+      sunPathGroup.add(new THREE.Line(northAxisGeom, northAxisMat));
+
+      // North Arrow Head
+      const arrowW = Math.max(3.5, radius * 0.035);
+      const arrowL = Math.max(7.0, radius * 0.07);
+      const northArrowPts = [
+        new THREE.Vector3(-arrowW, groundY, -radius + arrowL),
+        new THREE.Vector3(0, groundY, -radius),
+        new THREE.Vector3(arrowW, groundY, -radius + arrowL)
+      ];
+      const northArrowGeom = new THREE.BufferGeometry().setFromPoints(northArrowPts);
+      sunPathGroup.add(new THREE.Line(northArrowGeom, northAxisMat));
+
+      // South Segment (0 to +radius in Z)
+      const southAxisPts = [new THREE.Vector3(0, groundY, 0), new THREE.Vector3(0, groundY, radius)];
+      const southAxisGeom = new THREE.BufferGeometry().setFromPoints(southAxisPts);
+      const southAxisMat = new THREE.LineBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.35, linewidth: 1.5 });
+      sunPathGroup.add(new THREE.Line(southAxisGeom, southAxisMat));
+
+      // East Segment (0 to +radius in X)
+      const eastAxisPts = [new THREE.Vector3(0, groundY, 0), new THREE.Vector3(radius, groundY, 0)];
+      const eastAxisGeom = new THREE.BufferGeometry().setFromPoints(eastAxisPts);
+      const eastAxisMat = new THREE.LineBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.35, linewidth: 1.5 });
+      sunPathGroup.add(new THREE.Line(eastAxisGeom, eastAxisMat));
+
+      // West Segment (0 to -radius in X)
+      const westAxisPts = [new THREE.Vector3(0, groundY, 0), new THREE.Vector3(-radius, groundY, 0)];
+      const westAxisGeom = new THREE.BufferGeometry().setFromPoints(westAxisPts);
+      const westAxisMat = new THREE.LineBasicMaterial({ color: 0xc084fc, transparent: true, opacity: 0.35, linewidth: 1.5 });
+      sunPathGroup.add(new THREE.Line(westAxisGeom, westAxisMat));
+
+      // C. Radial Degree Ticks (Every 15° with longer ticks every 30°)
+      const tickPts = [];
+      for (let deg = 0; deg < 360; deg += 15) {
+        if (deg % 90 === 0) continue; // Major axes handled above
+        const rad = (deg * Math.PI) / 180;
+        const isMajor = (deg % 30 === 0);
+        const innerR = radius * (isMajor ? 0.92 : 0.96);
+        const x1 = innerR * Math.sin(rad);
+        const z1 = -innerR * Math.cos(rad);
+        const x2 = radius * Math.sin(rad);
+        const z2 = -radius * Math.cos(rad);
+        tickPts.push(new THREE.Vector3(x1, groundY, z1), new THREE.Vector3(x2, groundY, z2));
+      }
+      if (tickPts.length > 0) {
+        const tickGeom = new THREE.BufferGeometry().setFromPoints(tickPts);
+        const tickMat = new THREE.LineSegments(tickGeom, new THREE.LineBasicMaterial({
+          color: 0x38bdf8,
+          transparent: true,
+          opacity: 0.28
+        }));
+        sunPathGroup.add(tickMat);
+      }
+
+      // D. Cardinal & Intercardinal Ground Markers
       const cardinalMarkers = [
-        { text: isKa ? 'N (ჩრდილოეთი)' : 'N (North)', pos: [0, 1.2, -radius - 4], color: '#38bdf8' },
-        { text: isKa ? 'S (სამხრეთი)' : 'S (South)', pos: [0, 1.2, radius + 4], color: '#f59e0b' },
-        { text: isKa ? 'E (აღმოსავლეთი)' : 'E (East)', pos: [radius + 4, 1.2, 0], color: '#fbbf24' },
-        { text: isKa ? 'W (დასავლეთი)' : 'W (West)', pos: [-radius - 4, 1.2, 0], color: '#c084fc' }
+        { text: isKa ? 'N · ჩრდილოეთი (0°)' : 'N · North (0°)', pos: [0, groundY + 0.8, -radius - 8], color: '#38bdf8', scale: [18, 4.5, 1] },
+        { text: isKa ? 'S · სამხრეთი (180°)' : 'S · South (180°)', pos: [0, groundY + 0.8, radius + 8], color: '#f59e0b', scale: [18, 4.5, 1] },
+        { text: isKa ? 'E · აღმოსავლეთი (90°)' : 'E · East (90°)', pos: [radius + 8, groundY + 0.8, 0], color: '#fbbf24', scale: [18, 4.5, 1] },
+        { text: isKa ? 'W · დასავლეთი (270°)' : 'W · West (270°)', pos: [-radius - 8, groundY + 0.8, 0], color: '#c084fc', scale: [18, 4.5, 1] },
+        // Faint Intercardinals
+        { text: isKa ? 'NE · ჩრდ-აღმ' : 'NE (45°)', pos: [radius * 0.72, groundY + 0.6, -radius * 0.72], color: '#67e8f9', scale: [11, 2.8, 1], bg: 'rgba(15, 23, 42, 0.55)' },
+        { text: isKa ? 'SE · სამხ-აღმ' : 'SE (135°)', pos: [radius * 0.72, groundY + 0.6, radius * 0.72], color: '#fde047', scale: [11, 2.8, 1], bg: 'rgba(15, 23, 42, 0.55)' },
+        { text: isKa ? 'SW · სამხ-დას' : 'SW (225°)', pos: [-radius * 0.72, groundY + 0.6, radius * 0.72], color: '#fb923c', scale: [11, 2.8, 1], bg: 'rgba(15, 23, 42, 0.55)' },
+        { text: isKa ? 'NW · ჩრდ-დას' : 'NW (315°)', pos: [-radius * 0.72, groundY + 0.6, -radius * 0.72], color: '#a78bfa', scale: [11, 2.8, 1], bg: 'rgba(15, 23, 42, 0.55)' }
       ];
 
       cardinalMarkers.forEach(cm => {
-        const sprite = createTextSprite(cm.text, cm.color, 24, 'rgba(10, 15, 29, 0.7)');
+        const sprite = createTextSprite(cm.text, cm.color, 24, cm.bg || 'rgba(10, 15, 29, 0.75)');
         sprite.position.set(cm.pos[0], cm.pos[1], cm.pos[2]);
-        sprite.scale.set(16, 4, 1);
+        sprite.scale.set(cm.scale[0], cm.scale[1], cm.scale[2]);
         sunPathGroup.add(sprite);
       });
     }
@@ -1201,6 +1283,62 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const rayLine = new THREE.Line(rayGeom, rayMat);
       sunPathGroup.add(rayLine);
+
+      // Faint Vertical Plumb Line from Sun directly down to Ground Level
+      const plumbPts = [new THREE.Vector3(sunX, sunY, sunZ), new THREE.Vector3(sunX, 0.22, sunZ)];
+      const plumbGeom = new THREE.BufferGeometry().setFromPoints(plumbPts);
+      const plumbMat = new THREE.LineDashedMaterial({
+        color: 0xfbbf24,
+        transparent: true,
+        opacity: 0.4,
+        dashSize: 2.5,
+        gapSize: 2.0,
+        linewidth: 1.5
+      });
+      const plumbLine = new THREE.Line(plumbGeom, plumbMat);
+      plumbLine.computeLineDistances();
+      sunPathGroup.add(plumbLine);
+
+      // Ground Subsolar Orientation Ray (from origin to subsolar point)
+      const subsolarRayPts = [new THREE.Vector3(0, 0.24, 0), new THREE.Vector3(sunX, 0.24, sunZ)];
+      const subsolarRayGeom = new THREE.BufferGeometry().setFromPoints(subsolarRayPts);
+      const subsolarRayMat = new THREE.LineBasicMaterial({
+        color: 0xf59e0b,
+        transparent: true,
+        opacity: 0.55,
+        linewidth: 2.0
+      });
+      sunPathGroup.add(new THREE.Line(subsolarRayGeom, subsolarRayMat));
+
+      // Subsolar Ground Beacon Disc
+      const beaconGeom = new THREE.RingGeometry(1.2, 3.2, 24);
+      const beaconMat = new THREE.MeshBasicMaterial({
+        color: 0xfbbf24,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.6
+      });
+      const beaconMesh = new THREE.Mesh(beaconGeom, beaconMat);
+      beaconMesh.rotation.x = -Math.PI / 2;
+      beaconMesh.position.set(sunX, 0.25, sunZ);
+      sunPathGroup.add(beaconMesh);
+
+      // Orientation Readout Badge along the Ground Ray
+      const isKa = (state.currentLang !== 'en');
+      let curCard = 'N';
+      const azD = currentSunPos.azimuthDeg;
+      if (azD >= 45 && azD < 135) curCard = isKa ? 'აღმ' : 'E';
+      else if (azD >= 135 && azD < 225) curCard = isKa ? 'სამხ' : 'S';
+      else if (azD >= 225 && azD < 315) curCard = isKa ? 'დას' : 'W';
+      else curCard = isKa ? 'ჩრდ' : 'N';
+
+      const groundLabelText = isKa
+        ? `მზე: Az ${Math.round(azD)}° (${curCard}) · Alt +${Math.round(currentSunPos.altitudeDeg)}°`
+        : `Sun: Az ${Math.round(azD)}° (${curCard}) · Alt +${Math.round(currentSunPos.altitudeDeg)}°`;
+      const groundSprite = createTextSprite(groundLabelText, '#fef08a', 22, 'rgba(15, 23, 42, 0.85)');
+      groundSprite.position.set(sunX * 0.5, 1.4, sunZ * 0.5);
+      groundSprite.scale.set(16, 4, 1);
+      sunPathGroup.add(groundSprite);
     }
 
     // Sun trajectory and heliodon elements must strictly be visible ONLY in solar mode
@@ -2050,6 +2188,19 @@ document.addEventListener('DOMContentLoaded', () => {
           if (buildingGroup) buildingGroup.visible = !isThermalOn;
           if (solarHeatmapGroup) solarHeatmapGroup.visible = isThermalOn;
         }
+        updateSolarLighting();
+      });
+    }
+
+    // Sun Diagram / Heliodon Dome Diameter Slider
+    const radiusSlider = document.getElementById('solarDomeRadiusSlider');
+    const radiusBadge = document.getElementById('solarDomeRadiusBadge');
+    if (radiusSlider) {
+      radiusSlider.value = (state.solarDomeRadius || 110) * 2;
+      radiusSlider.addEventListener('input', (e) => {
+        const diam = parseFloat(e.target.value);
+        state.solarDomeRadius = diam / 2;
+        if (radiusBadge) radiusBadge.textContent = `${Math.round(diam)} მ`;
         updateSolarLighting();
       });
     }
@@ -4122,12 +4273,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getSelectedBuilding() {
-    return state.buildings.find(b => b.id === state.selectedBuildingId) || state.buildings[0];
+    if (!state.buildings || state.buildings.length === 0) return null;
+    return state.buildings.find(b => b.id === state.selectedBuildingId) || state.buildings[0] || null;
   }
 
   function syncCurrentBuildingToActiveConcept() {
     const bldg = getSelectedBuilding();
-    if (!bldg) return;
+    if (!bldg) {
+      state.activeConcept = null;
+      state.customFootprint = null;
+      syncSlidersUI(null);
+      return;
+    }
     state.activeConcept = {
       footprint: bldg.footprintArea,
       floorsAbove: bldg.floorsAbove,
@@ -4203,10 +4360,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function deleteSelectedBuilding() {
-    if (state.buildings.length <= 1) {
-      alert(translations[state.currentLang].bldg_cannot_delete_last || 'მინიმუმ ერთი შენობა უნდა დარჩეს ნაკვეთზე.');
-      return;
-    }
+    if (!state.buildings || state.buildings.length === 0) return;
     const idx = state.buildings.findIndex(b => b.id === state.selectedBuildingId);
     if (idx !== -1) {
       state.buildings.splice(idx, 1);
@@ -4216,9 +4370,15 @@ document.addEventListener('DOMContentLoaded', () => {
         b.name = `შენობა #${i + 1}`;
         b.nameEn = `Building #${i + 1}`;
       });
-      const nextSelected = state.buildings[Math.max(0, idx - 1)];
-      state.selectedBuildingId = nextSelected.id;
-      state.customFootprint = nextSelected.footprintCoords;
+      if (state.buildings.length > 0) {
+        const nextSelected = state.buildings[Math.max(0, idx - 1)];
+        state.selectedBuildingId = nextSelected.id;
+        state.customFootprint = nextSelected.footprintCoords;
+      } else {
+        state.selectedBuildingId = null;
+        state.customFootprint = null;
+        state.activeConcept = null;
+      }
 
       syncCurrentBuildingToActiveConcept();
       renderBuildingTabsUI();
@@ -4243,40 +4403,51 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!list) return;
 
     list.innerHTML = '';
-    state.buildings.forEach((bldg) => {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = `building-tab-chip ${bldg.id === state.selectedBuildingId ? 'active' : ''}`;
-      const isDrawn = bldg.footprintCoords && bldg.footprintCoords.length >= 3;
-      const statusBadge = isDrawn
-        ? ''
-        : `<span style="font-size: 0.68rem; opacity: 0.7; margin-left: 4px; border: 1px dashed ${bldg.color}; padding: 1px 4px; border-radius: 4px;">${state.currentLang === 'en' ? 'To Draw' : 'დასახაზია'}</span>`;
-      chip.innerHTML = `
-        <span class="bldg-tab-dot" style="background: ${bldg.color}; box-shadow: 0 0 6px ${bldg.color};"></span>
-        <span>${state.currentLang === 'en' ? bldg.nameEn : bldg.name}</span>
-        ${statusBadge}
-      `;
-      chip.addEventListener('click', () => {
-        selectBuilding(bldg.id);
+    if (!state.buildings || state.buildings.length === 0) {
+      const emptyNotice = document.createElement('div');
+      emptyNotice.style.cssText = 'font-size: 0.78rem; opacity: 0.65; padding: 6px 10px; font-style: italic; color: #94a3b8;';
+      emptyNotice.textContent = state.currentLang === 'en' ? 'No buildings on parcel' : 'ნაკვეთზე შენობა არ დგას';
+      list.appendChild(emptyNotice);
+    } else {
+      state.buildings.forEach((bldg) => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = `building-tab-chip ${bldg.id === state.selectedBuildingId ? 'active' : ''}`;
+        const isDrawn = bldg.footprintCoords && bldg.footprintCoords.length >= 3;
+        const statusBadge = isDrawn
+          ? ''
+          : `<span style="font-size: 0.68rem; opacity: 0.7; margin-left: 4px; border: 1px dashed ${bldg.color}; padding: 1px 4px; border-radius: 4px;">${state.currentLang === 'en' ? 'To Draw' : 'დასახაზია'}</span>`;
+        chip.innerHTML = `
+          <span class="bldg-tab-dot" style="background: ${bldg.color}; box-shadow: 0 0 6px ${bldg.color};"></span>
+          <span>${state.currentLang === 'en' ? bldg.nameEn : bldg.name}</span>
+          ${statusBadge}
+        `;
+        chip.addEventListener('click', () => {
+          selectBuilding(bldg.id);
+        });
+        list.appendChild(chip);
       });
-      list.appendChild(chip);
-    });
+    }
 
     // Sync color swatches active state
     const currentBldg = getSelectedBuilding();
-    if (currentBldg) {
-      const dots = document.querySelectorAll('#buildingColorPicker .color-swatch-dot');
-      dots.forEach(dot => {
-        dot.classList.toggle('active', dot.dataset.color.toLowerCase() === currentBldg.color.toLowerCase());
-      });
-    }
+    const dots = document.querySelectorAll('#buildingColorPicker .color-swatch-dot');
+    dots.forEach(dot => {
+      dot.classList.toggle('active', !!(currentBldg && dot.dataset.color.toLowerCase() === currentBldg.color.toLowerCase()));
+    });
   }
 
   function renderFloorMatrixUI() {
     const stack = document.getElementById('floorMatrixStack');
     const badge = document.getElementById('floorCountBadge');
     const bldg = getSelectedBuilding();
-    if (!stack || !bldg) return;
+    if (!stack) return;
+
+    if (!bldg) {
+      if (badge) badge.textContent = `0 ${state.currentLang === 'en' ? 'Levels' : 'სართული'}`;
+      stack.innerHTML = `<div style="font-size: 0.78rem; opacity: 0.65; padding: 16px 8px; text-align: center; font-style: italic; color: #94a3b8;">${state.currentLang === 'en' ? 'No building on parcel. Click "+ New Building" or draw on map.' : 'ნაკვეთზე შენობა არ დგას. დააჭირეთ „+ ახალი შენობა“ ან დახაზეთ.'}</div>`;
+      return;
+    }
 
     const floorsAbove = bldg.floorsAbove || 5;
     const floorsBelow = bldg.floorsBelow || 1;
@@ -4486,14 +4657,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function generateDefaultConcept(parcel) {
-    state.buildings = [
-      createBuildingData(1, BUILDING_COLORS[0], 0, 4, 1)
-    ];
-    state.buildings[0].footprintCoords = null;
-    state.buildings[0].footprintArea = 0;
-    state.buildings[0].isProcedural = false; // Strictly false: do not invent fake geometry
-    state.selectedBuildingId = state.buildings[0].id;
+    // Strict requirement: if parcel has no building, do NOT invent or make up fake geometry
+    state.buildings = [];
+    state.selectedBuildingId = null;
     state.customFootprint = null;
+    state.activeConcept = null;
 
     syncCurrentBuildingToActiveConcept();
     renderBuildingTabsUI();
@@ -5188,22 +5356,23 @@ document.addEventListener('DOMContentLoaded', () => {
       if (el) el.textContent = val;
     };
 
+    if (!parcel) return;
     const bldg = getSelectedBuilding();
-    if (!bldg || !parcel) return;
 
     // Site Aggregates
-    const totalSiteFootprint = state.buildings.reduce((sum, b) => sum + (b.footprintArea || 0), 0);
-    const totalSiteAboveGFA = state.buildings.reduce((sum, b) => sum + (b.footprintArea * (b.floorsAbove || 1)), 0);
-    const totalSiteUnderGFA = state.buildings.reduce((sum, b) => sum + (b.footprintArea * (b.floorsBelow || 0)), 0);
+    const bldgs = state.buildings || [];
+    const totalSiteFootprint = bldgs.reduce((sum, b) => sum + (b.footprintArea || 0), 0);
+    const totalSiteAboveGFA = bldgs.reduce((sum, b) => sum + ((b.footprintArea || 0) * (b.floorsAbove || 1)), 0);
+    const totalSiteUnderGFA = bldgs.reduce((sum, b) => sum + ((b.footprintArea || 0) * (b.floorsBelow || 0)), 0);
     const freeLand = Math.max(0, parcel.area - totalSiteFootprint);
-    const k1Ratio = (totalSiteFootprint / parcel.area).toFixed(2);
+    const k1Ratio = parcel.area > 0 ? (totalSiteFootprint / parcel.area).toFixed(2) : '0.00';
 
-    set('assessFootprint', `${totalSiteFootprint.toLocaleString()} მ² (${state.buildings.length} შენობა)`);
+    set('assessFootprint', `${totalSiteFootprint.toLocaleString()} მ² (${bldgs.length} შენობა)`);
     set('assessFreeLand', `${freeLand.toLocaleString()} მ²`);
-    set('assessFloors', `${bldg.name}: +${bldg.floorsAbove} / -${bldg.floorsBelow}`);
+    set('assessFloors', bldg ? `${bldg.name}: +${bldg.floorsAbove} / -${bldg.floorsBelow}` : '— (შენობა არ არის)');
     set('assessTotalGFA', `${totalSiteAboveGFA.toLocaleString()} მ²`);
-    set('assessCoverage', `${Math.round(k1Ratio * 100)}% (K1: ${k1Ratio})`);
-    set('assessFunction', bldg.buildingType.toUpperCase());
+    set('assessCoverage', `${Math.round(parseFloat(k1Ratio) * 100)}% (K1: ${k1Ratio})`);
+    set('assessFunction', bldg ? bldg.buildingType.toUpperCase() : '—');
 
     const underGFA = document.getElementById('assessUndergroundGFA');
     if (underGFA) underGFA.textContent = `${totalSiteUnderGFA.toLocaleString()} მ²`;
@@ -5751,7 +5920,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function syncSlidersUI(bldg) {
-    if (!bldg) return;
     const setVal = (id, val) => {
       const el = document.getElementById(id);
       if (el) el.value = val;
@@ -5760,6 +5928,24 @@ document.addEventListener('DOMContentLoaded', () => {
       const el = document.getElementById(id);
       if (el) el.textContent = val;
     };
+
+    if (!bldg) {
+      setVal('sliderFloors', 0);
+      setDisplay('displayFloors', '0');
+      setVal('sliderBasementFloors', 0);
+      setDisplay('displayBasementFloors', '0');
+      setVal('sliderFootprint', 0);
+      setDisplay('displayFootprint', '0 მ²');
+      setVal('sliderHeight', 3.3);
+      setDisplay('displayHeight', '3.3 მ');
+      setDisplay('displayTotalHeight', '0.0 მ');
+      setDisplay('displayBasementDepth', '0.0 მ');
+      const customBadge = document.getElementById('customFootprintIndicator');
+      if (customBadge) customBadge.style.display = 'none';
+      setVal('sliderRotation', 0);
+      setDisplay('displayRotation', '0°');
+      return;
+    }
 
     const floorsAbove = bldg.floorsAbove || 5;
     const floorsBelow = bldg.floorsBelow || 1;
