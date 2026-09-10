@@ -50,6 +50,9 @@ document.addEventListener('DOMContentLoaded', () => {
     showSeasonalArcs: true,
     showHourMarkers: true,
     showCompassRing: true,
+    // Map Basemap Themes (Architectural GIS, Satellite, Voyager, Topo)
+    mapTheme: 'dark',
+    combinedMapTheme: 'satellite',
     // Surrounding 3D Urban Fabric (Module 1B & 2B)
     urbanBuildings: [],
     // 3D DEM Terrain & Slope (Module 1C & 2A)
@@ -249,9 +252,63 @@ document.addEventListener('DOMContentLoaded', () => {
   let buildingsLayerGroup = null;
   let parcelZoningLayerGroup = null;
   let parcelContoursLayerGroup = null;
-  let tileLayerVector = null;
+  let tileLayerDark = null;
   let tileLayerSatellite = null;
+  let tileLayerVoyager = null;
+  let tileLayerTopo = null;
+  let tileLayerVector = null;
   let roadLayerGroup = null;
+
+  function switchMapBasemap(theme) {
+    if (!map) return;
+    const allLayers = [tileLayerDark, tileLayerSatellite, tileLayerVoyager, tileLayerTopo];
+    allLayers.forEach(l => {
+      if (l && map.hasLayer(l)) map.removeLayer(l);
+    });
+
+    state.mapTheme = theme;
+    let targetLayer = tileLayerDark;
+    let labelText = 'მუქი GIS (Dark)';
+
+    if (theme === 'satellite') {
+      targetLayer = tileLayerSatellite;
+      labelText = 'სატელიტი (Satellite)';
+    } else if (theme === 'voyager') {
+      targetLayer = tileLayerVoyager;
+      labelText = 'ურბანული (Urban)';
+    } else if (theme === 'topo') {
+      targetLayer = tileLayerTopo;
+      labelText = 'ტოპოგრაფიული (Topo)';
+    } else {
+      targetLayer = tileLayerDark;
+      labelText = 'მუქი GIS (Dark)';
+    }
+
+    if (targetLayer) {
+      map.addLayer(targetLayer);
+      if (targetLayer.bringToBack) targetLayer.bringToBack();
+    }
+
+    // Update active state on theme switcher buttons
+    document.querySelectorAll('.btn-map-theme').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.theme === theme);
+    });
+
+    // Synchronize Satellite icon button in top bar
+    const btnToggleSat = document.getElementById('btnToggleSatellite');
+    if (btnToggleSat) {
+      if (theme === 'satellite') {
+        btnToggleSat.classList.add('active');
+        btnToggleSat.title = 'Switch to Dark GIS Map';
+      } else {
+        btnToggleSat.classList.remove('active');
+        btnToggleSat.title = 'Switch to Satellite Map';
+      }
+    }
+
+    const layerTextEl = document.getElementById('mapHudLayerText');
+    if (layerTextEl) layerTextEl.textContent = labelText;
+  }
 
   function initMap() {
     const mapEl = document.getElementById('mapViewport');
@@ -265,16 +322,31 @@ document.addEventListener('DOMContentLoaded', () => {
       attributionControl: false
     });
 
-    // Tile Layers
-    tileLayerVector = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      maxZoom: 20
+    // Architectural Dark Matter (CartoDB Dark)
+    tileLayerDark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 20,
+      subdomains: 'abcd',
+      attribution: '&copy; CartoDB &copy; OpenStreetMap'
     });
 
+    // Esri World Imagery Satellite
     tileLayerSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: 19
     });
 
-    // Start with Satellite
+    // CartoDB Voyager (Urban GIS)
+    tileLayerVoyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      maxZoom: 20,
+      subdomains: 'abcd'
+    });
+    tileLayerVector = tileLayerVoyager;
+
+    // OpenTopoMap (Topographic Relief)
+    tileLayerTopo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+      maxZoom: 17
+    });
+
+    // Start with Satellite or Dark according to default mode
     tileLayerSatellite.addTo(map);
 
     // Layer groups for GIS map overlays
@@ -299,6 +371,29 @@ document.addEventListener('DOMContentLoaded', () => {
         handleMapClick(e);
       } else if (state.isDrawingRoad) {
         handleRoadMapClick(e);
+      }
+    });
+
+    // Setup map theme buttons in floating switcher HUD
+    document.querySelectorAll('.btn-map-theme').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const theme = btn.dataset.theme;
+        switchMapBasemap(theme);
+      });
+    });
+
+    // Mouse movement telemetry HUD updates
+    map.on('mousemove', (e) => {
+      const coordsEl = document.getElementById('mapHudCoordsText');
+      if (coordsEl && e.latlng) {
+        coordsEl.textContent = `${e.latlng.lat.toFixed(5)}° N, ${e.latlng.lng.toFixed(5)}° E`;
+      }
+    });
+
+    map.on('zoomend', () => {
+      const zoomEl = document.getElementById('mapHudZoomText');
+      if (zoomEl) {
+        zoomEl.textContent = `Z${map.getZoom()}`;
       }
     });
   }
@@ -1103,6 +1198,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const rayLine = new THREE.Line(rayGeom, rayMat);
       sunPathGroup.add(rayLine);
     }
+
+    // Sun trajectory and heliodon elements must strictly be visible ONLY in solar mode
+    sunPathGroup.visible = (state.currentMode === 'solar' && state.showSunPath !== false);
   }
 
   // Master Solar Lighting & HUD Telemetry Updater
@@ -1337,6 +1435,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (chkSunPath) {
       chkSunPath.addEventListener('change', (e) => {
         state.showSunPath = e.target.checked;
+        if (sunPathGroup) {
+          sunPathGroup.visible = (state.currentMode === 'solar' && !!state.showSunPath);
+        }
         updateSolarLighting();
       });
     }
@@ -5525,12 +5626,37 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const solarControlPanel = document.getElementById('solarControlPanel');
+    const mapThemeSwitcher = document.getElementById('mapThemeSwitcherBar');
+    const mapTelemetry = document.getElementById('mapTelemetryHud');
 
-    if (mode === 'map' || mode === '2d') {
+    if (mode === 'map') {
       if (mapViewport) mapViewport.style.display = 'block';
       if (threeViewport) threeViewport.style.display = 'none';
       if (solarControlPanel) solarControlPanel.style.display = 'none';
-      if (sunPathGroup) sunPathGroup.visible = false;
+      if (sunPathGroup) sunPathGroup.visible = false; // Strictly hidden in Map mode
+      if (mapThemeSwitcher) mapThemeSwitcher.style.display = 'flex';
+      if (mapTelemetry) mapTelemetry.style.display = 'flex';
+
+      // Apply distinct high-contrast Architectural Dark GIS design for Map mode
+      switchMapBasemap(state.mapTheme || 'dark');
+
+      if (buildingFootprintLayer) {
+        map.removeLayer(buildingFootprintLayer);
+        buildingFootprintLayer = null;
+      }
+      if (map) {
+        setTimeout(() => map.invalidateSize(), 50);
+      }
+    } else if (mode === '2d') {
+      if (mapViewport) mapViewport.style.display = 'block';
+      if (threeViewport) threeViewport.style.display = 'none';
+      if (solarControlPanel) solarControlPanel.style.display = 'none';
+      if (sunPathGroup) sunPathGroup.visible = false; // Strictly hidden in 2D mode
+      if (mapThemeSwitcher) mapThemeSwitcher.style.display = 'flex';
+      if (mapTelemetry) mapTelemetry.style.display = 'flex';
+
+      switchMapBasemap(state.mapTheme || 'voyager');
+
       if (buildingFootprintLayer) {
         map.removeLayer(buildingFootprintLayer);
         buildingFootprintLayer = null;
@@ -5542,13 +5668,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (mapViewport) mapViewport.style.display = 'none';
       if (threeViewport) threeViewport.style.display = 'block';
       if (solarControlPanel) solarControlPanel.style.display = 'none';
-      if (sunPathGroup) sunPathGroup.visible = !!state.showSunPath;
+      if (sunPathGroup) sunPathGroup.visible = false; // Strictly hidden in 3D Concept mode
+      if (mapThemeSwitcher) mapThemeSwitcher.style.display = 'none';
+      if (mapTelemetry) mapTelemetry.style.display = 'none';
       onWindowResize();
     } else if (mode === 'solar') {
       if (mapViewport) mapViewport.style.display = 'none';
       if (threeViewport) threeViewport.style.display = 'block';
       if (solarControlPanel) solarControlPanel.style.display = 'flex';
-      if (sunPathGroup) sunPathGroup.visible = true;
+      if (sunPathGroup) sunPathGroup.visible = (state.showSunPath !== false); // Strictly visible ONLY in solar mode
+      if (mapThemeSwitcher) mapThemeSwitcher.style.display = 'none';
+      if (mapTelemetry) mapTelemetry.style.display = 'none';
       onWindowResize();
       updateSolarLighting();
       if (controls && camera) {
@@ -5560,7 +5690,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (mapViewport) mapViewport.style.display = 'block';
       if (threeViewport) threeViewport.style.display = 'block';
       if (solarControlPanel) solarControlPanel.style.display = 'none';
-      if (sunPathGroup) sunPathGroup.visible = !!state.showSunPath;
+      if (sunPathGroup) sunPathGroup.visible = false; // Strictly hidden in Combined mode
+      if (mapThemeSwitcher) mapThemeSwitcher.style.display = 'none';
+      if (mapTelemetry) mapTelemetry.style.display = 'none';
+
+      // In combined mode, show satellite aerial photo for real-world context alongside 3D
+      switchMapBasemap(state.combinedMapTheme || 'satellite');
+
       if (buildingFootprintLayer) {
         map.removeLayer(buildingFootprintLayer);
         buildingFootprintLayer = null;
@@ -5583,19 +5719,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnToggleSatellite && map) {
     btnToggleSatellite.addEventListener('click', () => {
-      if (state.mapLayerType === 'satellite') {
-        map.removeLayer(tileLayerSatellite);
-        map.addLayer(tileLayerVector);
-        state.mapLayerType = 'vector';
-        btnToggleSatellite.classList.remove('active');
-        btnToggleSatellite.title = 'Switch to Satellite Imagery';
-      } else {
-        map.removeLayer(tileLayerVector);
-        map.addLayer(tileLayerSatellite);
-        state.mapLayerType = 'satellite';
-        btnToggleSatellite.classList.add('active');
-        btnToggleSatellite.title = 'Switch to Vector Map';
+      const current = state.mapTheme || 'dark';
+      const next = (current === 'satellite') ? 'dark' : 'satellite';
+      if (state.currentMode === 'combined') {
+        state.combinedMapTheme = next;
       }
+      switchMapBasemap(next);
     });
   }
 

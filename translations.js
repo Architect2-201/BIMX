@@ -418,7 +418,13 @@ const translations = {
     mode_2d: "2D კონცეფცია",
     mode_3d: "3D კონცეფცია",
     mode_combined: "კომბინირებული ხედი",
+    mode_solar: "მზის ანალიზი",
     mode_napr: "maps.gov.ge პორტალი",
+    map_theme_label: "რუკის სტილი:",
+    map_theme_dark: "მუქი GIS",
+    map_theme_satellite: "სატელიტი",
+    map_theme_voyager: "ურბანული",
+    map_theme_topo: "ტოპოგრაფიული",
 
     // Provenance Badges
     badge_official: "ოფიციალური მონაცემი",
@@ -901,7 +907,13 @@ const translations = {
     mode_2d: "2D Concept",
     mode_3d: "3D Concept",
     mode_combined: "Combined View",
+    mode_solar: "Solar Analysis",
     mode_napr: "maps.gov.ge Portal",
+    map_theme_label: "Map Theme:",
+    map_theme_dark: "Dark GIS",
+    map_theme_satellite: "Satellite",
+    map_theme_voyager: "Urban",
+    map_theme_topo: "Topographic",
 
     // Provenance Badges
     badge_official: "Official Data",
