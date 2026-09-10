@@ -172,11 +172,13 @@ document.addEventListener('DOMContentLoaded', () => {
   if (mobileHamburger && navLinksList) {
     mobileHamburger.addEventListener('click', () => {
       navLinksList.classList.toggle('open');
+      mobileHamburger.classList.toggle('active');
     });
 
     document.querySelectorAll('.nav-link-item').forEach(link => {
       link.addEventListener('click', () => {
         navLinksList.classList.remove('open');
+        mobileHamburger.classList.remove('active');
       });
     });
   }
