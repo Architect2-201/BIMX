@@ -26,6 +26,488 @@
 
   <!-- Site Stylesheet -->
   <link rel="stylesheet" href="styles.css">
+
+  <style>
+    /* GIS Layers Tree Trigger & Drawer in Parcel AI */
+    .gis-layer-tree-toggle-btn {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      z-index: 500;
+      background: #ffffff;
+      color: #0f172a;
+      border: 1px solid #cbd5e1;
+      padding: 7px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+      transition: all 0.2s ease;
+    }
+    .gis-layer-tree-toggle-btn:hover {
+      background: #f8fafc;
+      border-color: #0284c7;
+      color: #0284c7;
+    }
+    .gis-tree-panel-overlay {
+      position: absolute;
+      top: 50px;
+      left: 14px;
+      bottom: 60px;
+      width: 290px;
+      background: #ffffff;
+      color: #1e293b;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+      z-index: 500;
+      overflow-y: auto;
+      font-size: 0.81rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      display: none;
+    }
+    .gis-tree-panel-overlay.show {
+      display: block;
+    }
+    .gis-tree-header {
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 10px 14px;
+      font-weight: 700;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.84rem;
+    }
+    .tree-node-parent {
+      display: flex;
+      align-items: center;
+      padding: 8px 12px;
+      border-bottom: 1px solid #f1f5f9;
+      cursor: pointer;
+      gap: 8px;
+      transition: background 0.15s;
+      font-weight: 600;
+      color: #1e293b;
+    }
+    .tree-node-parent:hover { background: #f8fafc; }
+    .tree-node-parent.active { background: #f1f5f9; }
+    .tree-arrow {
+      width: 14px;
+      font-size: 0.68rem;
+      color: #475569;
+      transition: transform 0.2s;
+    }
+    .tree-arrow.open { transform: rotate(90deg); }
+    .tree-icon {
+      width: 20px;
+      text-align: center;
+      color: #1d4e89;
+      font-size: 0.9rem;
+    }
+    .tree-children { display: none; background: #ffffff; }
+    .tree-children.open { display: block; }
+    .tree-node-item {
+      display: flex;
+      align-items: center;
+      padding: 7px 12px 7px 26px;
+      border-bottom: 1px solid #f8fafc;
+      cursor: pointer;
+      gap: 10px;
+      font-size: 0.8rem;
+      color: #334155;
+      transition: background 0.15s;
+    }
+    .tree-node-item:hover { background: #f8fafc; }
+    .tree-chk { width: 15px; height: 15px; accent-color: #0284c7; cursor: pointer; }
+
+    /* Floating/Docked 'ინფორმაცია' Panel */
+    .gis-info-modal {
+      position: absolute;
+      bottom: 20px;
+      right: 18px;
+      width: 580px;
+      max-width: calc(100% - 36px);
+      max-height: calc(100% - 40px);
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+      z-index: 500;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      transition: opacity 0.2s ease;
+    }
+    .gis-info-modal.minimized { max-height: 42px !important; }
+    .gis-info-modal.minimized .gis-info-body { display: none !important; }
+    .gis-info-header {
+      background: #1f4e79;
+      color: #ffffff;
+      padding: 9px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 700;
+      font-size: 0.86rem;
+      flex-shrink: 0;
+      user-select: none;
+      cursor: move;
+    }
+    .gis-info-actions { display: flex; align-items: center; gap: 6px; }
+    .gis-info-btn {
+      background: transparent;
+      border: none;
+      color: #ffffff;
+      cursor: pointer;
+      font-size: 0.82rem;
+      padding: 3px 6px;
+      border-radius: 4px;
+      line-height: 1;
+      transition: background 0.15s;
+    }
+    .gis-info-btn:hover { background: rgba(255, 255, 255, 0.25); }
+    .gis-info-body {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      background: #ffffff;
+      overflow: hidden;
+    }
+    .gis-info-tabs {
+      width: 200px;
+      min-width: 200px;
+      background: #f8fafc;
+      border-right: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+    .gis-info-tab-item {
+      padding: 10px 12px;
+      font-size: 0.81rem;
+      color: #334155;
+      border-bottom: 1px solid #e2e8f0;
+      cursor: pointer;
+      white-space: normal;
+      line-height: 1.35;
+      word-break: break-word;
+      transition: background 0.15s;
+    }
+    .gis-info-tab-item:hover { background: #edf2f7; }
+    .gis-info-tab-item.active {
+      background: #e2e8f0;
+      color: #0f172a;
+      font-weight: 700;
+      border-left: 4px solid #1f4e79;
+    }
+    .gis-info-details {
+      flex: 1;
+      padding: 12px 16px;
+      background: #ffffff;
+      overflow-y: auto;
+      max-height: 100%;
+    }
+    .gis-info-details::-webkit-scrollbar,
+    .gis-info-tabs::-webkit-scrollbar {
+      width: 6px;
+    }
+    .gis-info-details::-webkit-scrollbar-thumb,
+    .gis-info-tabs::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    .tas-info-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; line-height: 1.35; }
+    .tas-info-table tr { border-bottom: 1px solid #f1f5f9; }
+    .tas-info-table tr:last-child { border-bottom: none; }
+    .tas-key { padding: 6px 6px 6px 0; color: #475569; font-weight: 600; width: 120px; min-width: 120px; white-space: nowrap; vertical-align: top; }
+    .tas-val { padding: 6px 0 6px 6px; color: #0f172a; font-weight: 600; text-align: right; word-break: break-word; vertical-align: top; }
+
+    /* Mobile Adaptations for Parcel AI */
+    @media (max-width: 992px) {
+      .gis-workspace-wrapper {
+        padding: 16px 12px 40px;
+      }
+      .gis-workspace-grid {
+        grid-template-columns: 1fr !important;
+        gap: 20px;
+      }
+      .center-viewport-container {
+        height: 480px;
+        min-height: 480px;
+      }
+      .gis-panel {
+        max-height: none !important;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .parcel-top-intro {
+        padding: 85px 0 16px;
+      }
+      .intro-flex {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+      }
+      .banner-system-status {
+        width: 100%;
+      }
+      .parcel-main-heading {
+        font-size: 1.6rem;
+      }
+      .gis-info-modal {
+        width: calc(100% - 16px);
+        right: 8px;
+        bottom: 8px;
+        max-height: calc(100% - 16px);
+      }
+      .gis-info-body {
+        flex-direction: column;
+      }
+      .gis-info-tabs {
+        width: 100%;
+        min-width: 100%;
+        flex-direction: row;
+        border-right: none;
+        border-bottom: 1px solid #e2e8f0;
+        overflow-x: auto;
+      }
+      .gis-info-tab-item {
+        padding: 8px 10px;
+        white-space: nowrap;
+        border-bottom: none;
+        border-left: none;
+      }
+      .gis-info-tab-item.active {
+        border-bottom: 3px solid #1f4e79;
+        border-left: none;
+      }
+    /* Solar Insolation & Shadow Control Floating HUD */
+    .solar-control-panel {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      z-index: 450;
+      background: rgba(17, 24, 39, 0.92);
+      border: 1px solid rgba(0, 242, 254, 0.3);
+      border-radius: 10px;
+      padding: 12px 14px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(10px);
+      width: 320px;
+      max-width: calc(100% - 28px);
+      color: #f1f5f9;
+      font-size: 0.8rem;
+      transition: all 0.25s ease;
+    }
+    .solar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      font-weight: 700;
+      font-size: 0.84rem;
+      color: #fbbf24;
+    }
+    .solar-date-chips {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+    .btn-solar-chip {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid #334155;
+      color: #94a3b8;
+      border-radius: 6px;
+      padding: 4px 6px;
+      font-size: 0.72rem;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+    .btn-solar-chip:hover {
+      background: rgba(51, 65, 85, 0.9);
+      color: #f8fafc;
+      border-color: #38bdf8;
+    }
+    .btn-solar-chip.active {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: #f59e0b;
+      color: #f59e0b;
+      font-weight: 700;
+    }
+    .solar-slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .solar-time-slider {
+      flex: 1;
+      accent-color: #f59e0b;
+      cursor: pointer;
+    }
+    .solar-time-badge {
+      min-width: 48px;
+      text-align: center;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 5px;
+      padding: 3px 6px;
+      font-weight: 700;
+      color: #38bdf8;
+      font-family: monospace;
+      font-size: 0.82rem;
+    }
+    .btn-solar-play {
+      background: #f59e0b;
+      color: #0f172a;
+      border: none;
+      border-radius: 6px;
+      width: 30px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.15s, background 0.15s;
+    }
+    .btn-solar-play:hover {
+      transform: scale(1.05);
+      background: #fbbf24;
+    }
+    .solar-metrics-readout {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      color: #94a3b8;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 5px 8px;
+      border-radius: 5px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Terrain Topography Pill */
+    .hud-terrain-pill {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #10b981;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    /* AI Risk Assessment Card Styles */
+    .ai-risk-card-container {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 10px;
+    }
+    .risk-score-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #1e293b;
+    }
+    .risk-score-pill {
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .risk-score-pill.low {
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+    .risk-score-pill.medium {
+      background: rgba(245, 158, 11, 0.15);
+      color: #f59e0b;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+    }
+    .risk-score-pill.high {
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+    .risk-check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 0.74rem;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .risk-check-item:last-child {
+      border-bottom: none;
+    }
+    .risk-icon-pass { color: #10b981; margin-top: 2px; }
+    .risk-icon-warn { color: #f59e0b; margin-top: 2px; }
+    .risk-icon-fail { color: #ef4444; margin-top: 2px; }
+
+    /* Actionable GAP Advice Box */
+    .gap-advice-box {
+      margin-top: 10px;
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 6px;
+      padding: 9px 11px;
+      font-size: 0.72rem;
+      line-height: 1.45;
+      color: #cbd5e1;
+    }
+
+    /* Export Grid Extended */
+    .export-buttons-grid-extended {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .btn-export-tile-primary {
+      grid-column: span 3;
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.2), rgba(79, 172, 254, 0.2));
+      border: 1.5px solid #00f2fe;
+      color: #ffffff;
+      padding: 10px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-export-tile-primary:hover {
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.35), rgba(79, 172, 254, 0.35));
+      box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+      transform: translateY(-1px);
+    }
+  </style>
 </head>
 <body class="page-fade-in">
 
@@ -46,7 +528,8 @@
           <li><a href="index.html#services" class="nav-link-item" data-i18n="nav_services">სერვისები</a></li>
           <li><a href="apps.html" class="nav-link-item" data-i18n="nav_apps">აპლიკაციები</a></li>
           <li><a href="plugins.html" class="nav-link-item" data-i18n="nav_plugins">პლაგინები</a></li>
-          <li><a href="parcel-ai.html" class="nav-link-item active" data-i18n="nav_parcel_ai">ნაკვეთის AI ანალიზი</a></li>
+          <li><a href="land-intelligence.html" class="nav-link-item" data-i18n="nav_land_intel" style="color: var(--cyan-neon); font-weight: 600;">GIS ანალიზი</a></li>
+          <li><a href="parcel-ai.html" class="nav-link-item active" data-i18n="nav_parcel_ai" style="color: #60a5fa; font-weight: 700;">AI ანალიზი</a></li>
           <li><a href="index.html#projects" class="nav-link-item" data-i18n="nav_portfolio">პროექტები</a></li>
           <li><a href="index.html#calculator" class="nav-link-item" data-i18n="nav_calc">კალკულატორი</a></li>
           <li><a href="index.html#contact" class="nav-link-item" data-i18n="nav_contact">კონტაქტი</a></li>
@@ -173,6 +656,43 @@
             </button>
           </div>
 
+          <!-- 2b. Multi-Building Masterplan Manager -->
+          <div class="buildings-manager-box" id="buildingsManagerBox">
+            <div class="buildings-manager-header">
+              <span class="buildings-manager-title">
+                <i class="fa-solid fa-city" style="color: var(--cyan-neon);"></i>
+                <span data-i18n="bldg_manager_title">შენობების მართვა</span>
+              </span>
+              <button type="button" class="btn-add-building" id="btnAddBuilding" title="ახალი შენობის დამატება">
+                <i class="fa-solid fa-plus"></i>
+                <span data-i18n="bldg_add_new">+ ახალი შენობა</span>
+              </button>
+            </div>
+
+            <!-- Horizontal scrollable Building Tabs (Building #1, Building #2, etc.) -->
+            <div class="building-tabs-scroll" id="buildingTabsList">
+              <!-- Dynamically populated -->
+            </div>
+
+            <!-- Selected Building Identity & Color Bar -->
+            <div class="selected-building-bar" id="selectedBuildingBar">
+              <div class="building-color-group">
+                <span style="font-size: 0.72rem; color: var(--text-muted);" data-i18n="bldg_color">შენობის ფერი:</span>
+                <div class="color-swatches-list" id="buildingColorPicker">
+                  <button type="button" class="color-swatch-dot active" data-color="#10b981" style="background: #10b981;" title="Emerald"></button>
+                  <button type="button" class="color-swatch-dot" data-color="#8b5cf6" style="background: #8b5cf6;" title="Violet"></button>
+                  <button type="button" class="color-swatch-dot" data-color="#0284c7" style="background: #0284c7;" title="Sky Blue"></button>
+                  <button type="button" class="color-swatch-dot" data-color="#f59e0b" style="background: #f59e0b;" title="Amber"></button>
+                  <button type="button" class="color-swatch-dot" data-color="#ec4899" style="background: #ec4899;" title="Rose"></button>
+                  <button type="button" class="color-swatch-dot" data-color="#14b8a6" style="background: #14b8a6;" title="Teal"></button>
+                </div>
+              </div>
+              <button type="button" class="btn-delete-building" id="btnDeleteSelectedBuilding" title="არჩეული შენობის წაშლა">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </div>
+
           <!-- 3. Parametric Adjustments (User Overrides) -->
           <div class="parametric-section">
             <h3 style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); margin-bottom: 14px;" data-i18n="params_heading">
@@ -227,6 +747,29 @@
               <div class="readout-item">
                 <span class="readout-label" data-i18n="param_basement_depth">მიწისქვეშა სიღრმე:</span>
                 <strong id="displayBasementDepth" style="color: var(--text-secondary);">-3.3 მ</strong>
+              </div>
+            </div>
+
+            <!-- Floor Function & Zoning Color Matrix -->
+            <div class="floor-matrix-block" id="floorMatrixBlock">
+              <div class="floor-matrix-header">
+                <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                  <i class="fa-solid fa-layer-group" style="color: var(--cyan-neon);"></i>
+                  <span data-i18n="bldg_floor_functions">სართულების ფუნქციები და ფერები</span>
+                </span>
+                <span id="floorCountBadge" class="floor-count-pill">5 სართული</span>
+              </div>
+
+              <!-- Quick presets for functions -->
+              <div class="floor-presets-row">
+                <button type="button" class="btn-floor-preset" data-preset="comm_res" data-i18n="preset_comm_res">კომერციული + საცხოვრებელი</button>
+                <button type="button" class="btn-floor-preset" data-preset="all_res" data-i18n="preset_all_res">ყველა საცხოვრებელი</button>
+                <button type="button" class="btn-floor-preset" data-preset="all_off" data-i18n="preset_all_off">საოფისე</button>
+              </div>
+
+              <!-- Dynamic Vertical Floor Stack Matrix -->
+              <div class="floor-matrix-stack" id="floorMatrixStack">
+                <!-- Generated dynamically for selected building -->
               </div>
             </div>
 
@@ -295,10 +838,18 @@
               <i class="fa-solid fa-table-columns"></i>
               <span data-i18n="mode_combined">კომბინირებული ხედი</span>
             </button>
+            <button type="button" class="mode-tab-btn" data-mode="solar" role="tab" aria-selected="false">
+              <i class="fa-solid fa-sun" style="color: #f59e0b;"></i>
+              <span data-i18n="mode_solar">მზის ანალიზი</span>
+            </button>
           </div>
 
           <div class="viewport-tools-group">
-            <!-- 2D Drawing & Correction Tools -->
+            <!-- 2D Drawing & Multi-Building Tools -->
+            <button type="button" class="tool-btn-draw tool-btn-add-bldg" id="btnAddNewBuildingMap" title="ახალი შენობის დამატება">
+              <i class="fa-solid fa-building-circle-arrow-right"></i>
+              <span data-i18n="bldg_add_new">+ ახალი შენობა</span>
+            </button>
             <button type="button" class="tool-btn-draw" id="btnDrawBuilding" title="ნაკვეთზე შენობის ფორმის დახაზვა">
               <i class="fa-solid fa-pen-ruler"></i>
               <span data-i18n="tool_draw_building">შენობის დახაზვა</span>
@@ -354,8 +905,128 @@
           <!-- 2D Leaflet Map Layer -->
           <div id="mapViewport" role="region" aria-label="GIS Map View"></div>
 
+          <!-- GIS Layers Tree Trigger Button (Photos 1 & 2) -->
+          <button type="button" class="gis-layer-tree-toggle-btn" id="btnToggleParcelTree" onclick="toggleParcelAiTree()" title="GIS ფენების ხე (გენგეგმა)">
+            <i class="fa-solid fa-folder-tree" style="color: #1d4e89;"></i> <span>GIS ფენები</span>
+          </button>
+
+          <!-- Collapsible GIS Layers Tree Drawer -->
+          <div class="gis-tree-panel-overlay" id="parcelAiTreeOverlay">
+            <div class="gis-tree-header">
+              <span><i class="fa-solid fa-folder-tree" style="color: #1d4e89; margin-right: 6px;"></i> სივრცითი ფენები</span>
+              <button type="button" class="gis-info-btn" style="color: #64748b;" onclick="toggleParcelAiTree()" title="დახურვა">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            <!-- მიწათსარგებლობის გენგეგმა (Photo 1) -->
+            <div class="tree-node-parent active" onclick="toggleParcelAiNode(this, 'grpGenPlanParcel')">
+              <span class="tree-arrow open">▼</span>
+              <span class="tree-icon"><i class="fa-solid fa-drafting-compass"></i></span>
+              <span style="font-weight: 700; color: #0f172a;">მიწათსარგებლობის გენგეგმა</span>
+            </div>
+            <div class="tree-children open" id="grpGenPlanParcel">
+              <div class="tree-node-item">
+                <input type="checkbox" class="tree-chk" checked onchange="toggleParcelAiLayer('functional_zones', this.checked)">
+                <span class="tree-icon" style="color: #fb8500;"><i class="fa-solid fa-draw-polygon"></i></span>
+                <span>ფუნქციური ზონები (თბილისი)</span>
+              </div>
+              <div class="tree-node-item">
+                <input type="checkbox" class="tree-chk" checked onchange="toggleParcelAiLayer('past_zones', this.checked)">
+                <span class="tree-icon" style="color: #48cae4;"><i class="fa-solid fa-draw-polygon"></i></span>
+                <span>თბილისის ფუნქციური ზონები (2014-2019)</span>
+              </div>
+              <div class="tree-node-item">
+                <input type="checkbox" class="tree-chk" checked onchange="toggleParcelAiLayer('urban_projects', this.checked)">
+                <span class="tree-icon" style="color: #2563eb;"><i class="fa-solid fa-house-chimney"></i></span>
+                <span>ქალაქგეგმარებითი პროექტები</span>
+              </div>
+              <div class="tree-node-item">
+                <input type="checkbox" class="tree-chk" checked onchange="toggleParcelAiLayer('structural_zone', this.checked)">
+                <span class="tree-icon" style="color: #6366f1;"><i class="fa-solid fa-hashtag"></i></span>
+                <span>ტერიტორიულ-სტრუქტურული ზონა</span>
+              </div>
+              <div class="tree-node-item">
+                <input type="checkbox" class="tree-chk" checked onchange="toggleParcelAiLayer('next_interventions', this.checked)">
+                <span class="tree-icon" style="color: #0284c7;"><i class="fa-solid fa-city"></i></span>
+                <span>შემდეგი რიგის ღონისძიებები და განაშენიანების კონტური</span>
+              </div>
+              <div class="tree-node-item">
+                <input type="checkbox" class="tree-chk" checked onchange="toggleParcelAiLayer('perspective_objects', this.checked)">
+                <span class="tree-icon" style="color: #0d9488;"><i class="fa-solid fa-building"></i></span>
+                <span>პერსპექტიული ობიექტები</span>
+              </div>
+              <div class="tree-node-item">
+                <input type="checkbox" class="tree-chk" checked onchange="toggleParcelAiLayer('geodynamics', this.checked)">
+                <span class="tree-icon" style="color: #10b981;"><i class="fa-solid fa-mountain"></i></span>
+                <span>გეოდინამიკა</span>
+              </div>
+              <div class="tree-node-item">
+                <input type="checkbox" class="tree-chk" checked onchange="toggleParcelAiLayer('building_contours', this.checked)">
+                <span class="tree-icon" style="color: #94a3b8;"><i class="fa-solid fa-shapes"></i></span>
+                <span>განაშენიანების კონტური</span>
+              </div>
+            </div>
+
+            <!-- Categories from Photo 2 -->
+            <div class="tree-node-parent" onclick="toggleParcelAiNode(this, 'grpTbilisiRestrParcel')">
+              <span class="tree-arrow">▶</span>
+              <span class="tree-icon"><i class="fa-solid fa-shield-halved"></i></span>
+              <span>თბილისის შეზღუდვის ზონები</span>
+            </div>
+            <div class="tree-children" id="grpTbilisiRestrParcel">
+              <div class="tree-node-item">
+                <input type="checkbox" class="tree-chk" checked onchange="toggleParcelAiLayer('red_lines', this.checked)">
+                <span>წითელი ხაზები</span>
+              </div>
+            </div>
+
+            <div class="tree-node-parent" onclick="toggleParcelAiNode(this, 'grpCadastreParcel')">
+              <span class="tree-arrow">▶</span>
+              <span class="tree-icon"><i class="fa-solid fa-satellite"></i></span>
+              <span>საკადასტრო მონაცემები</span>
+            </div>
+            <div class="tree-children" id="grpCadastreParcel">
+              <div class="tree-node-item">
+                <input type="checkbox" class="tree-chk" checked onchange="toggleParcelAiLayer('cadastre', this.checked)">
+                <span>რეგისტრირებული ნაკვეთები (NAPR)</span>
+              </div>
+            </div>
+          </div>
+
+
+
           <!-- 3D Three.js WebGL Canvas Container -->
           <div id="threeViewport" role="region" aria-label="3D WebGL Canvas View"></div>
+
+          <!-- Floating Solar Insolation & Shadow Control Panel (SunCalc Engine) -->
+          <div class="solar-control-panel" id="solarControlPanel" style="display: none;">
+            <div class="solar-header">
+              <span><i class="fa-solid fa-sun" style="margin-right: 6px;"></i> მზის ინსოლაცია & ჩრდილები</span>
+              <button type="button" class="btn-solar-play" id="btnPlaySolarAnimation" title="დღე-ღამის ციკლის ანიმაცია">
+                <i class="fa-solid fa-play" id="iconSolarPlay"></i>
+              </button>
+            </div>
+            
+            <div class="solar-date-chips">
+              <button type="button" class="btn-solar-chip active" data-date="03-21">21 მარ (ბუნიობა)</button>
+              <button type="button" class="btn-solar-chip" data-date="06-21">21 ივნ (ზაფხული)</button>
+              <button type="button" class="btn-solar-chip" data-date="09-21">21 სექ (ბუნიობა)</button>
+              <button type="button" class="btn-solar-chip" data-date="12-21">21 დეკ (ზამთარი)</button>
+            </div>
+
+            <div class="solar-slider-row">
+              <span style="font-size: 0.72rem; color: #94a3b8;">06:00</span>
+              <input type="range" class="solar-time-slider" id="solarTimeSlider" min="6" max="20" step="0.25" value="12">
+              <span style="font-size: 0.72rem; color: #94a3b8;">20:00</span>
+              <div class="solar-time-badge" id="solarTimeBadge">12:00</div>
+            </div>
+
+            <div class="solar-metrics-readout">
+              <span>სიმაღლე (Alt): <strong id="solarAltitudeVal" style="color: #fbbf24;">54.2°</strong></span>
+              <span>აზიმუტი (Az): <strong id="solarAzimuthVal" style="color: #38bdf8;">180.5°</strong></span>
+            </div>
+          </div>
 
           <!-- HUD Floating Overlays -->
           <div class="viewport-hud-overlay">
@@ -366,6 +1037,10 @@
             <div class="hud-pill-badge">
               <i class="fa-solid fa-chart-area" style="color: var(--cyan-neon);"></i>
               <span id="hudArea">1,250 მ²</span>
+            </div>
+            <div class="hud-terrain-pill" id="hudTerrainSlopePill" title="DEM ტოპოგრაფიული რელიეფის დახრა">
+              <i class="fa-solid fa-mountain"></i>
+              <span id="hudTerrainSlope">დახრა: 2.1% (ΔZ: 1.8 მ)</span>
             </div>
           </div>
 
@@ -422,6 +1097,63 @@
                 <span class="val" id="infoParcelAddress">თბილისი, საბურთალო, პეკინის გამზ. #28</span>
               </div>
               <div class="analytic-data-item">
+                <span class="label" data-i18n="urban_main_zone">ძირითადი ზონა</span>
+                <span class="val mainzone-highlight" id="infoParcelMainZone">საზოგადოებრივ-საქმიანი (სსზ)</span>
+              </div>
+              <div class="analytic-data-item">
+                <span class="label" data-i18n="urban_subzone">ფუნქციური ქვეზონა</span>
+                <span class="val subzone-highlight" id="infoParcelSubZone">საზოგადოებრივ-საქმიანი ქვეზონა 2 (სსზ-2)</span>
+              </div>
+
+              <!-- Manual Zone Entry Panel (shows only for live NAPR parcels without zone data) -->
+              <div id="zoneManualEntryPanel" style="display:none; margin-top:12px; padding:12px; background:rgba(255,165,0,0.08); border:1.5px solid rgba(255,165,0,0.4); border-radius:10px;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                  <i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i>
+                  <span style="font-size:0.8rem; font-weight:600; color:#f59e0b;" data-i18n="zone_manual_title">ზონა NAPR API-ში არ არის — ჩაწერეთ ხელით</span>
+                </div>
+                <p style="font-size:0.72rem; color:var(--text-secondary); margin-bottom:10px;" data-i18n="zone_manual_desc">
+                  ფუნქციური ზონა მუნიციპალური (არა NAPR) მონაცემია. გადახედეთ თქვენს ქ. თბილისის
+                  <a href="https://maps.tbilisi.gov.ge" target="_blank" style="color:var(--accent);">maps.tbilisi.gov.ge</a>-ს
+                  ან ადგილობრივ გეგმას და შეიყვანეთ ქვემოთ.
+                </p>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+                  <div>
+                    <label style="font-size:0.72rem; color:var(--text-muted); display:block; margin-bottom:4px;">ძირითადი ზონა</label>
+                    <select id="manualZoneMainSelect" style="width:100%; padding:6px 8px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text-primary); font-size:0.8rem;">
+                      <option value="">— აირჩიეთ —</option>
+                      <option value="sz">საცხოვრებელი (სზ)</option>
+                      <option value="ssz">საზოგადოებრივ-საქმიანი (სსზ)</option>
+                      <option value="pz">სამრეწველო (სმზ)</option>
+                      <option value="rz">სარეკრეაციო (რზ)</option>
+                      <option value="az">სასოფლო-სამეურნეო (სასმ)</option>
+                      <option value="other">სხვა</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style="font-size:0.72rem; color:var(--text-muted); display:block; margin-bottom:4px;">ქვეზონა (optional)</label>
+                    <input id="manualZoneSubInput" type="text" placeholder="მაგ.: სზ-2, სსზ-1..." style="width:100%; padding:6px 8px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text-primary); font-size:0.8rem; box-sizing:border-box;">
+                  </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:10px;">
+                  <div>
+                    <label style="font-size:0.72rem; color:var(--text-muted); display:block; margin-bottom:4px;">K1 (განაშენ.)</label>
+                    <input id="manualK1" type="number" min="0" max="1" step="0.01" placeholder="0.50" style="width:100%; padding:6px 8px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text-primary); font-size:0.8rem; box-sizing:border-box;">
+                  </div>
+                  <div>
+                    <label style="font-size:0.72rem; color:var(--text-muted); display:block; margin-bottom:4px;">K2 (ინტენს.)</label>
+                    <input id="manualK2" type="number" min="0" max="20" step="0.1" placeholder="2.10" style="width:100%; padding:6px 8px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text-primary); font-size:0.8rem; box-sizing:border-box;">
+                  </div>
+                  <div>
+                    <label style="font-size:0.72rem; color:var(--text-muted); display:block; margin-bottom:4px;">K3 (კეთ. ტ.)</label>
+                    <input id="manualK3" type="number" min="0" max="1" step="0.01" placeholder="0.30" style="width:100%; padding:6px 8px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text-primary); font-size:0.8rem; box-sizing:border-box;">
+                  </div>
+                </div>
+                <button id="applyManualZoneBtn" onclick="applyManualZone()" style="width:100%; padding:8px; background:var(--accent); color:#fff; border:none; border-radius:8px; font-size:0.82rem; font-weight:600; cursor:pointer; transition:opacity 0.2s;">
+                  <i class="fa-solid fa-check"></i> ზონის გამოყენება და ანალიზი
+                </button>
+              </div>
+
+              <div class="analytic-data-item">
                 <span class="label" data-i18n="parcel_info_terrain">რელიეფი</span>
                 <span class="val" id="infoParcelTerrain" style="font-size: 0.78rem; color: var(--text-secondary);">
                   ვაკე / მცირედ დახრილი (2%)
@@ -476,6 +1208,85 @@
             <div class="analytic-header-row">
               <h3 data-i18n="compliance_title">კოეფიციენტების კონტროლი</h3>
               <span class="provenance-tag-pill calculated" data-i18n="badge_calculated">რეალურ დროში</span>
+            </div>
+
+            <!-- Manual Coefficients & Zoning Settings Box -->
+            <div class="manual-coefficients-box" id="manualCoefficientsBox">
+              <div class="manual-coeff-header">
+                <span class="manual-coeff-title">
+                  <i class="fa-solid fa-sliders" style="color: var(--cyan-neon);"></i>
+                  <span data-i18n="coeff_settings_title">კოეფიციენტების პარამეტრები (ხელით შეყვანა)</span>
+                </span>
+                <button type="button" class="btn-coeff-reset" id="btnResetCoefficients" title="ნაგულისხმევზე დაბრუნება">
+                  <i class="fa-solid fa-rotate-left"></i>
+                  <span data-i18n="coeff_reset">ნაგულისხმევი</span>
+                </button>
+              </div>
+
+              <!-- Urban Zone Preset Selector -->
+              <div class="coeff-preset-row">
+                <label for="selectZoningPreset" class="coeff-field-label">
+                  <i class="fa-solid fa-city" style="color: var(--text-muted);"></i>
+                  <span data-i18n="coeff_zone_label">ქალაქმშენებლობითი ზონა:</span>
+                </label>
+                <select id="selectZoningPreset" class="coeff-zone-select">
+                  <option value="auto">ავტო (ნაკვეთის რეალური მონაცემებით)</option>
+                  <optgroup label="საცხოვრებელი ქვეზონები (სზ)">
+                    <option value="sz-1">საცხოვრებელი ქვეზონა 1 (სზ-1) — K1: 0.5 | K2: 0.8 | K3: 0.3</option>
+                    <option value="sz-2">საცხოვრებელი ქვეზონა 2 (სზ-2) — K1: 0.5 | K2: 1.2 | K3: 0.3</option>
+                    <option value="sz-3">საცხოვრებელი ქვეზონა 3 (სზ-3) — K1: 0.5 | K2: 1.5 | K3: 0.3</option>
+                    <option value="sz-4">საცხოვრებელი ქვეზონა 4 (სზ-4) — K1: 0.5 | K2: 1.8 | K3: 0.3</option>
+                    <option value="sz-5">საცხოვრებელი ქვეზონა 5 (სზ-5) — K1: 0.5 | K2: 2.1 | K3: 0.3</option>
+                    <option value="sz-6">საცხოვრებელი ქვეზონა 6 (სზ-6) — K1: 0.4 | K2: 2.5 | K3: 0.3</option>
+                  </optgroup>
+                  <optgroup label="საზოგადოებრივ-საქმიანი ქვეზონები (სსზ)">
+                    <option value="ssz-1">საზოგადოებრივ-საქმიანი ქვეზონა 1 (სსზ-1) — K1: 0.7 | K2: 2.4 | K3: 0.1</option>
+                    <option value="ssz-2">საზოგადოებრივ-საქმიანი ქვეზონა 2 (სსზ-2) — K1: 0.7 | K2: 3.5 | K3: 0.1</option>
+                    <option value="ssz-3">საზოგადოებრივ-საქმიანი ქვეზონა 3 (სსზ-3) — K1: 0.7 | K2: 4.6 | K3: 0.1</option>
+                  </optgroup>
+                  <optgroup label="საკურორტო და სარეკრეაციო ზონები">
+                    <option value="skz">საკურორტო ზონა (სკზ) — K1: 0.3 | K2: 0.9 | K3: 0.5</option>
+                    <option value="rz-1">სარეკრეაციო ზონა 1 (რზ-1) — შეზღუდული (K1: 0.2 | K2: 0.4)</option>
+                    <option value="rz-2">სარეკრეაციო ზონა 2 (რზ-2) — შეზღუდული (K1: 0.2 | K2: 0.4)</option>
+                    <option value="lz">ლანდშაფტურ-სარეკრეაციო (ლზ) — მშენებლობა აკრძალულია!</option>
+                  </optgroup>
+                  <optgroup label="სპეციალური და სატრანსპორტო ზონები">
+                    <option value="saz">სანიტარიული / დამცავი ზონა (საზ) — მშენებლობა აკრძალულია!</option>
+                    <option value="tz">სატრანსპორტო ზონა (ტზ) — მხოლოდ ინფრასტრუქტურა</option>
+                  </optgroup>
+                  <option value="custom">ინდივიდუალური (გრგ / გაპ / ხელით შეყვანა)</option>
+                </select>
+              </div>
+
+              <!-- Manual Inputs Grid: K1, K2, K3 -->
+              <div class="coeff-inputs-grid">
+                <div class="coeff-input-item">
+                  <label for="inputAllowedK1">
+                    <span data-i18n="coeff_k1_label">K1 (დასაშვები):</span>
+                  </label>
+                  <div class="coeff-input-wrap">
+                    <input type="number" id="inputAllowedK1" step="0.01" min="0.05" max="1.0" value="0.50">
+                  </div>
+                </div>
+
+                <div class="coeff-input-item">
+                  <label for="inputAllowedK2">
+                    <span data-i18n="coeff_k2_label">K2 (დასაშვები):</span>
+                  </label>
+                  <div class="coeff-input-wrap">
+                    <input type="number" id="inputAllowedK2" step="0.05" min="0.1" max="12.0" value="2.20">
+                  </div>
+                </div>
+
+                <div class="coeff-input-item">
+                  <label for="inputAllowedK3">
+                    <span data-i18n="coeff_k3_label">K3 (მინიმალური):</span>
+                  </label>
+                  <div class="coeff-input-wrap">
+                    <input type="number" id="inputAllowedK3" step="0.01" min="0.0" max="1.0" value="0.30">
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Overall Compliance Status Banner -->
@@ -538,6 +1349,171 @@
             <div class="underground-info-row">
               <i class="fa-solid fa-arrow-down" style="color: var(--cyan-neon);"></i>
               <span>მიწისქვეშა ფართობი: <strong id="assessUndergroundGFA">450 მ²</strong> (არ ითვლება K2-ში)</span>
+            </div>
+          </div>
+
+          <!-- Section 3b: Comprehensive Urban Planning Passport & Legal Report (დადგენილება 14-39, 41, მისაწვდომობა / matsne.gov.ge) -->
+          <div class="section-block-analytic legal-regulations-card" id="legalRegulationsCard">
+            <div class="analytic-header-row">
+              <h3 data-i18n="legal_regulations_title">ქალაქმშენებლობითი პასპორტი და იურიდიული შემოწმება</h3>
+              <a href="https://matsne.gov.ge" target="_blank" rel="noopener noreferrer" class="matsne-pill-badge" title="საქართველოს საკანონმდებლო მაცნე">
+                <i class="fa-solid fa-scale-balanced"></i>
+                <span data-i18n="legal_matsne_badge">matsne.gov.ge</span>
+              </a>
+            </div>
+
+            <!-- Zoning & GRG Status Passport Header -->
+            <div class="passport-header-box">
+              <div class="passport-zone-line">
+                <span class="passport-label" data-i18n="legal_main_zone_label">ძირითადი ფუნქციური ზონა:</span>
+                <span class="passport-zone-val mainzone-highlight" id="passportMainZoneDisplay">საზოგადოებრივ-საქმიანი ზონა (სსზ)</span>
+              </div>
+
+              <div class="passport-zone-line">
+                <span class="passport-label" data-i18n="legal_subzone_label">ფუნქციური ქვეზონა:</span>
+                <strong class="passport-zone-val subzone-highlight" id="passportSubZoneDisplay">საზოგადოებრივ-საქმიანი ქვეზონა 2 (სსზ-2)</strong>
+                <span id="passportZoneDisplay" style="display:none;">სსზ-2</span>
+              </div>
+
+              <div class="passport-grg-line">
+                <span class="passport-label" data-i18n="legal_grg_status_label">კოეფიციენტის საფუძველი:</span>
+                <span class="grg-status-pill standard" id="passportGrgStatusBadge">ზონის სტანდარტული ნორმატივით (გრგ-ს გარეშე)</span>
+              </div>
+
+              <!-- Interactive GRG Toggle -->
+              <div class="grg-toggle-row">
+                <label class="grg-switch-label" for="chkGrgActive">
+                  <input type="checkbox" id="chkGrgActive">
+                  <span class="grg-switch-slider"></span>
+                  <span class="grg-switch-text" data-i18n="legal_grg_toggle_label">მოქმედებს გრგ (განაშენიანების რეგულირების გეგმა)</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Buildability Status Banner (დაშვებულია / შეზღუდულია / აკრძალულია) -->
+            <div class="buildability-banner build-allowed" id="buildabilityStatusBanner">
+              <div class="buildability-icon">
+                <i class="fa-solid fa-circle-check" id="buildabilityIcon"></i>
+              </div>
+              <div class="buildability-content">
+                <strong id="buildabilityTitle" data-i18n="legal_buildability_allowed">მშენებლობა დაშვებულია</strong>
+                <span id="buildabilityDesc">ზონირების მიხედვით ნაკვეთზე კაპიტალური განაშენიანება ნებადართულია.</span>
+              </div>
+            </div>
+
+            <!-- Section 1: რა ტიპის მშენებლობაა შესაძლებელი? (Permitted Typologies) -->
+            <div class="legal-group-box">
+              <div class="legal-group-title">
+                <i class="fa-solid fa-city" style="color: #38bdf8;"></i>
+                <span data-i18n="legal_allowed_typologies_title">რა ტიპის მშენებლობაა შესაძლებელი?</span>
+              </div>
+              <div class="legal-typologies-container" id="legalAllowedTypologiesGrid">
+                <!-- Dynamically populated tags and permitted buildings -->
+              </div>
+            </div>
+
+            <!-- Section 2: ნაკვეთის მინიმალური მოთხოვნები (Resolution 14-39) -->
+            <div class="legal-group-box">
+              <div class="legal-group-title">
+                <i class="fa-solid fa-ruler-combined" style="color: var(--cyan-neon);"></i>
+                <span data-i18n="legal_min_requirements_title">ნაკვეთის მინიმალური მოთხოვნები</span>
+              </div>
+
+              <div class="legal-check-item">
+                <span class="legal-check-label" data-i18n="legal_parcel_min_area">ნაკვეთის მინ. ფართობი:</span>
+                <span class="legal-check-val">
+                  <span id="legalMinAreaRequirement">მინ. 400 მ²</span> / ფაქტი: <strong id="legalActualAreaVal">1,250 მ²</strong>
+                  <span class="legal-status-tag pass" id="legalAreaStatusTag">ნორმაშია</span>
+                </span>
+              </div>
+
+              <div class="legal-check-item">
+                <span class="legal-check-label" data-i18n="legal_parcel_min_frontage">მინ. ფრონტი (სიგანე):</span>
+                <span class="legal-check-val">
+                  <span id="legalMinFrontageRequirement">მინ. 14 მ</span> / გათვლილი: <strong id="legalActualFrontageVal">~32 მ</strong>
+                  <span class="legal-status-tag pass" id="legalFrontageStatusTag">ნორმაშია</span>
+                </span>
+              </div>
+
+              <div class="legal-check-item">
+                <span class="legal-check-label" data-i18n="legal_setback_label">სამეზობლო მიჯნა (დაცილება საზღვრიდან):</span>
+                <div class="legal-setback-result" id="legalSetbackResult">
+                  <span class="legal-status-tag pass" id="legalSetbackStatusTag">დაცულია (≥ 3.0 მ)</span>
+                  <span class="legal-subtext" id="legalSetbackDetail">შენობის უმოკლესი დაცილება საზღვრიდან: ~4.2 მ</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section 3: საკანონმდებლო შეზღუდვები (Restrictions & Limitations) -->
+            <div class="legal-group-box">
+              <div class="legal-group-title">
+                <i class="fa-solid fa-triangle-exclamation" style="color: #f59e0b;"></i>
+                <span data-i18n="legal_restrictions_title">საკანონმდებლო შეზღუდვები (დადგენილება 14-39 & 41)</span>
+              </div>
+              <ul class="legal-bullets-list" id="legalRestrictionsList">
+                <!-- Dynamically populated restrictions -->
+              </ul>
+            </div>
+
+            <!-- Section 4: სავალდებულო ვალდებულებები და ნორმები (Obligations & Safety) -->
+            <div class="legal-group-box">
+              <div class="legal-group-title">
+                <i class="fa-solid fa-list-check" style="color: #10b981;"></i>
+                <span data-i18n="legal_obligations_title">სავალდებულო მოთხოვნები და ვალდებულებები</span>
+              </div>
+              <ul class="legal-bullets-list" id="legalObligationsList">
+                <!-- Dynamically populated obligations -->
+              </ul>
+            </div>
+
+            <!-- Resolution 41 & Accessibility Quick Summary -->
+            <div class="legal-group-box">
+              <div class="legal-group-title">
+                <i class="fa-solid fa-wheelchair" style="color: #a855f7;"></i>
+                <span data-i18n="legal_access_title">მისაწვდომობის ეროვნული სტანდარტი (შშმ პირებისთვის)</span>
+              </div>
+
+              <div class="legal-check-item">
+                <span class="legal-check-label" data-i18n="legal_ramp_norm">პანდუსის ქანობი და გაბარიტი:</span>
+                <span class="legal-check-val">
+                  <span>ქანობი: მაქს. 1:12 (8%) | სიგანე ≥ 1.00 მ</span>
+                  <span class="legal-status-tag pass">სტანდარტით</span>
+                </span>
+              </div>
+
+              <div class="legal-check-item">
+                <span class="legal-check-label" data-i18n="legal_pwd_parking">ადაპტირებული შშმ პარკინგი (3.5×5.0 მ):</span>
+                <span class="legal-check-val">
+                  სავალდებულოა: <strong id="legalPwdParkingSpots">მინ. 1 ადგილი</strong> (1 ადგილი ყოველ 25-ზე)
+                  <span class="legal-status-tag pass" id="legalPwdParkingTag">გათვალისწინებულია</span>
+                </span>
+              </div>
+
+              <div class="legal-check-item">
+                <span class="legal-check-label" data-i18n="legal_elevator_norm">ადაპტირებული ლიფტი (ხმოვანი/ბრაილი):</span>
+                <span class="legal-check-val" id="legalElevatorRequirement">
+                  <span class="legal-status-tag pass">სავალდებულოა (კაბინა ≥ 1.10×1.40 მ)</span>
+                </span>
+              </div>
+            </div>
+
+            <!-- Official Links to matsne.gov.ge -->
+            <div class="legal-links-box">
+              <span class="legal-links-title" data-i18n="legal_links_title">ოფიციალური წყაროები საკანონმდებლო მაცნეზე (matsne.gov.ge):</span>
+              <div class="legal-links-list">
+                <a href="https://matsne.gov.ge/ka/document/view/3300826" target="_blank" rel="noopener noreferrer" class="legal-ext-link">
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                  <span data-i18n="legal_link_1439">თბილისის საკრებულოს დადგენილება №14-39</span>
+                </a>
+                <a href="https://matsne.gov.ge/ka/document/view/3177726" target="_blank" rel="noopener noreferrer" class="legal-ext-link">
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                  <span data-i18n="legal_link_41_safety">საქართველოს მთავრობის დადგენილება №41 (უსაფრთხოება)</span>
+                </a>
+                <a href="https://matsne.gov.ge/ka/document/view/2180738" target="_blank" rel="noopener noreferrer" class="legal-ext-link">
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                  <span data-i18n="legal_link_41_access">საქართველოს მთავრობის დადგენილება №41 / №723 (მისაწვდომობა)</span>
+                </a>
+              </div>
             </div>
           </div>
 
@@ -620,28 +1596,106 @@
             </div>
           </div>
 
-          <!-- Section 6: Export Tools (Item 15 in user requirements) -->
+          <!-- Section 5b: AI Regulatory Risk & Feasibility Audit (Module 4B) -->
           <div class="section-block-analytic">
             <div class="analytic-header-row">
-              <h3 data-i18n="export_title">პროექტის ექსპორტი</h3>
+              <h3 data-i18n="risk_audit_title">AI რისკების აუდიტი (გპპ I ეტაპი)</h3>
+              <span class="provenance-tag-pill ai" data-i18n="badge_ai_audit">AI ანალიზი</span>
             </div>
 
-            <div class="export-buttons-grid">
-              <button type="button" class="btn-export-tile" id="exportBtnPdf">
-                <i class="fa-solid fa-file-pdf" style="color: #ef4444;"></i>
-                <span data-i18n="export_btn_pdf">PDF ანგარიში</span>
+            <div class="ai-risk-card-container">
+              <div class="risk-score-header">
+                <span style="font-weight: 600; font-size: 0.78rem;">საერთო რისკის დონე:</span>
+                <span class="risk-score-pill low" id="riskOverallScoreBadge">დაბალი (LOW)</span>
+              </div>
+
+              <!-- Cultural Heritage Check -->
+              <div class="risk-check-item">
+                <i class="fa-solid fa-circle-check risk-icon-pass" id="iconRiskHeritage"></i>
+                <div style="flex:1;">
+                  <strong style="color: #f8fafc;">კულტურული მემკვიდრეობის ზონა</strong>
+                  <div id="descRiskHeritage" style="color: #94a3b8; font-size: 0.7rem;">ნაკვეთი დაცულ ისტორიულ არეალს მიღმაა.</div>
+                </div>
+              </div>
+
+              <!-- Red Lines Road Widening Check -->
+              <div class="risk-check-item">
+                <i class="fa-solid fa-circle-check risk-icon-pass" id="iconRiskRedLines"></i>
+                <div style="flex:1;">
+                  <strong style="color: #f8fafc;">წითელი ხაზები &amp; საგზაო შეზღუდვა</strong>
+                  <div id="descRiskRedLines" style="color: #94a3b8; font-size: 0.7rem;">სატრანსპორტო წითელი ხაზების გადაკვეთა არ ფიქსირდება (≥ 3.0 მ).</div>
+                </div>
+              </div>
+
+              <!-- Slope Failure / Earthwork Gradient Risk -->
+              <div class="risk-check-item">
+                <i class="fa-solid fa-circle-check risk-icon-pass" id="iconRiskSlope"></i>
+                <div style="flex:1;">
+                  <strong style="color: #f8fafc;">ფერდობის დახრა &amp; გეოდინამიკა</strong>
+                  <div id="descRiskSlope" style="color: #94a3b8; font-size: 0.7rem;">დახრა &lt; 10% (ვაკე / მცირე დახრილობა). გრუნტის მეწყრული რისკი მინიმალურია.</div>
+                </div>
+              </div>
+
+              <!-- Actionable GAP Advice Box -->
+              <div class="gap-advice-box" id="gapAdviceRecommendation">
+                <strong style="color: #38bdf8; display: flex; align-items: center; gap: 5px; margin-bottom: 3px;">
+                  <i class="fa-solid fa-shield-halved"></i> გპპ I ეტაპის რეკომენდაცია:
+                </strong>
+                <span id="gapAdviceText">
+                  ნაკვეთზე რეკომენდებულია მშენებლობის ნებართვის I ეტაპის (გპპ) განაცხადის შეტანა. საჭიროა საინჟინრო-გეოლოგიური დასკვნა და სატრანსპორტო სქემის თანდართვა.
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 6: CAD & BIM Export Engine (Module 3 & 4C) -->
+          <div class="section-block-analytic">
+            <div class="analytic-header-row">
+              <h3 data-i18n="export_title">BIM / CAD ექსპორტის ძრავი</h3>
+              <span class="provenance-tag-pill official">AutoCAD &amp; IFC Ready</span>
+            </div>
+
+            <!-- Primary 1-Click Automated GAP Feasibility PDF Report -->
+            <button type="button" class="btn-export-tile-primary" id="exportBtnGapPdf" style="margin-bottom: 8px;">
+              <i class="fa-solid fa-file-contract" style="font-size: 1.1rem; color: #00f2fe;"></i>
+              <span>გპპ PDF ოფიციალური დასკვნა (I ეტაპი)</span>
+            </button>
+
+            <div class="export-buttons-grid-extended">
+              <!-- BIM Export (.IFC) -->
+              <button type="button" class="btn-export-tile" id="exportBtnIfc" title="BIM IFC 2x3 / IFC4 Standard Model">
+                <i class="fa-solid fa-cubes-stacked" style="color: #38bdf8;"></i>
+                <span>BIM (.IFC)</span>
               </button>
-              <button type="button" class="btn-export-tile" id="exportBtnPng">
-                <i class="fa-solid fa-image" style="color: var(--cyan-neon);"></i>
-                <span data-i18n="export_btn_png">PNG სურათი</span>
+
+              <!-- Vector CAD Export (.DXF) -->
+              <button type="button" class="btn-export-tile" id="exportBtnDxf" title="AutoCAD DXF with Cadastral & Red Lines Layers">
+                <i class="fa-solid fa-draw-polygon" style="color: #f43f5e;"></i>
+                <span>CAD (.DXF)</span>
               </button>
-              <button type="button" class="btn-export-tile" id="exportBtnGeoJson">
-                <i class="fa-solid fa-map-location-dot" style="color: #10b981;"></i>
-                <span data-i18n="export_btn_geojson">GeoJSON</span>
-              </button>
-              <button type="button" class="btn-export-tile" id="exportBtnObj">
+
+              <!-- 3D OBJ Export -->
+              <button type="button" class="btn-export-tile" id="exportBtnObj" title="Wavefront 3D OBJ Massing">
                 <i class="fa-solid fa-cube" style="color: #f59e0b;"></i>
-                <span data-i18n="export_btn_obj">3D OBJ</span>
+                <span>3D (.OBJ)</span>
+              </button>
+
+              <!-- 3D GLTF Export -->
+              <button type="button" class="btn-export-tile" id="exportBtnGltf" title="glTF 2.0 3D Scene">
+                <i class="fa-solid fa-shapes" style="color: #a855f7;"></i>
+                <span>3D (.GLTF)</span>
+              </button>
+
+              <!-- GeoJSON Spatial Data -->
+              <button type="button" class="btn-export-tile" id="exportBtnGeoJson" title="GeoJSON Boundary & Footprint Coordinates">
+                <i class="fa-solid fa-map-location-dot" style="color: #10b981;"></i>
+                <span>GeoJSON</span>
+              </button>
+
+              <!-- High-res Render PNG -->
+              <button type="button" class="btn-export-tile" id="exportBtnPng" title="High-resolution WebGL Snapshot">
+                <i class="fa-solid fa-image" style="color: #06b6d4;"></i>
+                <span>PNG რენდერი</span>
               </button>
             </div>
           </div>
@@ -694,14 +1748,24 @@
   <!-- 1. Leaflet GIS Library -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
-  <!-- 2. Three.js 3D WebGL Library -->
+  <!-- 2. Three.js 3D WebGL Library & Exporters -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/OBJExporter.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
 
   <!-- 3. Turf.js GIS Spatial Calculations -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
 
-  <!-- 4. Platform Scripts -->
+  <!-- 4. SunCalc Solar & Shadow Insolation Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
+
+  <!-- 5. jsPDF & AutoTable for Automated GAP Feasibility PDF Reports -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="assets/fonts/georgian-font-data.js"></script>
+
+  <!-- 6. Platform Scripts -->
   <script src="translations.js"></script>
   <script src="main.js"></script>
   <script src="parcel-ai.js"></script>

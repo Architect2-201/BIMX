@@ -2,12 +2,23 @@
   "name": "bimx-ge",
   "version": "1.0.0",
   "description": "BIMX - Building Information Modeling & Digital Engineering Platform",
-  "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js"
   },
-  "keywords": ["bim", "revit", "engineering", "bimx", "georgia"],
+  "keywords": [
+    "bim",
+    "revit",
+    "engineering",
+    "bimx",
+    "georgia"
+  ],
   "author": "BIMX Georgia",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "vercel": "^59.15.1"
+  },
+  "dependencies": {
+    "dxf-writer": "^1.18.4"
+  }
 }
