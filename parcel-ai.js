@@ -1313,6 +1313,82 @@ document.addEventListener('DOMContentLoaded', () => {
     return thermalData;
   }
 
+  // Dedicated high-resolution 3D Billboard Sprite for Facade & Roof Thermal Telemetry
+  function createThermalBadgeSprite(title, power, status, isKa, icon = '') {
+    const canvas = document.createElement('canvas');
+    canvas.width = 460;
+    canvas.height = 124;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, 460, 124);
+
+    let badgeColor = '#38bdf8'; // cold blue
+    let badgeLabel = isKa ? 'ცივი მხარე' : 'Cold Zone';
+    if (status === 'hot') {
+      badgeColor = '#ef4444'; // hot red
+      badgeLabel = isKa ? 'ცხელი მხარე' : 'Hot Zone';
+    } else if (status === 'warm') {
+      badgeColor = '#f59e0b'; // warm amber
+      badgeLabel = isKa ? 'თბილი მხარე' : 'Warm Zone';
+    } else if (power === 0) {
+      badgeColor = '#818cf8'; // night indigo
+      badgeLabel = isKa ? 'ცივი (ღამე)' : 'Night / Cold';
+    }
+
+    // Card background with sleek rounded corners
+    ctx.fillStyle = 'rgba(10, 15, 29, 0.94)';
+    ctx.strokeStyle = badgeColor;
+    ctx.lineWidth = 3;
+    if (ctx.roundRect) {
+      ctx.beginPath();
+      ctx.roundRect(4, 4, 452, 116, 14);
+      ctx.fill();
+      ctx.stroke();
+    } else {
+      ctx.fillRect(4, 4, 452, 116);
+      ctx.strokeRect(4, 4, 452, 116);
+    }
+
+    // Header: Icon + Title
+    ctx.font = 'bold 22px sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'left';
+    ctx.fillText(`${icon} ${title}`, 20, 36);
+
+    // Power Reading
+    ctx.font = 'bold 38px monospace';
+    ctx.fillStyle = (status === 'hot') ? '#fca5a5' : ((status === 'warm') ? '#fef08a' : '#bae6fd');
+    ctx.fillText(`${power} W/m²`, 20, 86);
+
+    // Status Pill on Right
+    const pillW = 168;
+    const pillH = 36;
+    const pillX = 460 - pillW - 16;
+    const pillY = 56;
+
+    ctx.fillStyle = badgeColor;
+    if (ctx.roundRect) {
+      ctx.beginPath();
+      ctx.roundRect(pillX, pillY, pillW, pillH, 8);
+      ctx.fill();
+    } else {
+      ctx.fillRect(pillX, pillY, pillW, pillH);
+    }
+
+    ctx.font = 'bold 16px sans-serif';
+    ctx.fillStyle = (status === 'warm') ? '#1e293b' : '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.fillText(badgeLabel, pillX + pillW / 2, pillY + 24);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.minFilter = THREE.LinearFilter;
+    const mat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false });
+    const sprite = new THREE.Sprite(mat);
+    sprite.scale.set(12, 3.2, 1);
+    return sprite;
+  }
+
+  // Renders the Full Solid Architectural Building as an Insolation Thermal Model
+  // South, North, East, West facades & Roof are individually colored in Hot (Red), Warm (Amber), Cold (Blue)
   function renderBuildingThermalHeatmap(thermalData) {
     if (!solarHeatmapGroup || !scene) return;
 
@@ -1331,6 +1407,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const isVisible = isSolarMode && (state.showThermalHeatmap !== false);
     solarHeatmapGroup.visible = isVisible;
 
+    // When thermal heatmap is active, hide normal textured building so thermal colors are 100% visible!
+    if (buildingGroup) {
+      buildingGroup.visible = !isVisible;
+    }
+
     if (!isVisible || !thermalData) return;
 
     const parcel = state.activeParcel;
@@ -1338,6 +1419,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const sunVec = thermalData.sunVector;
     const isDay = thermalData.isDay;
+    const isKa = (state.currentLang !== 'en');
 
     state.buildings.forEach((bldg) => {
       const fp = computeFootprintGeometry(parcel, bldg);
@@ -1349,12 +1431,20 @@ document.addEventListener('DOMContentLoaded', () => {
       const corners = fp.corners;
       const n = corners.length;
 
-      // Compute centroid for outward normal orientation
+      // Centroid for outward orientation
       let cx = 0, cz = 0;
       corners.forEach(p => { cx += p.x; cz += p.y; });
       cx /= n; cz /= n;
 
-      // Render Each Facade Wall Segment with Dynamic Thermal Colors
+      const xs = corners.map(p => p.x);
+      const zs = corners.map(p => p.y);
+      const minX = Math.min(...xs), maxX = Math.max(...xs);
+      const minZ = Math.min(...zs), maxZ = Math.max(...zs);
+
+      // Floor line positions collector
+      const floorLinesPts = [];
+
+      // 1. Render Each Facade Wall with Accurate Solar Normal & Thermal Color
       for (let i = 0; i < n; i++) {
         const p1 = corners[i];
         const p2 = corners[(i + 1) % n];
@@ -1369,7 +1459,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const mx = (x1 + x2) / 2;
         const mz = (z1 + z2) / 2;
-
         const vx = mx - cx;
         const vz = mz - cz;
 
@@ -1384,32 +1473,35 @@ document.addEventListener('DOMContentLoaded', () => {
         const cosTheta = isDay ? Math.max(0, wallNormal.dot(sunVec)) : 0;
         const irradiance = isDay ? Math.round(thermalData.I_beam * cosTheta + thermalData.I_diff * 0.5) : 0;
 
-        let faceColor = 0x38bdf8;
-        let faceEmissive = 0x0284c7;
-        if (irradiance >= 650) {
+        let faceColor = 0x0284c7; // Cold Sky Blue
+        let faceEmissive = 0x0369a1;
+        let emissiveIntensity = 0.42;
+
+        if (!isDay) {
+          faceColor = 0x1e293b; // Night Navy
+          faceEmissive = 0x0f172a;
+          emissiveIntensity = 0.2;
+        } else if (irradiance >= 650) {
           faceColor = 0xef4444; // Crimson Hot
-          faceEmissive = 0xb91c1c;
+          faceEmissive = 0xdc2626;
+          emissiveIntensity = 0.55;
         } else if (irradiance >= 300) {
-          faceColor = 0xf59e0b; // Golden Warm
-          faceEmissive = 0xb45309;
-        } else {
-          faceColor = isDay ? 0x38bdf8 : 0x1e3a8a; // Azure Cold
-          faceEmissive = isDay ? 0x0369a1 : 0x0f172a;
+          faceColor = 0xf59e0b; // Sunlit Warm Amber
+          faceEmissive = 0xd97706;
+          emissiveIntensity = 0.48;
         }
 
-        const offset = 0.08;
-        const ox = nx * offset;
-        const oz = nz * offset;
-
+        // Outward facing quad with correct vertex winding
         const geom = new THREE.BufferGeometry();
         const vertices = new Float32Array([
-          x1 + ox, 0, z1 + oz,
-          x2 + ox, 0, z2 + oz,
-          x2 + ox, totalAboveH, z2 + oz,
-
-          x1 + ox, 0, z1 + oz,
-          x2 + ox, totalAboveH, z2 + oz,
-          x1 + ox, totalAboveH, z1 + oz
+          // Triangle 1: (x1,0,z1), (x2,totalAboveH,z2), (x2,0,z2)
+          x1, 0, z1,
+          x2, totalAboveH, z2,
+          x2, 0, z2,
+          // Triangle 2: (x1,0,z1), (x1,totalAboveH,z1), (x2,totalAboveH,z2)
+          x1, 0, z1,
+          x1, totalAboveH, z1,
+          x2, totalAboveH, z2
         ]);
         geom.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
         geom.computeVertexNormals();
@@ -1417,93 +1509,226 @@ document.addEventListener('DOMContentLoaded', () => {
         const mat = new THREE.MeshStandardMaterial({
           color: faceColor,
           emissive: faceEmissive,
-          emissiveIntensity: 0.35,
-          roughness: 0.3,
+          emissiveIntensity: emissiveIntensity,
+          roughness: 0.25,
           metalness: 0.1,
-          transparent: true,
-          opacity: 0.85,
           side: THREE.DoubleSide
         });
 
         const wallMesh = new THREE.Mesh(geom, mat);
+        wallMesh.castShadow = true;
+        wallMesh.receiveShadow = true;
         solarHeatmapGroup.add(wallMesh);
 
-        // Subtle architectural wireframe edge outline
+        // Architectural corner edge outline
         const wireGeom = new THREE.EdgesGeometry(geom);
         const wireMat = new THREE.LineBasicMaterial({
           color: 0xffffff,
           transparent: true,
-          opacity: 0.35
+          opacity: 0.45
         });
         const wireLine = new THREE.LineSegments(wireGeom, wireMat);
         solarHeatmapGroup.add(wireLine);
+
+        // Store horizontal floor lines for this wall
+        for (let f = 1; f < floorsAbove; f++) {
+          const fy = f * floorH;
+          floorLinesPts.push(x1, fy, z1, x2, fy, z2);
+        }
       }
 
-      // Roof Thermal Slab Overlay
-      const roofShape = new THREE.Shape();
-      corners.forEach((pt, idx) => {
-        if (idx === 0) roofShape.moveTo(pt.x, -pt.y);
-        else roofShape.lineTo(pt.x, -pt.y);
-      });
-      roofShape.closePath();
+      // Add Floor Level Subdivisions across all facades
+      if (floorLinesPts.length > 0) {
+        const floorGeom = new THREE.BufferGeometry();
+        floorGeom.setAttribute('position', new THREE.Float32BufferAttribute(floorLinesPts, 3));
+        const floorLineMat = new THREE.LineBasicMaterial({
+          color: 0xffffff,
+          transparent: true,
+          opacity: 0.35
+        });
+        const floorLines = new THREE.LineSegments(floorGeom, floorLineMat);
+        solarHeatmapGroup.add(floorLines);
+      }
 
-      const roofGeom = new THREE.ExtrudeGeometry(roofShape, { depth: 0.12, bevelEnabled: false });
+      // 2. Render Roof with Roof Thermal Material
+      let roofColor = 0x0284c7;
+      let roofEmissive = 0x0369a1;
+      let roofEmissiveIntensity = 0.45;
+      if (!isDay) {
+        roofColor = 0x1e293b;
+        roofEmissive = 0x0f172a;
+        roofEmissiveIntensity = 0.2;
+      } else if (thermalData.roof.power >= 650) {
+        roofColor = 0xef4444; // Peak Solar Irradiance
+        roofEmissive = 0xdc2626;
+        roofEmissiveIntensity = 0.6;
+      } else if (thermalData.roof.power >= 300) {
+        roofColor = 0xf59e0b; // Warm Solar Irradiance
+        roofEmissive = 0xd97706;
+        roofEmissiveIntensity = 0.5;
+      }
+
       const roofMat = new THREE.MeshStandardMaterial({
-        color: thermalData.roof.colorHex,
-        emissive: thermalData.roof.status === 'hot' ? 0xb91c1c : (thermalData.roof.status === 'warm' ? 0xb45309 : 0x0369a1),
-        emissiveIntensity: 0.35,
-        roughness: 0.25,
-        metalness: 0.1,
-        transparent: true,
-        opacity: 0.88
+        color: roofColor,
+        emissive: roofEmissive,
+        emissiveIntensity: roofEmissiveIntensity,
+        roughness: 0.28,
+        metalness: 0.15,
+        side: THREE.DoubleSide
       });
-      const roofMesh = new THREE.Mesh(roofGeom, roofMat);
-      roofMesh.rotation.x = -Math.PI / 2;
-      roofMesh.position.set(0, totalAboveH + 0.08, 0);
-      solarHeatmapGroup.add(roofMesh);
 
-      // 3D Cardinal Facade Thermal Indicators (Floating Badges)
-      const xs = corners.map(p => p.x);
-      const zs = corners.map(p => p.y);
-      const minX = Math.min(...xs), maxX = Math.max(...xs);
-      const minZ = Math.min(...zs), maxZ = Math.max(...zs);
+      const roofType = bldg.roofType || 'flat';
+      const roofAngleRad = ((bldg.roofAngle !== undefined ? bldg.roofAngle : 15) * Math.PI) / 180;
+      const slopeDir = bldg.roofSlopeDir || 'south';
+
+      if (roofType === 'shed') {
+        // Sloped Mono-Pitch Roof
+        const spanX = Math.max(1, maxX - minX);
+        const spanZ = Math.max(1, maxZ - minZ);
+        const span = (slopeDir === 'east' || slopeDir === 'west') ? spanX : spanZ;
+        const deltaH = Math.max(0.8, Math.tan(roofAngleRad) * span);
+
+        const getSlopeH = (x, z) => {
+          let t = 0;
+          if (slopeDir === 'south') t = (z - minZ) / spanZ;
+          else if (slopeDir === 'north') t = (maxZ - z) / spanZ;
+          else if (slopeDir === 'east') t = (x - minX) / spanX;
+          else if (slopeDir === 'west') t = (maxX - x) / spanX;
+          return Math.max(0, Math.min(1, t)) * deltaH;
+        };
+
+        const shapePoints = corners.map(p => new THREE.Vector2(p.x, -p.y));
+        const triangles = THREE.ShapeUtils.triangulateShape(shapePoints, []);
+        const roofGeom = new THREE.BufferGeometry();
+        const positions = [];
+
+        triangles.forEach(tri => {
+          const p0 = corners[tri[0]], p1 = corners[tri[1]], p2 = corners[tri[2]];
+          const v0 = new THREE.Vector3(p0.x, totalAboveH + getSlopeH(p0.x, p0.y) + 0.15, p0.y);
+          const v1 = new THREE.Vector3(p1.x, totalAboveH + getSlopeH(p1.x, p1.y) + 0.15, p1.y);
+          const v2 = new THREE.Vector3(p2.x, totalAboveH + getSlopeH(p2.x, p2.y) + 0.15, p2.y);
+          positions.push(v0.x, v0.y, v0.z, v1.x, v1.y, v1.z, v2.x, v2.y, v2.z);
+        });
+
+        roofGeom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        roofGeom.computeVertexNormals();
+        const shedMesh = new THREE.Mesh(roofGeom, roofMat);
+        solarHeatmapGroup.add(shedMesh);
+
+      } else if (roofType === 'gable') {
+        // Sloped Dual-Pitch Gable Roof
+        const spanX = Math.max(1, maxX - minX);
+        const spanZ = Math.max(1, maxZ - minZ);
+        const isLongitudinalX = spanX >= spanZ;
+        const midVal = isLongitudinalX ? (minZ + maxZ) / 2 : (minX + maxX) / 2;
+        const halfSpan = isLongitudinalX ? spanZ / 2 : spanX / 2;
+        const deltaH = Math.max(1.0, Math.tan(roofAngleRad) * halfSpan);
+
+        const getGableH = (x, z) => {
+          const dist = isLongitudinalX ? Math.abs(z - midVal) : Math.abs(x - midVal);
+          return Math.max(0, (1 - dist / halfSpan)) * deltaH;
+        };
+
+        const shapePoints = corners.map(p => new THREE.Vector2(p.x, -p.y));
+        const triangles = THREE.ShapeUtils.triangulateShape(shapePoints, []);
+        const roofGeom = new THREE.BufferGeometry();
+        const positions = [];
+
+        triangles.forEach(tri => {
+          const p0 = corners[tri[0]], p1 = corners[tri[1]], p2 = corners[tri[2]];
+          const v0 = new THREE.Vector3(p0.x, totalAboveH + getGableH(p0.x, p0.y) + 0.15, p0.y);
+          const v1 = new THREE.Vector3(p1.x, totalAboveH + getGableH(p1.x, p1.y) + 0.15, p1.y);
+          const v2 = new THREE.Vector3(p2.x, totalAboveH + getGableH(p2.x, p2.y) + 0.15, p2.y);
+          positions.push(v0.x, v0.y, v0.z, v1.x, v1.y, v1.z, v2.x, v2.y, v2.z);
+        });
+
+        roofGeom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        roofGeom.computeVertexNormals();
+        const gableMesh = new THREE.Mesh(roofGeom, roofMat);
+        solarHeatmapGroup.add(gableMesh);
+
+      } else {
+        // Standard Flat Roof Slab & Parapet with Solar Grid
+        const roofShape = new THREE.Shape();
+        corners.forEach((pt, idx) => {
+          if (idx === 0) roofShape.moveTo(pt.x, -pt.y);
+          else roofShape.lineTo(pt.x, -pt.y);
+        });
+        roofShape.closePath();
+
+        const roofGeom = new THREE.ExtrudeGeometry(roofShape, { depth: 0.45, bevelEnabled: false });
+        const roofMesh = new THREE.Mesh(roofGeom, roofMat);
+        roofMesh.rotation.x = -Math.PI / 2;
+        roofMesh.position.set(0, totalAboveH, 0);
+        solarHeatmapGroup.add(roofMesh);
+
+        // Roof Edge & Solar Array Wireframe
+        const roofWireGeom = new THREE.EdgesGeometry(roofGeom);
+        const roofWireMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.45 });
+        const roofWire = new THREE.LineSegments(roofWireGeom, roofWireMat);
+        roofWire.rotation.x = -Math.PI / 2;
+        roofWire.position.set(0, totalAboveH, 0);
+        solarHeatmapGroup.add(roofWire);
+      }
+
+      // 3. Floating 3D Telemetry Badges for South, North, East, West & Roof
+      const badgeOffset = 3.8;
       const midY = totalAboveH * 0.55;
 
-      const isKa = (state.currentLang !== 'en');
+      // South Facade (+Z)
+      const southSprite = createThermalBadgeSprite(
+        isKa ? 'სამხრეთის ფასადი' : 'South Facade',
+        thermalData.south.power,
+        thermalData.south.status,
+        isKa,
+        '🧭'
+      );
+      southSprite.position.set(cx, midY, maxZ + badgeOffset);
+      solarHeatmapGroup.add(southSprite);
 
-      const badges = [
-        {
-          text: isKa ? `სამხრეთი: ${thermalData.south.power} W/m² (${thermalData.south.labelKa})` : `South: ${thermalData.south.power} W/m² (${thermalData.south.labelEn})`,
-          pos: [cx, midY, maxZ + 4.5],
-          color: thermalData.south.colorCss,
-          bg: 'rgba(15, 23, 42, 0.85)'
-        },
-        {
-          text: isKa ? `ჩრდილოეთი: ${thermalData.north.power} W/m² (${thermalData.north.labelKa})` : `North: ${thermalData.north.power} W/m² (${thermalData.north.labelEn})`,
-          pos: [cx, midY, minZ - 4.5],
-          color: thermalData.north.colorCss,
-          bg: 'rgba(15, 23, 42, 0.85)'
-        },
-        {
-          text: isKa ? `აღმოსავლეთი: ${thermalData.east.power} W/m² (${thermalData.east.labelKa})` : `East: ${thermalData.east.power} W/m² (${thermalData.east.labelEn})`,
-          pos: [maxX + 4.5, midY, cz],
-          color: thermalData.east.colorCss,
-          bg: 'rgba(15, 23, 42, 0.85)'
-        },
-        {
-          text: isKa ? `დასავლეთი: ${thermalData.west.power} W/m² (${thermalData.west.labelKa})` : `West: ${thermalData.west.power} W/m² (${thermalData.west.labelEn})`,
-          pos: [minX - 4.5, midY, cz],
-          color: thermalData.west.colorCss,
-          bg: 'rgba(15, 23, 42, 0.85)'
-        }
-      ];
+      // North Facade (-Z)
+      const northSprite = createThermalBadgeSprite(
+        isKa ? 'ჩრდილოეთის ფასადი' : 'North Facade',
+        thermalData.north.power,
+        thermalData.north.status,
+        isKa,
+        '🧭'
+      );
+      northSprite.position.set(cx, midY, minZ - badgeOffset);
+      solarHeatmapGroup.add(northSprite);
 
-      badges.forEach(b => {
-        const sprite = createTextSprite(b.text, b.color, 24, b.bg);
-        sprite.position.set(b.pos[0], b.pos[1], b.pos[2]);
-        sprite.scale.set(11, 2.4, 1);
-        solarHeatmapGroup.add(sprite);
-      });
+      // East Facade (+X)
+      const eastSprite = createThermalBadgeSprite(
+        isKa ? 'აღმოსავლეთის ფასადი' : 'East Facade',
+        thermalData.east.power,
+        thermalData.east.status,
+        isKa,
+        '🧭'
+      );
+      eastSprite.position.set(maxX + badgeOffset, midY, cz);
+      solarHeatmapGroup.add(eastSprite);
+
+      // West Facade (-X)
+      const westSprite = createThermalBadgeSprite(
+        isKa ? 'დასავლეთის ფასადი' : 'West Facade',
+        thermalData.west.power,
+        thermalData.west.status,
+        isKa,
+        '🧭'
+      );
+      westSprite.position.set(minX - badgeOffset, midY, cz);
+      solarHeatmapGroup.add(westSprite);
+
+      // Roof Surface (+Y)
+      const roofSprite = createThermalBadgeSprite(
+        isKa ? 'სახურავი / PV პოტენციალი' : 'Roof Surface / Solar PV',
+        thermalData.roof.power,
+        thermalData.roof.status,
+        isKa,
+        '☀️'
+      );
+      roofSprite.position.set(cx, totalAboveH + 3.2, cz);
+      solarHeatmapGroup.add(roofSprite);
     });
   }
 
@@ -1808,12 +2033,35 @@ document.addEventListener('DOMContentLoaded', () => {
     if (chkThermal) {
       chkThermal.addEventListener('change', (e) => {
         state.showThermalHeatmap = e.target.checked;
-        if (solarHeatmapGroup) {
-          solarHeatmapGroup.visible = (state.currentMode === 'solar' && !!state.showThermalHeatmap);
+        const isThermalOn = !!state.showThermalHeatmap;
+        if (state.currentMode === 'solar') {
+          if (buildingGroup) buildingGroup.visible = !isThermalOn;
+          if (solarHeatmapGroup) solarHeatmapGroup.visible = isThermalOn;
         }
         updateSolarLighting();
       });
     }
+
+    // Facade Card Click - Smoothly Orbit Camera to Inspect Selected Facade
+    const attachFacadeCardFocus = (cardId, camPos, targetPos) => {
+      const card = document.getElementById(cardId);
+      if (card) {
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', () => {
+          if (camera && controls) {
+            camera.position.set(camPos[0], camPos[1], camPos[2]);
+            controls.target.set(targetPos[0], targetPos[1], targetPos[2]);
+            controls.update();
+          }
+        });
+      }
+    };
+
+    attachFacadeCardFocus('facadeCardSouth', [0, 22, 68], [0, 10, 0]);
+    attachFacadeCardFocus('facadeCardNorth', [0, 22, -68], [0, 10, 0]);
+    attachFacadeCardFocus('facadeCardEast', [68, 22, 0], [0, 10, 0]);
+    attachFacadeCardFocus('facadeCardWest', [-68, 22, 0], [0, 10, 0]);
+    attachFacadeCardFocus('facadeCardRoof', [0, 75, 0.5], [0, 15, 0]);
 
     // Export Handlers
     if (btnExportPhoto) {
@@ -6263,6 +6511,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (solarControlPanel) solarControlPanel.style.display = 'none';
       if (sunPathGroup) sunPathGroup.visible = false; // Strictly hidden in 3D Concept mode
       if (solarHeatmapGroup) solarHeatmapGroup.visible = false; // Strictly hidden in 3D Concept mode
+      if (buildingGroup) buildingGroup.visible = true; // Restore normal textured building
       if (mapThemeSwitcher) mapThemeSwitcher.style.display = 'none';
       if (mapTelemetry) mapTelemetry.style.display = 'none';
       onWindowResize();
@@ -6271,7 +6520,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (threeViewport) threeViewport.style.display = 'block';
       if (solarControlPanel) solarControlPanel.style.display = 'flex';
       if (sunPathGroup) sunPathGroup.visible = (state.showSunPath !== false); // Strictly visible ONLY in solar mode
-      if (solarHeatmapGroup) solarHeatmapGroup.visible = (state.showThermalHeatmap !== false); // Strictly visible ONLY in solar mode
+      const isThermalOn = (state.showThermalHeatmap !== false);
+      if (buildingGroup) buildingGroup.visible = !isThermalOn;
+      if (solarHeatmapGroup) solarHeatmapGroup.visible = isThermalOn;
       if (mapThemeSwitcher) mapThemeSwitcher.style.display = 'none';
       if (mapTelemetry) mapTelemetry.style.display = 'none';
       onWindowResize();
@@ -6287,6 +6538,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (solarControlPanel) solarControlPanel.style.display = 'none';
       if (sunPathGroup) sunPathGroup.visible = false; // Strictly hidden in Combined mode
       if (solarHeatmapGroup) solarHeatmapGroup.visible = false; // Strictly hidden in Combined mode
+      if (buildingGroup) buildingGroup.visible = true; // Restore normal textured building
       if (mapThemeSwitcher) mapThemeSwitcher.style.display = 'none';
       if (mapTelemetry) mapTelemetry.style.display = 'none';
 
