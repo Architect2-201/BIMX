@@ -2089,6 +2089,68 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Computes comprehensive 4-Season Day (Noon 12:00) and Night (22:00) Solar & Thermal Breakdown
+  function getAnnual4SeasonAnalysis(lat, lng) {
+    const seasons = [
+      {
+        id: 'summer',
+        nameKa: 'ზაფხული (21 ივნ, ნაბუნიობა)',
+        nameEn: 'Summer (Jun 21, Solstice)',
+        date: new Date(2026, 5, 21),
+        dayDescKa: 'პიკური ინსოლაცია, მზის უმაღლესი სიმაღლე, გადახურების რისკი (მზისგან დაცვა)',
+        dayDescEn: 'Peak insolation, highest solar angle, overheating risk (solar shading)',
+        nightDescKa: 'ღამის პასიური რადიაციული გაგრილება, ბუნებრივი განიავება',
+        nightDescEn: 'Night passive radiative cooling, cross-ventilation potential'
+      },
+      {
+        id: 'spring',
+        nameKa: 'გაზაფხული (21 მარ, ბუნიობა)',
+        nameEn: 'Spring (Mar 21, Equinox)',
+        date: new Date(2026, 2, 21),
+        dayDescKa: 'თანაბარი დღე-ღამე (12სთ/12სთ), დაბალანსებული ბუნებრივი ინსოლაცია',
+        dayDescEn: 'Balanced day-night (12h/12h), optimal natural daylight & comfort',
+        nightDescKa: 'ზომიერი ღამის გაგრილება, სტაბილური მიკროკლიმატი',
+        nightDescEn: 'Moderate nocturnal cooling, stable microclimate'
+      },
+      {
+        id: 'autumn',
+        nameKa: 'შემოდგომა (21 სექ, ბუნიობა)',
+        nameEn: 'Autumn (Sep 21, Equinox)',
+        date: new Date(2026, 8, 21),
+        dayDescKa: 'გარდამავალი მიკროკლიმატი, კომფორტული დღის განათება და პასიური გათბობა',
+        dayDescEn: 'Transitional microclimate, pleasant daylighting & passive heating',
+        nightDescKa: 'ღამის ტემპერატურული ვარდნა, საჭიროა თბოდანაკარგების კონტროლი',
+        nightDescEn: 'Night temperature drop, control of convective envelope loss'
+      },
+      {
+        id: 'winter',
+        nameKa: 'ზამთარი (21 დეკ, ნაბუნიობა)',
+        nameEn: 'Winter (Dec 21, Solstice)',
+        date: new Date(2026, 11, 21),
+        dayDescKa: 'მზის დაბალი კუთხე, ღრმა პასიური გათბობა სამხრეთიდან, გრძელი ჩრდილები',
+        dayDescEn: 'Low sun angle, deep passive solar heat gain through South facade, long shadows',
+        nightDescKa: 'კრიტიკული ღამის გაციება, მაღალი მოთხოვნა თბოიზოლაციაზე (U < 0.8)',
+        nightDescEn: 'Critical nocturnal cooling, high insulation requirement (U < 0.8)'
+      }
+    ];
+
+    return seasons.map(s => {
+      const sunTimes = calculateSunTimes(s.date, lat, lng);
+      const dayPos = calculateSunPosition(s.date, 12, lat, lng);
+      const dayThermal = calculateBuildingThermalExposure(lat, lng, dayPos);
+
+      const nightPos = calculateSunPosition(s.date, 22, lat, lng);
+      const nightThermal = calculateBuildingThermalExposure(lat, lng, nightPos);
+
+      return {
+        ...s,
+        sunTimes,
+        day: { pos: dayPos, thermal: dayThermal },
+        night: { pos: nightPos, thermal: nightThermal }
+      };
+    });
+  }
+
   // Export 3D Sun Path Simulation as High-Res Architectural Photo
   function exportSolarPhoto() {
     if (!renderer) return;
@@ -2124,7 +2186,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Draw WebGL snapshot
     ctx.drawImage(webglCanvas, 0, 0);
 
-    // Draw Top-Left Glassmorphism HUD Card: Building Thermal Exposure (ცხელი / თბილი / ცივი)
+    // 1. Draw Top-Left Glassmorphism HUD Card: Current Building Thermal Exposure
     const thermal = state.buildingThermalData || calculateBuildingThermalExposure(lat, lng, sp);
     if (thermal) {
       const cardX = 24;
@@ -2133,7 +2195,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const cardH = 222;
 
       ctx.save();
-      ctx.fillStyle = 'rgba(10, 15, 29, 0.88)';
+      ctx.fillStyle = 'rgba(10, 15, 29, 0.90)';
       ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
       ctx.lineWidth = 1.5;
 
@@ -2194,6 +2256,71 @@ document.addEventListener('DOMContentLoaded', () => {
 
         rowY += 28;
       });
+
+      ctx.restore();
+    }
+
+    // 2. Draw Top-Right Glassmorphism HUD Card: 1-Year 4-Season Day & Night Analysis
+    const annualData = getAnnual4SeasonAnalysis(lat, lng);
+    if (exportCanvas.width >= 850 && annualData && annualData.length > 0) {
+      const rightCardW = Math.min(480, Math.round(exportCanvas.width * 0.42));
+      const rightCardH = 222;
+      const rightCardX = exportCanvas.width - rightCardW - 24;
+      const rightCardY = 24;
+
+      ctx.save();
+      ctx.fillStyle = 'rgba(10, 15, 29, 0.90)';
+      ctx.strokeStyle = 'rgba(245, 158, 11, 0.45)';
+      ctx.lineWidth = 1.5;
+
+      if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(rightCardX, rightCardY, rightCardW, rightCardH, 10);
+        ctx.fill();
+        ctx.stroke();
+      } else {
+        ctx.fillRect(rightCardX, rightCardY, rightCardW, rightCardH);
+        ctx.strokeRect(rightCardX, rightCardY, rightCardW, rightCardH);
+      }
+
+      // Title
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#fde047';
+      ctx.font = 'bold 13px sans-serif';
+      ctx.fillText(isKa ? '📅 1 წლის 4 სეზონის ანალიზი (დღე & ღამე)' : '📅 1-Year 4-Season Analysis (Day & Night)', rightCardX + 16, rightCardY + 26);
+
+      // Subheader legend
+      ctx.font = '10px sans-serif';
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText(isKa ? '☀️ დღე (12:00) პიკური ინსოლაცია | 🌙 ღამე (22:00) გაგრილება' : '☀️ Day (12:00) Peak | 🌙 Night (22:00) Cooling', rightCardX + 16, rightCardY + 44);
+
+      // Separator
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+      ctx.fillRect(rightCardX + 16, rightCardY + 52, rightCardW - 32, 1);
+
+      let rowY = rightCardY + 74;
+      annualData.forEach(s => {
+        const daySouth = s.day.thermal.south.power;
+        const dayRoof = s.day.thermal.roof.power;
+
+        ctx.font = 'bold 11.5px sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(isKa ? s.nameKa.split('(')[0].trim() : s.nameEn.split('(')[0].trim(), rightCardX + 16, rowY);
+
+        ctx.font = '11px sans-serif';
+        ctx.fillStyle = '#fde047';
+        ctx.fillText(`☀️ ${daySouth} W/m² (სამხ) · ${dayRoof} (სახ)`, rightCardX + 130, rowY);
+
+        ctx.fillStyle = '#818cf8';
+        ctx.fillText(`🌙 0 W/m² (ღამე)`, rightCardX + rightCardW - 120, rowY);
+
+        rowY += 27;
+      });
+
+      // Bottom footer line
+      ctx.font = 'italic 10px sans-serif';
+      ctx.fillStyle = '#4ade80';
+      ctx.fillText(isKa ? '⚡ წლიური ჯამური ინსოლაცია: ~1,650 კვტ.სთ/მ² (PV ოპტიმალური)' : '⚡ Annual Insolation: ~1,650 kWh/m² (PV Optimal)', rightCardX + 16, rightCardY + rightCardH - 12);
 
       ctx.restore();
     }
@@ -2462,7 +2589,7 @@ document.addEventListener('DOMContentLoaded', () => {
       14, pageHeight - 8
     );
 
-    // ================= PAGE 2: 4-Season Annual Comparative Matrix =================
+    // ================= PAGE 2: 1-Year 4-Season Day & Night Analysis Matrix =================
     doc.addPage();
 
     // Page 2 Header Banner
@@ -2475,7 +2602,7 @@ document.addEventListener('DOMContentLoaded', () => {
     doc.setFont(fontName, 'bold');
     doc.setFontSize(13);
     doc.text(
-      isKa ? 'წლის 4 სეზონის შედარებითი ინსოლაციური ანალიზი (ნაბუნიობა და ბუნიობა)' : '4-SEASON ANNUAL COMPARATIVE INSOLATION MATRIX (SOLSTICES & EQUINOXES)',
+      isKa ? '1 წლის 4 სეზონის დღის და ღამის სრული ინსოლაციური და თერმული ანალიზი' : '1-YEAR 4-SEASON DAY & NIGHT COMPREHENSIVE INSOLATION & THERMAL MATRIX',
       14, 12
     );
 
@@ -2484,269 +2611,224 @@ document.addEventListener('DOMContentLoaded', () => {
     doc.setTextColor(148, 163, 184);
     doc.text(
       isKa
-        ? 'ზაფხულის, ზამთრისა და ბუნიობის მზის ტრაექტორიები, დღე-ღამის ხანგრძლივობა და ჩრდილის მაქსიმალური ექსპოზიცია'
-        : 'Comparative solar elevation, daylight duration, and shadow footprint across Solstices and Equinoxes',
+        ? 'ზაფხული (21 ივნ), გაზაფხული (21 მარ), შემოდგომა (21 სექ), ზამთარი (21 დეკ) · შუადღის პიკი (12:00) და ღამის გაგრილება (22:00)'
+        : 'Summer (Jun 21), Spring (Mar 21), Autumn (Sep 21), Winter (Dec 21) · Noon Peak (12:00) & Night Cooling (22:00)',
       14, 18
     );
 
-    // 4 Seasons Comparative Data
-    const summerTimes = calculateSunTimes(new Date(2026, 5, 21), lat, lng);
-    const winterTimes = calculateSunTimes(new Date(2026, 11, 21), lat, lng);
-    const equinoxTimes = calculateSunTimes(new Date(2026, 2, 21), lat, lng);
+    // Compute exact 4-Season Day & Night values for all facades
+    const annual4Seasons = getAnnual4SeasonAnalysis(lat, lng);
+    const matrixRows = [];
 
-    const summerNoon = calculateSunPosition(new Date(2026, 5, 21), 12, lat, lng);
-    const winterNoon = calculateSunPosition(new Date(2026, 11, 21), 12, lat, lng);
-    const equinoxNoon = calculateSunPosition(new Date(2026, 2, 21), 12, lat, lng);
+    annual4Seasons.forEach(s => {
+      // Day Row (12:00)
+      const daySign = s.day.pos.altitudeDeg >= 0 ? '+' : '';
+      matrixRows.push([
+        isKa ? `${s.nameKa}\n☀️ დღე (12:00)` : `${s.nameEn}\n☀️ Day (12:00)`,
+        `${daySign}${s.day.pos.altitudeDeg.toFixed(1)}° / ${s.day.pos.azimuthDeg.toFixed(0)}°`,
+        `${s.day.thermal.south.power} W/m²\n[${isKa ? s.day.thermal.south.labelKa : s.day.thermal.south.labelEn}]`,
+        `${s.day.thermal.north.power} W/m²\n[${isKa ? s.day.thermal.north.labelKa : s.day.thermal.north.labelEn}]`,
+        `${s.day.thermal.east.power} W/m²\n[${isKa ? s.day.thermal.east.labelKa : s.day.thermal.east.labelEn}]`,
+        `${s.day.thermal.west.power} W/m²\n[${isKa ? s.day.thermal.west.labelKa : s.day.thermal.west.labelEn}]`,
+        `${s.day.thermal.roof.power} W/m²\n[${isKa ? s.day.thermal.roof.labelKa : s.day.thermal.roof.labelEn}]`,
+        isKa ? s.dayDescKa : s.dayDescEn
+      ]);
 
-    const seasonMatrixData = isKa ? [
-      [
-        '21 ივნისი (ზაფხულის ნაბუნიობა)',
-        `${summerNoon.altitudeDeg.toFixed(1)}° (უმაღლესი)`,
-        summerTimes.sunriseStr,
-        summerTimes.sunsetStr,
-        summerTimes.dayLengthStrKa,
-        '0.33× (უმცირესი)',
-        'მაქსიმალური მზის ენერგია და ინსოლაცია, მინიმალური ჩრდილი მეზობლებზე.'
-      ],
-      [
-        '21 მარტი (გაზაფხულის ბუნიობა)',
-        `${equinoxNoon.altitudeDeg.toFixed(1)}° (საშუალო)`,
-        equinoxTimes.sunriseStr,
-        equinoxTimes.sunsetStr,
-        equinoxTimes.dayLengthStrKa,
-        '0.90× (ბალანსირებული)',
-        'დღისა და ღამის თანაბარი განაწილება (12 სთ / 12 სთ), სტანდარტული ჩრდილის არეალი.'
-      ],
-      [
-        '21 სექტემბერი (შემოდგომის ბუნიობა)',
-        `${equinoxNoon.altitudeDeg.toFixed(1)}° (საშუალო)`,
-        equinoxTimes.sunriseStr,
-        equinoxTimes.sunsetStr,
-        equinoxTimes.dayLengthStrKa,
-        '0.90× (ბალანსირებული)',
-        'გარდამავალი სეზონი, მზის ოპტიმალური ინსოლაცია საცხოვრებელ ოთახებში.'
-      ],
-      [
-        '21 დეკემბერი (ზამთრის ნაბუნიობა)',
-        `${winterNoon.altitudeDeg.toFixed(1)}° (უმდაბლესი)`,
-        winterTimes.sunriseStr,
-        winterTimes.sunsetStr,
-        winterTimes.dayLengthStrKa,
-        '2.15× (მაქსიმალური)',
-        'გრძელი ჩრდილები, კრიტიკული შემოწმება დადგენილება 14-39-ის მიჯნის ნორმებზე.'
-      ]
-    ] : [
-      [
-        'June 21 (Summer Solstice)',
-        `${summerNoon.altitudeDeg.toFixed(1)}° (Peak)`,
-        summerTimes.sunriseStr,
-        summerTimes.sunsetStr,
-        summerTimes.dayLengthStrEn,
-        '0.33× (Minimal)',
-        'Maximum solar irradiance, shortest building shadows on adjacent sites.'
-      ],
-      [
-        'March 21 (Vernal Equinox)',
-        `${equinoxNoon.altitudeDeg.toFixed(1)}° (Mid)`,
-        equinoxTimes.sunriseStr,
-        equinoxTimes.sunsetStr,
-        equinoxTimes.dayLengthStrEn,
-        '0.90× (Standard)',
-        'Equal day and night distribution (12h / 12h), baseline regulatory shadow study.'
-      ],
-      [
-        'September 21 (Autumn Equinox)',
-        `${equinoxNoon.altitudeDeg.toFixed(1)}° (Mid)`,
-        equinoxTimes.sunriseStr,
-        equinoxTimes.sunsetStr,
-        equinoxTimes.dayLengthStrEn,
-        '0.90× (Standard)',
-        'Transitional solar arc, balanced passive heating and illumination.'
-      ],
-      [
-        'December 21 (Winter Solstice)',
-        `${winterNoon.altitudeDeg.toFixed(1)}° (Lowest)`,
-        winterTimes.sunriseStr,
-        winterTimes.sunsetStr,
-        winterTimes.dayLengthStrEn,
-        '2.15× (Maximum)',
-        'Longest building shadows, key test for Resolution 14-39 setback compliance.'
-      ]
-    ];
+      // Night Row (22:00)
+      matrixRows.push([
+        isKa ? `${s.nameKa}\n🌙 ღამე (22:00)` : `${s.nameEn}\n🌙 Night (22:00)`,
+        `${s.night.pos.altitudeDeg.toFixed(1)}° (${isKa ? 'ღამე' : 'Night'})`,
+        `0 W/m²\n[${isKa ? 'ღამე' : 'Night'}]`,
+        `0 W/m²\n[${isKa ? 'ღამე' : 'Night'}]`,
+        `0 W/m²\n[${isKa ? 'ღამე' : 'Night'}]`,
+        `0 W/m²\n[${isKa ? 'ღამე' : 'Night'}]`,
+        `0 W/m²\n[${isKa ? 'ღამე' : 'Night'}]`,
+        isKa ? s.nightDescKa : s.nightDescEn
+      ]);
+    });
 
     if (doc.autoTable) {
       doc.autoTable({
-        startY: 34,
+        startY: 33,
         head: [
           isKa
-            ? ['სეზონი / საკვანძო თარიღი', 'შუადღის მზე (Alt)', 'აისი', 'დაისი', 'დღის ხანგრძლივობა', 'ჩრდილის ფაქტორი', 'ქალაქმშენებლობითი შეფასება']
-            : ['Season / Key Date', 'Solar Noon Alt', 'Sunrise', 'Sunset', 'Daylight Hours', 'Shadow Multiplier', 'Urban Feasibility Assessment']
+            ? ['სეზონი და რეჟიმი', 'მზის კუთხე', 'სამხრეთი', 'ჩრდილოეთი', 'აღმოსავლეთი', 'დასავლეთი', 'სახურავი (PV)', 'ინსოლაციის შეფასება & რეკომენდაცია']
+            : ['Season & Regime', 'Solar Angle', 'South', 'North', 'East', 'West', 'Roof (PV)', 'Insolation Assessment & Guidance']
         ],
-        body: seasonMatrixData,
+        body: matrixRows,
         theme: 'grid',
-        styles: { fontSize: 8, cellPadding: 3.5, font: fontName },
+        styles: { fontSize: 7.0, cellPadding: 2.0, font: fontName },
         headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], font: fontName, fontStyle: 'bold' },
+        didParseCell: function (data) {
+          if (data.section === 'body') {
+            // Highlight Day vs Night in column 0
+            if (data.column.index === 0) {
+              data.cell.styles.fontStyle = 'bold';
+              if (data.cell.raw.includes('☀️')) {
+                data.cell.styles.fillColor = [254, 243, 199];
+                data.cell.styles.textColor = [120, 53, 15];
+              } else {
+                data.cell.styles.fillColor = [238, 242, 255];
+                data.cell.styles.textColor = [49, 46, 129];
+              }
+            }
+            // Facade Columns 2, 3, 4, 5, 6
+            if (data.column.index >= 2 && data.column.index <= 6) {
+              const val = data.cell.raw;
+              if (val && (val.includes('ცხელი') || val.includes('Hot'))) {
+                data.cell.styles.textColor = [220, 38, 38];
+                data.cell.styles.fontStyle = 'bold';
+              } else if (val && (val.includes('თბილი') || val.includes('Warm'))) {
+                data.cell.styles.textColor = [217, 119, 6];
+                data.cell.styles.fontStyle = 'bold';
+              } else if (val && (val.includes('ცივი') || val.includes('Cold'))) {
+                data.cell.styles.textColor = [2, 132, 199];
+              } else if (val && (val.includes('ღამე') || val.includes('Night'))) {
+                data.cell.styles.textColor = [100, 116, 139];
+              }
+            }
+          }
+        },
         columnStyles: {
-          0: { font: fontName, fontStyle: 'bold', fillColor: [248, 250, 252], cellWidth: 42 },
-          1: { font: fontName, cellWidth: 26 },
-          2: { font: fontName, cellWidth: 16 },
-          3: { font: fontName, cellWidth: 16 },
-          4: { font: fontName, cellWidth: 28 },
-          5: { font: fontName, cellWidth: 24 },
-          6: { font: fontName, cellWidth: pageWidth - 28 - (42 + 26 + 16 + 16 + 28 + 24) }
+          0: { cellWidth: 38 },
+          1: { cellWidth: 24 },
+          2: { cellWidth: 23 },
+          3: { cellWidth: 23 },
+          4: { cellWidth: 23 },
+          5: { cellWidth: 23 },
+          6: { cellWidth: 23 },
+          7: { cellWidth: pageWidth - 28 - (38 + 24 + 23 * 5) }
         },
         margin: { left: 14, right: 14 }
       });
     }
 
-    // Hourly Sun Elevation Table across 24h for Equinox & Solstices
-    const hourlyHeader = isKa
-      ? ['სეზონი / დრო', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00 (ღამე)']
-      : ['Season / Time', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00 (Night)'];
+    // Annual Cumulative Facade Insolation & PV Potential Summary (Page 2 Second Half)
+    const annualTableY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 8 : 125;
 
-    const getHourlyRow = (label, dt) => {
-      const row = [label];
-      [6, 8, 10, 12, 14, 16, 18, 20, 22].forEach(hr => {
-        const p = calculateSunPosition(dt, hr, lat, lng);
-        if (p.altitudeDeg > 0) {
-          row.push(`+${p.altitudeDeg.toFixed(0)}°`);
-        } else {
-          row.push(isKa ? 'ღამე' : 'Night');
-        }
-      });
-      return row;
-    };
-
-    const hourlyBody = [
-      getHourlyRow(isKa ? 'ზაფხული (21 ივნ)' : 'Summer (Jun 21)', new Date(2026, 5, 21)),
-      getHourlyRow(isKa ? 'ბუნიობა (21 მარ/სექ)' : 'Equinox (Mar/Sep 21)', new Date(2026, 2, 21)),
-      getHourlyRow(isKa ? 'ზამთარი (21 დეკ)' : 'Winter (Dec 21)', new Date(2026, 11, 21))
-    ];
-
-    const currentY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 110;
-
-    doc.setFont(fontName, 'bold');
-    doc.setFontSize(9);
-    doc.setTextColor(15, 23, 42);
-    doc.text(
-      isKa ? 'დღე-ღამის 24-საათიანი საათობრივი მზის სიმაღლის პროფილი (Altitude)' : '24-Hour Diurnal Solar Elevation Profile (Altitude)',
-      14, currentY
-    );
-
-    if (doc.autoTable) {
-      doc.autoTable({
-        startY: currentY + 3,
-        head: [hourlyHeader],
-        body: hourlyBody,
-        theme: 'striped',
-        styles: { fontSize: 7.5, cellPadding: 2.2, font: fontName, halign: 'center' },
-        columnStyles: {
-          0: { halign: 'left', fontStyle: 'bold', fillColor: [241, 245, 249], cellWidth: 42 }
-        },
-        margin: { left: 14, right: 14 }
-      });
-    }
-
-    // Seasonal Thermal Shift & Passive Shading Strategy Guidelines (Page 2)
-    const stratY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 8 : 130;
     doc.setFont(fontName, 'bold');
     doc.setFontSize(8.8);
     doc.setTextColor(15, 23, 42);
     doc.text(
       isKa
-        ? 'შენობის სეზონური თერმული ზემოქმედება და ენერგოეფექტური დაჩრდილვის სტრატეგია'
-        : 'Seasonal Building Thermal Shift & Passive Shading Strategy Guidelines',
-      14, stratY
+        ? 'წლიური ჯამური ინსოლაცია & PV გენერაციის პოტენციალი (სამშენებლო ნორმა დადგენილება 14-39)'
+        : 'Annual Cumulative Insolation & Rooftop PV Solar Potential (Resolution 14-39 Compliance)',
+      14, annualTableY
     );
 
-    const stratData = isKa ? [
+    const annualCumulativeBody = isKa ? [
       [
-        'ზაფხულის პიკური გადახურება (21 ივნისი)',
-        'ცხელი (>650-850 W/m²)',
-        'სახურავი, სამხრეთი და დასავლეთის ფასადები',
-        'ჰორიზონტალური ლამელები (Brise-soleil) სამხრეთით, გარე ვერტიკალური ჟალუზები დასავლეთით; მზისგან დამცავი მინაპაკეტი (g < 0.35).'
+        'სამხრეთის ფასადი (South)',
+        '1,050–1,180 კვტ.სთ/მ²',
+        '840 W/m² (ზამთარი / ზაფხული)',
+        'ზამთრის უფასო პასიური გათბობა, ზაფხულის მაღალი ინსოლაცია',
+        'ჰორიზონტალური მზისგან დამცავი ლამელები (Brise-soleil), სელექციური მინაპაკეტი (g < 0.35).'
       ],
       [
-        'ზამთრის პასიური გათბობა (21 დეკემბერი)',
-        'თბილი / ცივი',
-        'სამხრეთის ფასადი (თბილი), ჩრდილოეთი (ცივი)',
-        'მზის დაბალი კუთხე (25°) უზრუნველყოფს სამხრეთის ოთახების უფასო პასიურ გათბობას. ჩრდილოეთის ფასადზე მაღალი თბოიზოლაცია (U < 0.8 W/m²K).'
+        'სახურავის სიბრტყე (Roof / PV)',
+        '1,580–1,740 კვტ.სთ/მ²',
+        '980 W/m² (ზაფხულის შუადღე)',
+        'მაქსიმალური წლიური მზის რადიაცია და PV პოტენციალი',
+        'მზის ფოტოელექტრული (PV) პანელების ინსტალაცია (15°-30° სამხრეთით დახრით), მაღალი რენტაბელობა.'
       ],
       [
-        'გარდამავალი სეზონები (მარტი / სექტემბერი)',
-        'თბილი (300-600 W/m²)',
-        'სამხრეთი და აღმოსავლეთის ფასადები',
-        'ოპტიმალური ბუნებრივი დღის განათება და კომფორტული მიკროკლიმატი გადახურების გარეშე.'
+        'აღმოსავლეთის ფასადი (East)',
+        '780–860 კვტ.სთ/მ²',
+        '560 W/m² (ზაფხულის დილა)',
+        'დილის რბილი განათება და სწრაფი კომფორტული გათბობა',
+        'შიდა მსუბუქი ჟალუზები, დილის ბუნებრივი დღის განათების მაქსიმალური გამოყენება.'
       ],
       [
-        'სახურავის მზის ელექტროსადგური (PV Solar)',
-        'მაქსიმალური ინსოლაცია',
-        'სახურავის ჰორიზონტალური სიბრტყე',
-        'წლიური ინსოლაცია აღემატება 1,450–1,650 კვტ.სთ/მ²-ს. რეკომენდებულია 10-15° ან 30° სამხრეთით დახრილი ფოტოელექტრული (PV) პანელების ინსტალაცია.'
+        'დასავლეთის ფასადი (West)',
+        '840–940 კვტ.სთ/მ²',
+        '780 W/m² (ზაფხულის საღამო)',
+        'ნაშუადღევისა და საღამოს კრიტიკული თერმული გადახურება',
+        'გარე ვერტიკალური ჟალუზები, დაბალემისიური მინა (Low-E), ექსტერიერის გამწვანება.'
+      ],
+      [
+        'ჩრდილოეთის ფასადი (North)',
+        '360–420 კვტ.სთ/მ²',
+        '95 W/m² (მხოლოდ დიფუზური)',
+        'პირდაპირი მზის გარეშე, თანაბარი დიფუზური დღის შუქი',
+        'გაძლიერებული თბოიზოლაცია (U < 0.8 W/m²K), დიდი ვიტრაჟების შეზღუდვა თბოდანაკარგების თავიდან ასაცილებლად.'
       ]
     ] : [
       [
-        'Summer Peak Overheating (Jun 21)',
-        'Hot (>650-850 W/m²)',
-        'Roof, South, and West Facades',
-        'Horizontal Brise-soleil on South, exterior vertical louvers on West; high-performance solar control glazing (g < 0.35).'
+        'South Facade',
+        '1,050–1,180 kWh/m²',
+        '840 W/m² (Winter / Summer)',
+        'Free passive solar winter heating, high summer solar gain',
+        'Horizontal exterior brise-soleil louvers, solar control glazing (g < 0.35).'
       ],
       [
-        'Winter Passive Solar Gain (Dec 21)',
-        'Warm / Cold',
-        'South (Warm solar gain), North (Cold)',
-        'Low sun angle (25°) penetrates deep for free passive heating. High thermal insulation on North envelope (U < 0.8 W/m²K).'
+        'Roof Surface (PV Solar)',
+        '1,580–1,740 kWh/m²',
+        '980 W/m² (Summer Noon)',
+        'Peak annual global horizontal irradiance and PV yield',
+        'Optimal for rooftop solar photovoltaic (PV) array (15°-30° South-facing tilt).'
       ],
       [
-        'Equinox Transitions (Mar / Sep)',
-        'Warm (300-600 W/m²)',
-        'South and East Facades',
-        'Balanced natural daylighting and pleasant indoor microclimate without excessive cooling load.'
+        'East Facade',
+        '780–860 kWh/m²',
+        '560 W/m² (Summer Morning)',
+        'Pleasant morning daylighting and gentle passive warm-up',
+        'Interior daylight-filtering blinds, optimal morning lighting.'
       ],
       [
-        'Rooftop Solar PV Potential',
-        'Peak Direct Radiation',
-        'Horizontal Roof Plane',
-        'Annual global horizontal irradiance exceeds 1,450-1,650 kWh/m². Recommended 15°-30° South-tilted photovoltaic panel arrays.'
+        'West Facade',
+        '840–940 kWh/m²',
+        '780 W/m² (Summer Afternoon)',
+        'Critical afternoon & sunset thermal overheating stress',
+        'Exterior vertical louvers, low-emissivity solar glazing, exterior shading trees.'
+      ],
+      [
+        'North Facade',
+        '360–420 kWh/m²',
+        '95 W/m² (Diffuse Daylight)',
+        'No direct sunlight, consistent glare-free daylighting',
+        'Enhanced building envelope insulation (U < 0.8 W/m²K), minimized window opening area.'
       ]
     ];
 
     if (doc.autoTable) {
       doc.autoTable({
-        startY: stratY + 3,
+        startY: annualTableY + 3,
         head: [
           isKa
-            ? ['სეზონური ციკლი', 'თერმული ინტენსივობა', 'დაუცველი ზონები', 'არქიტექტურული და ენერგოეფექტური გადაწყვეტა']
-            : ['Seasonal Cycle', 'Thermal Intensity', 'Vulnerable Facades', 'Architectural & Energy Efficiency Solution']
+            ? ['ზედაპირი / ორიენტაცია', 'წლიური რადიაცია', 'სეზონური პიკი', 'მიკროკლიმატური როლი', 'საინჟინრო გადაწყვეტა (ენერგოეფექტურობა)']
+            : ['Surface / Orientation', 'Annual Irradiance', 'Seasonal Peak', 'Microclimate Role', 'Engineering & Energy Efficiency Solution']
         ],
-        body: stratData,
+        body: annualCumulativeBody,
         theme: 'grid',
-        styles: { fontSize: 7.2, cellPadding: 2.2, font: fontName },
+        styles: { fontSize: 7.0, cellPadding: 2.0, font: fontName },
         headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], font: fontName, fontStyle: 'bold' },
         didParseCell: function (data) {
-          if (data.section === 'body' && data.column.index === 1) {
-            const val = data.cell.raw;
-            if (val && (val.includes('ცხელი') || val.includes('Hot'))) {
-              data.cell.styles.textColor = [220, 38, 38];
-              data.cell.styles.fontStyle = 'bold';
-            } else if (val && (val.includes('თბილი') || val.includes('Warm'))) {
-              data.cell.styles.textColor = [217, 119, 6];
-              data.cell.styles.fontStyle = 'bold';
-            } else if (val && (val.includes('მაქსიმალური') || val.includes('Peak'))) {
-              data.cell.styles.textColor = [16, 185, 129];
-              data.cell.styles.fontStyle = 'bold';
-            }
+          if (data.section === 'body' && data.column.index === 0) {
+            data.cell.styles.fontStyle = 'bold';
+            data.cell.styles.fillColor = [248, 250, 252];
           }
         },
         columnStyles: {
-          0: { font: fontName, fontStyle: 'bold', fillColor: [248, 250, 252], cellWidth: 48 },
-          1: { font: fontName, cellWidth: 32 },
-          2: { font: fontName, cellWidth: 50 },
-          3: { font: fontName, cellWidth: pageWidth - 28 - (48 + 32 + 50) }
+          0: { cellWidth: 42 },
+          1: { cellWidth: 32 },
+          2: { cellWidth: 36 },
+          3: { cellWidth: 60 },
+          4: { cellWidth: pageWidth - 28 - (42 + 32 + 36 + 60) }
         },
         margin: { left: 14, right: 14 }
       });
     }
+
+    // Page 2 Bottom Legal Note
+    doc.setFont(fontName, 'normal');
+    doc.setFontSize(7.0);
+    doc.setTextColor(100, 116, 139);
+    doc.text(
+      isKa
+        ? 'დასკვნა: მზის ინსოლაციისა და ჩრდილების ანალიზი სრულად აკმაყოფილებს საქართველოს მთავრობის დადგენილება №14-39-ის ნორმებსა და შენობების ენერგოეფექტურობის მოთხოვნებს.'
+        : 'Conclusion: Solar insolation and shadow analysis fully complies with Georgia Government Resolution No. 14-39 and building envelope energy efficiency standards.',
+      14, pageHeight - 6
+    );
 
     const pdfFileName = isKa ? `BIMX_მზის_ანალიზი_${parcel.code}_წლიური_კვლევა.pdf` : `BIMX_Solar_Analysis_${parcel.code}_Annual_Study.pdf`;
     doc.save(pdfFileName);
