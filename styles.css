@@ -3208,6 +3208,15 @@ img {
   cursor: crosshair !important;
 }
 
+.map-drawing-active .leaflet-container {
+  cursor: crosshair !important;
+}
+
+/* While drawing mode is active, prevent other vector layers from intercepting map clicks */
+.map-drawing-active .leaflet-interactive:not(.drawing-vertex-marker) {
+  pointer-events: none !important;
+}
+
 /* ==========================================================================
    Parametric Sliders: Plus/Minus Floors & Heights
    ========================================================================== */

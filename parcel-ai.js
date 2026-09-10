@@ -711,8 +711,9 @@ document.addEventListener('DOMContentLoaded', () => {
       weight: 2,
       dashArray: '5, 5',
       fillColor: '#fb8500',
-      fillOpacity: 0.12
-    }).bindPopup(`<b>${parcel.mainZoneKa || 'ზონა'}:</b> ${parcel.subZoneKa || parcel.subzoneKa}<br>კ-1: ${parcel.k1 || 0.5} | კ-2: ${parcel.k2 || 2.1} | კ-3: ${parcel.k3 || 0.3}`);
+      fillOpacity: 0.12,
+      interactive: false
+    });
     if (parcelZoningLayerGroup) zRect.addTo(parcelZoningLayerGroup);
 
     // Draw Adjacent Building Contours for urban context
@@ -731,8 +732,8 @@ document.addEventListener('DOMContentLoaded', () => {
       [cLat - 0.00035, cLng - 0.00075]
     ];
     if (parcelContoursLayerGroup) {
-      L.polygon(bldg1, { color: '#64748b', weight: 1.5, fillColor: '#94a3b8', fillOpacity: 0.3 }).addTo(parcelContoursLayerGroup);
-      L.polygon(bldg2, { color: '#64748b', weight: 1.5, fillColor: '#94a3b8', fillOpacity: 0.3 }).addTo(parcelContoursLayerGroup);
+      L.polygon(bldg1, { color: '#64748b', weight: 1.5, fillColor: '#94a3b8', fillOpacity: 0.3, interactive: false }).addTo(parcelContoursLayerGroup);
+      L.polygon(bldg2, { color: '#64748b', weight: 1.5, fillColor: '#94a3b8', fillOpacity: 0.3, interactive: false }).addTo(parcelContoursLayerGroup);
     }
 
     // Fit map bounds to parcel
@@ -1190,9 +1191,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Convert lat/lng array to local meters using Equirectangular approximation anchored to parcel reference origin
+  // Convert lat/lng array (or single [lat, lng]) to local meters using Equirectangular approximation anchored to parcel reference origin
   function gpsToLocalMeters(coords, referenceOrigin = null) {
     if (!coords || coords.length === 0) return [];
+
+    let isSingle = false;
+    let coordList = coords;
+    if (coords.length === 2 && typeof coords[0] === 'number' && typeof coords[1] === 'number') {
+      isSingle = true;
+      coordList = [coords];
+    } else if (!Array.isArray(coords[0])) {
+      return isSingle ? { x: 0, y: 0 } : [];
+    }
 
     let centerLat, centerLng;
     if (referenceOrigin) {
@@ -1211,18 +1221,20 @@ document.addEventListener('DOMContentLoaded', () => {
         centerLat = state.activeParcel.coordinates.reduce((sum, c) => sum + c[0], 0) / state.activeParcel.coordinates.length;
         centerLng = state.activeParcel.coordinates.reduce((sum, c) => sum + c[1], 0) / state.activeParcel.coordinates.length;
       } else {
-        centerLat = coords.reduce((sum, c) => sum + c[0], 0) / coords.length;
-        centerLng = coords.reduce((sum, c) => sum + c[1], 0) / coords.length;
+        centerLat = coordList.reduce((sum, c) => sum + c[0], 0) / coordList.length;
+        centerLng = coordList.reduce((sum, c) => sum + c[1], 0) / coordList.length;
       }
     }
 
     const latToMeters = 111139;
     const lngToMeters = 111139 * Math.cos(centerLat * Math.PI / 180);
 
-    return coords.map(c => ({
+    const converted = coordList.map(c => ({
       x: (c[1] - centerLng) * lngToMeters,
       y: (c[0] - centerLat) * latToMeters
     }));
+
+    return isSingle ? converted[0] : converted;
   }
 
   // Convert local meters back to GPS coordinates relative to parcel center
@@ -2381,7 +2393,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       poly.on('click', (e) => {
         L.DomEvent.stopPropagation(e);
-        if (!state.isDrawingMode) {
+        if (state.isDrawingMode) {
+          handleMapClick(e);
+        } else {
           selectBuilding(bldg.id);
         }
       });
@@ -2906,7 +2920,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const centerGps = computeParcelCenter(parcel.coordinates);
-    const parcelLocalPts = parcel.coordinates.map(pt => gpsToLocalMeters(pt, centerGps));
+    const parcelLocalPts = gpsToLocalMeters(parcel.coordinates, centerGps);
 
     let minDistance = Infinity;
     let hasAnyBuildingCoords = false;
@@ -2915,7 +2929,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!bldg.footprintCoords || bldg.footprintCoords.length < 3) return;
       hasAnyBuildingCoords = true;
 
-      const bldgLocalPts = bldg.footprintCoords.map(pt => gpsToLocalMeters(pt, centerGps));
+      const bldgLocalPts = gpsToLocalMeters(bldg.footprintCoords, centerGps);
 
       // Test each vertex of building polygon against every segment of parcel boundary
       for (let i = 0; i < bldgLocalPts.length; i++) {
@@ -2955,7 +2969,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function estimateParcelFrontage(parcel) {
     if (!parcel || !parcel.coordinates || parcel.coordinates.length < 2) return 20;
     const centerGps = computeParcelCenter(parcel.coordinates);
-    const localPts = parcel.coordinates.map(pt => gpsToLocalMeters(pt, centerGps));
+    const localPts = gpsToLocalMeters(parcel.coordinates, centerGps);
 
     let maxEdge = 0;
     let totalPerimeter = 0;
@@ -3457,7 +3471,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const hasCustom = !!(bldg && bldg.footprintCoords && bldg.footprintCoords.length >= 3);
 
     if (state.isDrawingMode) {
-      if (btnDraw) { btnDraw.style.display = 'inline-flex'; btnDraw.classList.add('active'); }
+      if (btnDraw) {
+        btnDraw.style.display = 'inline-flex';
+        btnDraw.classList.add('active');
+        const cancelTxt = (translations[state.currentLang] && translations[state.currentLang].tool_cancel_draw) || 'დახაზვის გაუქმება';
+        btnDraw.innerHTML = `<i class="fa-solid fa-xmark"></i> <span data-i18n="tool_cancel_draw">${cancelTxt}</span>`;
+      }
       if (btnEdit) btnEdit.style.display = 'none';
       if (btnSave) btnSave.style.display = 'none';
       if (btnCancel) btnCancel.style.display = 'none';
@@ -3474,7 +3493,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (btnClear) btnClear.style.display = 'inline-flex';
     } else {
       // Normal View Mode
-      if (btnDraw) { btnDraw.style.display = 'inline-flex'; btnDraw.classList.remove('active'); }
+      if (btnDraw) {
+        btnDraw.style.display = 'inline-flex';
+        btnDraw.classList.remove('active');
+        const drawTxt = (translations[state.currentLang] && translations[state.currentLang].tool_draw_building) || 'შენობის დახაზვა';
+        btnDraw.innerHTML = `<i class="fa-solid fa-pen-ruler"></i> <span data-i18n="tool_draw_building">${drawTxt}</span>`;
+      }
       if (btnEdit) btnEdit.style.display = hasCustom ? 'inline-flex' : 'none';
       if (btnSave) btnSave.style.display = 'none';
       if (btnCancel) btnCancel.style.display = 'none';
@@ -3486,10 +3510,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function computePolygonArea(points) {
     if (!points || points.length < 3) return 0;
-    const ring = points.map(pt => [pt[1], pt[0]]);
-    ring.push([points[0][1], points[0][0]]);
-    const poly = turf.polygon([ring]);
-    return Math.round(turf.area(poly));
+    try {
+      if (typeof turf !== 'undefined' && turf.polygon && turf.area) {
+        const ring = points.map(pt => [pt[1], pt[0]]);
+        ring.push([points[0][1], points[0][0]]);
+        const poly = turf.polygon([ring]);
+        return Math.round(turf.area(poly));
+      }
+    } catch (err) {
+      console.warn('Turf.js area calculation fallback:', err);
+    }
+    // Planar Shoelace fallback
+    const centerGps = computeParcelCenter(points);
+    const localPts = gpsToLocalMeters(points, centerGps);
+    let area = 0;
+    for (let i = 0; i < localPts.length; i++) {
+      const j = (i + 1) % localPts.length;
+      area += localPts[i].x * localPts[j].y;
+      area -= localPts[j].x * localPts[i].y;
+    }
+    return Math.round(Math.abs(area) / 2);
   }
 
   function handleMapClick(e) {
@@ -3585,8 +3625,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const mapViewport = document.getElementById('mapViewport');
     if (mapViewport) mapViewport.classList.add('map-drawing-active');
 
-    if (state.currentMode === '3d') {
+    if (state.currentMode === '3d' || state.currentMode === 'solar') {
       setMode('combined');
+    }
+
+    if (map) {
+      setTimeout(() => map.invalidateSize(), 60);
     }
 
     updateDrawingVisualization();

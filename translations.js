@@ -267,6 +267,7 @@ const translations = {
 
     // Drawing & Compliance Tools
     tool_draw_building: "შენობის დახაზვა",
+    tool_cancel_draw: "დახაზვის გაუქმება",
     tool_edit_draw: "ნახაზის კორექტირება",
     tool_finish_draw: "დაასრულე ნახაზი",
     tool_undo_point: "უკან",
@@ -685,6 +686,7 @@ const translations = {
 
     // Drawing & Compliance Tools
     tool_draw_building: "Draw Building",
+    tool_cancel_draw: "Cancel Drawing",
     tool_edit_draw: "Edit Footprint",
     tool_finish_draw: "Finish Drawing",
     tool_undo_point: "Undo",
