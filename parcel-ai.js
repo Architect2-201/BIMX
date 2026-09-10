@@ -26,6 +26,11 @@ document.addEventListener('DOMContentLoaded', () => {
     drawnPoints: [], // [[lat, lng], ...]
     customFootprint: null, // [[lat, lng], ...] or null
     editBackupPoints: [], // backup for canceling edit
+    // Road & Pathway Drawing State
+    roads: [], // [{ id, name, width, points, length }]
+    isDrawingRoad: false,
+    drawnRoadPoints: [],
+    activeRoadWidth: 6.0,
     xRayMode: false,
     buildings: [], // Multi-building masterplan list [{id, name, color, footprintCoords, footprintArea, floorsAbove, floorsBelow, floorFunctions...}]
     selectedBuildingId: null,
@@ -246,6 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let parcelContoursLayerGroup = null;
   let tileLayerVector = null;
   let tileLayerSatellite = null;
+  let roadLayerGroup = null;
 
   function initMap() {
     const mapEl = document.getElementById('mapViewport');
@@ -281,6 +287,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Layer group for interactive user drawing
     drawingLayerGroup = L.layerGroup().addTo(map);
 
+    // Layer group for rendered roads & pathways
+    roadLayerGroup = L.layerGroup().addTo(map);
+
     // Add scale bar
     L.control.scale({ position: 'bottomleft', imperial: false }).addTo(map);
 
@@ -288,6 +297,8 @@ document.addEventListener('DOMContentLoaded', () => {
     map.on('click', (e) => {
       if (state.isDrawingMode) {
         handleMapClick(e);
+      } else if (state.isDrawingRoad) {
+        handleRoadMapClick(e);
       }
     });
   }
@@ -296,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
      3. Three.js 3D WebGL Massing Canvas Setup & Solar Engine
      ========================================================================== */
   let scene, camera, renderer, controls;
-  let buildingGroup, groundGroup, urbanGroup, terrainGroup, sunPathGroup;
+  let buildingGroup, groundGroup, urbanGroup, terrainGroup, sunPathGroup, roadGroup;
   let sunLight, ambientLight, fillLight;
 
   function initThree() {
@@ -326,10 +337,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof THREE.OrbitControls !== 'undefined') {
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
-      controls.dampingFactor = 0.05;
-      controls.maxPolarAngle = Math.PI / 2 - 0.02; // Don't go below ground
-      controls.minDistance = 10;
-      controls.maxDistance = 600;
+      controls.dampingFactor = 0.08;
+      controls.maxPolarAngle = Math.PI / 2.05; // Prevent dipping below ground plane
+      controls.minDistance = 8;
+      controls.maxDistance = 500;
       controls.target.set(0, 8, 0);
     }
 
@@ -389,12 +400,14 @@ document.addEventListener('DOMContentLoaded', () => {
     terrainGroup = new THREE.Group();
     groundGroup = new THREE.Group();
     urbanGroup = new THREE.Group();
+    roadGroup = new THREE.Group();
     buildingGroup = new THREE.Group();
     sunPathGroup = new THREE.Group();
 
     scene.add(terrainGroup);
     scene.add(groundGroup);
     scene.add(urbanGroup);
+    scene.add(roadGroup);
     scene.add(buildingGroup);
     scene.add(sunPathGroup);
 
@@ -2785,10 +2798,14 @@ document.addEventListener('DOMContentLoaded', () => {
       floorHeight: 3.3,
       rotation: 0,
       buildingType: 'residential',
-      facadeMaterial: 'concrete',
+      facadeMaterial: 'glass',
       facadeColor: '#f1f5f9',
+      glazingRatio: 65,
       style: 'modern',
       groundFloorUse: 'commercial',
+      roofType: 'flat', // 'flat', 'shed', 'gable', 'mansard'
+      roofSlopeDir: 'south', // 'south', 'north', 'east', 'west'
+      roofAngle: 15,
       floorFunctions: floorFunctions
     };
   }
@@ -2810,8 +2827,12 @@ document.addEventListener('DOMContentLoaded', () => {
       buildingType: bldg.buildingType,
       facadeMaterial: bldg.facadeMaterial,
       facadeColor: bldg.facadeColor,
+      glazingRatio: bldg.glazingRatio !== undefined ? bldg.glazingRatio : 65,
       style: bldg.style,
-      groundFloorUse: bldg.groundFloorUse
+      groundFloorUse: bldg.groundFloorUse,
+      roofType: bldg.roofType || 'flat',
+      roofSlopeDir: bldg.roofSlopeDir || 'south',
+      roofAngle: bldg.roofAngle || 15
     };
     state.customFootprint = bldg.footprintCoords;
     syncSlidersUI(bldg);
@@ -3384,57 +3405,62 @@ document.addEventListener('DOMContentLoaded', () => {
         const curHeight = floorH;
         const fnType = (bldg.floorFunctions && bldg.floorFunctions[`${f}`]) || (f === 0 ? 'commercial' : 'residential');
 
-        // Material tailored by individual Floor Function
+        // Material tailored by facadeMaterial and individual Floor Function
         let floorMat;
-        if (fnType === 'commercial') {
-          // Warm Amber/Gold commercial glazing
+        const matType = bldg.facadeMaterial || 'glass';
+
+        if (f === 0 && fnType === 'commercial') {
+          // Warm storefront glazing on ground floor
           floorMat = new THREE.MeshStandardMaterial({
             color: 0xf59e0b,
             roughness: 0.15,
-            metalness: 0.8,
+            metalness: 0.85,
+            transparent: true,
+            opacity: 0.9
+          });
+        } else if (matType === 'glass') {
+          // Modern panoramic curtain wall
+          floorMat = new THREE.MeshStandardMaterial({
+            color: fnType === 'office' ? 0x0284c7 : (fnType === 'hotel' ? 0x8b5cf6 : 0x38bdf8),
+            roughness: 0.08,
+            metalness: 0.95,
             transparent: true,
             opacity: 0.88
           });
-        } else if (fnType === 'residential') {
-          // Architectural modern light facade with glass blue tint
+        } else if (matType === 'travertine') {
+          // Luxury natural Italian travertine limestone
           floorMat = new THREE.MeshStandardMaterial({
-            color: 0xdbeafe,
-            roughness: 0.5,
-            metalness: 0.25
+            color: 0xe5dfd5,
+            roughness: 0.72,
+            metalness: 0.06
           });
-        } else if (fnType === 'office') {
-          // Reflective executive sky blue curtain wall
+        } else if (matType === 'wood') {
+          // Architectural warm timber louvers / cladding
           floorMat = new THREE.MeshStandardMaterial({
-            color: 0x0284c7,
-            roughness: 0.1,
-            metalness: 0.9,
-            transparent: true,
-            opacity: 0.85
+            color: 0x854d0e,
+            roughness: 0.65,
+            metalness: 0.1
           });
-        } else if (fnType === 'hotel') {
-          // Luxury royal violet/magenta
+        } else if (matType === 'composite') {
+          // Modern aluminum composite panels (Alucobond)
           floorMat = new THREE.MeshStandardMaterial({
-            color: 0x8b5cf6,
-            roughness: 0.3,
-            metalness: 0.45,
-            transparent: true,
-            opacity: 0.9
+            color: 0x334155,
+            roughness: 0.35,
+            metalness: 0.65
           });
-        } else if (fnType === 'amenity') {
-          // Vibrant emerald green recreational level
+        } else if (matType === 'brick') {
+          // Textured architectural brick
           floorMat = new THREE.MeshStandardMaterial({
-            color: 0x10b981,
-            roughness: 0.2,
-            metalness: 0.6,
-            transparent: true,
-            opacity: 0.9
+            color: 0x991b1b,
+            roughness: 0.85,
+            metalness: 0.05
           });
         } else {
-          // Standard / parking / utility
+          // Fair-faced architectural concrete
           floorMat = new THREE.MeshStandardMaterial({
-            color: 0x64748b,
-            roughness: 0.7,
-            metalness: 0.3
+            color: 0x94a3b8,
+            roughness: 0.75,
+            metalness: 0.15
           });
         }
 
@@ -3457,24 +3483,231 @@ document.addEventListener('DOMContentLoaded', () => {
         wallMesh.receiveShadow = true;
         wallMesh.userData = { buildingId: bldg.id };
         buildingGroup.add(wallMesh);
+
+        // Architectural window edge definition
+        const wallEdges = new THREE.EdgesGeometry(wallGeom);
+        const wallLineMat = new THREE.LineBasicMaterial({
+          color: matType === 'glass' ? 0x00f0ff : 0x0f172a,
+          transparent: true,
+          opacity: 0.45
+        });
+        const wallOutline = new THREE.LineSegments(wallEdges, wallLineMat);
+        wallOutline.rotation.x = -Math.PI / 2;
+        wallOutline.position.set(0, currentY + 0.3, 0);
+        buildingGroup.add(wallOutline);
       }
 
-      // Roof Slab & Parapet
-      const roofSlabGeom = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: false });
-      const roofMesh = new THREE.Mesh(roofSlabGeom, slabMat);
-      roofMesh.rotation.x = -Math.PI / 2;
-      roofMesh.position.set(0, totalAboveH, 0);
-      roofMesh.castShadow = true;
-      roofMesh.userData = { buildingId: bldg.id };
-      buildingGroup.add(roofMesh);
+      // Roof Construction based on bldg.roofType (Flat, Shed, Gable, Mansard)
+      const roofType = bldg.roofType || 'flat';
+      const roofAngleRad = ((bldg.roofAngle !== undefined ? bldg.roofAngle : 15) * Math.PI) / 180;
+      const slopeDir = bldg.roofSlopeDir || 'south';
 
-      const parapetGeom = new THREE.ExtrudeGeometry(shape, { depth: 0.7, bevelEnabled: false });
-      const parapetMat = new THREE.MeshStandardMaterial({ color: bColorHex, roughness: 0.4 });
-      const parapetMesh = new THREE.Mesh(parapetGeom, parapetMat);
-      parapetMesh.rotation.x = -Math.PI / 2;
-      parapetMesh.position.set(0, totalAboveH + 0.4, 0);
-      parapetMesh.userData = { buildingId: bldg.id };
-      buildingGroup.add(parapetMesh);
+      if (roofType === 'shed') {
+        // Mono-pitch / Shed Sloped Roof
+        const xs = fp.corners.map(p => p.x);
+        const zs = fp.corners.map(p => p.y);
+        const minX = Math.min(...xs), maxX = Math.max(...xs);
+        const minZ = Math.min(...zs), maxZ = Math.max(...zs);
+        const spanX = Math.max(1, maxX - minX);
+        const spanZ = Math.max(1, maxZ - minZ);
+        const span = (slopeDir === 'east' || slopeDir === 'west') ? spanX : spanZ;
+        const deltaH = Math.max(0.8, Math.tan(roofAngleRad) * span);
+
+        const getSlopeH = (x, z) => {
+          let t = 0;
+          if (slopeDir === 'south') t = (z - minZ) / spanZ;
+          else if (slopeDir === 'north') t = (maxZ - z) / spanZ;
+          else if (slopeDir === 'east') t = (x - minX) / spanX;
+          else if (slopeDir === 'west') t = (maxX - x) / spanX;
+          return Math.max(0, Math.min(1, t)) * deltaH;
+        };
+
+        // 1. Sloped Roof Slab
+        const shapePoints = fp.corners.map(p => new THREE.Vector2(p.x, -p.y));
+        const triangles = THREE.ShapeUtils.triangulateShape(shapePoints, []);
+        const roofGeom = new THREE.BufferGeometry();
+        const positions = [];
+        const normals = [];
+
+        triangles.forEach(tri => {
+          const p0 = fp.corners[tri[0]];
+          const p1 = fp.corners[tri[1]];
+          const p2 = fp.corners[tri[2]];
+
+          const v0 = new THREE.Vector3(p0.x, totalAboveH + getSlopeH(p0.x, p0.y) + 0.25, p0.y);
+          const v1 = new THREE.Vector3(p1.x, totalAboveH + getSlopeH(p1.x, p1.y) + 0.25, p1.y);
+          const v2 = new THREE.Vector3(p2.x, totalAboveH + getSlopeH(p2.x, p2.y) + 0.25, p2.y);
+
+          const cb = new THREE.Vector3().subVectors(v2, v1);
+          const ab = new THREE.Vector3().subVectors(v0, v1);
+          cb.cross(ab).normalize();
+
+          positions.push(v0.x, v0.y, v0.z, v1.x, v1.y, v1.z, v2.x, v2.y, v2.z);
+          normals.push(cb.x, cb.y, cb.z, cb.x, cb.y, cb.z, cb.x, cb.y, cb.z);
+        });
+
+        roofGeom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        roofGeom.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+
+        const roofMat = new THREE.MeshStandardMaterial({
+          color: 0x334155, // Dark slate metal standing seam
+          roughness: 0.35,
+          metalness: 0.5,
+          side: THREE.DoubleSide
+        });
+        const slopedRoofMesh = new THREE.Mesh(roofGeom, roofMat);
+        slopedRoofMesh.castShadow = true;
+        slopedRoofMesh.receiveShadow = true;
+        slopedRoofMesh.userData = { buildingId: bldg.id };
+        buildingGroup.add(slopedRoofMesh);
+
+        // 2. Gable / Infill Side Walls
+        const wallPositions = [];
+        const numPts = fp.corners.length;
+        for (let i = 0; i < numPts; i++) {
+          const curr = fp.corners[i];
+          const next = fp.corners[(i + 1) % numPts];
+          const hCurr = getSlopeH(curr.x, curr.y);
+          const hNext = getSlopeH(next.x, next.y);
+
+          const p0 = new THREE.Vector3(curr.x, totalAboveH, curr.y);
+          const p1 = new THREE.Vector3(next.x, totalAboveH, next.y);
+          const p2 = new THREE.Vector3(next.x, totalAboveH + hNext + 0.25, next.y);
+          const p3 = new THREE.Vector3(curr.x, totalAboveH + hCurr + 0.25, curr.y);
+
+          wallPositions.push(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
+          wallPositions.push(p0.x, p0.y, p0.z, p2.x, p2.y, p2.z, p3.x, p3.y, p3.z);
+        }
+        const infillGeom = new THREE.BufferGeometry();
+        infillGeom.setAttribute('position', new THREE.Float32BufferAttribute(wallPositions, 3));
+        infillGeom.computeVertexNormals();
+        const infillMat = new THREE.MeshStandardMaterial({ color: bColorHex, roughness: 0.5, metalness: 0.2 });
+        const infillMesh = new THREE.Mesh(infillGeom, infillMat);
+        infillMesh.castShadow = true;
+        infillMesh.receiveShadow = true;
+        infillMesh.userData = { buildingId: bldg.id };
+        buildingGroup.add(infillMesh);
+
+        // Ridge/Eaves Wireframe Accent
+        const roofWire = new THREE.LineSegments(new THREE.WireframeGeometry(roofGeom), new THREE.LineBasicMaterial({ color: 0x00f0ff, opacity: 0.4, transparent: true }));
+        buildingGroup.add(roofWire);
+
+      } else if (roofType === 'gable') {
+        // Dual-pitch Gable Ridge Roof
+        const xs = fp.corners.map(p => p.x);
+        const zs = fp.corners.map(p => p.y);
+        const minX = Math.min(...xs), maxX = Math.max(...xs);
+        const minZ = Math.min(...zs), maxZ = Math.max(...zs);
+        const spanX = Math.max(1, maxX - minX);
+        const spanZ = Math.max(1, maxZ - minZ);
+        const isLongitudinalX = spanX >= spanZ;
+        const midVal = isLongitudinalX ? (minZ + maxZ) / 2 : (minX + maxX) / 2;
+        const halfSpan = isLongitudinalX ? spanZ / 2 : spanX / 2;
+        const deltaH = Math.max(1.0, Math.tan(roofAngleRad) * halfSpan);
+
+        const getGableH = (x, z) => {
+          const dist = isLongitudinalX ? Math.abs(z - midVal) : Math.abs(x - midVal);
+          return Math.max(0, (1 - dist / halfSpan)) * deltaH;
+        };
+
+        const shapePoints = fp.corners.map(p => new THREE.Vector2(p.x, -p.y));
+        const triangles = THREE.ShapeUtils.triangulateShape(shapePoints, []);
+        const roofGeom = new THREE.BufferGeometry();
+        const positions = [];
+
+        triangles.forEach(tri => {
+          const p0 = fp.corners[tri[0]];
+          const p1 = fp.corners[tri[1]];
+          const p2 = fp.corners[tri[2]];
+          const v0 = new THREE.Vector3(p0.x, totalAboveH + getGableH(p0.x, p0.y) + 0.25, p0.y);
+          const v1 = new THREE.Vector3(p1.x, totalAboveH + getGableH(p1.x, p1.y) + 0.25, p1.y);
+          const v2 = new THREE.Vector3(p2.x, totalAboveH + getGableH(p2.x, p2.y) + 0.25, p2.y);
+          positions.push(v0.x, v0.y, v0.z, v1.x, v1.y, v1.z, v2.x, v2.y, v2.z);
+        });
+        roofGeom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        roofGeom.computeVertexNormals();
+
+        const roofMat = new THREE.MeshStandardMaterial({
+          color: 0x9a3412, // Classic terracotta tile roof
+          roughness: 0.55,
+          metalness: 0.15,
+          side: THREE.DoubleSide
+        });
+        const gableMesh = new THREE.Mesh(roofGeom, roofMat);
+        gableMesh.castShadow = true;
+        gableMesh.receiveShadow = true;
+        gableMesh.userData = { buildingId: bldg.id };
+        buildingGroup.add(gableMesh);
+
+        // Gable triangular and side walls
+        const wallPositions = [];
+        const numPts = fp.corners.length;
+        for (let i = 0; i < numPts; i++) {
+          const curr = fp.corners[i];
+          const next = fp.corners[(i + 1) % numPts];
+          const hCurr = getGableH(curr.x, curr.y);
+          const hNext = getGableH(next.x, next.y);
+          const p0 = new THREE.Vector3(curr.x, totalAboveH, curr.y);
+          const p1 = new THREE.Vector3(next.x, totalAboveH, next.y);
+          const p2 = new THREE.Vector3(next.x, totalAboveH + hNext + 0.25, next.y);
+          const p3 = new THREE.Vector3(curr.x, totalAboveH + hCurr + 0.25, curr.y);
+          wallPositions.push(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
+          wallPositions.push(p0.x, p0.y, p0.z, p2.x, p2.y, p2.z, p3.x, p3.y, p3.z);
+        }
+        const infillGeom = new THREE.BufferGeometry();
+        infillGeom.setAttribute('position', new THREE.Float32BufferAttribute(wallPositions, 3));
+        infillGeom.computeVertexNormals();
+        const infillMat = new THREE.MeshStandardMaterial({ color: bColorHex, roughness: 0.5, metalness: 0.2 });
+        const infillMesh = new THREE.Mesh(infillGeom, infillMat);
+        infillMesh.castShadow = true;
+        infillMesh.receiveShadow = true;
+        infillMesh.userData = { buildingId: bldg.id };
+        buildingGroup.add(infillMesh);
+
+      } else if (roofType === 'mansard') {
+        // Mansard Roof (steep slope with top crown)
+        const mansardExtrudeGeom = new THREE.ExtrudeGeometry(shape, { depth: 2.2, bevelEnabled: false });
+        const mansardMat = new THREE.MeshStandardMaterial({
+          color: 0x1e293b,
+          roughness: 0.4,
+          metalness: 0.4
+        });
+        const mansardMesh = new THREE.Mesh(mansardExtrudeGeom, mansardMat);
+        mansardMesh.rotation.x = -Math.PI / 2;
+        mansardMesh.position.set(0, totalAboveH, 0);
+        mansardMesh.scale.set(0.92, 0.92, 1);
+        mansardMesh.castShadow = true;
+        mansardMesh.receiveShadow = true;
+        mansardMesh.userData = { buildingId: bldg.id };
+        buildingGroup.add(mansardMesh);
+
+        // Crown parapet
+        const crownGeom = new THREE.ExtrudeGeometry(shape, { depth: 0.35, bevelEnabled: false });
+        const crownMesh = new THREE.Mesh(crownGeom, slabMat);
+        crownMesh.rotation.x = -Math.PI / 2;
+        crownMesh.position.set(0, totalAboveH + 2.2, 0);
+        crownMesh.scale.set(0.88, 0.88, 1);
+        buildingGroup.add(crownMesh);
+
+      } else {
+        // Standard Flat Roof Slab & Parapet
+        const roofSlabGeom = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: false });
+        const roofMesh = new THREE.Mesh(roofSlabGeom, slabMat);
+        roofMesh.rotation.x = -Math.PI / 2;
+        roofMesh.position.set(0, totalAboveH, 0);
+        roofMesh.castShadow = true;
+        roofMesh.receiveShadow = true;
+        roofMesh.userData = { buildingId: bldg.id };
+        buildingGroup.add(roofMesh);
+
+        const parapetGeom = new THREE.ExtrudeGeometry(shape, { depth: 0.75, bevelEnabled: false });
+        const parapetMat = new THREE.MeshStandardMaterial({ color: bColorHex, roughness: 0.4, metalness: 0.3 });
+        const parapetMesh = new THREE.Mesh(parapetGeom, parapetMat);
+        parapetMesh.rotation.x = -Math.PI / 2;
+        parapetMesh.position.set(0, totalAboveH + 0.4, 0);
+        parapetMesh.userData = { buildingId: bldg.id };
+        buildingGroup.add(parapetMesh);
+      }
 
       // Subterranean Minus Floors (Y < 0)
       for (let b = 1; b <= floorsBelow; b++) {
@@ -3518,6 +3751,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const baseOutline = new THREE.Line(baseGeom, baseMat);
       buildingGroup.add(baseOutline);
     });
+
+    // Render 3D Roads and Pathways
+    renderAllRoads3D();
 
     if (controls) {
       controls.target.set(0, (maxOverallHeight || 15) / 2, 0);
@@ -4246,7 +4482,22 @@ document.addEventListener('DOMContentLoaded', () => {
     setVal('sliderRotation', bldg.rotation || 0);
     setDisplay('displayRotation', `${bldg.rotation || 0}°`);
 
-    setVal('selectMaterial', bldg.facadeMaterial || 'concrete');
+    // Roof architecture controls
+    const roofType = bldg.roofType || 'flat';
+    setVal('selectRoofType', roofType);
+    setVal('selectRoofSlopeDir', bldg.roofSlopeDir || 'south');
+    setVal('sliderRoofAngle', bldg.roofAngle || 15);
+    setDisplay('displayRoofAngle', `${bldg.roofAngle || 15}°`);
+
+    const roofSlopeDirGroup = document.getElementById('roofSlopeDirGroup');
+    if (roofSlopeDirGroup) roofSlopeDirGroup.style.display = roofType === 'shed' ? 'block' : 'none';
+    const roofAngleGroup = document.getElementById('roofAngleGroup');
+    if (roofAngleGroup) roofAngleGroup.style.display = (roofType === 'shed' || roofType === 'gable' || roofType === 'mansard') ? 'block' : 'none';
+
+    // Facade visual & material controls
+    setVal('selectMaterial', bldg.facadeMaterial || 'glass');
+    setVal('sliderGlazingRatio', bldg.glazingRatio !== undefined ? bldg.glazingRatio : 65);
+    setDisplay('displayGlazingRatio', `${bldg.glazingRatio !== undefined ? bldg.glazingRatio : 65}%`);
     setVal('selectStyle', bldg.style || 'modern');
     setVal('selectGroundUse', bldg.groundFloorUse || 'commercial');
   }
@@ -4259,6 +4510,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const sliderFootprint = document.getElementById('sliderFootprint');
   const sliderHeight = document.getElementById('sliderHeight');
   const sliderRotation = document.getElementById('sliderRotation');
+  const selectRoofType = document.getElementById('selectRoofType');
+  const selectRoofSlopeDir = document.getElementById('selectRoofSlopeDir');
+  const sliderRoofAngle = document.getElementById('sliderRoofAngle');
+  const sliderGlazingRatio = document.getElementById('sliderGlazingRatio');
   const selectMaterial = document.getElementById('selectMaterial');
   const selectStyle = document.getElementById('selectStyle');
   const selectGroundUse = document.getElementById('selectGroundUse');
@@ -4351,11 +4606,62 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  if (selectRoofType) {
+    selectRoofType.addEventListener('change', () => {
+      const bldg = getSelectedBuilding();
+      if (!bldg) return;
+      bldg.roofType = selectRoofType.value;
+      const slopeGroup = document.getElementById('roofSlopeDirGroup');
+      if (slopeGroup) slopeGroup.style.display = bldg.roofType === 'shed' ? 'block' : 'none';
+      const angleGroup = document.getElementById('roofAngleGroup');
+      if (angleGroup) angleGroup.style.display = (bldg.roofType === 'shed' || bldg.roofType === 'gable' || bldg.roofType === 'mansard') ? 'block' : 'none';
+      syncCurrentBuildingToActiveConcept();
+      renderAllBuildings3D();
+    });
+  }
+
+  if (selectRoofSlopeDir) {
+    selectRoofSlopeDir.addEventListener('change', () => {
+      const bldg = getSelectedBuilding();
+      if (!bldg) return;
+      bldg.roofSlopeDir = selectRoofSlopeDir.value;
+      syncCurrentBuildingToActiveConcept();
+      renderAllBuildings3D();
+    });
+  }
+
+  if (sliderRoofAngle) {
+    sliderRoofAngle.addEventListener('input', () => {
+      const bldg = getSelectedBuilding();
+      if (!bldg) return;
+      const val = parseInt(sliderRoofAngle.value, 10);
+      bldg.roofAngle = val;
+      const disp = document.getElementById('displayRoofAngle');
+      if (disp) disp.textContent = `${val}°`;
+      syncCurrentBuildingToActiveConcept();
+      renderAllBuildings3D();
+    });
+  }
+
+  if (sliderGlazingRatio) {
+    sliderGlazingRatio.addEventListener('input', () => {
+      const bldg = getSelectedBuilding();
+      if (!bldg) return;
+      const val = parseInt(sliderGlazingRatio.value, 10);
+      bldg.glazingRatio = val;
+      const disp = document.getElementById('displayGlazingRatio');
+      if (disp) disp.textContent = `${val}%`;
+      syncCurrentBuildingToActiveConcept();
+      renderAllBuildings3D();
+    });
+  }
+
   if (selectMaterial) {
     selectMaterial.addEventListener('change', () => {
       const bldg = getSelectedBuilding();
       if (!bldg) return;
       bldg.facadeMaterial = selectMaterial.value;
+      syncCurrentBuildingToActiveConcept();
       renderAllBuildings3D();
     });
   }
@@ -4365,6 +4671,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const bldg = getSelectedBuilding();
       if (!bldg) return;
       bldg.style = selectStyle.value;
+      syncCurrentBuildingToActiveConcept();
+      renderAllBuildings3D();
     });
   }
 
@@ -4583,11 +4891,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // Compute final area with Turf.js
     const areaSqM = computePolygonArea(state.customFootprint);
 
-    const bldg = getSelectedBuilding();
-    if (bldg) {
-      bldg.footprintCoords = [...state.customFootprint];
-      bldg.footprintArea = areaSqM;
+    // Auto-create or select building so drawing works immediately from scratch
+    let bldg = getSelectedBuilding();
+    if (!bldg) {
+      if (state.buildings && state.buildings.length > 0) {
+        bldg = state.buildings[0];
+        state.selectedBuildingId = bldg.id;
+      } else {
+        bldg = createBuildingData(1, BUILDING_COLORS[0], areaSqM, 5, 1);
+        state.buildings = [bldg];
+        state.selectedBuildingId = bldg.id;
+      }
     }
+
+    bldg.footprintCoords = [...state.customFootprint];
+    bldg.footprintArea = areaSqM;
+    bldg.isProcedural = false;
 
     if (drawingLayerGroup) drawingLayerGroup.clearLayers();
     renderAllBuildingsOnMap();
@@ -4597,15 +4916,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateToolbarButtons();
 
-    if (bldg) {
-      syncSlidersUI(bldg);
-      renderFloorMatrixUI();
-      renderAllBuildings3D();
-      updateComplianceUI();
-    }
+    syncCurrentBuildingToActiveConcept();
+    renderBuildingTabsUI();
+    syncSlidersUI(bldg);
+    renderFloorMatrixUI();
+    renderAllBuildings3D();
+    updateComplianceUI();
+
+    focusCameraOnBuilding(bldg);
 
     if (state.currentMode === 'map' || state.currentMode === '2d') {
       setMode('combined');
+    }
+  }
+
+  function focusCameraOnBuilding(bldg) {
+    if (!controls || !camera || !state.activeParcel || !bldg) return;
+    const parcelCenter = {
+      lat: state.activeParcel.coordinates.reduce((sum, c) => sum + c[0], 0) / state.activeParcel.coordinates.length,
+      lng: state.activeParcel.coordinates.reduce((sum, c) => sum + c[1], 0) / state.activeParcel.coordinates.length
+    };
+    if (bldg.footprintCoords && bldg.footprintCoords.length >= 3) {
+      const pts = gpsToLocalMeters(bldg.footprintCoords, parcelCenter);
+      const avgX = pts.reduce((s, p) => s + p.x, 0) / pts.length;
+      const avgZ = pts.reduce((s, p) => s + p.y, 0) / pts.length;
+      const h = ((bldg.floorsAbove || 5) * (bldg.floorHeight || 3.3)) / 2;
+      controls.target.set(avgX, h, avgZ);
+      camera.position.set(avgX + 40, h + 32, avgZ + 50);
+      controls.update();
     }
   }
 
@@ -4796,6 +5134,381 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
+     9B. Road & Pathway Trajectory Drawing Engine (2D & 3D)
+     ========================================================================== */
+  function updateRoadToolbarButtons() {
+    const btnDrawRoad = document.getElementById('btnDrawRoad');
+    const btnFinishRoad = document.getElementById('btnFinishRoad');
+    const btnCancelRoad = document.getElementById('btnCancelRoad');
+    const btnUndoRoadPoint = document.getElementById('btnUndoRoadPoint');
+    const btnClearRoads = document.getElementById('btnClearRoads');
+    const roadDrawingBar = document.getElementById('roadDrawingBar');
+
+    const count = state.drawnRoadPoints.length;
+    const hasRoads = state.roads && state.roads.length > 0;
+
+    if (state.isDrawingRoad) {
+      if (btnDrawRoad) {
+        btnDrawRoad.classList.add('active');
+        btnDrawRoad.style.display = 'inline-flex';
+      }
+      if (btnFinishRoad) btnFinishRoad.style.display = count >= 2 ? 'inline-flex' : 'none';
+      if (btnCancelRoad) btnCancelRoad.style.display = 'inline-flex';
+      if (btnUndoRoadPoint) btnUndoRoadPoint.style.display = count > 0 ? 'inline-flex' : 'none';
+      if (btnClearRoads) btnClearRoads.style.display = 'none';
+      if (roadDrawingBar) roadDrawingBar.style.display = 'flex';
+    } else {
+      if (btnDrawRoad) {
+        btnDrawRoad.classList.remove('active');
+        btnDrawRoad.style.display = 'inline-flex';
+      }
+      if (btnFinishRoad) btnFinishRoad.style.display = 'none';
+      if (btnCancelRoad) btnCancelRoad.style.display = 'none';
+      if (btnUndoRoadPoint) btnUndoRoadPoint.style.display = 'none';
+      if (btnClearRoads) btnClearRoads.style.display = hasRoads ? 'inline-flex' : 'none';
+      if (roadDrawingBar) roadDrawingBar.style.display = 'none';
+    }
+  }
+
+  function startDrawingRoad() {
+    if (!state.activeParcel) {
+      searchParcel('01.11.13.002.264');
+    }
+    if (state.isDrawingMode) finishDrawing();
+    if (state.isEditMode) cancelFootprintEdit();
+
+    state.isDrawingRoad = true;
+    state.drawnRoadPoints = [];
+
+    const mapViewport = document.getElementById('mapViewport');
+    if (mapViewport) mapViewport.classList.add('map-drawing-active');
+
+    if (state.currentMode === '3d' || state.currentMode === 'solar') {
+      setMode('combined');
+    }
+
+    if (map) {
+      setTimeout(() => map.invalidateSize(), 60);
+    }
+
+    updateRoadToolbarButtons();
+    updateRoadDrawingVisualization();
+  }
+
+  function handleRoadMapClick(e) {
+    if (!state.isDrawingRoad) return;
+    state.drawnRoadPoints.push([e.latlng.lat, e.latlng.lng]);
+    updateRoadDrawingVisualization();
+    updateRoadToolbarButtons();
+  }
+
+  function updateRoadDrawingVisualization() {
+    if (!roadLayerGroup) return;
+    renderAllRoadsOnMap();
+
+    const count = state.drawnRoadPoints.length;
+    const lenBadge = document.getElementById('roadLiveLengthBadge');
+    let totalLen = 0;
+
+    for (let i = 0; i < count - 1; i++) {
+      const p1 = L.latLng(state.drawnRoadPoints[i][0], state.drawnRoadPoints[i][1]);
+      const p2 = L.latLng(state.drawnRoadPoints[i + 1][0], state.drawnRoadPoints[i + 1][1]);
+      totalLen += p1.distanceTo(p2);
+    }
+
+    if (lenBadge) {
+      lenBadge.textContent = `${totalLen.toFixed(1)} მ`;
+    }
+
+    // Active vertex dots
+    state.drawnRoadPoints.forEach((pt, idx) => {
+      const isFirst = idx === 0;
+      const marker = L.circleMarker(pt, {
+        radius: isFirst ? 7 : 5,
+        color: '#38bdf8',
+        fillColor: isFirst ? '#38bdf8' : '#ffffff',
+        fillOpacity: 1,
+        weight: 2,
+        interactive: false
+      });
+      roadLayerGroup.addLayer(marker);
+    });
+
+    if (count >= 2) {
+      const widthVal = parseFloat(document.getElementById('inputRoadWidth')?.value || state.activeRoadWidth || 6.0);
+      const activeLine = L.polyline(state.drawnRoadPoints, {
+        color: '#38bdf8',
+        weight: Math.max(5, widthVal * 1.8),
+        opacity: 0.7,
+        dashArray: '6, 6',
+        interactive: false
+      });
+      roadLayerGroup.addLayer(activeLine);
+    }
+  }
+
+  function undoRoadPoint() {
+    if (!state.isDrawingRoad || state.drawnRoadPoints.length === 0) return;
+    state.drawnRoadPoints.pop();
+    updateRoadDrawingVisualization();
+    updateRoadToolbarButtons();
+  }
+
+  function cancelDrawingRoad() {
+    state.isDrawingRoad = false;
+    state.drawnRoadPoints = [];
+    const mapViewport = document.getElementById('mapViewport');
+    if (mapViewport) mapViewport.classList.remove('map-drawing-active');
+    updateRoadToolbarButtons();
+    renderAllRoadsOnMap();
+  }
+
+  function finishDrawingRoad() {
+    if (state.drawnRoadPoints.length < 2) return;
+
+    let totalLen = 0;
+    for (let i = 0; i < state.drawnRoadPoints.length - 1; i++) {
+      const p1 = L.latLng(state.drawnRoadPoints[i][0], state.drawnRoadPoints[i][1]);
+      const p2 = L.latLng(state.drawnRoadPoints[i + 1][0], state.drawnRoadPoints[i + 1][1]);
+      totalLen += p1.distanceTo(p2);
+    }
+
+    const widthVal = parseFloat(document.getElementById('inputRoadWidth')?.value || state.activeRoadWidth || 6.0);
+    const roadObj = {
+      id: `road-${Date.now()}-${state.roads.length + 1}`,
+      name: `გზა #${state.roads.length + 1}`,
+      width: widthVal,
+      points: [...state.drawnRoadPoints],
+      length: totalLen
+    };
+
+    state.roads.push(roadObj);
+    state.isDrawingRoad = false;
+    state.drawnRoadPoints = [];
+
+    const mapViewport = document.getElementById('mapViewport');
+    if (mapViewport) mapViewport.classList.remove('map-drawing-active');
+
+    updateRoadToolbarButtons();
+    renderAllRoadsOnMap();
+    renderAllRoads3D();
+
+    if (state.currentMode === 'map' || state.currentMode === '2d') {
+      setMode('combined');
+    }
+  }
+
+  function clearAllRoads() {
+    state.roads = [];
+    state.isDrawingRoad = false;
+    state.drawnRoadPoints = [];
+    if (roadLayerGroup) roadLayerGroup.clearLayers();
+    if (roadGroup) {
+      while (roadGroup.children.length > 0) {
+        const ch = roadGroup.children[0];
+        roadGroup.remove(ch);
+        if (ch.geometry) ch.geometry.dispose();
+      }
+    }
+    updateRoadToolbarButtons();
+  }
+
+  function renderAllRoadsOnMap() {
+    if (!roadLayerGroup || !map) return;
+    roadLayerGroup.clearLayers();
+
+    if (!state.roads || state.roads.length === 0) return;
+
+    state.roads.forEach((road, idx) => {
+      if (!road.points || road.points.length < 2) return;
+
+      let drawnPoly = false;
+      if (typeof turf !== 'undefined' && turf.lineString && turf.buffer) {
+        try {
+          const turfCoords = road.points.map(p => [p[1], p[0]]);
+          const line = turf.lineString(turfCoords);
+          const buffered = turf.buffer(line, (road.width / 2) / 1000, { units: 'kilometers' });
+          if (buffered && buffered.geometry) {
+            const roadPoly = L.geoJSON(buffered, {
+              style: {
+                color: '#94a3b8',
+                weight: 2,
+                fillColor: '#1e293b',
+                fillOpacity: 0.92
+              }
+            });
+            roadPoly.bindTooltip(`<strong>${road.name || `გზა #${idx + 1}`}</strong><br>სიგანე: ${road.width} მ · სიგრძე: ${(road.length || 0).toFixed(1)} მ`, {
+              permanent: false,
+              direction: 'top'
+            });
+            roadLayerGroup.addLayer(roadPoly);
+            drawnPoly = true;
+          }
+        } catch (err) {
+          console.warn('Road buffer failed, fallback to polyline:', err);
+        }
+      }
+
+      if (!drawnPoly) {
+        const asphaltLine = L.polyline(road.points, {
+          color: '#1e293b',
+          weight: Math.max(6, (road.width || 6) * 2.2),
+          opacity: 0.95
+        });
+        roadLayerGroup.addLayer(asphaltLine);
+      }
+
+      // Yellow dashed center line
+      const centerLine = L.polyline(road.points, {
+        color: '#fde047',
+        weight: 2,
+        dashArray: '6, 6',
+        opacity: 0.9,
+        interactive: false
+      });
+      roadLayerGroup.addLayer(centerLine);
+    });
+  }
+
+  function renderAllRoads3D() {
+    if (!roadGroup || !scene || !state.activeParcel) return;
+    while (roadGroup.children.length > 0) {
+      const child = roadGroup.children[0];
+      roadGroup.remove(child);
+      if (child.geometry) child.geometry.dispose();
+    }
+
+    if (!state.roads || state.roads.length === 0) return;
+
+    const parcelCenter = {
+      lat: state.activeParcel.coordinates.reduce((sum, c) => sum + c[0], 0) / state.activeParcel.coordinates.length,
+      lng: state.activeParcel.coordinates.reduce((sum, c) => sum + c[1], 0) / state.activeParcel.coordinates.length
+    };
+
+    const asphaltMat = new THREE.MeshStandardMaterial({
+      color: 0x1f242d,
+      roughness: 0.88,
+      metalness: 0.12,
+      polygonOffset: true,
+      polygonOffsetFactor: -1.5,
+      polygonOffsetUnits: -1.5
+    });
+
+    const curbMat = new THREE.MeshStandardMaterial({
+      color: 0x94a3b8,
+      roughness: 0.7,
+      metalness: 0.2
+    });
+
+    state.roads.forEach(road => {
+      if (!road.points || road.points.length < 2) return;
+      const localPts = gpsToLocalMeters(road.points, parcelCenter);
+      const halfW = (road.width || 6.0) / 2;
+
+      const roadPositions = [];
+      const leftCurbPositions = [];
+      const rightCurbPositions = [];
+      const centerLinePts = [];
+
+      for (let i = 0; i < localPts.length - 1; i++) {
+        const p0 = localPts[i];
+        const p1 = localPts[i + 1];
+
+        const dx = p1.x - p0.x;
+        const dz = p1.y - p0.y;
+        const len = Math.sqrt(dx * dx + dz * dz);
+        if (len === 0) continue;
+
+        const nx = -dz / len;
+        const nz = dx / len;
+
+        const L0 = { x: p0.x + nx * halfW, z: p0.y + nz * halfW };
+        const R0 = { x: p0.x - nx * halfW, z: p0.y - nz * halfW };
+        const L1 = { x: p1.x + nx * halfW, z: p1.y + nz * halfW };
+        const R1 = { x: p1.x - nx * halfW, z: p1.y - nz * halfW };
+
+        const yRoad = 0.08;
+
+        // Quad for road surface
+        roadPositions.push(
+          L0.x, yRoad, L0.z,
+          R0.x, yRoad, R0.z,
+          R1.x, yRoad, R1.z,
+
+          L0.x, yRoad, L0.z,
+          R1.x, yRoad, R1.z,
+          L1.x, yRoad, L1.z
+        );
+
+        // Curbs (height 0.12m, width 0.25m)
+        const curbW = 0.25;
+        const curbH = 0.12;
+        const outerL0 = { x: L0.x + nx * curbW, z: L0.z + nz * curbW };
+        const outerL1 = { x: L1.x + nx * curbW, z: L1.z + nz * curbW };
+        leftCurbPositions.push(
+          L0.x, yRoad + curbH, L0.z,
+          outerL0.x, yRoad + curbH, outerL0.z,
+          outerL1.x, yRoad + curbH, outerL1.z,
+
+          L0.x, yRoad + curbH, L0.z,
+          outerL1.x, yRoad + curbH, outerL1.z,
+          L1.x, yRoad + curbH, L1.z
+        );
+
+        const outerR0 = { x: R0.x - nx * curbW, z: R0.z - nz * curbW };
+        const outerR1 = { x: R1.x - nx * curbW, z: R1.z - nz * curbW };
+        rightCurbPositions.push(
+          outerR0.x, yRoad + curbH, outerR0.z,
+          R0.x, yRoad + curbH, R0.z,
+          R1.x, yRoad + curbH, R1.z,
+
+          outerR0.x, yRoad + curbH, outerR0.z,
+          R1.x, yRoad + curbH, R1.z,
+          outerR1.x, yRoad + curbH, outerR1.z
+        );
+
+        centerLinePts.push(new THREE.Vector3(p0.x, yRoad + 0.02, p0.y));
+        if (i === localPts.length - 2) {
+          centerLinePts.push(new THREE.Vector3(p1.x, yRoad + 0.02, p1.y));
+        }
+      }
+
+      if (roadPositions.length > 0) {
+        const roadGeom = new THREE.BufferGeometry();
+        roadGeom.setAttribute('position', new THREE.Float32BufferAttribute(roadPositions, 3));
+        roadGeom.computeVertexNormals();
+        const roadMesh = new THREE.Mesh(roadGeom, asphaltMat);
+        roadMesh.receiveShadow = true;
+        roadGroup.add(roadMesh);
+      }
+
+      const allCurbs = leftCurbPositions.concat(rightCurbPositions);
+      if (allCurbs.length > 0) {
+        const curbGeom = new THREE.BufferGeometry();
+        curbGeom.setAttribute('position', new THREE.Float32BufferAttribute(allCurbs, 3));
+        curbGeom.computeVertexNormals();
+        const curbMesh = new THREE.Mesh(curbGeom, curbMat);
+        curbMesh.castShadow = true;
+        curbMesh.receiveShadow = true;
+        roadGroup.add(curbMesh);
+      }
+
+      if (centerLinePts.length >= 2) {
+        const lineGeom = new THREE.BufferGeometry().setFromPoints(centerLinePts);
+        const lineMat = new THREE.LineDashedMaterial({
+          color: 0xfde047,
+          dashSize: 2,
+          gapSize: 1.5,
+          linewidth: 2
+        });
+        const centerLine = new THREE.Line(lineGeom, lineMat);
+        centerLine.computeLineDistances();
+        roadGroup.add(centerLine);
+      }
+    });
+  }
+
+  /* ==========================================================================
      10. Mode Switcher (Map / 2D / 3D / Combined)
      ========================================================================== */
   const modeTabBtns = document.querySelectorAll('.mode-tab-btn');
@@ -4962,6 +5675,73 @@ document.addEventListener('DOMContentLoaded', () => {
       clearDrawing();
     });
   }
+
+  // Road & Pathway Drawing Event Listeners
+  const btnDrawRoad = document.getElementById('btnDrawRoad');
+  const btnFinishRoad = document.getElementById('btnFinishRoad');
+  const btnCancelRoad = document.getElementById('btnCancelRoad');
+  const btnUndoRoadPoint = document.getElementById('btnUndoRoadPoint');
+  const btnClearRoads = document.getElementById('btnClearRoads');
+  const inputRoadWidth = document.getElementById('inputRoadWidth');
+  const roadPresetBtns = document.querySelectorAll('.btn-road-preset');
+
+  if (btnDrawRoad) {
+    btnDrawRoad.addEventListener('click', () => {
+      if (state.isDrawingRoad) {
+        cancelDrawingRoad();
+      } else {
+        startDrawingRoad();
+      }
+    });
+  }
+
+  if (btnFinishRoad) {
+    btnFinishRoad.addEventListener('click', () => {
+      finishDrawingRoad();
+    });
+  }
+
+  if (btnCancelRoad) {
+    btnCancelRoad.addEventListener('click', () => {
+      cancelDrawingRoad();
+    });
+  }
+
+  if (btnUndoRoadPoint) {
+    btnUndoRoadPoint.addEventListener('click', () => {
+      undoRoadPoint();
+    });
+  }
+
+  if (btnClearRoads) {
+    btnClearRoads.addEventListener('click', () => {
+      clearAllRoads();
+    });
+  }
+
+  if (inputRoadWidth) {
+    inputRoadWidth.addEventListener('input', () => {
+      const val = parseFloat(inputRoadWidth.value) || 6.0;
+      state.activeRoadWidth = val;
+      roadPresetBtns.forEach(b => b.classList.toggle('active', parseFloat(b.dataset.width) === val));
+      if (state.isDrawingRoad) {
+        updateRoadDrawingVisualization();
+      }
+    });
+  }
+
+  roadPresetBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      roadPresetBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const w = parseFloat(btn.dataset.width) || 6.0;
+      state.activeRoadWidth = w;
+      if (inputRoadWidth) inputRoadWidth.value = w;
+      if (state.isDrawingRoad) {
+        updateRoadDrawingVisualization();
+      }
+    });
+  });
 
   if (btnToggleXRay) {
     btnToggleXRay.addEventListener('click', () => {

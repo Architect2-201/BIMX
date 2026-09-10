@@ -780,37 +780,96 @@
             </div>
             <input type="range" id="sliderRotation" class="slider-custom" min="0" max="360" step="5" value="0">
 
-            <!-- Facade Material -->
-            <label for="selectMaterial" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 5px;" data-i18n="param_facade_mat">
-              ფასადის მასალა
-            </label>
-            <select class="select-compact" id="selectMaterial">
-              <option value="concrete">არქიტექტურული ბეტონი (Concrete)</option>
-              <option value="glass">შუშის ვიტრაჟი (Curtain Wall)</option>
-              <option value="brick">აგური (Textured Brick)</option>
-              <option value="composite">ალუმინის კომპოზიტი (Composite)</option>
-            </select>
+            <!-- Roof Architecture & Geometry (გადახურვის ტიპი) -->
+            <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-line);">
+              <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-shapes" style="color: var(--cyan-neon);"></i>
+                <span data-i18n="param_roof_heading">გადახურვის არქიტექტურა</span>
+              </div>
 
-            <!-- Architectural Style -->
-            <label for="selectStyle" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 5px;" data-i18n="param_style">
-              არქიტექტურული სტილი
-            </label>
-            <select class="select-compact" id="selectStyle">
-              <option value="modern">თანამედროვე (Modern)</option>
-              <option value="minimalist">მინიმალისტური (Minimalist)</option>
-              <option value="high-tech">ჰაიტექი (High-Tech)</option>
-              <option value="classic">კლასიკური (Classic)</option>
-            </select>
+              <!-- Roof Design Type -->
+              <label for="selectRoofType" style="display: block; font-size: 0.76rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;" data-i18n="param_roof_type">
+                გადახურვის ტიპი
+              </label>
+              <select class="select-compact" id="selectRoofType">
+                <option value="flat" data-i18n="roof_type_flat">ბრტყელი სახურავი (ტერასა / პარაპეტი)</option>
+                <option value="shed" data-i18n="roof_type_shed">ცალქანობიანი (დახრილი)</option>
+                <option value="gable" data-i18n="roof_type_gable">ორქანობიანი (კლასიკური ქედით)</option>
+                <option value="mansard" data-i18n="roof_type_mansard">მანსარდა (ჰიპური გადახურვა)</option>
+              </select>
 
-            <!-- Ground Floor Function -->
-            <label for="selectGroundUse" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 5px;" data-i18n="param_ground_floor">
-              პირველი სართულის ფუნქცია
-            </label>
-            <select class="select-compact" id="selectGroundUse">
-              <option value="commercial">კომერციული / საცალო ვაჭრობა</option>
-              <option value="lobby">საცხოვრებელი ლობი</option>
-              <option value="parking">ავტოსადგომი</option>
-            </select>
+              <!-- Roof Slope Direction (Conditional for shed) -->
+              <div id="roofSlopeDirGroup" style="display: none; margin-top: 8px;">
+                <label for="selectRoofSlopeDir" style="display: block; font-size: 0.76rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;" data-i18n="param_roof_slope_dir">
+                  დახრის მიმართულება
+                </label>
+                <select class="select-compact" id="selectRoofSlopeDir">
+                  <option value="south" data-i18n="roof_dir_south">სამხრეთი (მზისკენ)</option>
+                  <option value="north" data-i18n="roof_dir_north">ჩრდილოეთი</option>
+                  <option value="east" data-i18n="roof_dir_east">აღმოსავლეთი</option>
+                  <option value="west" data-i18n="roof_dir_west">დასავლეთი</option>
+                </select>
+              </div>
+
+              <!-- Roof Angle Slider -->
+              <div id="roofAngleGroup" style="display: none; margin-top: 8px;">
+                <div class="control-field-row">
+                  <label for="sliderRoofAngle" data-i18n="param_roof_angle">ქანობის კუთხე</label>
+                  <span class="control-val" id="displayRoofAngle">15°</span>
+                </div>
+                <input type="range" id="sliderRoofAngle" class="slider-custom" min="5" max="45" step="1" value="15">
+              </div>
+            </div>
+
+            <!-- Building Visual & Facade Customizer (ვიზუალური მხარე) -->
+            <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-line);">
+              <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-palette" style="color: var(--cyan-neon);"></i>
+                <span data-i18n="param_facade_heading">შენობის ვიზუალური მხარე</span>
+              </div>
+
+              <!-- Facade Material -->
+              <label for="selectMaterial" style="display: block; font-size: 0.76rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;" data-i18n="param_facade_mat">
+                ფასადის მასალა
+              </label>
+              <select class="select-compact" id="selectMaterial">
+                <option value="glass" data-i18n="mat_glass">შუშის ვიტრაჟი (Curtain Wall)</option>
+                <option value="travertine" data-i18n="mat_travertine">ნატურალური ტრავერტინი / ქვა</option>
+                <option value="wood" data-i18n="mat_wood">ხის ლამელები / პლანკენი</option>
+                <option value="composite" data-i18n="mat_composite">ალუმინის კომპოზიტი (Alucobond)</option>
+                <option value="brick" data-i18n="mat_brick">დეკორატიული აგური (Brick)</option>
+                <option value="concrete" data-i18n="mat_concrete">არქიტექტურული ბეტონი (Concrete)</option>
+              </select>
+
+              <!-- Glazing Ratio Slider -->
+              <div class="control-field-row" style="margin-top: 8px;">
+                <label for="sliderGlazingRatio" data-i18n="param_glazing_ratio">მინიანობის კოეფიციენტი</label>
+                <span class="control-val" id="displayGlazingRatio">65%</span>
+              </div>
+              <input type="range" id="sliderGlazingRatio" class="slider-custom" min="20" max="90" step="5" value="65">
+
+              <!-- Architectural Style -->
+              <label for="selectStyle" style="display: block; font-size: 0.76rem; font-weight: 600; color: var(--text-secondary); margin-top: 8px; margin-bottom: 4px;" data-i18n="param_style">
+                არქიტექტურული სტილი
+              </label>
+              <select class="select-compact" id="selectStyle">
+                <option value="modern">თანამედროვე მინიმალიზმი (Modern)</option>
+                <option value="high-tech">პრემიუმ ჰაიტექი (High-Tech Glass)</option>
+                <option value="classic">ნეოკლასიკური / ტრავერტინი (Classic)</option>
+                <option value="minimalist">მინიმალისტური მონოლითი (Minimalist)</option>
+                <option value="loft">ინდუსტრიული ლოფტი (Urban Loft)</option>
+              </select>
+
+              <!-- Ground Floor Function -->
+              <label for="selectGroundUse" style="display: block; font-size: 0.76rem; font-weight: 600; color: var(--text-secondary); margin-top: 8px; margin-bottom: 4px;" data-i18n="param_ground_floor">
+                პირველი სართულის ფუნქცია
+              </label>
+              <select class="select-compact" id="selectGroundUse">
+                <option value="commercial">კომერციული / საცალო ვაჭრობა</option>
+                <option value="lobby">საცხოვრებელი ლობი</option>
+                <option value="parking">ავტოსადგომი</option>
+              </select>
+            </div>
           </div>
         </div>
       </aside>
@@ -879,6 +938,28 @@
               <span data-i18n="tool_clear_draw">წაშლა</span>
             </button>
 
+            <!-- Road / Pathway Drawing Tools -->
+            <button type="button" class="tool-btn-draw tool-btn-road" id="btnDrawRoad" title="ნაკვეთზე მისასვლელი გზის დახაზვა">
+              <i class="fa-solid fa-road"></i>
+              <span data-i18n="tool_draw_road">+ გზის დახაზვა</span>
+            </button>
+            <button type="button" class="tool-btn-draw tool-btn-finish-road" id="btnFinishRoad" style="display: none;" title="გზის ნახაზის დასრულება">
+              <i class="fa-solid fa-check"></i>
+              <span data-i18n="tool_finish_road">დაასრულე გზა</span>
+            </button>
+            <button type="button" class="tool-btn-draw tool-btn-cancel-edit" id="btnCancelRoad" style="display: none;" title="გზის დახაზვის გაუქმება">
+              <i class="fa-solid fa-xmark"></i>
+              <span data-i18n="tool_cancel_road">გაუქმება</span>
+            </button>
+            <button type="button" class="tool-btn-draw tool-btn-undo" id="btnUndoRoadPoint" style="display: none;" title="ბოლო წერტილის გაუქმება">
+              <i class="fa-solid fa-rotate-left"></i>
+              <span data-i18n="tool_undo_road">უკან</span>
+            </button>
+            <button type="button" class="tool-btn-draw tool-btn-clear" id="btnClearRoads" style="display: none;" title="ყველა გზის წაშლა">
+              <i class="fa-solid fa-road-barrier"></i>
+              <span data-i18n="tool_clear_roads">გზების წაშლა</span>
+            </button>
+
             <!-- 3D X-Ray / Underground View Toggle -->
             <button type="button" class="tool-icon-btn" id="btnToggleXRay" title="მიწისქვეშა სართულების ხედვა (X-Ray)">
               <i class="fa-solid fa-layer-group"></i>
@@ -900,6 +981,26 @@
             <i class="fa-solid fa-pen-nib" style="color: var(--cyan-neon);"></i>
             <span id="drawingGuideText" data-i18n="drawing_guide_start">დააკლიკე რუკაზე შენობის ფორმის დასახაზად (მინ. 3 წერტილი)</span>
             <span id="drawingLiveAreaBadge" class="drawing-live-area">0 მ²</span>
+          </div>
+
+          <!-- Road Drawing Controls Bar -->
+          <div id="roadDrawingBar" class="road-drawing-bar" style="display: none;">
+            <div class="road-bar-title">
+              <i class="fa-solid fa-road"></i>
+              <span data-i18n="road_width_label">გზის გაბარიტი:</span>
+            </div>
+            <div class="road-width-presets">
+              <button type="button" class="btn-road-preset" data-width="3.5" title="საფეხმავლო / 1-ზოლი">3.5 მ</button>
+              <button type="button" class="btn-road-preset active" data-width="6.0" title="სტანდარტული 2-ზოლი">6.0 მ</button>
+              <button type="button" class="btn-road-preset" data-width="8.0" title="მთავარი / ორმხრივი">8.0 მ</button>
+            </div>
+            <div class="road-width-input-wrapper" title="სასურველი გაბარიტული სიგანე">
+              <input type="number" id="inputRoadWidth" class="road-width-num-input" min="1.5" max="35" step="0.5" value="6.0">
+              <span class="road-unit">მ</span>
+            </div>
+            <div class="road-bar-metric">
+              <span id="roadLiveLengthBadge" class="road-live-length-badge">0.0 მ</span>
+            </div>
           </div>
 
           <!-- 2D Leaflet Map Layer -->

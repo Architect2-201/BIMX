@@ -276,6 +276,44 @@ const translations = {
     tool_cancel_edit: "გაუქმება",
     tool_xray: "მიწისქვეშა ხედვა (X-Ray)",
 
+    // Road & Pathway Drawing
+    tool_draw_road: "გზის დახაზვა",
+    tool_finish_road: "დაასრულე გზა",
+    tool_cancel_road: "გზის გაუქმება",
+    tool_undo_road: "უკან",
+    tool_clear_roads: "გზების გასუფთავება",
+    road_width_label: "გზის გაბარიტული სიგანე:",
+    road_preset_3_5: "3.5 მ (საფეხმავლო / 1-ზოლი)",
+    road_preset_6: "6.0 მ (სტანდარტული 2-ზოლი)",
+    road_preset_8: "8.0 მ (მთავარი / ორმხრივი)",
+    road_custom_label: "სხვა ზომა (მ)",
+    drawing_road_guide_start: "დააკლიკე რუკაზე გზის ტრაექტორიის გასავლებად (მინ. 2 წერტილი)",
+    drawing_road_guide_close: "დააკლიკე ბოლო წერტილს ან „დაასრულე გზა“ ღილაკს დასასრულებლად",
+
+    // Roof Architecture & Geometry
+    param_roof_heading: "გადახურვის არქიტექტურა",
+    param_roof_type: "გადახურვის ტიპი",
+    roof_type_flat: "ბრტყელი სახურავი (ტერასა / პარაპეტი)",
+    roof_type_shed: "ცალქანობიანი (დახრილი)",
+    roof_type_gable: "ორქანობიანი (კლასიკური ქედით)",
+    roof_type_mansard: "მანსარდა (ჰიპური გადახურვა)",
+    param_roof_slope_dir: "დახრის მიმართულება",
+    roof_dir_south: "სამხრეთი (მზისკენ)",
+    roof_dir_north: "ჩრდილოეთი",
+    roof_dir_east: "აღმოსავლეთი",
+    roof_dir_west: "დასავლეთი",
+    param_roof_angle: "ქანობის კუთხე",
+
+    // Visual Customizer & Materials
+    param_facade_heading: "შენობის ვიზუალური მხარე",
+    mat_travertine: "ნატურალური ტრავერტინი / ქვა",
+    mat_wood: "ხის ლამელები / პლანკენი",
+    mat_concrete: "არქიტექტურული ბეტონი",
+    mat_glass: "შუშის ვიტრაჟი (Curtain Wall)",
+    mat_brick: "დეკორატიული აგური",
+    mat_composite: "ალუმინის კომპოზიტი",
+    param_glazing_ratio: "მინიანობის კოეფიციენტი",
+
     // Solar Analysis & Sun Path Trajectory
     solar_title: "მზის ანალიზი & ტრაექტორია",
     solar_sub: "3D Sun Path · Heliodon · დღე-ღამის ციკლი",
@@ -720,6 +758,44 @@ const translations = {
     tool_save_edit: "Save Changes",
     tool_cancel_edit: "Cancel",
     tool_xray: "Underground View (X-Ray)",
+
+    // Road & Pathway Drawing
+    tool_draw_road: "Draw Road / Pathway",
+    tool_finish_road: "Finish Road",
+    tool_cancel_road: "Cancel Road",
+    tool_undo_road: "Undo",
+    tool_clear_roads: "Clear Roads",
+    road_width_label: "Road Width (m):",
+    road_preset_3_5: "3.5 m (Pedestrian / 1-Lane)",
+    road_preset_6: "6.0 m (Standard 2-Lane)",
+    road_preset_8: "8.0 m (Main Dual Access)",
+    road_custom_label: "Custom Width (m)",
+    drawing_road_guide_start: "Click on map to trace road centerline trajectory (min. 2 points)",
+    drawing_road_guide_close: "Click last point or 'Finish Road' to complete",
+
+    // Roof Architecture & Geometry
+    param_roof_heading: "Roof Architecture",
+    param_roof_type: "Roof Design Type",
+    roof_type_flat: "Flat Roof (Terrace / Parapet)",
+    roof_type_shed: "Shed Roof (Mono-pitch Sloped)",
+    roof_type_gable: "Gable Roof (Dual-pitch Ridge)",
+    roof_type_mansard: "Mansard Roof (Attic Hip)",
+    param_roof_slope_dir: "Slope Direction",
+    roof_dir_south: "South (Solar Optimal)",
+    roof_dir_north: "North",
+    roof_dir_east: "East",
+    roof_dir_west: "West",
+    param_roof_angle: "Roof Pitch Angle",
+
+    // Visual Customizer & Materials
+    param_facade_heading: "Visual Style & Facade",
+    mat_travertine: "Natural Travertine / Stone",
+    mat_wood: "Timber Louvers / Planks",
+    mat_concrete: "Architectural Concrete",
+    mat_glass: "Glass Curtain Wall",
+    mat_brick: "Architectural Brick",
+    mat_composite: "Aluminum Composite Panel",
+    param_glazing_ratio: "Glazing Ratio",
 
     // Solar Analysis & Sun Path Trajectory
     solar_title: "Solar Analysis & Sun Path",
