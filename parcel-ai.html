@@ -1080,10 +1080,11 @@
             </div>
           </div>
 
-          <!-- Utility Clash Alert Banner -->
+          <!-- Utility Clash Alert Banner (Only active during Utilities inspection) -->
           <div id="utilityClashAlertBanner" class="utility-clash-banner" style="display: none;">
             <i class="fa-solid fa-triangle-exclamation"></i>
-            <span>კრიტიკული შეზღუდვა: შენობის ნაკვალევი კვეთს კომუნიკაციის დამცავ ზონას!</span>
+            <span id="utilityClashBannerText">კრიტიკული შეზღუდვა: შენობის ნაკვალევი კვეთს კომუნიკაციის დამცავ ზონას!</span>
+            <button type="button" class="btn-banner-close" id="btnCloseClashBanner" title="დახურვა" style="background: rgba(0,0,0,0.25); border: none; color: #fff; cursor: pointer; border-radius: 50%; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; margin-left: 10px;"><i class="fa-solid fa-xmark"></i></button>
           </div>
 
           <!-- Floating Utilities, Easements & Protected Corridors Panel (Module 1) -->
@@ -1309,6 +1310,14 @@
               </div>
             </div>
 
+            <!-- Floorplate 2D Schematic Plan -->
+            <div class="solar-section-row">
+              <span class="solar-section-label"><i class="fa-solid fa-draw-polygon"></i> სართულის არქიტექტურული გეგმარება (Plan View):</span>
+              <div class="unitmix-floorplan-container" id="unitMixFloorPlanContainer">
+                <svg id="unitMixFloorPlanSvg" viewBox="0 0 380 200" class="unitmix-svg-canvas"></svg>
+              </div>
+            </div>
+
             <!-- Floorplate Generated Units Schedule Preview -->
             <div class="solar-section-row">
               <span class="solar-section-label"><i class="fa-solid fa-table-list"></i> ტიპური სართულის ბინების განაწილება:</span>
@@ -1435,6 +1444,83 @@
                   </div>
                   <div class="probe-status" id="probeStatusText" style="color: #06b6d4;">კომფორტულია დგომისა და შესასვლელებისთვის</div>
                   <div class="probe-tip" id="probeTipText">💡 რეკომენდაცია: აეროდინამიკა სტაბილურია, დამატებითი ჩარდახი არ არის საჭირო.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Building Aerodynamic Impact & Facade Wind Pressures -->
+            <div class="solar-section-row">
+              <div class="solar-label-row">
+                <span class="solar-section-label"><i class="fa-solid fa-building"></i> შენობაზე ქარის ზემოქმედება:</span>
+                <span class="solar-status-pill" id="windBuildingRiskBadge" style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4);">სტაბილური</span>
+              </div>
+              <div class="wind-impact-kpi-grid">
+                <div class="wind-impact-card windward">
+                  <div class="wind-kpi-title">ქარსპირა ფასადი (+P)</div>
+                  <div class="wind-kpi-val" id="valWindwardPressure">+380 Pa</div>
+                  <div class="wind-kpi-sub">პირდაპირი წნევა / დაწოლა</div>
+                </div>
+                <div class="wind-impact-card leeward">
+                  <div class="wind-kpi-title">ქარზურგა ფასადი (-P)</div>
+                  <div class="wind-kpi-val" id="valLeewardSuction">-210 Pa</div>
+                  <div class="wind-kpi-sub">უარყოფითი გაწოვა (ვაკუუმი)</div>
+                </div>
+                <div class="wind-impact-card uplift">
+                  <div class="wind-kpi-title">სახურავის ამწევი ძალა</div>
+                  <div class="wind-kpi-val" id="valRoofUplift">-295 Pa</div>
+                  <div class="wind-kpi-sub">პარაპეტის წევა (Uplift)</div>
+                </div>
+                <div class="wind-impact-card drag">
+                  <div class="wind-kpi-title">აეროდინამიკური დაწოლა</div>
+                  <div class="wind-kpi-val" id="valTotalDrag">52.4 kN</div>
+                  <div class="wind-kpi-sub" id="valOverturningMoment">მომენტი: ~680 kNm</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Critical Hazard Zones & Mitigations -->
+            <div class="solar-section-row">
+              <div class="solar-label-row">
+                <span class="solar-section-label"><i class="fa-solid fa-triangle-exclamation" style="color: #f59e0b;"></i> კრიტიკული ადგილები ქარის დროს:</span>
+              </div>
+              <div class="wind-critical-zones-list" id="windCriticalZonesList">
+                <!-- Venturi Alley -->
+                <div class="wind-hazard-item critical" id="hazardVenturiAlley">
+                  <div class="hazard-icon"><i class="fa-solid fa-wind"></i></div>
+                  <div class="hazard-info">
+                    <div class="hazard-title-row">
+                      <span class="hazard-name">ვენტურის ქარის დერეფანი</span>
+                      <span class="hazard-badge critical" id="badgeVenturiSpeed">13.8 მ/წმ</span>
+                    </div>
+                    <div class="hazard-desc">შენობებს შორის ვიწრო გასასვლელი ჰაერის ნაკადს 1.6-ჯერ აჩქარებს.</div>
+                    <div class="hazard-mitigation">💡 რეკომენდაცია: ქარსაფარი პერგოლა ან ხეების მწკრივი დერეფანში.</div>
+                  </div>
+                </div>
+
+                <!-- Corner Turbulence -->
+                <div class="wind-hazard-item warning" id="hazardCornerVortex">
+                  <div class="hazard-icon"><i class="fa-solid fa-rotate"></i></div>
+                  <div class="hazard-info">
+                    <div class="hazard-title-row">
+                      <span class="hazard-name">კუთხის ტურბულენტური მორევი</span>
+                      <span class="hazard-badge warning" id="badgeCornerSpeed">11.2 მ/წმ</span>
+                    </div>
+                    <div class="hazard-desc">მკვეთრი 90° კუთხე იწვევს ნაკადის განცალკევებას და ძლიერ მორევებს.</div>
+                    <div class="hazard-mitigation">💡 რეკომენდაცია: კუთხეების აეროდინამიკური მომრგვალება ან დამცავი ეკრანი.</div>
+                  </div>
+                </div>
+
+                <!-- Entrance Downdraft -->
+                <div class="wind-hazard-item moderate" id="hazardEntranceDownwash">
+                  <div class="hazard-icon"><i class="fa-solid fa-arrow-down"></i></div>
+                  <div class="hazard-info">
+                    <div class="hazard-title-row">
+                      <span class="hazard-name">შესასვლელთან დაღმავალი ნაკადი</span>
+                      <span class="hazard-badge moderate" id="badgeEntranceSpeed">7.4 მ/წმ</span>
+                    </div>
+                    <div class="hazard-desc">მაღალი ფასადი ქარის ნაკადს მიწისკენ, შესასვლელ კარებთან მიმართავს.</div>
+                    <div class="hazard-mitigation">💡 რეკომენდაცია: მინიმუმ 2.5მ გამოწეული ჰორიზონტალური ჩარდახი (Canopy).</div>
+                  </div>
                 </div>
               </div>
             </div>

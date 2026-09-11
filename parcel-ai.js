@@ -7095,6 +7095,18 @@ document.addEventListener('DOMContentLoaded', () => {
     state.currentMode = mode;
     modeTabBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.mode === mode));
 
+    // Ensure utility clash alert banner is strictly isolated and NEVER shown in other modes!
+    const clashBanner = document.getElementById('utilityClashAlertBanner');
+    if (clashBanner && mode !== 'utilities') {
+      clashBanner.style.display = 'none';
+    }
+
+    // Toggle building aerodynamic pressure colors when entering or leaving wind mode
+    if (state.previousMode === 'wind' && mode !== 'wind') {
+      applyBuildingAerodynamicColors3D(false);
+    }
+    state.previousMode = mode;
+
     const dropdownTitle = document.getElementById('analysisDropdownTitle');
     const btnAnalysisDropdown = document.getElementById('btnAnalysisDropdown');
     const dropdownItems = document.querySelectorAll('.mode-dropdown-item');
@@ -7233,6 +7245,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (mapTelemetry) mapTelemetry.style.display = 'none';
       renderUrbanFabric3D();
       initWindSimulation3D();
+      applyBuildingAerodynamicColors3D(true);
       onWindowResize();
     }
   }
@@ -7286,11 +7299,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const maxLat = Math.max(...lats);
     const minLng = Math.min(...lngs);
     const maxLng = Math.max(...lngs);
-    const centerLat = (minLat + maxLat) / 2;
-    const centerLng = (minLng + maxLng) / 2;
     const spanLat = maxLat - minLat;
     const spanLng = maxLng - minLng;
 
+    // Place utility lines along parcel street frontages and peripheral easements (outside normal setbacks)
     return [
       {
         id: 'util_water_1',
@@ -7300,9 +7312,8 @@ document.addEventListener('DOMContentLoaded', () => {
         colorHex: 0x38bdf8,
         bufferRadiusMeters: state.utilitiesData.bufferRadii.water_trunk,
         points: [
-          [minLat - spanLat * 0.08, minLng - spanLng * 0.15],
-          [minLat + spanLat * 0.25, centerLng],
-          [minLat + spanLat * 0.65, maxLng + spanLng * 0.15]
+          [minLat - spanLat * 0.05, minLng - spanLng * 0.08],
+          [minLat - spanLat * 0.05, maxLng + spanLng * 0.08]
         ]
       },
       {
@@ -7313,9 +7324,8 @@ document.addEventListener('DOMContentLoaded', () => {
         colorHex: 0xa855f7,
         bufferRadiusMeters: state.utilitiesData.bufferRadii.sewer_collector,
         points: [
-          [maxLat + spanLat * 0.1, minLng + spanLng * 0.2],
-          [maxLat - spanLat * 0.35, centerLng + spanLng * 0.15],
-          [centerLat - spanLat * 0.4, maxLng + spanLng * 0.1]
+          [minLat - spanLat * 0.06, maxLng + spanLng * 0.05],
+          [maxLat + spanLat * 0.06, maxLng + spanLng * 0.05]
         ]
       },
       {
@@ -7326,9 +7336,8 @@ document.addEventListener('DOMContentLoaded', () => {
         colorHex: 0xeab308,
         bufferRadiusMeters: state.utilitiesData.bufferRadii.power_overhead,
         points: [
-          [maxLat + spanLat * 0.2, minLng - spanLng * 0.2],
-          [centerLat + spanLat * 0.1, centerLng - spanLng * 0.05],
-          [minLat - spanLat * 0.2, maxLng + spanLng * 0.2]
+          [maxLat + spanLat * 0.14, minLng - spanLng * 0.1],
+          [maxLat + spanLat * 0.14, maxLng + spanLng * 0.1]
         ]
       },
       {
@@ -7339,8 +7348,8 @@ document.addEventListener('DOMContentLoaded', () => {
         colorHex: 0xf97316,
         bufferRadiusMeters: state.utilitiesData.bufferRadii.power_underground,
         points: [
-          [minLat + spanLat * 0.1, minLng - spanLng * 0.1],
-          [minLat + spanLat * 0.15, maxLng + spanLng * 0.1]
+          [minLat - spanLat * 0.06, minLng - spanLng * 0.05],
+          [maxLat + spanLat * 0.06, minLng - spanLng * 0.05]
         ]
       },
       {
@@ -7351,8 +7360,8 @@ document.addEventListener('DOMContentLoaded', () => {
         colorHex: 0xef4444,
         bufferRadiusMeters: state.utilitiesData.bufferRadii.gas_high_pressure,
         points: [
-          [maxLat - spanLat * 0.15, minLng - spanLng * 0.2],
-          [maxLat - spanLat * 0.2, maxLng + spanLng * 0.2]
+          [maxLat + spanLat * 0.05, minLng - spanLng * 0.06],
+          [maxLat + spanLat * 0.05, maxLng + spanLng * 0.06]
         ]
       }
     ];
@@ -7451,6 +7460,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function checkUtilityCollisions() {
     state.utilitiesData.clashes = [];
     const clashBanner = document.getElementById('utilityClashAlertBanner');
+    const clashBannerText = document.getElementById('utilityClashBannerText');
     const clashBox = document.getElementById('utilityClashBox');
     const clashText = document.getElementById('utilityClashText');
     const statusPill = document.getElementById('utilityStatusPill');
@@ -7478,6 +7488,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let clashingUtilityName = '';
 
     state.utilitiesData.lines.forEach(line => {
+      // ONLY check active layers
       if (state.utilitiesData.activeTypes[line.type] === false) return;
       const radiusM = state.utilitiesData.bufferRadii[line.type] || 4;
       const turfCoords = line.points.map(p => [p[1], p[0]]);
@@ -7502,21 +7513,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (hasClash) {
       state.hasUtilityClash = true;
-      if (exportBtnGap) {
+      if (exportBtnGap && state.currentMode === 'utilities') {
         exportBtnGap.disabled = true;
         exportBtnGap.title = 'კრიტიკული შეზღუდვა: შენობის ნაკვალევი კვეთს კომუნიკაციის დამცავ ზონას!';
         exportBtnGap.style.opacity = '0.5';
         exportBtnGap.style.cursor = 'not-allowed';
       }
-      if (exportBtnPdf) {
+      if (exportBtnPdf && state.currentMode === 'utilities') {
         exportBtnPdf.disabled = true;
         exportBtnPdf.title = 'კრიტიკული შეზღუდვა: შენობის ნაკვალევი კვეთს კომუნიკაციის დამცავ ზონას!';
         exportBtnPdf.style.opacity = '0.5';
         exportBtnPdf.style.cursor = 'not-allowed';
       }
+      // ONLY display clash banner if user is currently inspecting Utilities mode!
       if (clashBanner) {
-        clashBanner.style.display = 'flex';
-        clashBanner.querySelector('span').textContent = `კრიტიკული შეზღუდვა: შენობის ნაკვალევი კვეთს ${clashingUtilityName}-ის დამცავ ზონას!`;
+        clashBanner.style.display = (state.currentMode === 'utilities') ? 'flex' : 'none';
+        if (clashBannerText) clashBannerText.textContent = `კრიტიკული შეზღუდვა: შენობის ნაკვალევი კვეთს ${clashingUtilityName}-ის დამცავ ზონას!`;
       }
       if (clashBox) {
         clashBox.className = 'utility-clash-box clash';
@@ -7528,7 +7540,7 @@ document.addEventListener('DOMContentLoaded', () => {
         statusPill.style.color = '#ef4444';
         if (statusPillText) statusPillText.textContent = 'კრიტიკული კვეთა';
       }
-      if (buildingGroup) {
+      if (buildingGroup && state.currentMode === 'utilities') {
         buildingGroup.traverse(child => {
           if (child.isMesh && child.material && child.userData && child.userData.buildingId === bldg.id) {
             if (child.material.emissive) {
@@ -7628,6 +7640,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnReport) {
       btnReport.addEventListener('click', () => {
         showLiveToast('საინჟინრო კომუნიკაციებისა და შეზღუდვების საექსპერტო PDF გენერირებულია!', 'info');
+      });
+    }
+
+    const btnCloseClash = document.getElementById('btnCloseClashBanner');
+    if (btnCloseClash) {
+      btnCloseClash.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const b = document.getElementById('utilityClashAlertBanner');
+        if (b) b.style.display = 'none';
       });
     }
   }
@@ -7750,7 +7771,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderUnitMix3D() {
     if (!unitMix3DGroup || !scene) return;
     while (unitMix3DGroup.children.length > 0) {
-      unitMix3DGroup.remove(unitMix3DGroup.children[0]);
+      const ch = unitMix3DGroup.children[0];
+      unitMix3DGroup.remove(ch);
+      if (ch.geometry) ch.geometry.dispose();
     }
 
     const bldg = getSelectedBuilding();
@@ -7761,60 +7784,231 @@ document.addEventListener('DOMContentLoaded', () => {
       lng: state.activeParcel.coordinates.reduce((s, c) => s + c[1], 0) / state.activeParcel.coordinates.length
     };
     const pts = gpsToLocalMeters(bldg.footprintCoords, parcelCenter);
-    const shape = new THREE.Shape(pts.map(p => new THREE.Vector2(p.x, -p.y)));
     const totalHeight = (bldg.floorsAbove || 5) * (bldg.floorHeight || 3.3);
-    const cutY = totalHeight + 0.5;
+    const cutY = totalHeight + 0.15;
 
-    const slabGeom = new THREE.ExtrudeGeometry(shape, { depth: 0.3, bevelEnabled: false });
-    const slabMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.6 });
+    // 1. Slab Base: Draw exact building slab outline matching building footprint
+    const shape = new THREE.Shape(pts.map(p => new THREE.Vector2(p.x, -p.y)));
+    const slabGeom = new THREE.ExtrudeGeometry(shape, { depth: 0.25, bevelEnabled: false });
+    const slabMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.7, metalness: 0.2 });
     const slabMesh = new THREE.Mesh(slabGeom, slabMat);
     slabMesh.rotation.x = -Math.PI / 2;
     slabMesh.position.y = cutY;
     unitMix3DGroup.add(slabMesh);
 
+    // Slab perimeter wireframe
+    const slabEdges = new THREE.EdgesGeometry(slabGeom);
+    const slabLine = new THREE.LineSegments(slabEdges, new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 2 }));
+    slabLine.rotation.x = -Math.PI / 2;
+    slabLine.position.y = cutY;
+    unitMix3DGroup.add(slabLine);
+
+    // 2. Central Core & Circulation Volume (inside footprint)
     const centroidX = pts.reduce((s, p) => s + p.x, 0) / pts.length;
     const centroidZ = pts.reduce((s, p) => s + (-p.y), 0) / pts.length;
-    const coreWidth = Math.max(6, Math.sqrt(state.unitMixData.stats.coreArea || 90) * 0.8);
-    const coreDepth = Math.max(6, Math.sqrt(state.unitMixData.stats.coreArea || 90) * 0.8);
+    const minX = Math.min(...pts.map(p => p.x));
+    const maxX = Math.max(...pts.map(p => p.x));
+    const minZ = Math.min(...pts.map(p => -p.y));
+    const maxZ = Math.max(...pts.map(p => -p.y));
+    const spanX = Math.max(10, maxX - minX);
+    const spanZ = Math.max(10, maxZ - minZ);
 
-    const coreGeom = new THREE.BoxGeometry(coreWidth, 2.8, coreDepth);
-    const coreMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.5, metalness: 0.4 });
+    const coreArea = (state.unitMixData.stats && state.unitMixData.stats.coreArea) || 90;
+    const coreW = Math.min(spanX * 0.32, Math.max(4.5, Math.sqrt(coreArea) * 0.8));
+    const coreD = Math.min(spanZ * 0.32, Math.max(4.5, Math.sqrt(coreArea) * 0.8));
+
+    const coreGeom = new THREE.BoxGeometry(coreW, 2.2, coreD);
+    const coreMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.6, metalness: 0.4 });
     const coreMesh = new THREE.Mesh(coreGeom, coreMat);
-    coreMesh.position.set(centroidX, cutY + 1.4, centroidZ);
+    coreMesh.position.set(centroidX, cutY + 1.1, centroidZ);
     unitMix3DGroup.add(coreMesh);
 
-    const unitColors = [0x06b6d4, 0x10b981, 0xf59e0b, 0xf43f5e];
+    const coreEdges = new THREE.EdgesGeometry(coreGeom);
+    const coreWire = new THREE.LineSegments(coreEdges, new THREE.LineBasicMaterial({ color: 0x94a3b8 }));
+    coreWire.position.set(centroidX, cutY + 1.1, centroidZ);
+    unitMix3DGroup.add(coreWire);
+
+    // 3. Precise Floorplate Subdivision Clipped into Footprint Polygon (Turf.js)
     const units = state.unitMixData.generatedUnits || [];
     const numUnits = Math.max(1, units.length);
 
-    for (let i = 0; i < numUnits; i++) {
-      const angle1 = (i / numUnits) * Math.PI * 2;
-      const angle2 = ((i + 1) / numUnits) * Math.PI * 2;
-      const rad = 14;
-      const x1 = centroidX + Math.cos(angle1) * rad;
-      const z1 = centroidZ + Math.sin(angle1) * rad;
-      const x2 = centroidX + Math.cos(angle2) * rad;
-      const z2 = centroidZ + Math.sin(angle2) * rad;
-
-      const unitShape = new THREE.Shape([
-        new THREE.Vector2(centroidX + Math.cos(angle1) * (coreWidth / 2 + 1.5), centroidZ + Math.sin(angle1) * (coreDepth / 2 + 1.5)),
-        new THREE.Vector2(x1, z1),
-        new THREE.Vector2(x2, z2),
-        new THREE.Vector2(centroidX + Math.cos(angle2) * (coreWidth / 2 + 1.5), centroidZ + Math.sin(angle2) * (coreDepth / 2 + 1.5))
-      ]);
-
-      const unitGeom = new THREE.ExtrudeGeometry(unitShape, { depth: 0.15, bevelEnabled: false });
-      const unitMat = new THREE.MeshStandardMaterial({
-        color: unitColors[i % unitColors.length],
-        roughness: 0.4,
-        transparent: true,
-        opacity: 0.88
-      });
-      const unitMesh = new THREE.Mesh(unitGeom, unitMat);
-      unitMesh.rotation.x = -Math.PI / 2;
-      unitMesh.position.y = cutY + 0.35;
-      unitMix3DGroup.add(unitMesh);
+    // Local Turf polygon for the building footprint
+    const localRing = pts.map(p => [p.x, -p.y]);
+    if (localRing[0][0] !== localRing[localRing.length - 1][0] || localRing[0][1] !== localRing[localRing.length - 1][1]) {
+      localRing.push([localRing[0][0], localRing[0][1]]);
     }
+
+    let localBldgPoly = null;
+    try {
+      if (typeof turf !== 'undefined') {
+        localBldgPoly = turf.polygon([localRing]);
+      }
+    } catch (e) {
+      console.warn('Local bldg poly error:', e);
+    }
+
+    const typeColorMap = {
+      'სტუდიო': 0x06b6d4,
+      '1-საძინებლიანი': 0x10b981,
+      '2-საძინებლიანი': 0xf59e0b,
+      '3-საძინებლიანი': 0xf43f5e
+    };
+
+    const isLongX = spanX >= spanZ;
+
+    for (let i = 0; i < numUnits; i++) {
+      const u = units[i];
+      const colHex = typeColorMap[u.type] || 0x10b981;
+
+      // Slice boundaries along principal axis
+      let uPoly = null;
+      if (localBldgPoly && typeof turf !== 'undefined') {
+        try {
+          let sliceBox = null;
+          if (isLongX) {
+            const x0 = minX + (i / numUnits) * spanX;
+            const x1 = minX + ((i + 1) / numUnits) * spanX;
+            sliceBox = turf.polygon([[[x0, minZ - 2], [x1, minZ - 2], [x1, maxZ + 2], [x0, maxZ + 2], [x0, minZ - 2]]]);
+          } else {
+            const z0 = minZ + (i / numUnits) * spanZ;
+            const z1 = minZ + ((i + 1) / numUnits) * spanZ;
+            sliceBox = turf.polygon([[[minX - 2, z0], [maxX + 2, z0], [maxX + 2, z1], [minX - 2, z1], [minX - 2, z0]]]);
+          }
+          const inter = turf.intersect(sliceBox, localBldgPoly);
+          if (inter && inter.geometry) {
+            uPoly = inter.geometry;
+          }
+        } catch (err) {
+          // fallback
+        }
+      }
+
+      if (uPoly) {
+        // Render genuine clipped unit mesh
+        const coordsList = uPoly.type === 'Polygon' ? [uPoly.coordinates] : (uPoly.type === 'MultiPolygon' ? uPoly.coordinates : []);
+        coordsList.forEach(polyCoords => {
+          const outerRing = polyCoords[0];
+          if (!outerRing || outerRing.length < 3) return;
+          const uShape = new THREE.Shape(outerRing.map(c => new THREE.Vector2(c[0], -c[1])));
+          const uGeom = new THREE.ExtrudeGeometry(uShape, { depth: 0.14, bevelEnabled: false });
+          const uMat = new THREE.MeshStandardMaterial({
+            color: colHex,
+            roughness: 0.35,
+            metalness: 0.2,
+            transparent: true,
+            opacity: 0.92
+          });
+          const uMesh = new THREE.Mesh(uGeom, uMat);
+          uMesh.rotation.x = -Math.PI / 2;
+          uMesh.position.y = cutY + 0.26;
+          unitMix3DGroup.add(uMesh);
+
+          // Partition edge lines
+          const uEdges = new THREE.EdgesGeometry(uGeom);
+          const uLine = new THREE.LineSegments(uEdges, new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 }));
+          uLine.rotation.x = -Math.PI / 2;
+          uLine.position.y = cutY + 0.26;
+          unitMix3DGroup.add(uLine);
+        });
+      }
+    }
+
+    // 4. Update 2D SVG Architectural Floor Plan Schematic
+    renderUnitMix2DPlanSvg(pts, units, coreW, coreD);
+  }
+
+  function renderUnitMix2DPlanSvg(pts, units, coreW, coreD) {
+    const svg = document.getElementById('unitMixFloorPlanSvg');
+    if (!svg || !pts || pts.length < 3) return;
+
+    const minX = Math.min(...pts.map(p => p.x));
+    const maxX = Math.max(...pts.map(p => p.x));
+    const minZ = Math.min(...pts.map(p => -p.y));
+    const maxZ = Math.max(...pts.map(p => -p.y));
+    const spanX = Math.max(1, maxX - minX);
+    const spanZ = Math.max(1, maxZ - minZ);
+
+    const pad = 24;
+    const svgW = 380;
+    const svgH = 200;
+    const drawW = svgW - pad * 2;
+    const drawH = svgH - pad * 2;
+    const scale = Math.min(drawW / spanX, drawH / spanZ);
+
+    const tx = (x) => pad + (x - minX) * scale + (drawW - spanX * scale) / 2;
+    const tz = (z) => pad + (z - minZ) * scale + (drawH - spanZ * scale) / 2;
+
+    const bldgPathPoints = pts.map(p => `${tx(p.x)},${tz(-p.y)}`).join(' ');
+
+    const typeColorMap = {
+      'სტუდიო': '#06b6d4',
+      '1-საძინებლიანი': '#10b981',
+      '2-საძინებლიანი': '#f59e0b',
+      '3-საძინებლიანი': '#f43f5e'
+    };
+
+    let innerSvg = `
+      <defs>
+        <pattern id="planGrid" width="16" height="16" patternUnits="userSpaceOnUse">
+          <path d="M 16 0 L 0 0 0 16" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#planGrid)" rx="8" />
+      <polygon points="${bldgPathPoints}" fill="rgba(15, 23, 42, 0.9)" stroke="#38bdf8" stroke-width="2.5" />
+    `;
+
+    const numUnits = Math.max(1, units.length);
+    const isLongX = spanX >= spanZ;
+
+    for (let i = 0; i < numUnits; i++) {
+      const u = units[i];
+      const col = typeColorMap[u.type] || '#10b981';
+      let sliceX, sliceY, sliceWidth, sliceHeight;
+      let labelX, labelY;
+
+      if (isLongX) {
+        const x0 = minX + (i / numUnits) * spanX;
+        const x1 = minX + ((i + 1) / numUnits) * spanX;
+        sliceX = tx(x0);
+        sliceY = tz(minZ);
+        sliceWidth = Math.max(2, (x1 - x0) * scale);
+        sliceHeight = Math.max(2, spanZ * scale);
+        labelX = sliceX + sliceWidth / 2;
+        labelY = sliceY + sliceHeight / 2;
+      } else {
+        const z0 = minZ + (i / numUnits) * spanZ;
+        const z1 = minZ + ((i + 1) / numUnits) * spanZ;
+        sliceX = tx(minX);
+        sliceY = tz(z0);
+        sliceWidth = Math.max(2, spanX * scale);
+        sliceHeight = Math.max(2, (z1 - z0) * scale);
+        labelX = sliceX + sliceWidth / 2;
+        labelY = sliceY + sliceHeight / 2;
+      }
+
+      innerSvg += `
+        <g class="svg-unit-group">
+          <rect x="${sliceX}" y="${sliceY}" width="${sliceWidth}" height="${sliceHeight}" 
+                fill="${col}" fill-opacity="0.32" stroke="${col}" stroke-width="1.2" stroke-dasharray="3,2" />
+          <text x="${labelX}" y="${labelY - 5}" fill="#ffffff" font-size="8.5" font-weight="bold" text-anchor="middle">${u.id}</text>
+          <text x="${labelX}" y="${labelY + 8}" fill="${col}" font-size="7.5" font-weight="600" text-anchor="middle">${u.area} მ²</text>
+        </g>
+      `;
+    }
+
+    const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
+    const cz = pts.reduce((s, p) => s + (-p.y), 0) / pts.length;
+    const cW = (coreW || 6) * scale;
+    const cD = (coreD || 6) * scale;
+    innerSvg += `
+      <g>
+        <rect x="${tx(cx) - cW/2}" y="${tz(cz) - cD/2}" width="${cW}" height="${cD}" 
+              fill="#334155" stroke="#94a3b8" stroke-width="1.8" rx="3" />
+        <text x="${tx(cx)}" y="${tz(cz) + 3}" fill="#cbd5e1" font-size="7" font-weight="bold" text-anchor="middle">CORE / LIFT</text>
+      </g>
+    `;
+
+    svg.innerHTML = innerSvg;
   }
 
   function exportUnitSchedule(format) {
@@ -7897,6 +8091,174 @@ document.addEventListener('DOMContentLoaded', () => {
      ========================================================================== */
   let windParticleGeom = null;
   let windParticlePos = null;
+  let windHazardMarkersGroup = null;
+
+  function updateBuildingWindAerodynamics() {
+    const bldg = getSelectedBuilding();
+    const speed = state.windData.speed || 6.0;
+    const isVenturi = state.windData.venturi !== false;
+    const floors = (bldg && bldg.floorsAbove) || 5;
+    const floorH = (bldg && bldg.floorHeight) || 3.3;
+    const height = floors * floorH;
+
+    // Air density rho = 1.225 kg/m3 (Eurocode EN 1991-1-4 standard atmospheric conditions)
+    const rho = 1.225;
+    const q0 = 0.5 * rho * Math.pow(speed, 2); // Dynamic velocity pressure Pa
+
+    // Terrain/height exposure factor Cz
+    const Cz = Math.min(2.4, Math.max(1.0, Math.pow(1 + height / 10, 0.42)));
+    const qp = q0 * Cz; // Peak velocity pressure at roof level
+
+    // Eurocode aerodynamic pressure coefficients Cp
+    const pWindward = Math.round(qp * 0.85);
+    const pLeeward = -Math.round(qp * 0.48);
+    const pUplift = -Math.round(qp * 0.72);
+
+    let projWidth = 26;
+    const frontalArea = projWidth * height;
+    // Total aerodynamic lateral drag thrust force in kN
+    const totalDrag = Math.round(((pWindward + Math.abs(pLeeward)) * frontalArea / 1000) * 10) / 10;
+    // Overturning base shear moment in kNm
+    const overturnMoment = Math.round(totalDrag * (height * 0.55));
+
+    // Update KPI metrics
+    const elPWindward = document.getElementById('valWindwardPressure');
+    const elPLeeward = document.getElementById('valLeewardSuction');
+    const elPUplift = document.getElementById('valRoofUplift');
+    const elTotalDrag = document.getElementById('valTotalDrag');
+    const elMoment = document.getElementById('valOverturningMoment');
+    const badgeRisk = document.getElementById('windBuildingRiskBadge');
+
+    if (elPWindward) elPWindward.textContent = `+${pWindward} Pa`;
+    if (elPLeeward) elPLeeward.textContent = `${pLeeward} Pa`;
+    if (elPUplift) elPUplift.textContent = `${pUplift} Pa`;
+    if (elTotalDrag) elTotalDrag.textContent = `${totalDrag} kN`;
+    if (elMoment) elMoment.textContent = `მომენტი: ~${overturnMoment.toLocaleString()} kNm`;
+
+    if (badgeRisk) {
+      if (speed >= 12 || totalDrag > 120) {
+        badgeRisk.style.background = 'rgba(239, 68, 68, 0.25)';
+        badgeRisk.style.borderColor = 'rgba(239, 68, 68, 0.6)';
+        badgeRisk.style.color = '#ef4444';
+        badgeRisk.textContent = 'კრიტიკული დატვირთვა';
+      } else if (speed >= 7 || totalDrag > 50) {
+        badgeRisk.style.background = 'rgba(245, 158, 11, 0.25)';
+        badgeRisk.style.borderColor = 'rgba(245, 158, 11, 0.6)';
+        badgeRisk.style.color = '#f59e0b';
+        badgeRisk.textContent = 'ზომიერი დატვირთვა';
+      } else {
+        badgeRisk.style.background = 'rgba(16, 185, 129, 0.2)';
+        badgeRisk.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+        badgeRisk.style.color = '#10b981';
+        badgeRisk.textContent = 'სტაბილური';
+      }
+    }
+
+    // Critical Hazard Zones local velocities
+    const venturiSpeed = Math.round(speed * (isVenturi ? 1.65 : 1.2) * 10) / 10;
+    const cornerSpeed = Math.round(speed * 1.45 * 10) / 10;
+    const entranceSpeed = Math.round(speed * (0.75 + Math.min(height, 35) / 45) * 10) / 10;
+
+    const bVenturi = document.getElementById('badgeVenturiSpeed');
+    const bCorner = document.getElementById('badgeCornerSpeed');
+    const bEntrance = document.getElementById('badgeEntranceSpeed');
+
+    if (bVenturi) bVenturi.textContent = `${venturiSpeed} მ/წმ`;
+    if (bCorner) bCorner.textContent = `${cornerSpeed} მ/წმ`;
+    if (bEntrance) bEntrance.textContent = `${entranceSpeed} მ/წმ`;
+  }
+
+  function renderWindCriticalHazards3D() {
+    if (!wind3DGroup || !scene) return;
+    if (windHazardMarkersGroup) {
+      wind3DGroup.remove(windHazardMarkersGroup);
+      windHazardMarkersGroup = null;
+    }
+
+    const bldg = getSelectedBuilding();
+    if (!bldg || !bldg.footprintCoords || bldg.footprintCoords.length < 3 || !state.activeParcel) return;
+
+    const parcelCenter = {
+      lat: state.activeParcel.coordinates.reduce((s, c) => s + c[0], 0) / state.activeParcel.coordinates.length,
+      lng: state.activeParcel.coordinates.reduce((s, c) => s + c[1], 0) / state.activeParcel.coordinates.length
+    };
+    const pts = gpsToLocalMeters(bldg.footprintCoords, parcelCenter);
+    const minX = Math.min(...pts.map(p => p.x));
+    const maxX = Math.max(...pts.map(p => p.x));
+    const minZ = Math.min(...pts.map(p => -p.y));
+    const maxZ = Math.max(...pts.map(p => -p.y));
+
+    windHazardMarkersGroup = new THREE.Group();
+
+    // 1. Corner Vortex marker (at sharpest building corner)
+    const cornerPt = pts[0];
+    const cornerGeom = new THREE.OctahedronGeometry(1.4, 0);
+    const cornerMat = new THREE.MeshStandardMaterial({
+      color: 0xf59e0b,
+      emissive: 0xd97706,
+      emissiveIntensity: 0.8,
+      roughness: 0.2
+    });
+    const cornerMesh = new THREE.Mesh(cornerGeom, cornerMat);
+    cornerMesh.position.set(cornerPt.x, 3.6, -cornerPt.y);
+    windHazardMarkersGroup.add(cornerMesh);
+
+    // 2. Venturi Canyon marker (between building and adjacent mass)
+    const venturiGeom = new THREE.TorusGeometry(1.8, 0.35, 8, 24);
+    const venturiMat = new THREE.MeshStandardMaterial({
+      color: 0xef4444,
+      emissive: 0xb91c1c,
+      emissiveIntensity: 0.8,
+      roughness: 0.3
+    });
+    const venturiMesh = new THREE.Mesh(venturiGeom, venturiMat);
+    venturiMesh.rotation.x = Math.PI / 2;
+    venturiMesh.position.set(minX - 6, 0.4, (minZ + maxZ) / 2);
+    windHazardMarkersGroup.add(venturiMesh);
+
+    // 3. Entrance Downdraft marker (at ground level entrance zone)
+    const entranceGeom = new THREE.ConeGeometry(1.1, 2.8, 8);
+    const entranceMat = new THREE.MeshStandardMaterial({
+      color: 0x06b6d4,
+      emissive: 0x0891b2,
+      emissiveIntensity: 0.7,
+      roughness: 0.3
+    });
+    const entranceMesh = new THREE.Mesh(entranceGeom, entranceMat);
+    entranceMesh.rotation.x = Math.PI; // Pointing down
+    entranceMesh.position.set((minX + maxX) / 2, 2.5, maxZ + 2.5);
+    windHazardMarkersGroup.add(entranceMesh);
+
+    wind3DGroup.add(windHazardMarkersGroup);
+  }
+
+  function applyBuildingAerodynamicColors3D(isActive) {
+    if (!buildingGroup) return;
+    if (!isActive) {
+      renderAllBuildings3D();
+      return;
+    }
+
+    const bldg = getSelectedBuilding();
+    if (!bldg) return;
+
+    // Apply aerodynamic facade pressure color
+    buildingGroup.traverse(child => {
+      if (child.isMesh && child.userData && child.userData.buildingId === bldg.id) {
+        if (child.material) {
+          child.material = new THREE.MeshStandardMaterial({
+            color: 0xf97316,
+            emissive: 0x9a3412,
+            emissiveIntensity: 0.4,
+            roughness: 0.35,
+            metalness: 0.25,
+            transparent: true,
+            opacity: 0.92
+          });
+        }
+      }
+    });
+  }
 
   function initWindSimulation3D() {
     if (!wind3DGroup || !scene) return;
@@ -7906,6 +8268,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderWindHeatmap3D();
     createWindParticles3D();
+    renderWindCriticalHazards3D();
+    updateBuildingWindAerodynamics();
     sampleWindProbe(0, 0);
   }
 
