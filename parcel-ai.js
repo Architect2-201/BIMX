@@ -517,7 +517,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // Animation Loop
     function animate() {
       requestAnimationFrame(animate);
-      if (controls) controls.update();
+      if (controls && camera) {
+        controls.update();
+        const compassEl = document.querySelector('.viewport-compass');
+        if (compassEl) {
+          const camDirX = controls.target.x - camera.position.x;
+          const camDirZ = controls.target.z - camera.position.z;
+          const angleRad = Math.atan2(camDirX, -camDirZ);
+          const angleDeg = (angleRad * 180) / Math.PI;
+          compassEl.style.transform = `rotate(${-angleDeg}deg)`;
+        }
+      }
       if (state.isSolarAnimating) {
         state.solarHour += 0.05;
         if (state.solarHour > 24) state.solarHour = 0;
@@ -528,6 +538,19 @@ document.addEventListener('DOMContentLoaded', () => {
       renderer.render(scene, camera);
     }
     animate();
+
+    const compassEl = document.querySelector('.viewport-compass');
+    if (compassEl) {
+      compassEl.style.cursor = 'pointer';
+      compassEl.title = 'ჩრდილოეთზე გასწორება (Reset to North)';
+      compassEl.addEventListener('click', () => {
+        if (camera && controls) {
+          const dist = Math.hypot(camera.position.x - controls.target.x, camera.position.z - controls.target.z) || 65;
+          camera.position.set(controls.target.x, camera.position.y, controls.target.z + dist);
+          controls.update();
+        }
+      });
+    }
 
     window.addEventListener('resize', onWindowResize);
   }
@@ -1579,11 +1602,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Centroid for outward orientation
       let cx = 0, cz = 0;
-      corners.forEach(p => { cx += p.x; cz += p.y; });
+      corners.forEach(p => { cx += p.x; cz += -p.y; });
       cx /= n; cz /= n;
 
       const xs = corners.map(p => p.x);
-      const zs = corners.map(p => p.y);
+      const zs = corners.map(p => -p.y);
       const minX = Math.min(...xs), maxX = Math.max(...xs);
       const minZ = Math.min(...zs), maxZ = Math.max(...zs);
 
@@ -1595,8 +1618,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const p1 = corners[i];
         const p2 = corners[(i + 1) % n];
 
-        const x1 = p1.x, z1 = p1.y;
-        const x2 = p2.x, z2 = p2.y;
+        const x1 = p1.x, z1 = -p1.y;
+        const x2 = p2.x, z2 = -p2.y;
 
         const dx = x2 - x1;
         const dz = z2 - z1;
@@ -1743,16 +1766,16 @@ document.addEventListener('DOMContentLoaded', () => {
           return Math.max(0, Math.min(1, t)) * deltaH;
         };
 
-        const shapePoints = corners.map(p => new THREE.Vector2(p.x, -p.y));
+        const shapePoints = corners.map(p => new THREE.Vector2(p.x, p.y));
         const triangles = THREE.ShapeUtils.triangulateShape(shapePoints, []);
         const roofGeom = new THREE.BufferGeometry();
         const positions = [];
 
         triangles.forEach(tri => {
           const p0 = corners[tri[0]], p1 = corners[tri[1]], p2 = corners[tri[2]];
-          const v0 = new THREE.Vector3(p0.x, totalAboveH + getSlopeH(p0.x, p0.y) + 0.15, p0.y);
-          const v1 = new THREE.Vector3(p1.x, totalAboveH + getSlopeH(p1.x, p1.y) + 0.15, p1.y);
-          const v2 = new THREE.Vector3(p2.x, totalAboveH + getSlopeH(p2.x, p2.y) + 0.15, p2.y);
+          const v0 = new THREE.Vector3(p0.x, totalAboveH + getSlopeH(p0.x, -p0.y) + 0.15, -p0.y);
+          const v1 = new THREE.Vector3(p1.x, totalAboveH + getSlopeH(p1.x, -p1.y) + 0.15, -p1.y);
+          const v2 = new THREE.Vector3(p2.x, totalAboveH + getSlopeH(p2.x, -p2.y) + 0.15, -p2.y);
           positions.push(v0.x, v0.y, v0.z, v1.x, v1.y, v1.z, v2.x, v2.y, v2.z);
         });
 
@@ -1775,16 +1798,16 @@ document.addEventListener('DOMContentLoaded', () => {
           return Math.max(0, (1 - dist / halfSpan)) * deltaH;
         };
 
-        const shapePoints = corners.map(p => new THREE.Vector2(p.x, -p.y));
+        const shapePoints = corners.map(p => new THREE.Vector2(p.x, p.y));
         const triangles = THREE.ShapeUtils.triangulateShape(shapePoints, []);
         const roofGeom = new THREE.BufferGeometry();
         const positions = [];
 
         triangles.forEach(tri => {
           const p0 = corners[tri[0]], p1 = corners[tri[1]], p2 = corners[tri[2]];
-          const v0 = new THREE.Vector3(p0.x, totalAboveH + getGableH(p0.x, p0.y) + 0.15, p0.y);
-          const v1 = new THREE.Vector3(p1.x, totalAboveH + getGableH(p1.x, p1.y) + 0.15, p1.y);
-          const v2 = new THREE.Vector3(p2.x, totalAboveH + getGableH(p2.x, p2.y) + 0.15, p2.y);
+          const v0 = new THREE.Vector3(p0.x, totalAboveH + getGableH(p0.x, -p0.y) + 0.15, -p0.y);
+          const v1 = new THREE.Vector3(p1.x, totalAboveH + getGableH(p1.x, -p1.y) + 0.15, -p1.y);
+          const v2 = new THREE.Vector3(p2.x, totalAboveH + getGableH(p2.x, -p2.y) + 0.15, -p2.y);
           positions.push(v0.x, v0.y, v0.z, v1.x, v1.y, v1.z, v2.x, v2.y, v2.z);
         });
 
@@ -1797,8 +1820,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Standard Flat Roof Slab & Parapet with Solar Grid
         const roofShape = new THREE.Shape();
         corners.forEach((pt, idx) => {
-          if (idx === 0) roofShape.moveTo(pt.x, -pt.y);
-          else roofShape.lineTo(pt.x, -pt.y);
+          if (idx === 0) roofShape.moveTo(pt.x, pt.y);
+          else roofShape.lineTo(pt.x, pt.y);
         });
         roofShape.closePath();
 
@@ -3114,8 +3137,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const shape = new THREE.Shape();
         localPts.forEach((pt, idx) => {
-          if (idx === 0) shape.moveTo(pt.x, -pt.y);
-          else shape.lineTo(pt.x, -pt.y);
+          if (idx === 0) shape.moveTo(pt.x, pt.y);
+          else shape.lineTo(pt.x, pt.y);
         });
         shape.closePath();
 
@@ -3201,15 +3224,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const height = Math.max(6.0, Math.min(65.0, bldg.height || 9.0));
 
         let cx = 0, cz = 0;
-        localPts.forEach(p => { cx += p.x; cz += p.y; });
+        localPts.forEach(p => { cx += p.x; cz += -p.y; });
         cx /= n; cz /= n;
 
         // Wall segments
         for (let i = 0; i < n; i++) {
           const p1 = localPts[i];
           const p2 = localPts[(i + 1) % n];
-          const x1 = p1.x, z1 = p1.y;
-          const x2 = p2.x, z2 = p2.y;
+          const x1 = p1.x, z1 = -p1.y;
+          const x2 = p2.x, z2 = -p2.y;
 
           const dx = x2 - x1;
           const dz = z2 - z1;
@@ -3255,14 +3278,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Roof surface triangulation
         try {
-          const shapePoints = localPts.map(p => new THREE.Vector2(p.x, -p.y));
+          const shapePoints = localPts.map(p => new THREE.Vector2(p.x, p.y));
           const triangles = THREE.ShapeUtils.triangulateShape(shapePoints, []);
           triangles.forEach(tri => {
             const p0 = localPts[tri[0]], p1 = localPts[tri[1]], p2 = localPts[tri[2]];
             roofBatches[roofTier].push(
-              p0.x, height, p0.y,
-              p1.x, height, p1.y,
-              p2.x, height, p2.y
+              p0.x, height, -p0.y,
+              p1.x, height, -p1.y,
+              p2.x, height, -p2.y
             );
           });
         } catch (e) {}
@@ -3402,8 +3425,8 @@ document.addEventListener('DOMContentLoaded', () => {
     terrainGroup.add(terrainWire);
 
     const boundaryPoints3D = localPoints.map(p => {
-      const elev = (p.x * 0.7 - p.y * 0.4) * slopeRad * 0.6 + 0.18;
-      return new THREE.Vector3(p.x, elev, p.y);
+      const elev = (p.x * 0.7 - (-p.y) * 0.4) * slopeRad * 0.6 + 0.18;
+      return new THREE.Vector3(p.x, elev, -p.y);
     });
     boundaryPoints3D.push(boundaryPoints3D[0].clone());
 
@@ -3528,8 +3551,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const shape = new THREE.Shape();
     localPoints.forEach((pt, idx) => {
-      if (idx === 0) shape.moveTo(pt.x, -pt.y);
-      else shape.lineTo(pt.x, -pt.y);
+      if (idx === 0) shape.moveTo(pt.x, pt.y);
+      else shape.lineTo(pt.x, pt.y);
     });
     shape.closePath();
 
@@ -4864,8 +4887,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // Construct 2D shape in local horizontal meters
       const shape = new THREE.Shape();
       fp.corners.forEach((pt, idx) => {
-        if (idx === 0) shape.moveTo(pt.x, -pt.y);
-        else shape.lineTo(pt.x, -pt.y);
+        if (idx === 0) shape.moveTo(pt.x, pt.y);
+        else shape.lineTo(pt.x, pt.y);
       });
       shape.closePath();
 
@@ -4984,7 +5007,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (roofType === 'shed') {
         // Mono-pitch / Shed Sloped Roof
         const xs = fp.corners.map(p => p.x);
-        const zs = fp.corners.map(p => p.y);
+        const zs = fp.corners.map(p => -p.y);
         const minX = Math.min(...xs), maxX = Math.max(...xs);
         const minZ = Math.min(...zs), maxZ = Math.max(...zs);
         const spanX = Math.max(1, maxX - minX);
@@ -5002,7 +5025,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         // 1. Sloped Roof Slab
-        const shapePoints = fp.corners.map(p => new THREE.Vector2(p.x, -p.y));
+        const shapePoints = fp.corners.map(p => new THREE.Vector2(p.x, p.y));
         const triangles = THREE.ShapeUtils.triangulateShape(shapePoints, []);
         const roofGeom = new THREE.BufferGeometry();
         const positions = [];
@@ -5013,9 +5036,9 @@ document.addEventListener('DOMContentLoaded', () => {
           const p1 = fp.corners[tri[1]];
           const p2 = fp.corners[tri[2]];
 
-          const v0 = new THREE.Vector3(p0.x, totalAboveH + getSlopeH(p0.x, p0.y) + 0.25, p0.y);
-          const v1 = new THREE.Vector3(p1.x, totalAboveH + getSlopeH(p1.x, p1.y) + 0.25, p1.y);
-          const v2 = new THREE.Vector3(p2.x, totalAboveH + getSlopeH(p2.x, p2.y) + 0.25, p2.y);
+          const v0 = new THREE.Vector3(p0.x, totalAboveH + getSlopeH(p0.x, -p0.y) + 0.25, -p0.y);
+          const v1 = new THREE.Vector3(p1.x, totalAboveH + getSlopeH(p1.x, -p1.y) + 0.25, -p1.y);
+          const v2 = new THREE.Vector3(p2.x, totalAboveH + getSlopeH(p2.x, -p2.y) + 0.25, -p2.y);
 
           const cb = new THREE.Vector3().subVectors(v2, v1);
           const ab = new THREE.Vector3().subVectors(v0, v1);
@@ -5046,13 +5069,13 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < numPts; i++) {
           const curr = fp.corners[i];
           const next = fp.corners[(i + 1) % numPts];
-          const hCurr = getSlopeH(curr.x, curr.y);
-          const hNext = getSlopeH(next.x, next.y);
+          const hCurr = getSlopeH(curr.x, -curr.y);
+          const hNext = getSlopeH(next.x, -next.y);
 
-          const p0 = new THREE.Vector3(curr.x, totalAboveH, curr.y);
-          const p1 = new THREE.Vector3(next.x, totalAboveH, next.y);
-          const p2 = new THREE.Vector3(next.x, totalAboveH + hNext + 0.25, next.y);
-          const p3 = new THREE.Vector3(curr.x, totalAboveH + hCurr + 0.25, curr.y);
+          const p0 = new THREE.Vector3(curr.x, totalAboveH, -curr.y);
+          const p1 = new THREE.Vector3(next.x, totalAboveH, -next.y);
+          const p2 = new THREE.Vector3(next.x, totalAboveH + hNext + 0.25, -next.y);
+          const p3 = new THREE.Vector3(curr.x, totalAboveH + hCurr + 0.25, -curr.y);
 
           wallPositions.push(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
           wallPositions.push(p0.x, p0.y, p0.z, p2.x, p2.y, p2.z, p3.x, p3.y, p3.z);
@@ -5074,7 +5097,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else if (roofType === 'gable') {
         // Dual-pitch Gable Ridge Roof
         const xs = fp.corners.map(p => p.x);
-        const zs = fp.corners.map(p => p.y);
+        const zs = fp.corners.map(p => -p.y);
         const minX = Math.min(...xs), maxX = Math.max(...xs);
         const minZ = Math.min(...zs), maxZ = Math.max(...zs);
         const spanX = Math.max(1, maxX - minX);
@@ -5089,7 +5112,7 @@ document.addEventListener('DOMContentLoaded', () => {
           return Math.max(0, (1 - dist / halfSpan)) * deltaH;
         };
 
-        const shapePoints = fp.corners.map(p => new THREE.Vector2(p.x, -p.y));
+        const shapePoints = fp.corners.map(p => new THREE.Vector2(p.x, p.y));
         const triangles = THREE.ShapeUtils.triangulateShape(shapePoints, []);
         const roofGeom = new THREE.BufferGeometry();
         const positions = [];
@@ -5098,9 +5121,9 @@ document.addEventListener('DOMContentLoaded', () => {
           const p0 = fp.corners[tri[0]];
           const p1 = fp.corners[tri[1]];
           const p2 = fp.corners[tri[2]];
-          const v0 = new THREE.Vector3(p0.x, totalAboveH + getGableH(p0.x, p0.y) + 0.25, p0.y);
-          const v1 = new THREE.Vector3(p1.x, totalAboveH + getGableH(p1.x, p1.y) + 0.25, p1.y);
-          const v2 = new THREE.Vector3(p2.x, totalAboveH + getGableH(p2.x, p2.y) + 0.25, p2.y);
+          const v0 = new THREE.Vector3(p0.x, totalAboveH + getGableH(p0.x, -p0.y) + 0.25, -p0.y);
+          const v1 = new THREE.Vector3(p1.x, totalAboveH + getGableH(p1.x, -p1.y) + 0.25, -p1.y);
+          const v2 = new THREE.Vector3(p2.x, totalAboveH + getGableH(p2.x, -p2.y) + 0.25, -p2.y);
           positions.push(v0.x, v0.y, v0.z, v1.x, v1.y, v1.z, v2.x, v2.y, v2.z);
         });
         roofGeom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
@@ -5124,12 +5147,12 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < numPts; i++) {
           const curr = fp.corners[i];
           const next = fp.corners[(i + 1) % numPts];
-          const hCurr = getGableH(curr.x, curr.y);
-          const hNext = getGableH(next.x, next.y);
-          const p0 = new THREE.Vector3(curr.x, totalAboveH, curr.y);
-          const p1 = new THREE.Vector3(next.x, totalAboveH, next.y);
-          const p2 = new THREE.Vector3(next.x, totalAboveH + hNext + 0.25, next.y);
-          const p3 = new THREE.Vector3(curr.x, totalAboveH + hCurr + 0.25, curr.y);
+          const hCurr = getGableH(curr.x, -curr.y);
+          const hNext = getGableH(next.x, -next.y);
+          const p0 = new THREE.Vector3(curr.x, totalAboveH, -curr.y);
+          const p1 = new THREE.Vector3(next.x, totalAboveH, -next.y);
+          const p2 = new THREE.Vector3(next.x, totalAboveH + hNext + 0.25, -next.y);
+          const p3 = new THREE.Vector3(curr.x, totalAboveH + hCurr + 0.25, -curr.y);
           wallPositions.push(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
           wallPositions.push(p0.x, p0.y, p0.z, p2.x, p2.y, p2.z, p3.x, p3.y, p3.z);
         }
@@ -5220,8 +5243,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // Ground perimeter line matching building's color
-      const basePoints = fp.corners.map(p => new THREE.Vector3(p.x, 0.15, p.y));
-      basePoints.push(new THREE.Vector3(fp.corners[0].x, 0.15, fp.corners[0].y));
+      const basePoints = fp.corners.map(p => new THREE.Vector3(p.x, 0.15, -p.y));
+      basePoints.push(new THREE.Vector3(fp.corners[0].x, 0.15, -fp.corners[0].y));
       const baseGeom = new THREE.BufferGeometry().setFromPoints(basePoints);
       const baseMat = new THREE.LineBasicMaterial({
         color: bColorHex,
@@ -6436,7 +6459,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (bldg.footprintCoords && bldg.footprintCoords.length >= 3) {
       const pts = gpsToLocalMeters(bldg.footprintCoords, parcelCenter);
       const avgX = pts.reduce((s, p) => s + p.x, 0) / pts.length;
-      const avgZ = pts.reduce((s, p) => s + p.y, 0) / pts.length;
+      const avgZ = pts.reduce((s, p) => s + (-p.y), 0) / pts.length;
       const h = ((bldg.floorsAbove || 5) * (bldg.floorHeight || 3.3)) / 2;
       controls.target.set(avgX, h, avgZ);
       camera.position.set(avgX + 40, h + 32, avgZ + 50);
@@ -6912,17 +6935,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const p1 = localPts[i + 1];
 
         const dx = p1.x - p0.x;
-        const dz = p1.y - p0.y;
+        const dz = (-p1.y) - (-p0.y);
         const len = Math.sqrt(dx * dx + dz * dz);
         if (len === 0) continue;
 
         const nx = -dz / len;
         const nz = dx / len;
 
-        const L0 = { x: p0.x + nx * halfW, z: p0.y + nz * halfW };
-        const R0 = { x: p0.x - nx * halfW, z: p0.y - nz * halfW };
-        const L1 = { x: p1.x + nx * halfW, z: p1.y + nz * halfW };
-        const R1 = { x: p1.x - nx * halfW, z: p1.y - nz * halfW };
+        const L0 = { x: p0.x + nx * halfW, z: -p0.y + nz * halfW };
+        const R0 = { x: p0.x - nx * halfW, z: -p0.y - nz * halfW };
+        const L1 = { x: p1.x + nx * halfW, z: -p1.y + nz * halfW };
+        const R1 = { x: p1.x - nx * halfW, z: -p1.y - nz * halfW };
 
         const yRoad = 0.08;
 
@@ -6964,9 +6987,9 @@ document.addEventListener('DOMContentLoaded', () => {
           outerR1.x, yRoad + curbH, outerR1.z
         );
 
-        centerLinePts.push(new THREE.Vector3(p0.x, yRoad + 0.02, p0.y));
+        centerLinePts.push(new THREE.Vector3(p0.x, yRoad + 0.02, -p0.y));
         if (i === localPts.length - 2) {
-          centerLinePts.push(new THREE.Vector3(p1.x, yRoad + 0.02, p1.y));
+          centerLinePts.push(new THREE.Vector3(p1.x, yRoad + 0.02, -p1.y));
         }
       }
 
@@ -7110,6 +7133,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (map) setTimeout(() => map.invalidateSize(), 50);
       onWindowResize();
+
+      // Align 3D camera to look North from South so it directly matches the 2D map orientation
+      if (controls && camera) {
+        const dist = Math.hypot(camera.position.x - controls.target.x, camera.position.z - controls.target.z) || 65;
+        camera.position.set(0, 45, dist);
+        controls.target.set(0, 5, 0);
+        controls.update();
+      }
     }
   }
 
