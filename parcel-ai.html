@@ -699,6 +699,37 @@
               <i class="fa-solid fa-sun" style="color: #f59e0b;"></i>
               <span data-i18n="mode_solar">მზის ანალიზი</span>
             </button>
+            <!-- Engineering & Computational Dropdown Menu -->
+            <div class="mode-dropdown-wrap" id="analysisDropdownWrap">
+              <button type="button" class="mode-tab-btn mode-dropdown-btn" id="btnAnalysisDropdown" aria-expanded="false" title="საინჟინრო & გამოთვლითი ანალიზი">
+                <i class="fa-solid fa-sliders" style="color: #00f0ff;"></i>
+                <span id="analysisDropdownTitle">საინჟინრო ანალიზი</span>
+                <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem; margin-left: 2px;"></i>
+              </button>
+              <div class="mode-dropdown-menu" id="analysisDropdownMenu">
+                <button type="button" class="mode-dropdown-item" data-mode="utilities">
+                  <span class="dropdown-item-badge" style="background: rgba(239, 68, 68, 0.2); color: #ef4444;"><i class="fa-solid fa-bolt-lightning"></i></span>
+                  <div class="dropdown-item-info">
+                    <span class="dropdown-item-name">კომუნიკაციები & დამცავი ზონები</span>
+                    <span class="dropdown-item-desc">GWP, ელექტრო, გაზი & კვეთის შემოწმება</span>
+                  </div>
+                </button>
+                <button type="button" class="mode-dropdown-item" data-mode="unitmix">
+                  <span class="dropdown-item-badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981;"><i class="fa-solid fa-chart-pie"></i></span>
+                  <div class="dropdown-item-info">
+                    <span class="dropdown-item-name">ბინების დაგეგმარება (Unit-Mix)</span>
+                    <span class="dropdown-item-desc">ბირთვი, ტიპოლოგიები & მარგი ფართი (NSA)</span>
+                  </div>
+                </button>
+                <button type="button" class="mode-dropdown-item" data-mode="wind">
+                  <span class="dropdown-item-badge" style="background: rgba(6, 182, 212, 0.2); color: #06b6d4;"><i class="fa-solid fa-wind"></i></span>
+                  <div class="dropdown-item-info">
+                    <span class="dropdown-item-name">ქარის სიმულაცია (CFD)</span>
+                    <span class="dropdown-item-desc">Lawson კომფორტი, აეროდინამიკა & ნაკადები</span>
+                  </div>
+                </button>
+              </div>
+            </div>
           </div>
 
           <div class="viewport-tools-group">
@@ -1045,6 +1076,389 @@
               <button type="button" class="btn-solar-export btn-export-pdf" id="btnExportSolarPdf" title="4-სეზონიანი მზის ინსოლაციის PDF კვლევის გენერაცია">
                 <i class="fa-solid fa-file-pdf"></i>
                 <span>მზის ანალიზის PDF</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Utility Clash Alert Banner -->
+          <div id="utilityClashAlertBanner" class="utility-clash-banner" style="display: none;">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>კრიტიკული შეზღუდვა: შენობის ნაკვალევი კვეთს კომუნიკაციის დამცავ ზონას!</span>
+          </div>
+
+          <!-- Floating Utilities, Easements & Protected Corridors Panel (Module 1) -->
+          <div class="solar-control-panel engineering-panel" id="utilitiesControlPanel" style="display: none;">
+            <div class="solar-header">
+              <div class="solar-title-wrap">
+                <i class="fa-solid fa-bolt-lightning solar-header-sun-icon" style="color: #ef4444;"></i>
+                <div>
+                  <span class="solar-header-title">კომუნიკაციები & დამცავი ზონები</span>
+                  <span class="solar-header-sub">Municipal Utilities · Easement Buffers · Clash Detection</span>
+                </div>
+              </div>
+              <div class="solar-header-actions">
+                <div class="solar-status-pill" id="utilityStatusPill" style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4);" title="შეზღუდვების სტატუსი">
+                  <i class="fa-solid fa-circle-check"></i>
+                  <span id="utilityStatusPillText">დაცულია</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Critical Clash Warning Box -->
+            <div class="utility-clash-box safe" id="utilityClashBox">
+              <i class="fa-solid fa-shield-check" id="utilityClashIcon" style="font-size: 1.2rem;"></i>
+              <div id="utilityClashText">კომუნიკაციების დამცავ ზონებთან კვეთა არ ფიქსირდება.</div>
+            </div>
+
+            <!-- Utility Network Layers & Buffer Radius Controls -->
+            <div class="solar-section-row">
+              <div class="solar-label-row">
+                <span class="solar-section-label"><i class="fa-solid fa-network-wired"></i> საინჟინრო ქსელები & ბუფერები:</span>
+              </div>
+              <div class="utility-layers-list">
+                <!-- GWP Water Trunk -->
+                <div class="utility-layer-card">
+                  <div class="utility-card-header">
+                    <label class="solar-toggle-item" style="margin: 0;">
+                      <input type="checkbox" id="chkUtilWater" checked>
+                      <span style="color: #38bdf8; font-weight: 600;"><i class="fa-solid fa-faucet-drip"></i> GWP მაგისტრალური წყალი</span>
+                    </label>
+                    <span class="utility-buffer-badge" id="badgeUtilWater">3 მ</span>
+                  </div>
+                  <div class="utility-slider-row">
+                    <span class="utility-slider-label">ბუფერი:</span>
+                    <input type="range" class="utility-range-slider" id="sliderUtilWater" min="2" max="10" step="0.5" value="3">
+                    <span class="utility-slider-val" id="valUtilWater">3 მ</span>
+                  </div>
+                </div>
+
+                <!-- Sewer Drainage Collector -->
+                <div class="utility-layer-card">
+                  <div class="utility-card-header">
+                    <label class="solar-toggle-item" style="margin: 0;">
+                      <input type="checkbox" id="chkUtilSewer" checked>
+                      <span style="color: #a855f7; font-weight: 600;"><i class="fa-solid fa-water"></i> სანიაღვრე კოლექტორი / კანალიზაცია</span>
+                    </label>
+                    <span class="utility-buffer-badge" id="badgeUtilSewer">4 მ</span>
+                  </div>
+                  <div class="utility-slider-row">
+                    <span class="utility-slider-label">ბუფერი:</span>
+                    <input type="range" class="utility-range-slider" id="sliderUtilSewer" min="2" max="10" step="0.5" value="4">
+                    <span class="utility-slider-val" id="valUtilSewer">4 მ</span>
+                  </div>
+                </div>
+
+                <!-- Power Overhead High Voltage -->
+                <div class="utility-layer-card">
+                  <div class="utility-card-header">
+                    <label class="solar-toggle-item" style="margin: 0;">
+                      <input type="checkbox" id="chkUtilPowerOverhead" checked>
+                      <span style="color: #eab308; font-weight: 600;"><i class="fa-solid fa-bolt"></i> მაღალი ძაბვის საჰაერო ხაზი (110-220kV)</span>
+                    </label>
+                    <span class="utility-buffer-badge" id="badgeUtilPowerOverhead">15 მ</span>
+                  </div>
+                  <div class="utility-slider-row">
+                    <span class="utility-slider-label">ბუფერი:</span>
+                    <input type="range" class="utility-range-slider" id="sliderUtilPowerOverhead" min="10" max="25" step="1" value="15">
+                    <span class="utility-slider-val" id="valUtilPowerOverhead">15 მ</span>
+                  </div>
+                </div>
+
+                <!-- Power Underground Cables -->
+                <div class="utility-layer-card">
+                  <div class="utility-card-header">
+                    <label class="solar-toggle-item" style="margin: 0;">
+                      <input type="checkbox" id="chkUtilPowerUnderground" checked>
+                      <span style="color: #f97316; font-weight: 600;"><i class="fa-solid fa-plug-circle-bolt"></i> მიწისქვეშა ელექტრო კაბელები</span>
+                    </label>
+                    <span class="utility-buffer-badge" id="badgeUtilPowerUnderground">3 მ</span>
+                  </div>
+                  <div class="utility-slider-row">
+                    <span class="utility-slider-label">ბუფერი:</span>
+                    <input type="range" class="utility-range-slider" id="sliderUtilPowerUnderground" min="2" max="6" step="0.5" value="3">
+                    <span class="utility-slider-val" id="valUtilPowerUnderground">3 მ</span>
+                  </div>
+                </div>
+
+                <!-- Gas High Pressure -->
+                <div class="utility-layer-card">
+                  <div class="utility-card-header">
+                    <label class="solar-toggle-item" style="margin: 0;">
+                      <input type="checkbox" id="chkUtilGas" checked>
+                      <span style="color: #ef4444; font-weight: 600;"><i class="fa-solid fa-fire-flame-simple"></i> გაზსადენის მაგისტრალი (მაღალი/საშუალო წნევა)</span>
+                    </label>
+                    <span class="utility-buffer-badge" id="badgeUtilGas">5 მ</span>
+                  </div>
+                  <div class="utility-slider-row">
+                    <span class="utility-slider-label">ბუფერი:</span>
+                    <input type="range" class="utility-range-slider" id="sliderUtilGas" min="3" max="10" step="0.5" value="5">
+                    <span class="utility-slider-val" id="valUtilGas">5 მ</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Actions & Status -->
+            <div class="solar-section-row">
+              <div class="utility-actions-box">
+                <button type="button" class="btn-solar-chip active" id="btnAutoNudgeFootprint" style="width: 100%; margin-bottom: 6px;" title="შენობის ნაკვალევის ავტომატური გადაწევა ბუფერის გარეთ">
+                  <i class="fa-solid fa-arrows-to-circle"></i> ნაკვალევის ოპტიმიზაცია (გარიდება)
+                </button>
+                <button type="button" class="btn-solar-export btn-export-pdf" id="btnExportUtilityReport" style="width: 100%;" title="კომუნიკაციების შეზღუდვების საექსპერტო დასკვნა">
+                  <i class="fa-solid fa-file-shield"></i> საექსპერტო დასკვნა (PDF)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Floating Unit-Mix & Sellable Area Optimizer Panel (Module 2) -->
+          <div class="solar-control-panel engineering-panel" id="unitMixControlPanel" style="display: none;">
+            <div class="solar-header">
+              <div class="solar-title-wrap">
+                <i class="fa-solid fa-chart-pie solar-header-sun-icon" style="color: #10b981;"></i>
+                <div>
+                  <span class="solar-header-title">ბინების დაგეგმარება & მარგი ფართი</span>
+                  <span class="solar-header-sub">Generative Floorplate · Core & Circulation · Unit-Mix Optimizer</span>
+                </div>
+              </div>
+              <div class="solar-header-actions">
+                <div class="solar-status-pill" id="unitMixEfficiencyBadge" style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4);" title="Sellable Efficiency Index">
+                  <i class="fa-solid fa-gauge-high"></i>
+                  <span id="unitMixEfficiencyText">84.2%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Efficiency & Financial Metrics KPI Grid -->
+            <div class="unitmix-kpi-grid">
+              <div class="unitmix-kpi-card">
+                <span class="unitmix-kpi-title">GFA (სართულის ფართი)</span>
+                <span class="unitmix-kpi-val" id="unitGfaVal">650 მ²</span>
+              </div>
+              <div class="unitmix-kpi-card">
+                <span class="unitmix-kpi-title">ბირთვი & კორიდორი</span>
+                <span class="unitmix-kpi-val" id="unitCoreVal" style="color: #94a3b8;">98 მ² (15%)</span>
+              </div>
+              <div class="unitmix-kpi-card">
+                <span class="unitmix-kpi-title">NSA (სარეალიზაციო)</span>
+                <span class="unitmix-kpi-val" id="unitNsaVal" style="color: #10b981;">552 მ²</span>
+              </div>
+              <div class="unitmix-kpi-card">
+                <span class="unitmix-kpi-title">მარგი ქმედების ინდექსი</span>
+                <span class="unitmix-kpi-val" id="unitEffIndexVal" style="color: #00f0ff;">84.9%</span>
+              </div>
+            </div>
+
+            <!-- Central Core Allocation Slider -->
+            <div class="solar-section-row">
+              <div class="solar-time-header">
+                <span class="solar-section-label"><i class="fa-solid fa-elevator"></i> ცენტრალური ბირთვის ფართი (Core GFA %):</span>
+                <div class="solar-time-badge" id="badgeCorePct">15%</div>
+              </div>
+              <div class="solar-slider-wrap">
+                <input type="range" class="solar-time-slider" id="sliderCorePct" min="12" max="18" step="0.5" value="15">
+                <div class="solar-slider-ticks">
+                  <span>12% (მინიმალური)</span>
+                  <span>15% (სტანდარტული)</span>
+                  <span>18% (გაფართოებული)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Unit Mix Distribution Target Sliders -->
+            <div class="solar-section-row">
+              <div class="solar-label-row">
+                <span class="solar-section-label"><i class="fa-solid fa-sliders"></i> ბინების ტიპოლოგიების განაწილება (%):</span>
+              </div>
+              <div class="unit-sliders-list">
+                <!-- Studio -->
+                <div class="unit-slider-row">
+                  <div class="unit-row-top">
+                    <span class="unit-type-tag" style="color: #38bdf8;"><i class="fa-solid fa-square"></i> სტუდიო (30-45 მ²)</span>
+                    <span class="unit-pct-badge" id="badgeStudioPct">20%</span>
+                  </div>
+                  <input type="range" class="solar-time-slider" id="sliderStudioPct" min="0" max="60" step="5" value="20">
+                </div>
+
+                <!-- 1-Bedroom -->
+                <div class="unit-slider-row">
+                  <div class="unit-row-top">
+                    <span class="unit-type-tag" style="color: #10b981;"><i class="fa-solid fa-square"></i> 1-საძინებლიანი (50-65 მ²)</span>
+                    <span class="unit-pct-badge" id="badge1BedPct">40%</span>
+                  </div>
+                  <input type="range" class="solar-time-slider" id="slider1BedPct" min="0" max="70" step="5" value="40">
+                </div>
+
+                <!-- 2-Bedroom -->
+                <div class="unit-slider-row">
+                  <div class="unit-row-top">
+                    <span class="unit-type-tag" style="color: #f59e0b;"><i class="fa-solid fa-square"></i> 2-საძინებლიანი (75-95 მ²)</span>
+                    <span class="unit-pct-badge" id="badge2BedPct">30%</span>
+                  </div>
+                  <input type="range" class="solar-time-slider" id="slider2BedPct" min="0" max="60" step="5" value="30">
+                </div>
+
+                <!-- 3-Bedroom -->
+                <div class="unit-slider-row">
+                  <div class="unit-row-top">
+                    <span class="unit-type-tag" style="color: #ef4444;"><i class="fa-solid fa-square"></i> 3-საძინებლიანი (105-130 მ²)</span>
+                    <span class="unit-pct-badge" id="badge3BedPct">10%</span>
+                  </div>
+                  <input type="range" class="solar-time-slider" id="slider3BedPct" min="0" max="40" step="5" value="10">
+                </div>
+              </div>
+            </div>
+
+            <!-- Floorplate Generated Units Schedule Preview -->
+            <div class="solar-section-row">
+              <span class="solar-section-label"><i class="fa-solid fa-table-list"></i> ტიპური სართულის ბინების განაწილება:</span>
+              <div class="unit-schedule-table-wrap" id="unitScheduleTableWrap">
+                <!-- Dynamically filled table -->
+              </div>
+            </div>
+
+            <!-- Export Buttons -->
+            <div class="solar-export-row">
+              <button type="button" class="btn-solar-export btn-export-photo" id="btnExportUnitCsv" title="ბინების ცხრილის ჩამოტვირთვა CSV ფორმატში">
+                <i class="fa-solid fa-file-csv"></i> <span>Export (.CSV)</span>
+              </button>
+              <button type="button" class="btn-solar-export btn-export-pdf" id="btnExportUnitJson" title="JSON სქემის ექსპორტი">
+                <i class="fa-solid fa-file-code"></i> <span>Export (.JSON)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Floating Pedestrian Wind Comfort CFD Simulation Panel (Module 3) -->
+          <div class="solar-control-panel engineering-panel" id="windSimulationControlPanel" style="display: none;">
+            <div class="solar-header">
+              <div class="solar-title-wrap">
+                <i class="fa-solid fa-wind solar-header-sun-icon" style="color: #06b6d4;"></i>
+                <div>
+                  <span class="solar-header-title">ქარის სიმულაცია & კომფორტი</span>
+                  <span class="solar-header-sub">Pedestrian Wind Comfort · CFD Microclimate · Lawson Criteria</span>
+                </div>
+              </div>
+              <div class="solar-header-actions">
+                <button type="button" class="btn-solar-play active" id="btnToggleWindParticles" title="ნაკადების ანიმაციის ჩართვა/გამორთვა">
+                  <i class="fa-solid fa-play" id="iconWindPlay"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Wind Direction Selector (Tbilisi NW & SE) -->
+            <div class="solar-section-row">
+              <div class="solar-label-row">
+                <span class="solar-section-label"><i class="fa-solid fa-compass"></i> ქარის მიმართულება (თბილისი):</span>
+                <span class="solar-time-badge" id="windDirBadge">315° (NW)</span>
+              </div>
+              <div class="solar-date-chips">
+                <button type="button" class="btn-solar-chip active" id="btnWindNW" data-dir="315" title="დომინანტი ძლიერი ქარი თბილისში (ჩრდილო-დასავლეთი)">NW 315° (დომინანტი)</button>
+                <button type="button" class="btn-solar-chip" id="btnWindSE" data-dir="135" title="სამხრეთ-აღმოსავლეთი (ზაფხულის ნაკადი)">SE 135° (თბილი)</button>
+                <button type="button" class="btn-solar-chip" id="btnWindE" data-dir="90">E 90°</button>
+                <button type="button" class="btn-solar-chip" id="btnWindW" data-dir="270">W 270°</button>
+              </div>
+              <div class="solar-slider-wrap" style="margin-top: 8px;">
+                <input type="range" class="solar-time-slider" id="windDirSlider" min="0" max="360" step="5" value="315">
+              </div>
+            </div>
+
+            <!-- Ambient Velocity Slider -->
+            <div class="solar-section-row">
+              <div class="solar-time-header">
+                <span class="solar-section-label"><i class="fa-solid fa-gauge-simple-high"></i> ქარის საწყისი სიჩქარე:</span>
+                <div class="solar-time-badge" id="windSpeedBadge">6.0 მ/წმ</div>
+              </div>
+              <div class="solar-slider-wrap">
+                <input type="range" class="solar-time-slider" id="windSpeedSlider" min="2" max="18" step="0.5" value="6">
+                <div class="solar-slider-ticks">
+                  <span>2 მ/წმ (მსუბუქი)</span>
+                  <span>6 მ/წმ (ზომიერი)</span>
+                  <span>12 მ/წმ (ძლიერი)</span>
+                  <span>18 მ/წმ (შტორმი)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Lawson Pedestrian Comfort Scale Legend -->
+            <div class="solar-section-row">
+              <span class="solar-section-label"><i class="fa-solid fa-person-walking"></i> Lawson-ის კომფორტის კრიტერიუმები:</span>
+              <div class="lawson-legend-grid">
+                <div class="lawson-item" style="border-left: 3px solid #10b981;">
+                  <span class="lawson-color-box" style="background: #10b981;"></span>
+                  <div class="lawson-text">
+                    <strong>Sitting / დასვენება & კაფე</strong>
+                    <span>&lt; 4 მ/წმ · გარე ტერასები, სკვერები</span>
+                  </div>
+                </div>
+                <div class="lawson-item" style="border-left: 3px solid #06b6d4;">
+                  <span class="lawson-color-box" style="background: #06b6d4;"></span>
+                  <div class="lawson-text">
+                    <strong>Standing / დგომა & ლოდინი</strong>
+                    <span>4 - 6 მ/წმ · შემოსასვლელები, გაჩერებები</span>
+                  </div>
+                </div>
+                <div class="lawson-item" style="border-left: 3px solid #f59e0b;">
+                  <span class="lawson-color-box" style="background: #f59e0b;"></span>
+                  <div class="lawson-text">
+                    <strong>Strolling / სეირნობა</strong>
+                    <span>6 - 8 მ/წმ · საფეხმავლო ტროტუარები</span>
+                  </div>
+                </div>
+                <div class="lawson-item" style="border-left: 3px solid #f97316;">
+                  <span class="lawson-color-box" style="background: #f97316;"></span>
+                  <div class="lawson-text">
+                    <strong>Uncomfortable / ტურბულენტური</strong>
+                    <span>8 - 15 მ/წმ · უსიამოვნო ქარის დერეფანი</span>
+                  </div>
+                </div>
+                <div class="lawson-item" style="border-left: 3px solid #ef4444;">
+                  <span class="lawson-color-box" style="background: #ef4444;"></span>
+                  <div class="lawson-text">
+                    <strong>Safety Risk / სახიფათო</strong>
+                    <span>&gt; 15 მ/წმ · გადაადგილების შეზღუდვა</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Interactive Sample Probe Card -->
+            <div class="solar-section-row">
+              <div class="wind-probe-card" id="windProbeCard">
+                <div class="wind-probe-header">
+                  <i class="fa-solid fa-crosshairs" style="color: #06b6d4;"></i>
+                  <span>ინსპექციის ზონდი (დააკლიკეთ 3D-ში):</span>
+                </div>
+                <div class="wind-probe-content" id="windProbeContent">
+                  <div class="probe-val-row">
+                    <span class="probe-metric-label">ლოკალური სიჩქარე:</span>
+                    <strong class="probe-metric-val" id="probeSpeedVal">4.8 მ/წმ</strong>
+                  </div>
+                  <div class="probe-status" id="probeStatusText" style="color: #06b6d4;">კომფორტულია დგომისა და შესასვლელებისთვის</div>
+                  <div class="probe-tip" id="probeTipText">💡 რეკომენდაცია: აეროდინამიკა სტაბილურია, დამატებითი ჩარდახი არ არის საჭირო.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Visual Toggles & Export -->
+            <div class="solar-toggles-grid">
+              <label class="solar-toggle-item">
+                <input type="checkbox" id="chkWindHeatmap" checked>
+                <span>Lawson Heatmap</span>
+              </label>
+              <label class="solar-toggle-item">
+                <input type="checkbox" id="chkWindStreamlines" checked>
+                <span>ნაკადის ნაწილაკები</span>
+              </label>
+              <label class="solar-toggle-item">
+                <input type="checkbox" id="chkVenturiEffect" checked>
+                <span>ვენტურის ეფექტი</span>
+              </label>
+            </div>
+
+            <div class="solar-export-row">
+              <button type="button" class="btn-solar-export btn-export-pdf" id="btnExportWindReport" style="width: 100%;" title="ქარის მიკროკლიმატის საექსპერტო კვლევა (PDF)">
+                <i class="fa-solid fa-file-pdf"></i>
+                <span>ქარის ანალიზის PDF</span>
               </button>
             </div>
           </div>
