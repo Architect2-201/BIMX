@@ -1112,33 +1112,38 @@
             </div>
 
             <!-- Utility Network Layers & Buffer Radius Controls -->
+            <!-- Utility Network Layers & Buffer Radius Controls -->
             <div class="solar-section-row">
               <div class="solar-label-row">
                 <span class="solar-section-label"><i class="fa-solid fa-network-wired"></i> საინჟინრო ქსელები & ბუფერები:</span>
+                <label class="solar-toggle-item" style="margin: 0; font-size: 0.75rem;">
+                  <input type="checkbox" id="chkUtilXRay" checked>
+                  <span style="color: #00f0ff;"><i class="fa-solid fa-eye"></i> X-Ray (გამჭვირვალე გრუნტი)</span>
+                </label>
               </div>
               <div class="utility-layers-list">
-                <!-- GWP Water Trunk -->
+                <!-- GWP Water Trunk & Distribution -->
                 <div class="utility-layer-card">
                   <div class="utility-card-header">
                     <label class="solar-toggle-item" style="margin: 0;">
                       <input type="checkbox" id="chkUtilWater" checked>
-                      <span style="color: #38bdf8; font-weight: 600;"><i class="fa-solid fa-faucet-drip"></i> GWP მაგისტრალური წყალი</span>
+                      <span style="color: #38bdf8; font-weight: 600;"><i class="fa-solid fa-faucet-drip"></i> GWP წყალსადენი (Ø600/Ø200)</span>
                     </label>
                     <span class="utility-buffer-badge" id="badgeUtilWater">3 მ</span>
                   </div>
                   <div class="utility-slider-row">
                     <span class="utility-slider-label">ბუფერი:</span>
-                    <input type="range" class="utility-range-slider" id="sliderUtilWater" min="2" max="10" step="0.5" value="3">
+                    <input type="range" class="utility-range-slider" id="sliderUtilWater" min="1.5" max="10" step="0.5" value="3">
                     <span class="utility-slider-val" id="valUtilWater">3 მ</span>
                   </div>
                 </div>
 
-                <!-- Sewer Drainage Collector -->
+                <!-- Sewer Drainage Collector & Domestic -->
                 <div class="utility-layer-card">
                   <div class="utility-card-header">
                     <label class="solar-toggle-item" style="margin: 0;">
                       <input type="checkbox" id="chkUtilSewer" checked>
-                      <span style="color: #a855f7; font-weight: 600;"><i class="fa-solid fa-water"></i> სანიაღვრე კოლექტორი / კანალიზაცია</span>
+                      <span style="color: #a855f7; font-weight: 600;"><i class="fa-solid fa-water"></i> სანიაღვრე კოლექტორი (D=1200) & კანალიზაცია</span>
                     </label>
                     <span class="utility-buffer-badge" id="badgeUtilSewer">4 მ</span>
                   </div>
@@ -1170,32 +1175,91 @@
                   <div class="utility-card-header">
                     <label class="solar-toggle-item" style="margin: 0;">
                       <input type="checkbox" id="chkUtilPowerUnderground" checked>
-                      <span style="color: #f97316; font-weight: 600;"><i class="fa-solid fa-plug-circle-bolt"></i> მიწისქვეშა ელექტრო კაბელები</span>
+                      <span style="color: #f97316; font-weight: 600;"><i class="fa-solid fa-plug-circle-bolt"></i> მიწისქვეშა ელექტრო კაბელები (10kV & 0.4kV)</span>
                     </label>
                     <span class="utility-buffer-badge" id="badgeUtilPowerUnderground">3 მ</span>
                   </div>
                   <div class="utility-slider-row">
                     <span class="utility-slider-label">ბუფერი:</span>
-                    <input type="range" class="utility-range-slider" id="sliderUtilPowerUnderground" min="2" max="6" step="0.5" value="3">
+                    <input type="range" class="utility-range-slider" id="sliderUtilPowerUnderground" min="1.5" max="6" step="0.5" value="3">
                     <span class="utility-slider-val" id="valUtilPowerUnderground">3 მ</span>
                   </div>
                 </div>
 
-                <!-- Gas High Pressure -->
+                <!-- Gas High & Medium Pressure -->
                 <div class="utility-layer-card">
                   <div class="utility-card-header">
                     <label class="solar-toggle-item" style="margin: 0;">
                       <input type="checkbox" id="chkUtilGas" checked>
-                      <span style="color: #ef4444; font-weight: 600;"><i class="fa-solid fa-fire-flame-simple"></i> გაზსადენის მაგისტრალი (მაღალი/საშუალო წნევა)</span>
+                      <span style="color: #ef4444; font-weight: 600;"><i class="fa-solid fa-fire-flame-simple"></i> გაზსადენის მაგისტრალი (P=1.2MPa & 0.3MPa)</span>
                     </label>
                     <span class="utility-buffer-badge" id="badgeUtilGas">5 მ</span>
                   </div>
                   <div class="utility-slider-row">
                     <span class="utility-slider-label">ბუფერი:</span>
-                    <input type="range" class="utility-range-slider" id="sliderUtilGas" min="3" max="10" step="0.5" value="5">
+                    <input type="range" class="utility-range-slider" id="sliderUtilGas" min="2" max="10" step="0.5" value="5">
                     <span class="utility-slider-val" id="valUtilGas">5 მ</span>
                   </div>
                 </div>
+
+                <!-- Fiber Optic Internet & Telecom (Silknet / Magticom) -->
+                <div class="utility-layer-card">
+                  <div class="utility-card-header">
+                    <label class="solar-toggle-item" style="margin: 0;">
+                      <input type="checkbox" id="chkUtilTelecom" checked>
+                      <span style="color: #10b981; font-weight: 600;"><i class="fa-solid fa-tower-broadcast"></i> ოპტიკური ინტერნეტი & კავშირგაბმულობა</span>
+                    </label>
+                    <span class="utility-buffer-badge" id="badgeUtilTelecom">2 მ</span>
+                  </div>
+                  <div class="utility-slider-row">
+                    <span class="utility-slider-label">ბუფერი:</span>
+                    <input type="range" class="utility-range-slider" id="sliderUtilTelecom" min="1" max="5" step="0.5" value="2">
+                    <span class="utility-slider-val" id="valUtilTelecom">2 მ</span>
+                  </div>
+                </div>
+
+                <!-- Manholes, Hydrants & Surface Vaults -->
+                <div class="utility-layer-card">
+                  <div class="utility-card-header">
+                    <label class="solar-toggle-item" style="margin: 0;">
+                      <input type="checkbox" id="chkUtilManholes" checked>
+                      <span style="color: #cbd5e1; font-weight: 600;"><i class="fa-solid fa-circle-dot"></i> საკონტროლო ჭები, ლუკები & ჰიდრანტები</span>
+                    </label>
+                    <span class="utility-buffer-badge" id="badgeUtilManholes" style="color: #cbd5e1; border-color: rgba(203,213,225,0.4); background: rgba(203,213,225,0.1);">აქტიური</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Selected Utility 3D Interactive Inspector Card -->
+            <div class="solar-section-row" id="utilityInspectorSection">
+              <div class="solar-label-row">
+                <span class="solar-section-label"><i class="fa-solid fa-circle-info"></i> კომუნიკაციის ინსპექტორი:</span>
+              </div>
+              <div class="utility-inspector-card" id="utilityInspectorCard">
+                <div class="inspector-header">
+                  <i class="fa-solid fa-faucet-drip" id="inspectIcon" style="color: #38bdf8;"></i>
+                  <span class="inspector-title" id="inspectTitle">GWP ცენტრალური წყალსადენი</span>
+                </div>
+                <div class="inspector-grid">
+                  <div class="inspector-item">
+                    <span class="ins-lbl">მდებარეობა:</span>
+                    <strong class="ins-val" id="inspectLocation">მიწისქვეშა (სიღრმე: -1.4 მ)</strong>
+                  </div>
+                  <div class="inspector-item">
+                    <span class="ins-lbl">დიამეტრი / ძაბვა:</span>
+                    <strong class="ins-val" id="inspectParams">Ø500 მმ · 8 bar</strong>
+                  </div>
+                  <div class="inspector-item">
+                    <span class="ins-lbl">ოპერატორი:</span>
+                    <strong class="ins-val" id="inspectOperator">Georgian Water & Power (GWP)</strong>
+                  </div>
+                  <div class="inspector-item">
+                    <span class="ins-lbl">დამცავი ბუფერი:</span>
+                    <strong class="ins-val" id="inspectStandard">დადგენილება №365 · 3.0 მ</strong>
+                  </div>
+                </div>
+                <div class="inspector-hint">💡 დააკლიკეთ ნებისმიერ მილს, კაბელს, ანძას ან ჭას 3D სივრცეში დეტალური მონაცემებისთვის.</div>
               </div>
             </div>
 

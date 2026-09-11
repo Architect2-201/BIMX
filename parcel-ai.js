@@ -71,15 +71,20 @@ document.addEventListener('DOMContentLoaded', () => {
         sewer_collector: true,
         power_overhead: true,
         power_underground: true,
-        gas_high_pressure: true
+        gas_high_pressure: true,
+        telecom_fiber: true,
+        manholes: true
       },
       bufferRadii: {
         water_trunk: 3,
         sewer_collector: 4,
         power_overhead: 15,
         power_underground: 3,
-        gas_high_pressure: 5
+        gas_high_pressure: 5,
+        telecom_fiber: 2
       },
+      showXRay: true,
+      selectedUtility: null,
       clashes: []
     },
     unitMixData: {
@@ -7146,6 +7151,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (utility3DGroup) utility3DGroup.visible = (mode === 'utilities');
     if (unitMix3DGroup) unitMix3DGroup.visible = (mode === 'unitmix');
     if (wind3DGroup) wind3DGroup.visible = (mode === 'wind');
+    if (typeof setUtilitiesXRay === 'function') {
+      setUtilitiesXRay(mode === 'utilities' && (state.utilitiesData && state.utilitiesData.showXRay !== false));
+    }
 
     if (mode === 'map') {
       if (mapViewport) mapViewport.style.display = 'block';
@@ -7291,7 +7299,7 @@ document.addEventListener('DOMContentLoaded', () => {
      10b. Module 1: Utility Easements & Protected Corridor Constraint Engine
      ========================================================================== */
   function generateParcelUtilities(parcel) {
-    if (!parcel || !parcel.coordinates || parcel.coordinates.length < 3) return [];
+    if (!parcel || !parcel.coordinates || parcel.coordinates.length < 3) return { lines: [], points: [] };
     const coords = parcel.coordinates;
     const lats = coords.map(c => c[0]);
     const lngs = coords.map(c => c[1]);
@@ -7299,121 +7307,658 @@ document.addEventListener('DOMContentLoaded', () => {
     const maxLat = Math.max(...lats);
     const minLng = Math.min(...lngs);
     const maxLng = Math.max(...lngs);
-    const spanLat = maxLat - minLat;
-    const spanLng = maxLng - minLng;
+    const spanLat = Math.max(0.0004, maxLat - minLat);
+    const spanLng = Math.max(0.0004, maxLng - minLng);
+    const cLat = (minLat + maxLat) / 2;
+    const cLng = (minLng + maxLng) / 2;
 
-    // Place utility lines along parcel street frontages and peripheral easements (outside normal setbacks)
-    return [
+    const extMinLng = minLng - spanLng * 0.95;
+    const extMaxLng = maxLng + spanLng * 0.95;
+    const extMinLat = minLat - spanLat * 0.95;
+    const extMaxLat = maxLat + spanLat * 0.95;
+
+    const lines = [];
+
+    // 1. GWP Drinking Water Supply Network (Water Trunks & Distribution)
+    lines.push({
+      id: 'util_water_trunk_n',
+      type: 'water_trunk',
+      category: 'water_trunk',
+      nameKa: 'GWP ცენტრალური მაგისტრალური წყალსადენი (Ø600მმ)',
+      isUnderground: true,
+      depthMeters: -1.4,
+      diameterMm: 600,
+      pressureBar: 8.5,
+      operatorKa: 'Georgian Water & Power (GWP)',
+      standardKa: 'დადგენილება №365 (3.0მ დაცვის ზონა)',
+      paramsKa: 'Ø600 მმ · წნევა 8.5 bar · ფოლადი/PE100',
+      iconClass: 'fa-solid fa-faucet-drip',
+      color: '#38bdf8',
+      colorHex: 0x38bdf8,
+      pipeRadius: 0.3,
+      bufferRadiusMeters: state.utilitiesData.bufferRadii.water_trunk || 3,
+      points: [
+        [maxLat + spanLat * 0.08, extMinLng],
+        [maxLat + spanLat * 0.08, extMaxLng]
+      ]
+    });
+
+    lines.push({
+      id: 'util_water_dist_s',
+      type: 'water_dist',
+      category: 'water_trunk',
+      nameKa: 'GWP საუბნო გამანაწილებელი წყალსადენი (Ø200მმ)',
+      isUnderground: true,
+      depthMeters: -1.3,
+      diameterMm: 200,
+      pressureBar: 6.0,
+      operatorKa: 'Georgian Water & Power (GWP)',
+      standardKa: 'დადგენილება №365 (2.5მ დაცვის ზონა)',
+      paramsKa: 'Ø200 მმ · წნევა 6.0 bar · პოლიეთილენი PE100',
+      iconClass: 'fa-solid fa-faucet-drip',
+      color: '#0284c7',
+      colorHex: 0x0284c7,
+      pipeRadius: 0.18,
+      bufferRadiusMeters: 2.5,
+      points: [
+        [minLat - spanLat * 0.08, extMinLng],
+        [minLat - spanLat * 0.08, extMaxLng]
+      ]
+    });
+
+    lines.push({
+      id: 'util_water_dist_e',
+      type: 'water_dist',
+      category: 'water_trunk',
+      nameKa: 'GWP აღმოსავლეთის წყალსადენი (Ø250მმ)',
+      isUnderground: true,
+      depthMeters: -1.4,
+      diameterMm: 250,
+      pressureBar: 7.0,
+      operatorKa: 'Georgian Water & Power (GWP)',
+      standardKa: 'დადგენილება №365 (3.0მ დაცვის ზონა)',
+      paramsKa: 'Ø250 მმ · წნევა 7.0 bar',
+      iconClass: 'fa-solid fa-faucet-drip',
+      color: '#38bdf8',
+      colorHex: 0x38bdf8,
+      pipeRadius: 0.2,
+      bufferRadiusMeters: 3.0,
+      points: [
+        [extMinLat, maxLng + spanLng * 0.08],
+        [extMaxLat, maxLng + spanLng * 0.08]
+      ]
+    });
+
+    lines.push({
+      id: 'util_water_branch_in',
+      type: 'water_dist',
+      category: 'water_trunk',
+      nameKa: 'ნაკვეთის წყალმომარაგების შეყვანა (Ø110მმ)',
+      isUnderground: true,
+      depthMeters: -1.2,
+      diameterMm: 110,
+      pressureBar: 5.5,
+      operatorKa: 'Georgian Water & Power (GWP)',
+      standardKa: 'შიდა საინჟინრო დაერთება',
+      paramsKa: 'Ø110 მმ PE100 · ურდულიანი კვანძი',
+      iconClass: 'fa-solid fa-faucet-drip',
+      color: '#38bdf8',
+      colorHex: 0x38bdf8,
+      pipeRadius: 0.12,
+      bufferRadiusMeters: 1.5,
+      points: [
+        [maxLat + spanLat * 0.08, cLng],
+        [maxLat - spanLat * 0.05, cLng]
+      ]
+    });
+
+    // 2. Stormwater Collector & Sanitary Sewer Network
+    lines.push({
+      id: 'util_sewer_coll_n',
+      type: 'sewer_collector',
+      category: 'sewer_collector',
+      nameKa: 'მთავარი სანიაღვრე კოლექტორი (D=1200მმ)',
+      isUnderground: true,
+      depthMeters: -3.2,
+      diameterMm: 1200,
+      operatorKa: 'თბილისის მუნიციპალური ინფრასტრუქტურა',
+      standardKa: 'დადგენილება №365 (4.0მ დამცავი ზონა)',
+      paramsKa: 'D=1200 მმ რკინაბეტონის მილები · თვითდინებითი',
+      iconClass: 'fa-solid fa-water',
+      color: '#a855f7',
+      colorHex: 0xa855f7,
+      pipeRadius: 0.48,
+      bufferRadiusMeters: state.utilitiesData.bufferRadii.sewer_collector || 4,
+      points: [
+        [maxLat + spanLat * 0.18, extMinLng],
+        [maxLat + spanLat * 0.18, extMaxLng]
+      ]
+    });
+
+    lines.push({
+      id: 'util_sewer_dom_s',
+      type: 'sewer_collector',
+      category: 'sewer_collector',
+      nameKa: 'საყოფაცხოვრებო ფეკალური კანალიზაციის ქსელი (D=400მმ)',
+      isUnderground: true,
+      depthMeters: -2.5,
+      diameterMm: 400,
+      operatorKa: 'GWP კანალიზაციის სამმართველო',
+      standardKa: 'დადგენილება №365 (3.0მ დამცავი ზონა)',
+      paramsKa: 'D=400 მმ გოფრირებული პოლიპროპილენის მილი',
+      iconClass: 'fa-solid fa-water',
+      color: '#8b5cf6',
+      colorHex: 0x8b5cf6,
+      pipeRadius: 0.24,
+      bufferRadiusMeters: 3.0,
+      points: [
+        [minLat - spanLat * 0.15, extMinLng],
+        [minLat - spanLat * 0.15, extMaxLng]
+      ]
+    });
+
+    lines.push({
+      id: 'util_sewer_coll_e',
+      type: 'sewer_collector',
+      category: 'sewer_collector',
+      nameKa: 'აღმოსავლეთის საკანალიზაციო კოლექტორი (D=800მმ)',
+      isUnderground: true,
+      depthMeters: -3.0,
+      diameterMm: 800,
+      operatorKa: 'თბილისის მუნიციპალიტეტი',
+      standardKa: 'დადგენილება №365 (4.0მ დამცავი ზონა)',
+      paramsKa: 'D=800 მმ რკინაბეტონი',
+      iconClass: 'fa-solid fa-water',
+      color: '#a855f7',
+      colorHex: 0xa855f7,
+      pipeRadius: 0.35,
+      bufferRadiusMeters: 4.0,
+      points: [
+        [extMinLat, maxLng + spanLng * 0.16],
+        [extMaxLat, maxLng + spanLng * 0.16]
+      ]
+    });
+
+    lines.push({
+      id: 'util_sewer_branch_out',
+      type: 'sewer_collector',
+      category: 'sewer_collector',
+      nameKa: 'ნაკვეთის კანალიზაციის გამყვანი ტრასა (D=250მმ)',
+      isUnderground: true,
+      depthMeters: -2.3,
+      diameterMm: 250,
+      operatorKa: 'GWP',
+      standardKa: 'შიდა დაერთების ტექნიკური პირობა',
+      paramsKa: 'D=250 მმ თვითდინებითი გამყვანი',
+      iconClass: 'fa-solid fa-water',
+      color: '#8b5cf6',
+      colorHex: 0x8b5cf6,
+      pipeRadius: 0.16,
+      bufferRadiusMeters: 2.0,
+      points: [
+        [minLat + spanLat * 0.05, cLng - spanLng * 0.05],
+        [minLat - spanLat * 0.15, cLng - spanLng * 0.05]
+      ]
+    });
+
+    // 3. Electrical Infrastructure (Overhead 110kV & Underground 10kV / 0.4kV)
+    lines.push({
+      id: 'util_power_overhead_110k',
+      type: 'power_overhead',
+      category: 'power_overhead',
+      nameKa: 'მაღალი ძაბვის საჰაერო ხაზი (110-220kV)',
+      isUnderground: false,
+      depthMeters: 14.5,
+      voltageKv: 110,
+      operatorKa: 'საქართველოს სახელმწიფო ელექტროსისტემა (GSE)',
+      standardKa: 'საქართველოს მთავრობის დადგენილება №366 (15მ ბუფერი)',
+      paramsKa: '110/220kV საჰაერო ხაზი · ფოლადის ანძები · ACSR სადენები',
+      iconClass: 'fa-solid fa-bolt',
+      color: '#eab308',
+      colorHex: 0xeab308,
+      pipeRadius: 0.06,
+      bufferRadiusMeters: state.utilitiesData.bufferRadii.power_overhead || 15,
+      points: [
+        [maxLat + spanLat * 0.32, extMinLng],
+        [maxLat + spanLat * 0.38, extMaxLng]
+      ]
+    });
+
+    lines.push({
+      id: 'util_power_10k_n',
+      type: 'power_underground',
+      category: 'power_underground',
+      nameKa: 'მიწისქვეშა მაღალი ძაბვის 10kV საკაბელო ტრასა',
+      isUnderground: true,
+      depthMeters: -1.0,
+      voltageKv: 10,
+      operatorKa: 'სს თელასი (Telasi)',
+      standardKa: 'დადგენილება №366 (3.0მ დაცვის ზონა)',
+      paramsKa: '3xXLPE 10kV ჯავშნიანი კაბელი · 630A სიმძლავრე',
+      iconClass: 'fa-solid fa-plug-circle-bolt',
+      color: '#f97316',
+      colorHex: 0xf97316,
+      pipeRadius: 0.14,
+      bufferRadiusMeters: state.utilitiesData.bufferRadii.power_underground || 3,
+      points: [
+        [maxLat + spanLat * 0.04, extMinLng],
+        [maxLat + spanLat * 0.04, extMaxLng]
+      ]
+    });
+
+    lines.push({
+      id: 'util_power_04k_s',
+      type: 'power_underground',
+      category: 'power_underground',
+      nameKa: 'მიწისქვეშა 0.4kV საუბნო გამანაწილებელი კაბელი',
+      isUnderground: true,
+      depthMeters: -0.7,
+      voltageKv: 0.4,
+      operatorKa: 'სს თელასი (Telasi)',
+      standardKa: 'დადგენილება №366 (2.0მ დაცვის ზონა)',
+      paramsKa: '4x240 მმ² 0.4kV ალუმინის ჯავშნიანი კაბელი',
+      iconClass: 'fa-solid fa-plug-circle-bolt',
+      color: '#fb923c',
+      colorHex: 0xfb923c,
+      pipeRadius: 0.1,
+      bufferRadiusMeters: 2.0,
+      points: [
+        [minLat - spanLat * 0.04, extMinLng],
+        [minLat - spanLat * 0.04, extMaxLng]
+      ]
+    });
+
+    lines.push({
+      id: 'util_power_branch_kiosk',
+      type: 'power_underground',
+      category: 'power_underground',
+      nameKa: '10kV კაბელის შეყვანა სატრანსფორმატორო ქვესადგურში (TP)',
+      isUnderground: true,
+      depthMeters: -0.9,
+      voltageKv: 10,
+      operatorKa: 'სს თელასი',
+      standardKa: 'დადგენილება №366',
+      paramsKa: '10kV საკაბელო კვანძი',
+      iconClass: 'fa-solid fa-plug-circle-bolt',
+      color: '#f97316',
+      colorHex: 0xf97316,
+      pipeRadius: 0.12,
+      bufferRadiusMeters: 2.0,
+      points: [
+        [maxLat + spanLat * 0.04, minLng - spanLng * 0.06],
+        [maxLat - spanLat * 0.03, minLng - spanLng * 0.06]
+      ]
+    });
+
+    // 4. Gas Infrastructure (High & Medium Pressure)
+    lines.push({
+      id: 'util_gas_high_e',
+      type: 'gas_high_pressure',
+      category: 'gas_high_pressure',
+      nameKa: 'მაღალი წნევის გაზსადენის მაგისტრალი (P=1.2MPa)',
+      isUnderground: true,
+      depthMeters: -1.6,
+      diameterMm: 350,
+      pressureBar: 12,
+      operatorKa: 'საქართველოს გაზის ტრანსპორტირების კომპანია (GGTC)',
+      standardKa: 'დადგენილება №41 (5.0მ დაცვის ზონა)',
+      paramsKa: 'Ø350 მმ ფოლადის მილი · 1.2 MPa წნევა · იზოლირებული',
+      iconClass: 'fa-solid fa-fire-flame-simple',
+      color: '#ef4444',
+      colorHex: 0xef4444,
+      pipeRadius: 0.22,
+      bufferRadiusMeters: state.utilitiesData.bufferRadii.gas_high_pressure || 5,
+      points: [
+        [extMinLat, maxLng + spanLng * 0.22],
+        [extMaxLat, maxLng + spanLng * 0.22]
+      ]
+    });
+
+    lines.push({
+      id: 'util_gas_med_n',
+      type: 'gas_high_pressure',
+      category: 'gas_high_pressure',
+      nameKa: 'საშუალო წნევის გაზსადენი (P=0.3MPa, Ø160მმ)',
+      isUnderground: true,
+      depthMeters: -1.1,
+      diameterMm: 160,
+      pressureBar: 3,
+      operatorKa: 'შპს თბილისი ენერჯი (Tbilisi Energy)',
+      standardKa: 'დადგენილება №41 (3.5მ დაცვის ზონა)',
+      paramsKa: 'Ø160 მმ პოლიეთილენი PE100 GAS SDR11 · 0.3 MPa',
+      iconClass: 'fa-solid fa-fire-flame-simple',
+      color: '#f87171',
+      colorHex: 0xf87171,
+      pipeRadius: 0.16,
+      bufferRadiusMeters: 3.5,
+      points: [
+        [maxLat + spanLat * 0.12, extMinLng],
+        [maxLat + spanLat * 0.12, extMaxLng]
+      ]
+    });
+
+    // 5. Telecom & Optical Internet Network (Silknet / Magticom)
+    lines.push({
+      id: 'util_telecom_silknet_n',
+      type: 'telecom_fiber',
+      category: 'telecom_fiber',
+      nameKa: 'ოპტიკურ-ბოჭკოვანი ინტერნეტის მაგისტრალი (Silknet 144-Core)',
+      isUnderground: true,
+      depthMeters: -0.8,
+      operatorKa: 'სს სილქნეტი (Silknet Fiber Backbone)',
+      standardKa: 'საკომუნიკაციო კავშირგაბმულობის ნორმა (2.0მ ბუფერი)',
+      paramsKa: '144-Core SingleMode Fiber · 4xØ110 PVC საკაბელო ბლოკი',
+      iconClass: 'fa-solid fa-tower-broadcast',
+      color: '#10b981',
+      colorHex: 0x10b981,
+      pipeRadius: 0.12,
+      bufferRadiusMeters: state.utilitiesData.bufferRadii.telecom_fiber || 2,
+      points: [
+        [maxLat + spanLat * 0.02, extMinLng],
+        [maxLat + spanLat * 0.02, extMaxLng]
+      ]
+    });
+
+    lines.push({
+      id: 'util_telecom_magti_e',
+      type: 'telecom_fiber',
+      category: 'telecom_fiber',
+      nameKa: 'მაგთიკომის ოპტიკური ინტერნეტ-მაგისტრალი (MagtiCom 96-Core)',
+      isUnderground: true,
+      depthMeters: -0.8,
+      operatorKa: 'შპს მაგთიკომი (MagtiCom FTTB Network)',
+      standardKa: 'საკომუნიკაციო კავშირგაბმულობის ნორმა (2.0მ ბუფერი)',
+      paramsKa: '96-Core Optical Cable · მიწისქვეშა საკაბელო ტრასა',
+      iconClass: 'fa-solid fa-tower-broadcast',
+      color: '#059669',
+      colorHex: 0x059669,
+      pipeRadius: 0.11,
+      bufferRadiusMeters: 2,
+      points: [
+        [extMinLat, maxLng + spanLng * 0.04],
+        [extMaxLat, maxLng + spanLng * 0.04]
+      ]
+    });
+
+    lines.push({
+      id: 'util_telecom_drop_bldg',
+      type: 'telecom_fiber',
+      category: 'telecom_fiber',
+      nameKa: 'ნაკვეთის ოპტიკური ინტერნეტის შეყვანა (FTTH)',
+      isUnderground: true,
+      depthMeters: -0.7,
+      operatorKa: 'სილქნეტი / მაგთიკომი',
+      standardKa: 'საკაბელო შეყვანა',
+      paramsKa: '24-Core Drop Cable',
+      iconClass: 'fa-solid fa-tower-broadcast',
+      color: '#10b981',
+      colorHex: 0x10b981,
+      pipeRadius: 0.08,
+      bufferRadiusMeters: 1.5,
+      points: [
+        [maxLat + spanLat * 0.02, cLng + spanLng * 0.05],
+        [maxLat - spanLat * 0.04, cLng + spanLng * 0.05]
+      ]
+    });
+
+    // 6. Point Features (Inspection Manholes, Hydrants, Transformer Substation, Telecom Vaults)
+    const points = [
       {
-        id: 'util_water_1',
-        type: 'water_trunk',
-        nameKa: 'GWP მაგისტრალური წყალსადენი (Ø600მმ)',
-        color: '#38bdf8',
-        colorHex: 0x38bdf8,
-        bufferRadiusMeters: state.utilitiesData.bufferRadii.water_trunk,
-        points: [
-          [minLat - spanLat * 0.05, minLng - spanLng * 0.08],
-          [minLat - spanLat * 0.05, maxLng + spanLng * 0.08]
-        ]
-      },
-      {
-        id: 'util_sewer_1',
-        type: 'sewer_collector',
-        nameKa: 'სანიაღვრე კოლექტორი (D=1200მმ)',
+        id: 'pt_manhole_1',
+        type: 'manhole',
+        category: 'manholes',
+        nameKa: 'სანიაღვრე საკონტროლო ჭა (№M-101, Ø1000მმ)',
+        isUnderground: true,
+        depthMeters: -3.2,
+        operatorKa: 'თბილისის მუნიციპალიტეტი',
+        standardKa: 'თუჯის სტანდარტული ლუკი (D400 დატვირთვა)',
+        paramsKa: 'რკინაბეტონის რგოლები Ø1000 მმ · თუჯის ხუფი',
+        iconClass: 'fa-solid fa-circle-dot',
         color: '#a855f7',
         colorHex: 0xa855f7,
-        bufferRadiusMeters: state.utilitiesData.bufferRadii.sewer_collector,
-        points: [
-          [minLat - spanLat * 0.06, maxLng + spanLng * 0.05],
-          [maxLat + spanLat * 0.06, maxLng + spanLng * 0.05]
-        ]
+        coord: [maxLat + spanLat * 0.18, cLng - spanLng * 0.25]
       },
       {
-        id: 'util_power_overhead_1',
-        type: 'power_overhead',
-        nameKa: 'მაღალი ძაბვის საჰაერო ხაზი (110kV)',
-        color: '#eab308',
-        colorHex: 0xeab308,
-        bufferRadiusMeters: state.utilitiesData.bufferRadii.power_overhead,
-        points: [
-          [maxLat + spanLat * 0.14, minLng - spanLng * 0.1],
-          [maxLat + spanLat * 0.14, maxLng + spanLng * 0.1]
-        ]
+        id: 'pt_manhole_2',
+        type: 'manhole',
+        category: 'manholes',
+        nameKa: 'სანიაღვრე საკონტროლო ჭა (№M-102, Ø1000მმ)',
+        isUnderground: true,
+        depthMeters: -3.2,
+        operatorKa: 'თბილისის მუნიციპალიტეტი',
+        standardKa: 'თუჯის სტანდარტული ლუკი (D400 დატვირთვა)',
+        paramsKa: 'რკინაბეტონის რგოლები Ø1000 მმ · თუჯის ხუფი',
+        iconClass: 'fa-solid fa-circle-dot',
+        color: '#a855f7',
+        colorHex: 0xa855f7,
+        coord: [maxLat + spanLat * 0.18, cLng + spanLng * 0.25]
       },
       {
-        id: 'util_power_underground_1',
-        type: 'power_underground',
-        nameKa: 'მიწისქვეშა მაღალი ძაბვის საკაბელო ტრასა (10kV)',
-        color: '#f97316',
-        colorHex: 0xf97316,
-        bufferRadiusMeters: state.utilitiesData.bufferRadii.power_underground,
-        points: [
-          [minLat - spanLat * 0.06, minLng - spanLng * 0.05],
-          [maxLat + spanLat * 0.06, minLng - spanLng * 0.05]
-        ]
+        id: 'pt_manhole_3',
+        type: 'manhole',
+        category: 'manholes',
+        nameKa: 'საკანალიზაციო დამაერთებელი ჭა (№S-201)',
+        isUnderground: true,
+        depthMeters: -2.5,
+        operatorKa: 'GWP',
+        standardKa: 'თუჯის ლუკი C250',
+        paramsKa: 'Ø1000 მმ საკანალიზაციო ჭა',
+        iconClass: 'fa-solid fa-circle-dot',
+        color: '#8b5cf6',
+        colorHex: 0x8b5cf6,
+        coord: [minLat - spanLat * 0.15, cLng - spanLng * 0.05]
       },
       {
-        id: 'util_gas_1',
-        type: 'gas_high_pressure',
-        nameKa: 'მაღალი წნევის გაზსადენი (P=1.2MPa)',
+        id: 'pt_hydrant_1',
+        type: 'hydrant',
+        category: 'manholes',
+        nameKa: 'GWP სახანძრო ჰიდრანტი (№H-14, Ø100მმ)',
+        isUnderground: false,
+        depthMeters: 0.85,
+        operatorKa: 'GWP / საგანგებო სიტუაციების მართვის სამსახური',
+        standardKa: 'საქართველოს სახანძრო უსაფრთხოების ტექნიკური რეგლამენტი',
+        paramsKa: 'მიწისზედა სახანძრო ჰიდრანტი · 2xØ77 + 1xØ150',
+        iconClass: 'fa-solid fa-faucet-drip',
         color: '#ef4444',
         colorHex: 0xef4444,
-        bufferRadiusMeters: state.utilitiesData.bufferRadii.gas_high_pressure,
-        points: [
-          [maxLat + spanLat * 0.05, minLng - spanLng * 0.06],
-          [maxLat + spanLat * 0.05, maxLng + spanLng * 0.06]
-        ]
+        coord: [maxLat + spanLat * 0.08, minLng - spanLng * 0.02]
+      },
+      {
+        id: 'pt_hydrant_2',
+        type: 'hydrant',
+        category: 'manholes',
+        nameKa: 'GWP სახანძრო ჰიდრანტი (№H-15, Ø100მმ)',
+        isUnderground: false,
+        depthMeters: 0.85,
+        operatorKa: 'GWP / საგანგებო სიტუაციების მართვის სამსახური',
+        standardKa: 'სახანძრო უსაფრთხოების რეგლამენტი',
+        paramsKa: 'მიწისზედა სახანძრო ჰიდრანტი · წნევა 8.0 bar',
+        iconClass: 'fa-solid fa-faucet-drip',
+        color: '#ef4444',
+        colorHex: 0xef4444,
+        coord: [minLat - spanLat * 0.08, maxLng + spanLng * 0.02]
+      },
+      {
+        id: 'pt_substation_1',
+        type: 'substation',
+        category: 'manholes',
+        nameKa: 'სატრანსფორმატორო ქვესადგური (TP 10/0.4kV №641)',
+        isUnderground: false,
+        depthMeters: 2.2,
+        operatorKa: 'სს თელასი',
+        standardKa: 'დადგენილება №366 (ელექტროდანადგარების დაცვის ზონა)',
+        paramsKa: 'კომპაქტური კიოსკური ქვესადგური 2x630 kVA',
+        iconClass: 'fa-solid fa-plug-circle-bolt',
+        color: '#f97316',
+        colorHex: 0xf97316,
+        coord: [maxLat - spanLat * 0.04, minLng - spanLng * 0.06]
+      },
+      {
+        id: 'pt_telecom_vault_1',
+        type: 'telecom_vault',
+        category: 'manholes',
+        nameKa: 'საკომუნიკაციო ოპტიკური საკაბელო ჭა (Silknet/Magti)',
+        isUnderground: true,
+        depthMeters: -0.8,
+        operatorKa: 'სილქნეტი / მაგთიკომი',
+        standardKa: 'საკომუნიკაციო ჭა ККС-2',
+        paramsKa: 'რკინაბეტონის საკაბელო ჭა ორმაგი თუჯის ხუფით',
+        iconClass: 'fa-solid fa-tower-broadcast',
+        color: '#10b981',
+        colorHex: 0x10b981,
+        coord: [maxLat + spanLat * 0.02, cLng + spanLng * 0.05]
       }
     ];
+
+    return { lines, points };
+  }
+
+  function setUtilitiesXRay(enabled) {
+    state.utilitiesData.showXRay = enabled;
+    const chk = document.getElementById('chkUtilXRay');
+    if (chk) chk.checked = enabled;
+
+    if (groundGroup) {
+      groundGroup.traverse(child => {
+        if (child.isMesh && child.material) {
+          child.material.transparent = true;
+          child.material.opacity = enabled ? 0.35 : 1.0;
+          child.material.depthWrite = !enabled;
+          child.material.needsUpdate = true;
+        }
+      });
+    }
+    if (terrainGroup) {
+      terrainGroup.traverse(child => {
+        if (child.isMesh && child.material) {
+          child.material.transparent = true;
+          child.material.opacity = enabled ? 0.35 : 1.0;
+          child.material.depthWrite = !enabled;
+          child.material.needsUpdate = true;
+        }
+      });
+    }
+  }
+
+  function selectUtilityForInspection(u) {
+    if (!u) return;
+    state.utilitiesData.selectedUtility = u;
+
+    const elTitle = document.getElementById('inspectTitle');
+    const elLoc = document.getElementById('inspectLocation');
+    const elParams = document.getElementById('inspectParams');
+    const elOper = document.getElementById('inspectOperator');
+    const elStd = document.getElementById('inspectStandard');
+    const elIcon = document.getElementById('inspectIcon');
+
+    if (elTitle) elTitle.textContent = u.nameKa;
+    if (elLoc) {
+      if (u.depthMeters > 0 && !u.isUnderground) {
+        elLoc.innerHTML = `<span style="color: #eab308;"><i class="fa-solid fa-arrow-up"></i> მიწისზედა (სიმაღლე: +${u.depthMeters} მ)</span>`;
+      } else {
+        elLoc.innerHTML = `<span style="color: #38bdf8;"><i class="fa-solid fa-arrow-down"></i> მიწისქვეშა (სიღრმე: ${u.depthMeters} მ)</span>`;
+      }
+    }
+    if (elParams) elParams.textContent = u.paramsKa || (u.diameterMm ? `Ø${u.diameterMm} მმ` : (u.voltageKv ? `${u.voltageKv} kV` : 'სტანდარტული პარამეტრები'));
+    if (elOper) elOper.textContent = u.operatorKa || 'მუნიციპალური ოპერატორი';
+    if (elStd) elStd.textContent = `${u.standardKa || 'დადგენილება №365'}${u.bufferRadiusMeters ? ` · ${u.bufferRadiusMeters} მ ბუფერი` : ''}`;
+
+    if (elIcon) {
+      elIcon.className = u.iconClass || 'fa-solid fa-network-wired';
+      elIcon.style.color = u.color || '#00f0ff';
+    }
+
+    showLiveToast(`არჩეულია: ${u.nameKa}`, 'info');
   }
 
   function renderUtilities3D() {
     if (!utility3DGroup || !scene) return;
     while (utility3DGroup.children.length > 0) {
-      utility3DGroup.remove(utility3DGroup.children[0]);
+      const ch = utility3DGroup.children[0];
+      utility3DGroup.remove(ch);
+      if (ch.geometry) ch.geometry.dispose();
     }
 
     if (!state.activeParcel) return;
-    if (!state.utilitiesData.lines || state.utilitiesData.lines.length === 0) {
-      state.utilitiesData.lines = generateParcelUtilities(state.activeParcel);
-    }
+    const utilData = generateParcelUtilities(state.activeParcel);
+    const lines = utilData.lines || [];
+    const points = utilData.points || [];
+    state.utilitiesData.lines = lines;
+    state.utilitiesData.points = points;
 
     const parcelCenter = {
       lat: state.activeParcel.coordinates.reduce((s, c) => s + c[0], 0) / state.activeParcel.coordinates.length,
       lng: state.activeParcel.coordinates.reduce((s, c) => s + c[1], 0) / state.activeParcel.coordinates.length
     };
 
-    state.utilitiesData.lines.forEach(line => {
-      if (state.utilitiesData.activeTypes[line.type] === false) return;
+    // Render linear network pipes and cables
+    lines.forEach(line => {
+      const cat = line.category || line.type;
+      if (state.utilitiesData.activeTypes[cat] === false) return;
+
       const pts3D = line.points.map(pt => {
         const local = gpsToLocalMeters([pt], parcelCenter)[0];
-        return new THREE.Vector3(local.x, 0.25, -local.y);
+        const yCoord = (line.depthMeters !== undefined) ? line.depthMeters : -1.2;
+        return new THREE.Vector3(local.x, yCoord, -local.y);
       });
       if (pts3D.length < 2) return;
 
       const curve = new THREE.CatmullRomCurve3(pts3D);
-      const tubeGeom = new THREE.TubeGeometry(curve, 32, 0.6, 8, false);
+      const pipeR = line.pipeRadius || 0.22;
+      const tubeGeom = new THREE.TubeGeometry(curve, 32, pipeR, 10, false);
       const tubeMat = new THREE.MeshStandardMaterial({
         color: line.colorHex,
-        roughness: 0.3,
-        metalness: 0.8,
+        roughness: 0.25,
+        metalness: 0.85,
         emissive: line.colorHex,
-        emissiveIntensity: 0.35
+        emissiveIntensity: 0.45
       });
       const tubeMesh = new THREE.Mesh(tubeGeom, tubeMat);
+      tubeMesh.userData = { isUtility: true, utility: line };
       utility3DGroup.add(tubeMesh);
 
+      // Distinct Aboveground 110kV Overhead High-Voltage Pylons & Wires
       if (line.type === 'power_overhead') {
-        pts3D.forEach(p => {
-          const pylonGeom = new THREE.CylinderGeometry(0.3, 1.2, 18, 4);
-          const pylonMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8, roughness: 0.4 });
-          const pylon = new THREE.Mesh(pylonGeom, pylonMat);
-          pylon.position.set(p.x, 9, p.z);
-          utility3DGroup.add(pylon);
+        pts3D.forEach((p, pIdx) => {
+          const pylonGroup = new THREE.Group();
+
+          // Tapered lattice mast
+          const mastGeom = new THREE.CylinderGeometry(0.35, 1.4, 15, 4);
+          const mastMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.85, roughness: 0.3 });
+          const mastMesh = new THREE.Mesh(mastGeom, mastMat);
+          mastMesh.position.y = 7.5;
+          pylonGroup.add(mastMesh);
+
+          // Lattice wire outline
+          const mastEdges = new THREE.EdgesGeometry(mastGeom);
+          const mastLines = new THREE.LineSegments(mastEdges, new THREE.LineBasicMaterial({ color: 0xffffff }));
+          mastLines.position.y = 7.5;
+          pylonGroup.add(mastLines);
+
+          // Horizontal crossarm
+          const armGeom = new THREE.BoxGeometry(7.5, 0.4, 0.6);
+          const armMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.8 });
+          const armMesh = new THREE.Mesh(armGeom, armMat);
+          armMesh.position.y = 14.5;
+          pylonGroup.add(armMesh);
+
+          // Insulators hanging down
+          [-3.2, 0, 3.2].forEach(offX => {
+            const insGeom = new THREE.CylinderGeometry(0.12, 0.12, 1.2, 6);
+            const insMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.2 });
+            const insMesh = new THREE.Mesh(insGeom, insMat);
+            insMesh.position.set(offX, 13.7, 0);
+            pylonGroup.add(insMesh);
+          });
+
+          pylonGroup.position.set(p.x, 0, p.z);
+          pylonGroup.userData = { isUtility: true, utility: line };
+          utility3DGroup.add(pylonGroup);
         });
       }
 
-      const radiusM = state.utilitiesData.bufferRadii[line.type] || line.bufferRadiusMeters || 4;
+      // Legal protective buffer corridor ribbon / boundary
+      const radiusM = state.utilitiesData.bufferRadii[cat] || line.bufferRadiusMeters || 3;
       line.bufferRadiusMeters = radiusM;
 
       if (typeof turf !== 'undefined' && turf.lineString && turf.buffer) {
@@ -7431,30 +7976,132 @@ document.addEventListener('DOMContentLoaded', () => {
               const shape = new THREE.Shape(polyPts);
               const bufferGeom = new THREE.ShapeGeometry(shape);
               const bufferMat = new THREE.MeshBasicMaterial({
-                color: 0xef4444,
+                color: line.colorHex || 0xef4444,
                 transparent: true,
-                opacity: 0.32,
+                opacity: 0.22,
                 side: THREE.DoubleSide,
                 depthWrite: false
               });
               const bufferMesh = new THREE.Mesh(bufferGeom, bufferMat);
               bufferMesh.rotation.x = -Math.PI / 2;
-              bufferMesh.position.y = 0.08;
+              bufferMesh.position.y = 0.04;
+              bufferMesh.userData = { isUtility: true, utility: line };
               utility3DGroup.add(bufferMesh);
 
-              const edgePts = polyPts.map(p => new THREE.Vector3(p.x, 0.12, p.y));
+              const edgePts = polyPts.map(p => new THREE.Vector3(p.x, 0.06, p.y));
               if (edgePts.length > 0) edgePts.push(edgePts[0].clone());
               const edgeGeom = new THREE.BufferGeometry().setFromPoints(edgePts);
-              const edgeMat = new THREE.LineBasicMaterial({ color: 0xff0055, linewidth: 2 });
+              const edgeMat = new THREE.LineBasicMaterial({ color: line.colorHex || 0xff0055, linewidth: 1.5, transparent: true, opacity: 0.7 });
               const edgeLine = new THREE.Line(edgeGeom, edgeMat);
               utility3DGroup.add(edgeLine);
             });
           }
         } catch (err) {
-          console.warn('Turf buffer error:', err);
+          // silent catch
         }
       }
     });
+
+    // Render Point Infrastructure (Manholes, Fire Hydrants, Transformer, Telecom Vaults)
+    if (state.utilitiesData.activeTypes.manholes !== false) {
+      points.forEach(pt => {
+        const local = gpsToLocalMeters([pt.coord], parcelCenter)[0];
+        const ptGroup = new THREE.Group();
+
+        if (pt.type === 'manhole') {
+          // Vertical inspection shaft down to pipe
+          const shaftH = Math.abs(pt.depthMeters || 3.0);
+          const shaftGeom = new THREE.CylinderGeometry(0.55, 0.55, shaftH, 16);
+          const shaftMat = new THREE.MeshStandardMaterial({
+            color: 0x475569,
+            roughness: 0.8,
+            metalness: 0.2,
+            transparent: true,
+            opacity: 0.75
+          });
+          const shaftMesh = new THREE.Mesh(shaftGeom, shaftMat);
+          shaftMesh.position.y = -shaftH / 2 + 0.05;
+          ptGroup.add(shaftMesh);
+
+          // Cast-iron lid on ground surface
+          const lidGeom = new THREE.CylinderGeometry(0.58, 0.58, 0.06, 16);
+          const lidMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.9, roughness: 0.35 });
+          const lidMesh = new THREE.Mesh(lidGeom, lidMat);
+          lidMesh.position.y = 0.07;
+          ptGroup.add(lidMesh);
+
+          // Rim ring
+          const rimGeom = new THREE.RingGeometry(0.48, 0.58, 16);
+          const rimMat = new THREE.MeshBasicMaterial({ color: 0xa855f7, side: THREE.DoubleSide });
+          const rimMesh = new THREE.Mesh(rimGeom, rimMat);
+          rimMesh.rotation.x = -Math.PI / 2;
+          rimMesh.position.y = 0.1;
+          ptGroup.add(rimMesh);
+        } else if (pt.type === 'hydrant') {
+          // Municipal fire hydrant
+          const bodyGeom = new THREE.CylinderGeometry(0.18, 0.22, 0.75, 12);
+          const bodyMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3, metalness: 0.6 });
+          const bodyMesh = new THREE.Mesh(bodyGeom, bodyMat);
+          bodyMesh.position.y = 0.42;
+          ptGroup.add(bodyMesh);
+
+          // Top nut
+          const capGeom = new THREE.CylinderGeometry(0.12, 0.18, 0.2, 8);
+          const capMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.8 });
+          const capMesh = new THREE.Mesh(capGeom, capMat);
+          capMesh.position.y = 0.85;
+          ptGroup.add(capMesh);
+
+          // Side nozzles
+          const nozGeom = new THREE.CylinderGeometry(0.08, 0.08, 0.55, 8);
+          const nozMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.9 });
+          const nozMesh = new THREE.Mesh(nozGeom, nozMat);
+          nozMesh.rotation.z = Math.PI / 2;
+          nozMesh.position.y = 0.55;
+          ptGroup.add(nozMesh);
+        } else if (pt.type === 'substation') {
+          // Transformer Kiosk TP 10/0.4kV
+          const padGeom = new THREE.BoxGeometry(2.6, 0.18, 2.6);
+          const padMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.9 });
+          const padMesh = new THREE.Mesh(padGeom, padMat);
+          padMesh.position.y = 0.09;
+          ptGroup.add(padMesh);
+
+          const cabinGeom = new THREE.BoxGeometry(2.2, 2.1, 2.2);
+          const cabinMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4, metalness: 0.7 });
+          const cabinMesh = new THREE.Mesh(cabinGeom, cabinMat);
+          cabinMesh.position.y = 1.2;
+          ptGroup.add(cabinMesh);
+
+          const roofGeom = new THREE.BoxGeometry(2.4, 0.15, 2.4);
+          const roofMat = new THREE.MeshStandardMaterial({ color: 0xf97316, metalness: 0.5 });
+          const roofMesh = new THREE.Mesh(roofGeom, roofMat);
+          roofMesh.position.y = 2.3;
+          ptGroup.add(roofMesh);
+        } else if (pt.type === 'telecom_vault') {
+          // Telecom inspection chamber
+          const boxGeom = new THREE.BoxGeometry(1.2, 0.08, 0.9);
+          const boxMat = new THREE.MeshStandardMaterial({ color: 0x10b981, roughness: 0.4, metalness: 0.6 });
+          const boxMesh = new THREE.Mesh(boxGeom, boxMat);
+          boxMesh.position.y = 0.06;
+          ptGroup.add(boxMesh);
+        }
+
+        ptGroup.position.set(local.x, 0, -local.y);
+        ptGroup.userData = { isUtility: true, utility: pt };
+        utility3DGroup.add(ptGroup);
+      });
+    }
+
+    // Apply X-Ray ground transparency if enabled
+    setUtilitiesXRay(state.utilitiesData.showXRay !== false);
+
+    // If a utility is already selected, re-display it
+    if (state.utilitiesData.selectedUtility) {
+      selectUtilityForInspection(state.utilitiesData.selectedUtility);
+    } else if (lines.length > 0) {
+      selectUtilityForInspection(lines[0]);
+    }
   }
 
   function checkUtilityCollisions() {
@@ -7488,9 +8135,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let clashingUtilityName = '';
 
     state.utilitiesData.lines.forEach(line => {
-      // ONLY check active layers
-      if (state.utilitiesData.activeTypes[line.type] === false) return;
-      const radiusM = state.utilitiesData.bufferRadii[line.type] || 4;
+      const cat = line.category || line.type;
+      if (state.utilitiesData.activeTypes[cat] === false) return;
+      const radiusM = state.utilitiesData.bufferRadii[cat] || line.bufferRadiusMeters || 4;
       const turfCoords = line.points.map(p => [p[1], p[0]]);
       try {
         const ls = turf.lineString(turfCoords);
@@ -7597,25 +8244,24 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function initUtilitiesModuleControls() {
-    const typeKeys = ['Water', 'Sewer', 'PowerOverhead', 'PowerUnderground', 'Gas'];
-    const mapType = {
-      Water: 'water_trunk',
-      Sewer: 'sewer_collector',
-      PowerOverhead: 'power_overhead',
-      PowerUnderground: 'power_underground',
-      Gas: 'gas_high_pressure'
-    };
+    const layerDefs = [
+      { key: 'Water', cat: 'water_trunk' },
+      { key: 'Sewer', cat: 'sewer_collector' },
+      { key: 'PowerOverhead', cat: 'power_overhead' },
+      { key: 'PowerUnderground', cat: 'power_underground' },
+      { key: 'Gas', cat: 'gas_high_pressure' },
+      { key: 'Telecom', cat: 'telecom_fiber' }
+    ];
 
-    typeKeys.forEach(k => {
-      const chk = document.getElementById(`chkUtil${k}`);
-      const slider = document.getElementById(`sliderUtil${k}`);
-      const badge = document.getElementById(`badgeUtil${k}`);
-      const val = document.getElementById(`valUtil${k}`);
-      const typeKey = mapType[k];
+    layerDefs.forEach(item => {
+      const chk = document.getElementById(`chkUtil${item.key}`);
+      const slider = document.getElementById(`sliderUtil${item.key}`);
+      const badge = document.getElementById(`badgeUtil${item.key}`);
+      const val = document.getElementById(`valUtil${item.key}`);
 
       if (chk) {
         chk.addEventListener('change', () => {
-          state.utilitiesData.activeTypes[typeKey] = chk.checked;
+          state.utilitiesData.activeTypes[item.cat] = chk.checked;
           renderUtilities3D();
           checkUtilityCollisions();
         });
@@ -7624,7 +8270,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (slider) {
         slider.addEventListener('input', () => {
           const r = parseFloat(slider.value);
-          state.utilitiesData.bufferRadii[typeKey] = r;
+          state.utilitiesData.bufferRadii[item.cat] = r;
           if (badge) badge.textContent = `${r} მ`;
           if (val) val.textContent = `${r} მ`;
           renderUtilities3D();
@@ -7632,6 +8278,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
     });
+
+    const chkManholes = document.getElementById('chkUtilManholes');
+    if (chkManholes) {
+      chkManholes.addEventListener('change', () => {
+        state.utilitiesData.activeTypes.manholes = chkManholes.checked;
+        renderUtilities3D();
+      });
+    }
+
+    const chkXRay = document.getElementById('chkUtilXRay');
+    if (chkXRay) {
+      chkXRay.addEventListener('change', () => {
+        setUtilitiesXRay(chkXRay.checked);
+      });
+    }
 
     const btnNudge = document.getElementById('btnAutoNudgeFootprint');
     if (btnNudge) btnNudge.addEventListener('click', autoNudgeFootprintAwayFromUtilities);
@@ -7649,6 +8310,30 @@ document.addEventListener('DOMContentLoaded', () => {
         e.stopPropagation();
         const b = document.getElementById('utilityClashAlertBanner');
         if (b) b.style.display = 'none';
+      });
+    }
+
+    // Interactive 3D Raycasting Inspection for Utilities
+    if (renderer && renderer.domElement) {
+      renderer.domElement.addEventListener('click', (e) => {
+        if (state.currentMode !== 'utilities' || !utility3DGroup) return;
+        const rect = renderer.domElement.getBoundingClientRect();
+        const mx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        const my = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(new THREE.Vector2(mx, my), camera);
+
+        const intersects = raycaster.intersectObjects(utility3DGroup.children, true);
+        for (let i = 0; i < intersects.length; i++) {
+          let obj = intersects[i].object;
+          while (obj && (!obj.userData || !obj.userData.utility) && obj.parent && obj.parent !== utility3DGroup) {
+            obj = obj.parent;
+          }
+          if (obj && obj.userData && obj.userData.utility) {
+            selectUtilityForInspection(obj.userData.utility);
+            break;
+          }
+        }
       });
     }
   }

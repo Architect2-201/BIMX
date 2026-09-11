@@ -5573,6 +5573,65 @@ img {
   text-align: right;
 }
 
+/* 3D Utility Inspector Card */
+.utility-inspector-card {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4), inset 0 0 12px rgba(0, 240, 255, 0.06);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.inspector-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 6px;
+}
+
+.inspector-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.inspector-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.inspector-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+}
+
+.ins-lbl {
+  color: #94a3b8;
+}
+
+.ins-val {
+  color: #38bdf8;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.72rem;
+  text-align: right;
+}
+
+.inspector-hint {
+  font-size: 0.68rem;
+  color: #64748b;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+  padding-top: 6px;
+  line-height: 1.3;
+}
+
 /* Unit Mix Optimizer KPIs */
 .unitmix-kpi-grid {
   display: grid;
