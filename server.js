@@ -351,34 +351,42 @@ const requestHandler = (req, res) => {
 
     const lat = parseFloat(parsedUrl.searchParams.get('lat') || '41.7151');
     const lng = parseFloat(parsedUrl.searchParams.get('lng') || '44.8271');
-    const radius = Math.min(500, Math.max(100, parseInt(parsedUrl.searchParams.get('radius') || '350', 10)));
+    const radius = Math.min(1200, Math.max(100, parseInt(parsedUrl.searchParams.get('radius') || '350', 10)));
 
-    const overpassQuery = `[out:json][timeout:20];(way["building"](around:${radius},${lat},${lng});relation["building"](around:${radius},${lat},${lng}););out body;>;out skel qt;`;
+    const overpassQuery = `[out:json][timeout:25];(way["building"](around:${radius},${lat},${lng});relation["building"](around:${radius},${lat},${lng}););out body;>;out skel qt;`;
 
-    const postData = 'data=' + encodeURIComponent(overpassQuery);
-    const postOptions = {
-      hostname: 'overpass-api.de',
-      port: 443,
-      path: '/api/interpreter',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Content-Length': Buffer.byteLength(postData),
-        'User-Agent': 'BIMXStudio-PropTech-GIS/2.0'
-      },
-      timeout: 10000
-    };
+    const mirrors = [
+      'https://overpass-api.de/api/interpreter',
+      'https://lz4.overpass-api.de/api/interpreter'
+    ];
 
-    const overpassReq = https.request(postOptions, (overpassRes) => {
-      let rawData = '';
-      overpassRes.on('data', chunk => { rawData += chunk; });
-      overpassRes.on('end', () => {
+    (async () => {
+      let ways = [];
+      let nodeMap = {};
+      let fetchSuccess = false;
+
+      for (const mirror of mirrors) {
         try {
-          if (overpassRes.statusCode === 200 && rawData) {
-            const parsed = JSON.parse(rawData);
-            const nodeMap = {};
-            const ways = [];
+          const mirrorUrl = `${mirror}?data=${encodeURIComponent(overpassQuery)}`;
+          const rawData = await new Promise((resolve, reject) => {
+            const req = https.get(mirrorUrl, {
+              headers: {
+                'User-Agent': 'curl/8.4.0',
+                'Accept': 'application/json'
+              },
+              timeout: 14000
+            }, res => {
+              if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
+              let body = '';
+              res.on('data', chunk => body += chunk);
+              res.on('end', () => resolve(body));
+            });
+            req.on('error', reject);
+            req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
+          });
 
+          if (rawData) {
+            const parsed = JSON.parse(rawData);
             (parsed.elements || []).forEach(elem => {
               if (elem.type === 'node') {
                 nodeMap[elem.id] = [elem.lat, elem.lon];
@@ -386,85 +394,92 @@ const requestHandler = (req, res) => {
                 ways.push(elem);
               }
             });
-
-            const buildings = [];
-            ways.forEach(way => {
-              if (!way.nodes || way.nodes.length < 3) return;
-              const coords = [];
-              for (const nid of way.nodes) {
-                if (nodeMap[nid]) coords.push(nodeMap[nid]);
-              }
-              if (coords.length >= 3) {
-                let height = 9.0;
-                let levels = 3;
-                if (way.tags.height) {
-                  const h = parseFloat(way.tags.height);
-                  if (!isNaN(h) && h > 0) {
-                    height = h;
-                    levels = Math.round(h / 3.2);
-                  }
-                } else if (way.tags['building:levels']) {
-                  const lv = parseFloat(way.tags['building:levels']);
-                  if (!isNaN(lv) && lv > 0) {
-                    levels = lv;
-                    height = lv * 3.2;
-                  }
-                }
-
-                buildings.push({
-                  id: `osm-${way.id}`,
-                  name: way.tags.name || way.tags['name:ka'] || way.tags['name:en'] || null,
-                  height: parseFloat(height.toFixed(1)),
-                  levels: levels,
-                  coordinates: coords,
-                  isProcedural: false
-                });
-              }
-            });
-
-            if (buildings.length > 0) {
-              if (!res.headersSent) {
-                res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-                res.end(JSON.stringify({ status: 'OK', source: 'overpass', count: buildings.length, buildings: buildings }));
-              }
-              return;
+            if (ways.length > 0) {
+              fetchSuccess = true;
+              break;
             }
           }
-          // If empty result or non-200 from Overpass, fallback gracefully
-          if (!res.headersSent) {
-            const fallback = generateProceduralUrbanFabric(lat, lng);
-            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-            res.end(JSON.stringify({ status: 'OK', source: 'procedural_fallback', count: fallback.length, buildings: fallback }));
-          }
-        } catch (parseErr) {
-          if (!res.headersSent) {
-            const fallback = generateProceduralUrbanFabric(lat, lng);
-            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-            res.end(JSON.stringify({ status: 'OK', source: 'procedural_fallback', count: fallback.length, buildings: fallback }));
-          }
+        } catch (mirrorErr) {
+          console.warn(`[Server] Overpass mirror ${mirror} warning:`, mirrorErr.message);
         }
-      });
-    });
+      }
 
-    overpassReq.on('error', () => {
+      if (fetchSuccess && ways.length > 0) {
+        const buildings = [];
+        ways.forEach(way => {
+          if (!way.nodes || way.nodes.length < 3) return;
+          const coords = [];
+          for (const nid of way.nodes) {
+            if (nodeMap[nid]) coords.push(nodeMap[nid]);
+          }
+          if (coords.length >= 3) {
+            const bType = (way.tags.building || 'yes').toLowerCase();
+            let useType = 'residential';
+            let levels = 3;
+            let height = 9.6;
+
+            if (bType === 'industrial' || way.tags.man_made === 'works' || way.tags.landuse === 'industrial') {
+              useType = 'industrial';
+              levels = way.tags['building:levels'] ? parseInt(way.tags['building:levels'], 10) : 1;
+              height = way.tags.height ? parseFloat(way.tags.height) : (levels * 6.5);
+            } else if (bType === 'garages' || bType === 'garage') {
+              useType = 'garage';
+              levels = 1;
+              height = 3.2;
+            } else if (bType === 'church' || way.tags.amenity === 'place_of_worship') {
+              useType = 'worship';
+              levels = 1;
+              height = 9.5;
+            } else if (bType === 'apartments') {
+              useType = 'residential';
+              levels = way.tags['building:levels'] ? parseInt(way.tags['building:levels'], 10) : 5;
+              height = way.tags.height ? parseFloat(way.tags.height) : (levels * 3.2);
+            } else if (bType === 'commercial' || bType === 'retail' || bType === 'supermarket') {
+              useType = 'commercial';
+              levels = way.tags['building:levels'] ? parseInt(way.tags['building:levels'], 10) : 2;
+              height = way.tags.height ? parseFloat(way.tags.height) : (levels * 4.0);
+            } else if (bType === 'office') {
+              useType = 'office';
+              levels = way.tags['building:levels'] ? parseInt(way.tags['building:levels'], 10) : 4;
+              height = way.tags.height ? parseFloat(way.tags.height) : (levels * 3.6);
+            } else if (way.tags['building:levels']) {
+              levels = Math.max(1, parseInt(way.tags['building:levels'], 10) || 1);
+              height = way.tags.height ? parseFloat(way.tags.height) : (levels * 3.2);
+            } else if (way.tags.height) {
+              height = parseFloat(way.tags.height);
+              levels = Math.max(1, Math.round(height / 3.2));
+            }
+
+            buildings.push({
+              id: `osm-${way.id}`,
+              name: way.tags.name || way.tags['name:ka'] || way.tags['name:en'] || null,
+              housenumber: way.tags['addr:housenumber'] || null,
+              street: way.tags['addr:street'] || way.tags['addr:street:ka'] || null,
+              buildingType: bType,
+              useType: useType,
+              roofShape: way.tags['roof:shape'] || 'flat',
+              height: parseFloat(height.toFixed(1)),
+              levels: levels,
+              coordinates: coords,
+              isProcedural: false
+            });
+          }
+        });
+
+        if (buildings.length > 0 && !res.headersSent) {
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ status: 'OK', source: 'overpass', count: buildings.length, buildings: buildings }));
+          return;
+        }
+      }
+
+      // If empty result or all mirrors failed, fallback gracefully (flagged as procedural)
       if (!res.headersSent) {
         const fallback = generateProceduralUrbanFabric(lat, lng);
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ status: 'OK', source: 'procedural_fallback', count: fallback.length, buildings: fallback }));
       }
-    });
-
-    overpassReq.on('timeout', () => {
-      overpassReq.destroy();
-      if (!res.headersSent) {
-        const fallback = generateProceduralUrbanFabric(lat, lng);
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ status: 'OK', source: 'procedural_fallback', count: fallback.length, buildings: fallback }));
-      }
-    });
-
-    overpassReq.write(postData);
-    overpassReq.end();
+    })();
     return;
   }
 

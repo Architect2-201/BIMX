@@ -3065,7 +3065,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!urbanGroup || !state.activeParcel) return;
 
     try {
-      const res = await fetch(`/api/overpass?lat=${centerLat}&lng=${centerLng}&radius=350`);
+      // Dynamically expand search radius to encompass entire parcel + surrounding street fabric
+      let searchRadius = 350;
+      if (state.activeParcel && state.activeParcel.coordinates && state.activeParcel.coordinates.length > 2) {
+        const lats = state.activeParcel.coordinates.map(c => c[0]);
+        const lngs = state.activeParcel.coordinates.map(c => c[1]);
+        const dLatM = (Math.max(...lats) - Math.min(...lats)) * 111132;
+        const dLngM = (Math.max(...lngs) - Math.min(...lngs)) * 111132 * Math.cos(centerLat * Math.PI / 180);
+        const diagM = Math.hypot(dLatM, dLngM);
+        searchRadius = Math.min(1200, Math.max(350, Math.ceil(diagM / 2 + 180)));
+      }
+
+      const res = await fetch(`/api/overpass?lat=${centerLat}&lng=${centerLng}&radius=${searchRadius}`);
       if (!res.ok) return;
       const data = await res.json();
       if (!data || !data.buildings || !data.buildings.length) return;
@@ -3074,16 +3085,35 @@ document.addEventListener('DOMContentLoaded', () => {
       state.urbanFabricBuildings = data.buildings;
       state.urbanFabricCenter = centerGps;
 
-      // Classify buildings: inside active parcel vs surrounding urban fabric
+      // Classify buildings: strictly inside active parcel vs surrounding urban fabric
       const inParcel = [];
       const outside = [];
 
       data.buildings.forEach(bldg => {
         if (!bldg.coordinates || bldg.coordinates.length < 3) return;
-        const cLat = bldg.coordinates.reduce((s, c) => s + c[0], 0) / bldg.coordinates.length;
-        const cLng = bldg.coordinates.reduce((s, c) => s + c[1], 0) / bldg.coordinates.length;
+
+        // Never inject procedural fallback boxes onto the parcel
+        if (bldg.isProcedural) {
+          outside.push(bldg);
+          return;
+        }
+
+        // Clean coordinates: remove duplicate closing point if present
+        let cleanCoords = bldg.coordinates;
+        if (cleanCoords.length > 3) {
+          const first = cleanCoords[0];
+          const last = cleanCoords[cleanCoords.length - 1];
+          if (Math.abs(first[0] - last[0]) < 1e-7 && Math.abs(first[1] - last[1]) < 1e-7) {
+            cleanCoords = cleanCoords.slice(0, -1);
+          }
+        }
+        bldg.coordinates = cleanCoords;
+
+        const cLat = cleanCoords.reduce((s, c) => s + c[0], 0) / cleanCoords.length;
+        const cLng = cleanCoords.reduce((s, c) => s + c[1], 0) / cleanCoords.length;
         const isCentroidIn = isPointInPolygonGPS([cLat, cLng], state.activeParcel.coordinates);
-        const isAnyVertexIn = bldg.coordinates.some(pt => isPointInPolygonGPS(pt, state.activeParcel.coordinates));
+        const isAnyVertexIn = cleanCoords.some(pt => isPointInPolygonGPS(pt, state.activeParcel.coordinates));
+
         if (isCentroidIn || isAnyVertexIn) {
           inParcel.push(bldg);
         } else {
@@ -3093,25 +3123,63 @@ document.addEventListener('DOMContentLoaded', () => {
 
       state.existingParcelBuildings = inParcel;
 
-      // If parcel has existing buildings in OSM and user hasn't drawn custom building:
+      // Realistic architectural styling palettes for real existing structures
+      const EXISTING_PALETTES = {
+        industrial: { color: '#475569', material: 'composite', nameKa: 'საწარმოო / სასაწყობე ნაგებობა', nameEn: 'Industrial / Workshop' },
+        garage:     { color: '#64748b', material: 'concrete',  nameKa: 'ავტოფარეხი / დამხმარე ნაგებობა', nameEn: 'Garage / Storage' },
+        worship:    { color: '#d4b996', material: 'travertine',nameKa: 'საკულტო ნაგებობა / ტაძარი', nameEn: 'Place of Worship' },
+        residential:{ color: '#94a3b8', material: 'travertine',nameKa: 'საცხოვრებელი კორპუსი', nameEn: 'Residential Building' },
+        commercial: { color: '#0284c7', material: 'glass',     nameKa: 'კომერციული / სავაჭრო ობიექტი', nameEn: 'Commercial Building' },
+        office:     { color: '#334155', material: 'composite', nameKa: 'საოფისე / ბიზნეს ცენტრი', nameEn: 'Office Building' },
+        default:    { color: '#64748b', material: 'concrete',  nameKa: 'არსებული შენობა-ნაგებობა', nameEn: 'Existing Structure' }
+      };
+
+      // If parcel has real existing buildings in OSM and user hasn't drawn custom building:
       const userHasDrawn = (state.buildings || []).some(b => b.footprintCoords && !b.isExisting);
       if (inParcel.length > 0 && !userHasDrawn) {
         state.buildings = inParcel.map((b, i) => {
-          const area = Math.round(computePolygonArea(b.coordinates) || 200);
+          const area = Math.round(computePolygonArea(b.coordinates) || 150);
           const floors = b.levels || Math.max(1, Math.round((b.height || 9) / 3.2));
-          const bldgData = createBuildingData(i + 1, BUILDING_COLORS[i % BUILDING_COLORS.length], area, floors, 1);
+          const p = EXISTING_PALETTES[b.useType] || EXISTING_PALETTES.default;
+
+          const bldgData = createBuildingData(i + 1, p.color, area, floors, 0);
           bldgData.footprintCoords = b.coordinates;
           bldgData.height = b.height || (floors * 3.2);
+          bldgData.floorHeight = parseFloat((bldgData.height / floors).toFixed(2));
           bldgData.isExisting = true;
           bldgData.isProcedural = false;
-          bldgData.name = b.name || (state.currentLang === 'en' ? `Existing Building #${i + 1}` : `არსებული შენობა #${i + 1}`);
-          bldgData.nameEn = b.name || `Existing Building #${i + 1}`;
+          bldgData.buildingType = b.buildingType || b.useType || 'existing';
+          bldgData.facadeMaterial = p.material;
+          bldgData.roofType = (b.roofShape === 'gabled' || b.roofShape === 'pitched') ? 'gable' : 'flat';
+
+          let labelKa = b.name;
+          if (!labelKa && b.housenumber) {
+            labelKa = `${b.street ? b.street + ' ' : ''}№${b.housenumber}`;
+          }
+          if (!labelKa) {
+            labelKa = `${p.nameKa} #${i + 1} (${area.toLocaleString()} მ²)`;
+          }
+
+          let labelEn = b.name || (b.housenumber ? `${b.street || ''} #${b.housenumber}` : `${p.nameEn} #${i + 1} (${area.toLocaleString()} m²)`);
+          bldgData.name = labelKa;
+          bldgData.nameEn = labelEn;
           return bldgData;
         });
         state.selectedBuildingId = state.buildings[0].id;
         state.customFootprint = state.buildings[0].footprintCoords;
 
         syncCurrentBuildingToActiveConcept();
+        renderBuildingTabsUI();
+        renderFloorMatrixUI();
+        renderAllBuildingsOnMap();
+        renderAllBuildings3D();
+        updateComplianceUI();
+      } else if (inParcel.length === 0 && !userHasDrawn) {
+        // Strict rule: If parcel has NO real existing buildings, keep parcel empty & clean!
+        state.buildings = [];
+        state.selectedBuildingId = null;
+        state.customFootprint = null;
+
         renderBuildingTabsUI();
         renderFloorMatrixUI();
         renderAllBuildingsOnMap();
@@ -4778,7 +4846,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 1. If building has custom drawn GPS footprint or real existing OSM footprint:
     if (bldg.footprintCoords && bldg.footprintCoords.length >= 3) {
-      const customLocal = gpsToLocalMeters(bldg.footprintCoords, parcelCenter);
+      let coords = bldg.footprintCoords;
+      if (coords.length > 3) {
+        const first = coords[0];
+        const last = coords[coords.length - 1];
+        if (Math.abs(first[0] - last[0]) < 1e-7 && Math.abs(first[1] - last[1]) < 1e-7) {
+          coords = coords.slice(0, -1);
+        }
+      }
+      const customLocal = gpsToLocalMeters(coords, parcelCenter);
       const xs = customLocal.map(p => p.x);
       const ys = customLocal.map(p => p.y);
       const minX = Math.min(...xs);
@@ -4881,10 +4957,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const isSelected = bldg.id === state.selectedBuildingId;
       const poly = L.polygon(latlngs, {
         color: bldg.color || '#10b981',
-        weight: isSelected ? 3.5 : 2,
+        weight: isSelected ? 3.5 : (bldg.isExisting ? 2.5 : 2),
         fillColor: bldg.color || '#10b981',
-        fillOpacity: isSelected ? 0.38 : 0.22,
-        dashArray: isSelected ? null : '4, 4',
+        fillOpacity: isSelected ? 0.45 : (bldg.isExisting ? 0.35 : 0.22),
+        dashArray: isSelected ? null : (bldg.isExisting ? null : '4, 4'),
         className: 'building-polygon-feature'
       });
 
