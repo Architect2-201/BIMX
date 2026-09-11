@@ -420,7 +420,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const width = container.clientWidth || 800;
     const height = container.clientHeight || 550;
 
-    camera = new THREE.PerspectiveCamera(45, width / height, 0.5, 1200);
+    camera = new THREE.PerspectiveCamera(45, width / height, 0.5, 50000);
     camera.position.set(65, 55, 80);
 
     renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
@@ -436,8 +436,8 @@ document.addEventListener('DOMContentLoaded', () => {
       controls.enableDamping = true;
       controls.dampingFactor = 0.08;
       controls.maxPolarAngle = Math.PI / 2.05; // Prevent dipping below ground plane
-      controls.minDistance = 8;
-      controls.maxDistance = 500;
+      controls.minDistance = 1;
+      controls.maxDistance = 50000;
       controls.target.set(0, 8, 0);
     }
 
