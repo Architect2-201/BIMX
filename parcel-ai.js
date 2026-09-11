@@ -52,8 +52,8 @@ document.addEventListener('DOMContentLoaded', () => {
     showHourMarkers: true,
     showCompassRing: true,
     buildingThermalData: null,
-    // Map Basemap Themes (Architectural GIS, Satellite, Voyager, Topo)
-    mapTheme: 'dark',
+    // Map Basemap Themes (Satellite, Topo)
+    mapTheme: 'satellite',
     combinedMapTheme: 'satellite',
     // Surrounding 3D Urban Fabric (Module 1B & 2B)
     urbanBuildings: [],
@@ -263,27 +263,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function switchMapBasemap(theme) {
     if (!map) return;
+    if (theme !== 'satellite' && theme !== 'topo') {
+      theme = 'satellite';
+    }
     const allLayers = [tileLayerDark, tileLayerSatellite, tileLayerVoyager, tileLayerTopo];
     allLayers.forEach(l => {
       if (l && map.hasLayer(l)) map.removeLayer(l);
     });
 
     state.mapTheme = theme;
-    let targetLayer = tileLayerDark;
-    let labelText = 'მუქი GIS (Dark)';
+    let targetLayer = tileLayerSatellite;
+    let labelText = 'სატელიტი (Satellite)';
 
-    if (theme === 'satellite') {
-      targetLayer = tileLayerSatellite;
-      labelText = 'სატელიტი (Satellite)';
-    } else if (theme === 'voyager') {
-      targetLayer = tileLayerVoyager;
-      labelText = 'ურბანული (Urban)';
-    } else if (theme === 'topo') {
+    if (theme === 'topo') {
       targetLayer = tileLayerTopo;
       labelText = 'ტოპოგრაფიული (Topo)';
     } else {
-      targetLayer = tileLayerDark;
-      labelText = 'მუქი GIS (Dark)';
+      targetLayer = tileLayerSatellite;
+      labelText = 'სატელიტი (Satellite)';
     }
 
     if (targetLayer) {
@@ -301,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnToggleSat) {
       if (theme === 'satellite') {
         btnToggleSat.classList.add('active');
-        btnToggleSat.title = 'Switch to Dark GIS Map';
+        btnToggleSat.title = 'Switch to Topographic Map';
       } else {
         btnToggleSat.classList.remove('active');
         btnToggleSat.title = 'Switch to Satellite Map';
@@ -7057,8 +7054,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (mapThemeSwitcher) mapThemeSwitcher.style.display = 'flex';
       if (mapTelemetry) mapTelemetry.style.display = 'flex';
 
-      // Apply distinct high-contrast Architectural Dark GIS design for Map mode
-      switchMapBasemap(state.mapTheme || 'dark');
+      // Apply Satellite or Topo basemap for Map mode
+      switchMapBasemap(state.mapTheme || 'satellite');
 
       if (buildingFootprintLayer) {
         map.removeLayer(buildingFootprintLayer);
@@ -7076,7 +7073,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (mapThemeSwitcher) mapThemeSwitcher.style.display = 'flex';
       if (mapTelemetry) mapTelemetry.style.display = 'flex';
 
-      switchMapBasemap(state.mapTheme || 'voyager');
+      switchMapBasemap(state.mapTheme || 'satellite');
 
       if (buildingFootprintLayer) {
         map.removeLayer(buildingFootprintLayer);
@@ -7157,8 +7154,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnToggleSatellite && map) {
     btnToggleSatellite.addEventListener('click', () => {
-      const current = state.mapTheme || 'dark';
-      const next = (current === 'satellite') ? 'dark' : 'satellite';
+      const current = state.mapTheme || 'satellite';
+      const next = (current === 'satellite') ? 'topo' : 'satellite';
       if (state.currentMode === 'combined') {
         state.combinedMapTheme = next;
       }
