@@ -5861,6 +5861,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update Assessment UI with the aggregated stats
     updateAssessmentUI(parcel);
 
+    // Sync Mobile Floating Metrics & Actions Bar
+    const mFloorsVal = document.getElementById('mFloorsVal');
+    const mAreaVal = document.getElementById('mAreaVal');
+    const mK2Val = document.getElementById('mK2Val');
+    const mQuickInput = document.getElementById('mobileQuickCadastralInput');
+
+    if (mFloorsVal) {
+      const activeBldg = (typeof getActiveBuilding === 'function') ? getActiveBuilding() : (state.buildings && state.buildings[0]);
+      mFloorsVal.textContent = activeBldg ? (activeBldg.floorsAbove || 1) : (state.floorsAbove || 3);
+    }
+    if (mAreaVal) {
+      mAreaVal.textContent = `${Math.round(totalAboveGFA || totalSiteFootprint || 0).toLocaleString()} მ²`;
+    }
+    if (mK2Val) {
+      mK2Val.textContent = k2Actual ? k2Actual.toFixed(2) : '0.0';
+    }
+    if (mQuickInput && state.activeParcel && state.activeParcel.code && document.activeElement !== mQuickInput) {
+      mQuickInput.value = state.activeParcel.code;
+    }
+
     // Overall Compliance Status Banner
     const banner = document.getElementById('complianceBanner');
     const bannerTitle = document.getElementById('complianceBannerTitle');
@@ -10947,6 +10967,96 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   /* ==========================================================================
+     14b. Mobile Experience Controller & Viewport Synchronization
+     ========================================================================== */
+  function initMobileSystem() {
+    const tabBtns = document.querySelectorAll('.mobile-nav-btn');
+    const sectionViewport = document.getElementById('mobileSectionViewport');
+    const sectionParams = document.getElementById('mobileSectionParams');
+    const sectionIndices = document.getElementById('mobileSectionIndices');
+    const quickInput = document.getElementById('mobileQuickCadastralInput');
+    const quickBtn = document.getElementById('mobileQuickSearchBtn');
+
+    function switchMobileTab(target) {
+      tabBtns.forEach(btn => {
+        const isTarget = btn.dataset.target === target;
+        btn.classList.toggle('active', isTarget);
+        btn.setAttribute('aria-selected', isTarget ? 'true' : 'false');
+      });
+
+      if (sectionViewport) {
+        sectionViewport.classList.toggle('mobile-active', target === 'viewport');
+      }
+      if (sectionParams) {
+        sectionParams.classList.toggle('mobile-active', target === 'params');
+      }
+      if (sectionIndices) {
+        sectionIndices.classList.toggle('mobile-active', target === 'indices');
+      }
+
+      // If switching to viewport, resize 2D and 3D immediately
+      if (target === 'viewport') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => {
+          if (typeof onWindowResize === 'function') onWindowResize();
+          if (map) map.invalidateSize();
+        }, 150);
+      } else {
+        // Scroll to top of panel smoothly
+        window.scrollTo({ top: 60, behavior: 'smooth' });
+      }
+    }
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.target;
+        if (target) switchMobileTab(target);
+      });
+    });
+
+    // Return to Viewport / 3D Buttons
+    document.querySelectorAll('[data-action="goto-viewport"]').forEach(btn => {
+      btn.addEventListener('click', () => switchMobileTab('viewport'));
+    });
+
+    // Mobile floating bar buttons / pills
+    document.querySelectorAll('[data-action="open-params"]').forEach(el => {
+      el.addEventListener('click', () => switchMobileTab('params'));
+    });
+    document.querySelectorAll('[data-action="open-indices"]').forEach(el => {
+      el.addEventListener('click', () => switchMobileTab('indices'));
+    });
+
+    // Mobile quick cadastral search bar
+    if (quickBtn && quickInput) {
+      function runMobileSearch() {
+        const code = quickInput.value.trim();
+        if (!code) return;
+        const mainInput = document.getElementById('cadastralCodeInput');
+        if (mainInput) mainInput.value = code;
+        searchParcel(code);
+        switchMobileTab('viewport');
+      }
+
+      quickBtn.addEventListener('click', runMobileSearch);
+      quickInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          runMobileSearch();
+        }
+      });
+    }
+
+    // Orientation change listener for mobile
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => {
+        if (typeof onWindowResize === 'function') onWindowResize();
+        if (map) map.invalidateSize();
+      }, 300);
+    });
+  }
+
+  /* ==========================================================================
      15. Initialize Map, 3D Canvas, and Default Search
      ========================================================================== */
   setTimeout(() => {
@@ -10955,6 +11065,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof initEngineeringDropdown === 'function') initEngineeringDropdown();
     if (typeof initUtilitiesModuleControls === 'function') initUtilitiesModuleControls();
     if (typeof initUnitMixModuleControls === 'function') initUnitMixModuleControls();
+    initMobileSystem();
     // Initial Stage: Display full map of Georgia without any parcel or buildings until cadastral code is entered
     setMode('map');
     if (map) {
