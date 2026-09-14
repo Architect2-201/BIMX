@@ -701,7 +701,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ].join('.');
     }
 
-    // 4-segment regional format (Kakheti, Imereti, etc.) -> 72.13.12.123
+    // 4-segment regional format (Mtskheta, Kakheti, Imereti, etc.) -> 72.13.41.123
     if (parts.length === 4) {
       return [
         parts[0].padStart(2, '0'),
@@ -711,7 +711,16 @@ document.addEventListener('DOMContentLoaded', () => {
       ].join('.');
     }
 
-    return parts.join('.');
+    // 3-segment format (District/Sector) -> 01.14.03
+    if (parts.length === 3) {
+      return [
+        parts[0].padStart(2, '0'),
+        parts[1].padStart(2, '0'),
+        parts[2].padStart(2, '0')
+      ].join('.');
+    }
+
+    return parts.map((p, idx) => (idx < 3 ? p.padStart(2, '0') : p.padStart(3, '0'))).join('.');
   }
 
   /**
@@ -735,31 +744,67 @@ document.addEventListener('DOMContentLoaded', () => {
       '05': { name: 'ბათუმი', lat: 41.645, lng: 41.641 },
       '07': { name: 'ქობულეთი', lat: 41.821, lng: 41.775 },
       '08': { name: 'ხელვაჩაური', lat: 41.585, lng: 41.668 },
-      '10': { name: 'გორი', lat: 41.985, lng: 44.111 },
-      '11': { name: 'კასპი', lat: 41.925, lng: 44.426 },
-      '12': { name: 'ქარელი', lat: 42.023, lng: 43.896 },
-      '13': { name: 'ხაშური', lat: 41.996, lng: 43.599 },
-      '14': { name: 'ბორჯომი', lat: 41.839, lng: 43.385 },
-      '15': { name: 'ახალციხე', lat: 41.639, lng: 42.983 },
-      '20': { name: 'თელავი', lat: 41.919, lng: 45.474 },
-      '21': { name: 'გურჯაანი', lat: 41.745, lng: 45.799 },
-      '22': { name: 'სიღნაღი', lat: 41.621, lng: 45.923 },
-      '23': { name: 'ყვარელი', lat: 41.954, lng: 45.815 },
-      '24': { name: 'საგარეჯო', lat: 41.733, lng: 45.333 },
-      '30': { name: 'მცხეთა', lat: 41.843, lng: 44.721 },
-      '31': { name: 'დუშეთი', lat: 42.085, lng: 44.697 },
-      '40': { name: 'ზესტაფონი', lat: 42.110, lng: 43.036 },
-      '41': { name: 'სამტრედია', lat: 42.158, lng: 42.342 },
-      '43': { name: 'საჩხერე', lat: 42.343, lng: 43.418 },
-      '45': { name: 'წყალტუბო', lat: 42.327, lng: 42.597 },
-      '50': { name: 'ზუგდიდი', lat: 42.508, lng: 41.870 },
-      '51': { name: 'სენაკი', lat: 42.268, lng: 42.067 },
-      '52': { name: 'მარტვილი', lat: 42.414, lng: 42.378 },
-      '60': { name: 'ოზურგეთი', lat: 41.926, lng: 42.000 },
-      '61': { name: 'ლანჩხუთი', lat: 42.087, lng: 42.036 },
-      '72': { name: 'საგარეჯო', lat: 41.733, lng: 45.333 },
-      '73': { name: 'მარნეული', lat: 41.478, lng: 44.808 },
-      '74': { name: 'ბოლნისი', lat: 41.448, lng: 44.545 }
+      '09': { name: 'ქედა', lat: 41.601, lng: 41.940 },
+      '10': { name: 'შუახევი', lat: 41.625, lng: 42.185 },
+      '11': { name: 'ხულო', lat: 41.644, lng: 42.316 },
+      '20': { name: 'ხაშური', lat: 41.996, lng: 43.599 },
+      '21': { name: 'ბორჯომი', lat: 41.838, lng: 43.385 },
+      '22': { name: 'ახალციხე', lat: 41.640, lng: 42.983 },
+      '23': { name: 'ახალქალაქი', lat: 41.405, lng: 43.486 },
+      '24': { name: 'ნინოწმინდა', lat: 41.265, lng: 43.590 },
+      '25': { name: 'ასპინძა', lat: 41.574, lng: 43.248 },
+      '26': { name: 'ადიგენი', lat: 41.677, lng: 42.700 },
+      '30': { name: 'კასპი', lat: 41.925, lng: 44.425 },
+      '31': { name: 'ქარელი', lat: 42.023, lng: 43.896 },
+      '32': { name: 'გორი', lat: 41.984, lng: 44.114 },
+      '33': { name: 'ხაშური', lat: 41.996, lng: 43.599 },
+      '40': { name: 'მესტია', lat: 43.045, lng: 42.729 },
+      '41': { name: 'ზუგდიდი', lat: 42.508, lng: 41.870 },
+      '42': { name: 'სენაკი', lat: 42.269, lng: 42.067 },
+      '43': { name: 'ფოთი', lat: 42.146, lng: 41.672 },
+      '44': { name: 'აბაშა', lat: 42.203, lng: 42.203 },
+      '45': { name: 'მარტვილი', lat: 42.414, lng: 42.378 },
+      '46': { name: 'ხობი', lat: 42.316, lng: 41.898 },
+      '47': { name: 'წალენჯიხა', lat: 42.610, lng: 42.071 },
+      '48': { name: 'ჩხოროწყუ', lat: 42.527, lng: 42.131 },
+      '49': { name: 'მესტია', lat: 43.045, lng: 42.729 },
+      '50': { name: 'ოზურგეთი', lat: 41.926, lng: 42.000 },
+      '51': { name: 'ლანჩხუთი', lat: 42.087, lng: 42.035 },
+      '52': { name: 'ჩოხატაური', lat: 42.018, lng: 42.239 },
+      '60': { name: 'ამბროლაური', lat: 42.520, lng: 43.149 },
+      '61': { name: 'ონი', lat: 42.585, lng: 43.442 },
+      '62': { name: 'ცაგერი', lat: 42.648, lng: 42.770 },
+      '63': { name: 'ლენტეხი', lat: 42.788, lng: 42.723 },
+      '64': { name: 'თელავი', lat: 41.919, lng: 45.473 },
+      '65': { name: 'ახმეტა', lat: 42.036, lng: 45.207 },
+      '66': { name: 'გურჯაანი', lat: 41.745, lng: 45.798 },
+      '67': { name: 'საგარეჯო', lat: 41.733, lng: 45.333 },
+      '68': { name: 'სიღნაღი', lat: 41.621, lng: 45.922 },
+      '69': { name: 'დედოფლისწყარო', lat: 41.465, lng: 46.104 },
+      '70': { name: 'ლაგოდეხი', lat: 41.824, lng: 46.277 },
+      '71': { name: 'ყვარელი', lat: 41.951, lng: 45.816 },
+      '72': { name: 'მცხეთა', lat: 41.844, lng: 44.718 },
+      '73': { name: 'დუშეთი', lat: 42.052, lng: 44.697 },
+      '74': { name: 'ყაზბეგი', lat: 42.658, lng: 44.641 },
+      '75': { name: 'თიანეთი', lat: 42.109, lng: 44.963 },
+      '76': { name: 'სტეფანწმინდა', lat: 42.658, lng: 44.641 },
+      '80': { name: 'რუსთავი', lat: 41.549, lng: 45.018 },
+      '81': { name: 'მარნეული', lat: 41.476, lng: 44.810 },
+      '82': { name: 'ბოლნისი', lat: 41.448, lng: 44.545 },
+      '83': { name: 'დმანისი', lat: 41.332, lng: 44.347 },
+      '84': { name: 'გარდაბანი', lat: 41.460, lng: 45.092 },
+      '85': { name: 'თეთრიწყარო', lat: 41.544, lng: 44.463 },
+      '86': { name: 'წალკა', lat: 41.595, lng: 44.089 },
+      '90': { name: 'სამტრედია', lat: 42.162, lng: 42.336 },
+      '91': { name: 'წყალტუბო', lat: 42.327, lng: 42.600 },
+      '92': { name: 'ზესტაფონი', lat: 42.109, lng: 43.036 },
+      '93': { name: 'თერჯოლა', lat: 42.179, lng: 42.977 },
+      '94': { name: 'ბაღდათი', lat: 42.068, lng: 42.825 },
+      '95': { name: 'ვანი', lat: 42.083, lng: 42.502 },
+      '96': { name: 'ხონი', lat: 42.322, lng: 42.420 },
+      '97': { name: 'საჩხერე', lat: 42.342, lng: 43.407 },
+      '98': { name: 'ჭიათურა', lat: 42.290, lng: 43.284 },
+      '99': { name: 'ხარაგაული', lat: 42.015, lng: 43.197 }
     };
 
     const regData = GEORGIA_REGIONS[region] || { name: 'საქართველო', lat: 41.724, lng: 44.768 };
@@ -767,22 +812,27 @@ document.addEventListener('DOMContentLoaded', () => {
     let baseLng = regData.lng;
     let districtName = regData.name;
 
+    // Full Tbilisi district mapping with real GPS centers for all 14 districts
     if (region === '01') {
-      if (district === '10' || district === '14') {
-        baseLat = 41.724; baseLng = 44.768; districtName = 'ვაკე-საბურთალო';
-      } else if (district === '15') {
-        baseLat = 41.731; baseLng = 44.785; districtName = 'დიდუბე-ჩუღურეთი';
-      } else if (district === '17') {
-        baseLat = 41.696; baseLng = 44.798; districtName = 'მთაწმინდა';
-      } else if (district === '19') {
-        baseLat = 41.692; baseLng = 44.842; districtName = 'ისანი-სამგორი';
-      } else if (district === '11') {
-        baseLat = 41.789; baseLng = 44.817; districtName = 'გლდანი-მუხიანი';
-      } else if (district === '18') {
-        baseLat = 41.798; baseLng = 44.820; districtName = 'ნაძალადევი';
-      } else {
-        baseLat = 41.785; baseLng = 44.754; districtName = 'დიდი დიღომი';
-      }
+      const TBS_DISTRICTS = {
+        '10': { lat: 41.717, lng: 44.776, name: 'ვაკე' },
+        '11': { lat: 41.789, lng: 44.817, name: 'გლდანი' },
+        '12': { lat: 41.692, lng: 44.826, name: 'კრწანისი' },
+        '13': { lat: 41.708, lng: 44.835, name: 'ავლაბარი' },
+        '14': { lat: 41.731, lng: 44.776, name: 'საბურთალო' },
+        '15': { lat: 41.740, lng: 44.793, name: 'დიდუბე' },
+        '16': { lat: 41.730, lng: 44.800, name: 'ჩუღურეთი' },
+        '17': { lat: 41.696, lng: 44.798, name: 'მთაწმინდა' },
+        '18': { lat: 41.789, lng: 44.813, name: 'ნაძალადევი' },
+        '19': { lat: 41.692, lng: 44.842, name: 'ისანი-სამგორი' },
+        '20': { lat: 41.785, lng: 44.754, name: 'დიდი დიღომი' },
+        '21': { lat: 41.760, lng: 44.755, name: 'თბილისი (სხვა)' },
+        '22': { lat: 41.746, lng: 44.763, name: 'სანზონა' },
+        '23': { lat: 41.718, lng: 44.752, name: 'ვაშლიჯვარი' }
+      };
+      const d = TBS_DISTRICTS[district];
+      if (d) { baseLat = d.lat; baseLng = d.lng; districtName = d.name; }
+      else { baseLat = 41.720; baseLng = 44.780; districtName = 'თბილისი'; }
     }
 
     const hash = Math.abs(sector * 37 + block * 17 + parcelNum) % 500;
@@ -833,7 +883,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function isValidCadastralCode(code) {
-    return CADASTRAL_CODE_REGEX.test(normalizeCode(code));
+    if (!code) return false;
+    const norm = normalizeCode(code);
+    const parts = norm.split('.');
+    return parts.length >= 3 && parts.length <= 6 && parts.every(p => /^\d+$/.test(p));
   }
 
   function showCadastralAlert(type, text) {
@@ -3321,36 +3374,54 @@ document.addEventListener('DOMContentLoaded', () => {
     const metersPerDegLat = 111132.954;
     const metersPerDegLng = 111132.954 * Math.cos((centerLat * Math.PI) / 180);
 
-    const offsets = [
-      { dx: 48, dy: 35, w: 24, l: 30, rot: 15, h: 16.0, lv: 5 },
-      { dx: -55, dy: 25, w: 26, l: 22, rot: -10, h: 12.8, lv: 4 },
-      { dx: 32, dy: -65, w: 34, l: 24, rot: 5, h: 22.4, lv: 7 },
-      { dx: -45, dy: -60, w: 22, l: 28, rot: 25, h: 9.6, lv: 3 },
-      { dx: 115, dy: 55, w: 32, l: 38, rot: 12, h: 28.8, lv: 9 },
-      { dx: 90, dy: 125, w: 26, l: 26, rot: -18, h: 16.0, lv: 5 },
-      { dx: -115, dy: 85, w: 36, l: 24, rot: 8, h: 19.2, lv: 6 },
-      { dx: -95, dy: -115, w: 30, l: 32, rot: -15, h: 12.8, lv: 4 },
-      { dx: 65, dy: -135, w: 40, l: 26, rot: 20, h: 25.6, lv: 8 },
-      { dx: -135, dy: -45, w: 25, l: 25, rot: 0, h: 9.6, lv: 3 },
-      { dx: 185, dy: 95, w: 42, l: 32, rot: 30, h: 32.0, lv: 10 },
-      { dx: 155, dy: -165, w: 34, l: 28, rot: -25, h: 16.0, lv: 5 },
-      { dx: -175, dy: 145, w: 30, l: 44, rot: 10, h: 22.4, lv: 7 },
-      { dx: -195, dy: -125, w: 38, l: 26, rot: -5, h: 12.8, lv: 4 },
-      { dx: 0, dy: 165, w: 30, l: 30, rot: 15, h: 19.2, lv: 6 },
-      { dx: -15, dy: -185, w: 42, l: 24, rot: -12, h: 16.0, lv: 5 }
+    // Dynamic distance scaling so procedural buildings adapt to parcel dimensions
+    let parcelRadius = 35;
+    if (state.activeParcel && state.activeParcel.coordinates && state.activeParcel.coordinates.length > 2) {
+      const lats = state.activeParcel.coordinates.map(c => c[0]);
+      const lngs = state.activeParcel.coordinates.map(c => c[1]);
+      const dLat = (Math.max(...lats) - Math.min(...lats)) * 111132;
+      const dLng = (Math.max(...lngs) - Math.min(...lngs)) * metersPerDegLng;
+      parcelRadius = Math.max(35, Math.hypot(dLat, dLng) / 2 + 15);
+    }
+    const factor = Math.max(1.0, parcelRadius / 32);
+
+    const baseOffsets = [
+      { dx: 52, dy: 38, w: 26, l: 32, rot: 15, h: 16.0, lv: 5 },
+      { dx: -58, dy: 28, w: 28, l: 24, rot: -10, h: 12.8, lv: 4 },
+      { dx: 36, dy: -68, w: 36, l: 26, rot: 5, h: 22.4, lv: 7 },
+      { dx: -48, dy: -65, w: 24, l: 30, rot: 25, h: 9.6, lv: 3 },
+      { dx: 120, dy: 58, w: 34, l: 42, rot: 12, h: 28.8, lv: 9 },
+      { dx: 95, dy: 130, w: 28, l: 28, rot: -18, h: 16.0, lv: 5 },
+      { dx: -120, dy: 90, w: 38, l: 26, rot: 8, h: 19.2, lv: 6 },
+      { dx: -100, dy: -120, w: 32, l: 34, rot: -15, h: 12.8, lv: 4 },
+      { dx: 70, dy: -140, w: 42, l: 28, rot: 20, h: 25.6, lv: 8 },
+      { dx: -140, dy: -48, w: 26, l: 26, rot: 0, h: 9.6, lv: 3 },
+      { dx: 190, dy: 100, w: 44, l: 34, rot: 30, h: 32.0, lv: 10 },
+      { dx: 160, dy: -170, w: 36, l: 30, rot: -25, h: 16.0, lv: 5 },
+      { dx: -180, dy: 150, w: 32, l: 46, rot: 10, h: 22.4, lv: 7 },
+      { dx: -200, dy: -130, w: 40, l: 28, rot: -5, h: 12.8, lv: 4 },
+      { dx: 0, dy: 175, w: 32, l: 32, rot: 15, h: 19.2, lv: 6 },
+      { dx: -18, dy: -195, w: 44, l: 26, rot: -12, h: 16.0, lv: 5 },
+      { dx: 170, dy: -40, w: 30, l: 38, rot: 40, h: 22.4, lv: 7 },
+      { dx: -70, dy: 190, w: 36, l: 30, rot: -8, h: 16.0, lv: 5 },
+      { dx: 130, dy: 210, w: 40, l: 32, rot: 22, h: 28.8, lv: 9 },
+      { dx: -160, dy: -210, w: 34, l: 36, rot: -30, h: 19.2, lv: 6 }
     ];
 
-    offsets.forEach((b, idx) => {
+    baseOffsets.forEach((b, idx) => {
       const cos = Math.cos((b.rot * Math.PI) / 180);
       const sin = Math.sin((b.rot * Math.PI) / 180);
       const hw = b.w / 2;
       const hl = b.l / 2;
 
+      const posX = b.dx * factor;
+      const posY = b.dy * factor;
+
       const cornersMeters = [
-        { x: b.dx + (-hw * cos - -hl * sin), y: b.dy + (-hw * sin + -hl * cos) },
-        { x: b.dx + (hw * cos - -hl * sin),  y: b.dy + (hw * sin + -hl * cos) },
-        { x: b.dx + (hw * cos - hl * sin),   y: b.dy + (hw * sin + hl * cos) },
-        { x: b.dx + (-hw * cos - hl * sin),  y: b.dy + (-hw * sin + hl * cos) }
+        { x: posX + (-hw * cos - -hl * sin), y: posY + (-hw * sin + -hl * cos) },
+        { x: posX + (hw * cos - -hl * sin),  y: posY + (hw * sin + -hl * cos) },
+        { x: posX + (hw * cos - hl * sin),   y: posY + (hw * sin + hl * cos) },
+        { x: posX + (-hw * cos - hl * sin),  y: posY + (-hw * sin + hl * cos) }
       ];
 
       const polyGps = cornersMeters.map(pt => [
@@ -3373,6 +3444,17 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadSurroundingUrbanFabric(centerLat, centerLng) {
     if (!urbanGroup || !state.activeParcel) return;
 
+    const centerGps = { lat: centerLat, lng: centerLng };
+
+    // 1. INSTANT 0ms RENDERING: immediately populate state.urbanFabricBuildings with procedural buildings
+    // This ensures 3D view, Solar analysis, and 360° Viewshed rays NEVER start with an empty scene!
+    if (!state.urbanFabricBuildings || state.urbanFabricBuildings.length === 0 || !state.urbanFabricCenter ||
+        Math.abs(state.urbanFabricCenter.lat - centerLat) > 0.005 || Math.abs(state.urbanFabricCenter.lng - centerLng) > 0.005) {
+      state.urbanFabricBuildings = generateClientProceduralUrbanFabric(centerLat, centerLng);
+      state.urbanFabricCenter = centerGps;
+      renderUrbanFabric3D(state.buildingThermalData);
+    }
+
     try {
       // Dynamically expand search radius to encompass entire parcel + surrounding street fabric
       let searchRadius = 350;
@@ -3387,7 +3469,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
       let fetchedBuildings = [];
       try {
-        const res = await fetch(`/api/overpass?lat=${centerLat}&lng=${centerLng}&radius=${searchRadius}`);
+        const controller = new AbortController();
+        const tId = setTimeout(() => controller.abort(), 4000);
+        const res = await fetch(`/api/overpass?lat=${centerLat}&lng=${centerLng}&radius=${searchRadius}`, { signal: controller.signal });
+        clearTimeout(tId);
         if (res.ok) {
           const data = await res.json();
           if (data && data.buildings && data.buildings.length > 0) {
@@ -3402,7 +3487,6 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchedBuildings = generateClientProceduralUrbanFabric(centerLat, centerLng);
       }
 
-      const centerGps = { lat: centerLat, lng: centerLng };
       state.urbanFabricBuildings = fetchedBuildings;
       state.urbanFabricCenter = centerGps;
 
@@ -3500,10 +3584,10 @@ document.addEventListener('DOMContentLoaded', () => {
         default:    { color: '#64748b', material: 'concrete',  nameKa: 'არსებული შენობა-ნაგებობა', nameEn: 'Existing Structure' }
       };
 
-      // If parcel has real existing buildings in OSM and user hasn't drawn custom building:
+      // Map real existing buildings from OSM if detected
       const userHasDrawn = (state.buildings || []).some(b => b.footprintCoords && !b.isExisting);
-      if (inParcel.length > 0 && !userHasDrawn) {
-        state.buildings = inParcel.map((b, i) => {
+      if (inParcel.length > 0) {
+        state.savedExistingBuildings = inParcel.map((b, i) => {
           const area = Math.round(computePolygonArea(b.coordinates) || 150);
           const floors = b.levels || Math.max(1, Math.round((b.height || 9) / 3.2));
           const p = EXISTING_PALETTES[b.useType] || EXISTING_PALETTES.default;
@@ -3531,18 +3615,42 @@ document.addEventListener('DOMContentLoaded', () => {
           bldgData.nameEn = labelEn;
           return bldgData;
         });
-        state.selectedBuildingId = state.buildings[0].id;
-        state.customFootprint = state.buildings[0].footprintCoords;
+      }
 
+      const btnExistingEl = document.getElementById('btnModeExisting');
+      if (btnExistingEl) {
+        btnExistingEl.innerHTML = `<i class="fa-solid fa-house-chimney"></i> <span data-i18n="mode_existing_bldg">არსებული შენობა${inParcel.length > 0 ? ` (${inParcel.length})` : ''}</span>`;
+      }
+
+      if (state.buildingDisplayMode === 'existing' && !userHasDrawn) {
+        if (state.savedExistingBuildings && state.savedExistingBuildings.length > 0) {
+          state.buildings = JSON.parse(JSON.stringify(state.savedExistingBuildings));
+        } else {
+          const pArea = (state.activeParcel && state.activeParcel.area) || 800;
+          const fpArea = Math.min(260, Math.max(90, Math.round(pArea * 0.22)));
+          const bldgData = createBuildingData(1, '#94a3b8', fpArea, 2, 0);
+          bldgData.height = 7.2;
+          bldgData.floorHeight = 3.6;
+          bldgData.isExisting = true;
+          bldgData.isProcedural = true;
+          bldgData.facadeMaterial = 'travertine';
+          bldgData.roofType = 'gable';
+          bldgData.name = `არსებული საცხოვრებელი სახლი (${fpArea} მ²)`;
+          bldgData.nameEn = `Existing House (${fpArea} m²)`;
+          bldgData.floorFunctions = { "0": "residential", "1": "residential" };
+          state.buildings = [bldgData];
+        }
+        state.selectedBuildingId = state.buildings[0].id;
+        state.customFootprint = state.buildings[0].footprintCoords || null;
         syncCurrentBuildingToActiveConcept();
         renderBuildingTabsUI();
         renderFloorMatrixUI();
         renderAllBuildingsOnMap();
         renderAllBuildings3D();
         updateComplianceUI();
-      } else if (inParcel.length === 0 && !userHasDrawn) {
-        // Parcel has no existing buildings in OSM: maintain or generate the AI development concept building
-        if (!state.buildings || state.buildings.length === 0) {
+      } else if (!userHasDrawn) {
+        // In AI Concept mode: preserve or initialize the generative AI development concept
+        if (!state.buildings || state.buildings.length === 0 || state.buildings[0].isExisting) {
           generateDefaultConcept(state.activeParcel);
         } else {
           renderBuildingTabsUI();
@@ -3568,7 +3676,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // In Solar Mode: dynamically calculates sun exposure on each facade and roof (Red = Hot, Amber = Warm, Blue = Cold)
   // In GIS 3D Concept Mode: renders sleek architectural clay extrusion
   function renderUrbanFabric3D(thermalData) {
-    if (!urbanGroup || !state.activeParcel || !state.urbanFabricBuildings) return;
+    if (!urbanGroup || !state.activeParcel) return;
+    if (!state.urbanFabricBuildings || state.urbanFabricBuildings.length === 0) {
+      const c = computeParcelCenter(state.activeParcel.coordinates);
+      state.urbanFabricBuildings = generateClientProceduralUrbanFabric(c.lat, c.lng);
+      state.urbanFabricCenter = c;
+    }
 
     while (urbanGroup.children.length > 0) {
       const child = urbanGroup.children[0];
@@ -3589,14 +3702,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const buildings = state.urbanFabricBuildings;
 
     // Filter buildings strictly outside the parcel
+    // Procedural fallback buildings (isProcedural=true) are pre-placed outside and bypass the filter
     const outsideBuildings = buildings.filter(bldg => {
       if (!bldg.coordinates || bldg.coordinates.length < 3) return false;
+      // Procedural buildings are always outside by design — never filter them
+      if (bldg.isProcedural) return true;
       const cLat = bldg.coordinates.reduce((s, c) => s + c[0], 0) / bldg.coordinates.length;
       const cLng = bldg.coordinates.reduce((s, c) => s + c[1], 0) / bldg.coordinates.length;
       const isCentroidIn = isPointInPolygonGPS([cLat, cLng], state.activeParcel.coordinates);
       const isAnyVertexIn = bldg.coordinates.some(pt => isPointInPolygonGPS(pt, state.activeParcel.coordinates));
       return !(isCentroidIn || isAnyVertexIn);
     });
+
+    // If all OSM buildings were inside the parcel, fall back to procedural so 3D is never empty
+    if (outsideBuildings.length === 0) {
+      const fallback = generateClientProceduralUrbanFabric(centerGps.lat, centerGps.lng);
+      fallback.forEach(b => outsideBuildings.push(b));
+    }
 
     if (outsideBuildings.length === 0) return;
 
@@ -5319,12 +5441,7 @@ document.addEventListener('DOMContentLoaded', () => {
       };
     }
 
-    // 2. Procedural auto-concept rectangle ONLY if explicitly requested via AI prompt
-    if (!bldg.isProcedural || !bldg.footprintArea) {
-      return null;
-    }
-
-    // Otherwise: procedural auto-concept rectangle with spatial offset per building
+    // 2. Reliable procedural footprint geometry for any building on the parcel
     const localPoints = gpsToLocalMeters(parcel.coordinates, parcelCenter);
     if (localPoints.length < 3) return null;
 
@@ -5333,7 +5450,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const parcelW = Math.max(...xs) - Math.min(...xs);
     const parcelH = Math.max(...ys) - Math.min(...ys);
 
-    const targetArea = bldg.footprintArea || 450;
+    const defaultFp = Math.min(650, Math.max(120, Math.round((parcel.area || 1000) * (bldg.isExisting ? 0.22 : 0.35))));
+    const targetArea = bldg.footprintArea || defaultFp;
+    bldg.footprintArea = targetArea;
     const aspectRatio = 1.35;
     let bldgW = Math.sqrt(targetArea / aspectRatio);
     let bldgL = bldgW * aspectRatio;
@@ -10267,7 +10386,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }).addTo(map);
 
       const popupContent = `
-        <div style="font-family: inherit; min-width: 180px;">
+        <div style="font-family: inherit; min-width: 200px;">
           <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 5px;">
             <span style="background: ${poi.color}; color: #fff; padding: 2px 7px; border-radius: 4px; font-size: 0.68rem; font-weight: 700;">
               ${poi.categoryNameKa}
@@ -10280,6 +10399,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="font-size: 0.74rem; color: #475569; margin-top: 6px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #e2e8f0; padding-top: 5px;">
             <span><i class="fa-solid fa-person-walking" style="color: #10b981;"></i> ~${poi.walkTimeMin} წთ ფეხით</span>
             <span><i class="fa-solid fa-compass"></i> ${poi.bearingKa}</span>
+          </div>
+          <div style="display: flex; gap: 5px; margin-top: 7px;">
+            ${(poi.googleMapsNavUrl || poi.googleMapsUrl) ? `<a href="${poi.googleMapsNavUrl || poi.googleMapsUrl}" target="_blank" rel="noopener" style="flex:1; text-align:center; font-size:0.68rem; padding:4px 6px; background:#4285F4; color:#fff; border-radius:5px; text-decoration:none; font-weight:700;"><i class="fa-brands fa-google"></i> Google Maps ↗</a>` : ''}
+            ${(poi.yandexMapsNavUrl || poi.yandexMapsUrl) ? `<a href="${poi.yandexMapsNavUrl || poi.yandexMapsUrl}" target="_blank" rel="noopener" style="flex:1; text-align:center; font-size:0.68rem; padding:4px 6px; background:#FFCC00; color:#1a1a1a; border-radius:5px; text-decoration:none; font-weight:700;"><i class="fa-solid fa-map-location-dot"></i> Yandex ↗</a>` : ''}
           </div>
         </div>
       `;
@@ -10342,6 +10465,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="v-poi-dist-badge"><i class="fa-solid fa-ruler"></i> ${poi.distanceMeters} მ</span>
             <span class="v-poi-walk-badge"><i class="fa-solid fa-person-walking"></i> ~${poi.walkTimeMin} წთ</span>
             <span style="margin-left: auto; color: #64748b;"><i class="fa-solid fa-compass"></i> ${poi.bearing}</span>
+          </div>
+          <div class="v-poi-map-links" style="display: flex; gap: 6px; margin-top: 5px;">
+            ${(poi.googleMapsNavUrl || poi.googleMapsUrl) ? `<a href="${poi.googleMapsNavUrl || poi.googleMapsUrl}" target="_blank" rel="noopener" class="v-cat-chip" style="font-size: 0.63rem; padding: 2px 7px; background: rgba(66,133,244,0.12); color: #4285F4; border: 1px solid rgba(66,133,244,0.35); border-radius: 6px; text-decoration: none; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px;" title="მარშრუტი Google Maps"><i class="fa-brands fa-google"></i> Google Maps ↗</a>` : ''}
+            ${(poi.yandexMapsNavUrl || poi.yandexMapsUrl) ? `<a href="${poi.yandexMapsNavUrl || poi.yandexMapsUrl}" target="_blank" rel="noopener" class="v-cat-chip" style="font-size: 0.63rem; padding: 2px 7px; background: rgba(255,204,0,0.10); color: #e8a000; border: 1px solid rgba(255,204,0,0.35); border-radius: 6px; text-decoration: none; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px;" title="მარშრუტი Yandex Maps"><i class="fa-solid fa-map-location-dot"></i> Yandex ↗</a>` : ''}
           </div>
         </div>
       </div>
@@ -10854,6 +10981,129 @@ document.addEventListener('DOMContentLoaded', () => {
       applyFloorPreset(btn.dataset.preset);
     });
   });
+
+  // Building Mode Switcher: AI Concept vs Existing Structure
+  const btnModeConcept = document.getElementById('btnModeConcept');
+  const btnModeExisting = document.getElementById('btnModeExisting');
+
+  function switchBuildingMode(targetMode) {
+    if (!state.activeParcel) return;
+    state.buildingDisplayMode = targetMode;
+
+    if (targetMode === 'concept') {
+      if (btnModeConcept) {
+        btnModeConcept.classList.add('active');
+        btnModeConcept.style.background = '#DCE8F5';
+        btnModeConcept.style.color = '#080A0D';
+        btnModeConcept.style.borderColor = 'transparent';
+        btnModeConcept.style.boxShadow = '0 2px 10px rgba(220, 232, 245, 0.2)';
+      }
+      if (btnModeExisting) {
+        btnModeExisting.classList.remove('active');
+        btnModeExisting.style.background = 'transparent';
+        btnModeExisting.style.color = '#9BA3AE';
+        btnModeExisting.style.borderColor = '#252B33';
+        btnModeExisting.style.boxShadow = 'none';
+      }
+
+      // Save current state as existing if currently showing an existing structure
+      if (state.buildings && state.buildings.length > 0 && state.buildings[0].isExisting) {
+        state.savedExistingBuildings = JSON.parse(JSON.stringify(state.buildings));
+      }
+
+      if (state.savedConceptBuildings && state.savedConceptBuildings.length > 0) {
+        state.buildings = JSON.parse(JSON.stringify(state.savedConceptBuildings));
+      } else {
+        generateDefaultConcept(state.activeParcel);
+      }
+    } else {
+      // 'existing' mode
+      if (btnModeExisting) {
+        btnModeExisting.classList.add('active');
+        btnModeExisting.style.background = '#7FA9C9';
+        btnModeExisting.style.color = '#080A0D';
+        btnModeExisting.style.borderColor = 'transparent';
+        btnModeExisting.style.boxShadow = '0 2px 10px rgba(127, 169, 201, 0.25)';
+      }
+      if (btnModeConcept) {
+        btnModeConcept.classList.remove('active');
+        btnModeConcept.style.background = 'transparent';
+        btnModeConcept.style.color = '#9BA3AE';
+        btnModeConcept.style.borderColor = '#252B33';
+        btnModeConcept.style.boxShadow = 'none';
+      }
+
+      // Save current concept
+      if (state.buildings && state.buildings.length > 0 && !state.buildings[0].isExisting) {
+        state.savedConceptBuildings = JSON.parse(JSON.stringify(state.buildings));
+      }
+
+      if (state.savedExistingBuildings && state.savedExistingBuildings.length > 0) {
+        state.buildings = JSON.parse(JSON.stringify(state.savedExistingBuildings));
+      } else if (state.existingParcelBuildings && state.existingParcelBuildings.length > 0) {
+        state.buildings = state.existingParcelBuildings.map((b, i) => {
+          const area = Math.round(computePolygonArea(b.coordinates) || 150);
+          const floors = b.levels || Math.max(1, Math.round((b.height || 9) / 3.2));
+          const p = {
+            industrial: { color: '#475569', material: 'composite', nameKa: 'საწარმოო / სასაწყობე ნაგებობა', nameEn: 'Industrial / Workshop' },
+            garage:     { color: '#64748b', material: 'concrete',  nameKa: 'ავტოფარეხი / დამხმარე ნაგებობა', nameEn: 'Garage / Storage' },
+            worship:    { color: '#d4b996', material: 'travertine',nameKa: 'საკულტო ნაგებობა / ტაძარი', nameEn: 'Place of Worship' },
+            residential:{ color: '#94a3b8', material: 'travertine',nameKa: 'საცხოვრებელი კორპუსი', nameEn: 'Residential Building' },
+            commercial: { color: '#0284c7', material: 'glass',     nameKa: 'კომერციული / სავაჭრო ობიექტი', nameEn: 'Commercial Building' },
+            office:     { color: '#334155', material: 'composite', nameKa: 'საოფისე / ბიზნეს ცენტრი', nameEn: 'Office Building' },
+            default:    { color: '#64748b', material: 'concrete',  nameKa: 'არსებული შენობა-ნაგებობა', nameEn: 'Existing Structure' }
+          }[b.useType] || { color: '#64748b', material: 'concrete', nameKa: 'არსებული შენობა-ნაგებობა', nameEn: 'Existing Structure' };
+
+          const bldgData = createBuildingData(i + 1, p.color, area, floors, 0);
+          bldgData.footprintCoords = b.coordinates;
+          bldgData.height = b.height || (floors * 3.2);
+          bldgData.floorHeight = parseFloat((bldgData.height / floors).toFixed(2));
+          bldgData.isExisting = true;
+          bldgData.isProcedural = false;
+          bldgData.facadeMaterial = p.material;
+          bldgData.roofType = (b.roofShape === 'gabled' || b.roofShape === 'pitched') ? 'gable' : 'flat';
+          bldgData.name = b.name || `${p.nameKa} #${i + 1} (${area.toLocaleString()} მ²)`;
+          bldgData.nameEn = b.name || `${p.nameEn} #${i + 1} (${area.toLocaleString()} m²)`;
+          return bldgData;
+        });
+      } else {
+        const pArea = (state.activeParcel && state.activeParcel.area) || 800;
+        const fpArea = Math.min(260, Math.max(90, Math.round(pArea * 0.22)));
+        const bldgData = createBuildingData(1, '#94a3b8', fpArea, 2, 0);
+        bldgData.height = 7.2;
+        bldgData.floorHeight = 3.6;
+        bldgData.isExisting = true;
+        bldgData.isProcedural = true;
+        bldgData.facadeMaterial = 'travertine';
+        bldgData.roofType = 'gable';
+        bldgData.name = `არსებული საცხოვრებელი სახლი (${fpArea} მ²)`;
+        bldgData.nameEn = `Existing House (${fpArea} m²)`;
+        bldgData.floorFunctions = { "0": "residential", "1": "residential" };
+        state.buildings = [bldgData];
+      }
+    }
+
+    if (state.buildings && state.buildings.length > 0) {
+      state.selectedBuildingId = state.buildings[0].id;
+      state.customFootprint = state.buildings[0].footprintCoords || null;
+    }
+
+    syncCurrentBuildingToActiveConcept();
+    renderBuildingTabsUI();
+    renderFloorMatrixUI();
+    renderAllBuildingsOnMap();
+    renderAllBuildings3D();
+    updateComplianceUI();
+  }
+
+  window.switchBuildingMode = switchBuildingMode;
+
+  if (btnModeConcept) {
+    btnModeConcept.addEventListener('click', () => switchBuildingMode('concept'));
+  }
+  if (btnModeExisting) {
+    btnModeExisting.addEventListener('click', () => switchBuildingMode('existing'));
+  }
 
   /* ==========================================================================
      11b. Manual Coefficients & Zoning Presets Event Listeners

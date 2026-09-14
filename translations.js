@@ -10,6 +10,7 @@ const translations = {
     nav_plugins: "პლაგინები",
     nav_land_intel: "GIS ანალიზი",
     nav_parcel_ai: "AI ანალიზი",
+    nav_app_mobile: "BIMX App",
     nav_philosophy: "ფილოსოფია",
     nav_modules: "მოდულები",
     nav_portfolio: "პროექტები",
@@ -450,6 +451,10 @@ const translations = {
     badge_official: "ოფიციალური მონაცემი",
     badge_calculated: "დამუშავებული მონაცემი",
     badge_ai: "AI შეფასება",
+    mode_concept_bldg: "AI განვითარების კონცეპტი",
+    mode_existing_bldg: "არსებული შენობა",
+    bldg_manager_title: "შენობების მართვა",
+    bldg_add_new: "+ ახალი შენობა",
 
     // Disclaimers & Warnings
     placement_warning: "შენობის განთავსება არის კონცეპტუალური და არ წარმოადგენს ოფიციალურ განაშენიანების ან სამშენებლო პირობებს.",
@@ -519,6 +524,7 @@ const translations = {
     nav_plugins: "Plugins",
     nav_land_intel: "GIS Analysis",
     nav_parcel_ai: "AI Analysis",
+    nav_app_mobile: "BIMX App",
     nav_philosophy: "Philosophy",
     nav_modules: "Modules",
     nav_portfolio: "Projects",
@@ -959,6 +965,10 @@ const translations = {
     badge_official: "Official Data",
     badge_calculated: "Calculated Data",
     badge_ai: "AI Estimation",
+    mode_concept_bldg: "AI Development Concept",
+    mode_existing_bldg: "Existing Structure",
+    bldg_manager_title: "Buildings Manager",
+    bldg_add_new: "+ New Building",
 
     // Disclaimers & Warnings
     placement_warning: "Building placement is conceptual and does not constitute official zoning or construction approval.",

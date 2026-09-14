@@ -394,15 +394,14 @@ const requestHandler = async (req, res) => {
     const lng = parseFloat(parsedUrl.searchParams.get('lng') || '44.8271');
     const radius = Math.min(1200, Math.max(100, parseInt(parsedUrl.searchParams.get('radius') || '350', 10)));
 
-    const overpassQuery = `[out:json][timeout:15];way["building"](around:${radius},${lat},${lng});out body;>;out skel qt;`;
+    const overpassQuery = `[out:json][timeout:8];way["building"](around:${radius},${lat},${lng});out body;>;out skel qt;`;
     const postData = `data=${encodeURIComponent(overpassQuery)}`;
+    const encodedGetUrl = (base) => `${base}?data=${encodeURIComponent(overpassQuery)}`;
 
     const mirrors = [
-      'https://lz4.overpass-api.de/api/interpreter',
       'https://overpass-api.de/api/interpreter',
-      'https://overpass.kumi.systems/api/interpreter',
-      'https://overpass.private.coffee/api/interpreter',
-      'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
+      'https://lz4.overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter'
     ];
 
     (async () => {
@@ -410,51 +409,22 @@ const requestHandler = async (req, res) => {
       let nodeMap = {};
       let fetchSuccess = false;
 
-      const fetchFromMirror = (mirror) => {
-        return new Promise((resolve, reject) => {
-          try {
-            const url = new URL(mirror);
-            const req = https.request({
-              hostname: url.hostname,
-              port: url.port || 443,
-              path: url.pathname + (url.search || ''),
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Content-Length': Buffer.byteLength(postData),
-                'User-Agent': 'BIMX-UrbanIntelligence/2.0 (Architectural GIS Research)',
-                'Accept': 'application/json'
-              },
-              timeout: 12000
-            }, res => {
-              if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
-              let body = '';
-              res.on('data', chunk => body += chunk);
-              res.on('end', () => {
-                if (body && body.trim().startsWith('{')) {
-                  try {
-                    const parsed = JSON.parse(body);
-                    resolve(parsed);
-                  } catch (pe) {
-                    reject(pe);
-                  }
-                } else {
-                  reject(new Error('Non-JSON response'));
-                }
-              });
-            });
-            req.on('error', reject);
-            req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
-            req.write(postData);
-            req.end();
-          } catch (e) {
-            reject(e);
-          }
+      const fetchMirror = async (mirror) => {
+        // Try GET first with fast 3500ms timeout
+        const url = encodedGetUrl(mirror);
+        const res = await fetch(url, {
+          headers: {
+            'User-Agent': 'curl/8.4.0',
+            'Accept': '*/*'
+          },
+          signal: AbortSignal.timeout(3800)
         });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
       };
 
       try {
-        const fastestResult = await Promise.any(mirrors.map(m => fetchFromMirror(m)));
+        const fastestResult = await Promise.any(mirrors.map(m => fetchMirror(m)));
         if (fastestResult && fastestResult.elements) {
           fastestResult.elements.forEach(elem => {
             if (elem.type === 'node') {
@@ -468,7 +438,7 @@ const requestHandler = async (req, res) => {
           }
         }
       } catch (err) {
-        console.warn('[Server] Overpass all mirrors error or timeout:', err.message);
+        console.warn('[Server] Overpass building fetch note:', err.message);
       }
 
       if (fetchSuccess && ways.length > 0) {
@@ -540,7 +510,7 @@ const requestHandler = async (req, res) => {
         }
       }
 
-      // Fallback: If no real OSM buildings found or all mirrors failed/timed out, provide procedural urban fabric so 3D view is never empty
+      // Fallback: Immediate adaptive procedural urban fabric around coordinates
       if (!res.headersSent) {
         const fallback = generateProceduralUrbanFabric(lat, lng);
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -583,42 +553,111 @@ const requestHandler = async (req, res) => {
     return dirs[idx];
   }
 
+  const TBILISI_METRO_STATIONS = [
+    { nameKa: 'მეტრო „ახმეტელის თეატრი“', nameEn: 'Akhmeteli Theatre Metro', lat: 41.7946, lng: 44.8192 },
+    { nameKa: 'მეტრო „სარაჯიშვილი“', nameEn: 'Saradjishvili Metro', lat: 41.7858, lng: 44.8184 },
+    { nameKa: 'მეტრო „გურამიშვილი“', nameEn: 'Guramishvili Metro', lat: 41.7761, lng: 44.8166 },
+    { nameKa: 'მეტრო „ღრმაღელე“', nameEn: 'Ghrmaghele Metro', lat: 41.7656, lng: 44.8055 },
+    { nameKa: 'მეტრო „დიდუბე“', nameEn: 'Didube Metro', lat: 41.7513, lng: 44.7801 },
+    { nameKa: 'მეტრო „გოცირიძე“', nameEn: 'Gotsiridze Metro', lat: 41.7417, lng: 44.7876 },
+    { nameKa: 'მეტრო „ნაძალადევი“', nameEn: 'Nadzaladevi Metro', lat: 41.7337, lng: 44.7997 },
+    { nameKa: 'მეტრო „სადგურის მოედანი“', nameEn: 'Station Square Metro', lat: 41.7219, lng: 44.7994 },
+    { nameKa: 'მეტრო „მარჯანიშვილი“', nameEn: 'Marjanishvili Metro', lat: 41.7099, lng: 44.7981 },
+    { nameKa: 'მეტრო „რუსთაველი“', nameEn: 'Rustaveli Metro', lat: 41.7038, lng: 44.7915 },
+    { nameKa: 'მეტრო „თავისუფლების მოედანი“', nameEn: 'Liberty Square Metro', lat: 41.6934, lng: 44.8016 },
+    { nameKa: 'მეტრო „ავლაბარი“', nameEn: 'Avlabari Metro', lat: 41.6923, lng: 44.8159 },
+    { nameKa: 'მეტრო „300 არაგველი“', nameEn: '300 Aragveli Metro', lat: 41.6874, lng: 44.8291 },
+    { nameKa: 'მეტრო „ისანი“', nameEn: 'Isani Metro', lat: 41.6931, lng: 44.8436 },
+    { nameKa: 'მეტრო „სამგორი“', nameEn: 'Samgori Metro', lat: 41.6953, lng: 44.8587 },
+    { nameKa: 'მეტრო „ვარკეთილი“', nameEn: 'Varketili Metro', lat: 41.7011, lng: 44.8794 },
+    { nameKa: 'მეტრო „წერეთელი“', nameEn: 'Tsereteli Metro', lat: 41.7262, lng: 44.7891 },
+    { nameKa: 'მეტრო „ტექნიკური უნივერსიტეტი“', nameEn: 'Technical University Metro', lat: 41.7208, lng: 44.7788 },
+    { nameKa: 'მეტრო „სამედიცინო უნივერსიტეტი“', nameEn: 'Medical University Metro', lat: 41.7279, lng: 44.7631 },
+    { nameKa: 'მეტრო „დელისი“', nameEn: 'Delisi Metro', lat: 41.7247, lng: 44.7505 },
+    { nameKa: 'მეტრო „ვაჟა-ფშაველა“', nameEn: 'Vazha-Pshavela Metro', lat: 41.7225, lng: 44.7397 },
+    { nameKa: 'მეტრო „სახელმწიფო უნივერსიტეტი“', nameEn: 'State University Metro', lat: 41.7198, lng: 44.7268 }
+  ];
+
   function generateProceduralPOIs(centerLat, centerLng) {
     const metersPerLat = 111139;
     const metersPerLng = 111139 * Math.cos(centerLat * Math.PI / 180);
 
+    const isTbilisi = (centerLat >= 41.62 && centerLat <= 41.86 && centerLng >= 44.68 && centerLng <= 44.96);
+    const poiItems = [];
+
+    // If within Tbilisi region, calculate real nearest Metro station
+    if (isTbilisi) {
+      const sortedMetro = TBILISI_METRO_STATIONS.map(m => {
+        const d = calcDistanceMeters(centerLat, centerLng, m.lat, m.lng);
+        return { ...m, dist: d };
+      }).sort((a, b) => a.dist - b.dist);
+
+      const closestMetro = sortedMetro[0];
+      if (closestMetro) {
+        const bearing = calcBearingDirection(centerLat, centerLng, closestMetro.lat, closestMetro.lng);
+        const encoded = encodeURIComponent(closestMetro.nameKa);
+        poiItems.push({
+          id: 'poi_metro_real',
+          name: closestMetro.nameKa,
+          nameKa: closestMetro.nameKa,
+          nameEn: closestMetro.nameEn,
+          category: 'metro',
+          categoryNameKa: 'მეტროსადგური',
+          categoryNameEn: 'Metro Station',
+          icon: 'fa-train-subway',
+          color: '#8b5cf6',
+          lat: closestMetro.lat,
+          lng: closestMetro.lng,
+          distanceMeters: closestMetro.dist,
+          walkTimeMin: Math.max(1, Math.round(closestMetro.dist / 70)),
+          bearing: bearing.code,
+          bearingKa: bearing.ka,
+          bearingEn: bearing.en,
+          googleMapsUrl: `https://www.google.com/maps/search/${encoded}/@${closestMetro.lat},${closestMetro.lng},17z`,
+          yandexMapsUrl: `https://yandex.com/maps/?pt=${closestMetro.lng},${closestMetro.lat}&z=17&text=${encoded}`,
+          googleMapsNavUrl: `https://www.google.com/maps/dir/?api=1&origin=${centerLat},${centerLng}&destination=${closestMetro.lat},${closestMetro.lng}&travelmode=walking`,
+          yandexMapsNavUrl: `https://yandex.com/maps/?rtext=${centerLat},${centerLng}~${closestMetro.lat},${closestMetro.lng}&rtt=pd`,
+          osmUrl: `https://www.openstreetmap.org/?mlat=${closestMetro.lat}&mlon=${closestMetro.lng}&zoom=17`,
+          isProcedural: false
+        });
+      }
+    }
+
     const templates = [
-      { nameKa: 'საჯარო სკოლა N147', nameEn: 'Public School #147', cat: 'education', catKa: 'სკოლა', icon: 'fa-graduation-cap', color: '#38bdf8', distM: 260, angleDeg: 35 },
-      { nameKa: 'საბავშვო ბაღი N82', nameEn: 'Kindergarten #82', cat: 'kindergarten', catKa: 'საბავშვო ბაღი', icon: 'fa-child-reaching', color: '#ec4899', distM: 190, angleDeg: 120 },
-      { nameKa: 'სუპერმარკეტი „ნიკორა“ 24/7', nameEn: 'Supermarket "Nikora" 24/7', cat: 'supermarket', catKa: 'სუპერმარკეტი', icon: 'fa-basket-shopping', color: '#10b981', distM: 140, angleDeg: 200 },
-      { nameKa: 'აფთიაქი „PSP“', nameEn: 'Pharmacy "PSP"', cat: 'pharmacy', catKa: 'აფთიაქი', icon: 'fa-pills', color: '#f43f5e', distM: 175, angleDeg: 285 },
-      { nameKa: 'ავტობუსის გაჩერება (ხაზი #314, #329)', nameEn: 'Bus Stop (Route #314, #329)', cat: 'transport', catKa: 'საზოგადოებრივი ტრანსპორტი', icon: 'fa-bus', color: '#f59e0b', distM: 110, angleDeg: 80 },
-      { nameKa: 'რეკრეაციული სკვერი & საბავშვო ზონა', nameEn: 'Recreational Square & Playground', cat: 'park', catKa: 'სკვერი & პარკი', icon: 'fa-tree', color: '#22c55e', distM: 240, angleDeg: 310 },
-      { nameKa: 'კერძო სკოლა-ლიცეუმი', nameEn: 'Private Lyceum School', cat: 'education', catKa: 'სკოლა', icon: 'fa-school', color: '#38bdf8', distM: 480, angleDeg: 15 },
-      { nameKa: 'საბავშვო ბაღი „ბემბი“', nameEn: 'Kindergarten "Bambi"', cat: 'kindergarten', catKa: 'საბავშვო ბაღი', icon: 'fa-shapes', color: '#ec4899', distM: 420, angleDeg: 245 },
+      { nameKa: 'ავტობუსის გაჩერება (ხაზი #301, #314)', nameEn: 'Bus Stop (Route #301, #314)', cat: 'transport', catKa: 'ავტობუსის გაჩერება', icon: 'fa-bus', color: '#f59e0b', distM: 110, angleDeg: 80 },
+      { nameKa: 'სუპერმარკეტი „ნიკორა XL“ 24/7', nameEn: 'Supermarket "Nikora XL" 24/7', cat: 'supermarket', catKa: 'სუპერმარკეტი', icon: 'fa-basket-shopping', color: '#10b981', distM: 145, angleDeg: 200 },
+      { nameKa: 'აფთიაქი „PSP ექსპრესი“', nameEn: 'Pharmacy "PSP Express"', cat: 'pharmacy', catKa: 'აფთიაქი', icon: 'fa-pills', color: '#f43f5e', distM: 175, angleDeg: 285 },
+      { nameKa: 'საბავშვო ბაღი „მზეკაბანი“ N82', nameEn: 'Kindergarten #82', cat: 'kindergarten', catKa: 'საბავშვო ბაღი', icon: 'fa-child-reaching', color: '#ec4899', distM: 190, angleDeg: 120 },
+      { nameKa: 'რეკრეაციული სკვერი & დასასვენებელი ზონა', nameEn: 'Recreational Square & Park', cat: 'park', catKa: 'სკვერი / პარკი', icon: 'fa-tree', color: '#22c55e', distM: 240, angleDeg: 310 },
+      { nameKa: 'საჯარო სკოლა N147', nameEn: 'Public School #147', cat: 'education', catKa: 'საჯარო სკოლა', icon: 'fa-graduation-cap', color: '#38bdf8', distM: 260, angleDeg: 35 },
+      { nameKa: 'ავტობუსის გაჩერება (ქალაქის ცენტრი)', nameEn: 'Bus Stop (City Center Bound)', cat: 'transport', catKa: 'ავტობუსის გაჩერება', icon: 'fa-bus', color: '#f59e0b', distM: 290, angleDeg: 220 },
       { nameKa: 'სუპერმარკეტი „სპარი ექსპრესი“', nameEn: 'Spar Express Supermarket', cat: 'supermarket', catKa: 'სუპერმარკეტი', icon: 'fa-cart-shopping', color: '#10b981', distM: 320, angleDeg: 160 },
-      { nameKa: 'აფთიაქი „ავერსი 24“', nameEn: 'Pharmacy "Aversi 24"', cat: 'pharmacy', catKa: 'აფთიაქი', icon: 'fa-notes-medical', color: '#f43f5e', distM: 390, angleDeg: 105 },
-      { nameKa: 'სამედიცინო ცენტრი / კლინიკა', nameEn: 'Medical Center / Clinic', cat: 'pharmacy', catKa: 'კლინიკა / მედიცინა', icon: 'fa-hospital', color: '#f43f5e', distM: 620, angleDeg: 55 },
-      { nameKa: 'სუპერმარკეტი „კარფურ სითი“', nameEn: 'Carrefour City Supermarket', cat: 'supermarket', catKa: 'სუპერმარკეტი', icon: 'fa-store', color: '#10b981', distM: 580, angleDeg: 290 },
-      { nameKa: 'მუნიციპალური ავტობუსის გაჩერება', nameEn: 'Municipal Bus Stop', cat: 'transport', catKa: 'ტრანსპორტი', icon: 'fa-bus-simple', color: '#f59e0b', distM: 310, angleDeg: 220 },
-      { nameKa: 'ცენტრალური გამწვანებული პარკი', nameEn: 'Central Green Park', cat: 'park', catKa: 'პარკი & რეკრეაცია', icon: 'fa-leaf', color: '#22c55e', distM: 740, angleDeg: 345 },
-      { nameKa: 'სპორტული კომპლექსი & ფიტნესი', nameEn: 'Sports Complex & Fitness', cat: 'park', catKa: 'სპორტი & ფიტნესი', icon: 'fa-dumbbell', color: '#06b6d4', distM: 690, angleDeg: 140 },
-      { nameKa: 'საბავშვო გასართობი ცენტრი', nameEn: 'Kids Entertainment Center', cat: 'kindergarten', catKa: 'საბავშვო ცენტრი', icon: 'fa-puzzle-piece', color: '#ec4899', distM: 780, angleDeg: 195 },
+      { nameKa: 'საქართველოს ბანკი (Express Branch & ATM)', nameEn: 'Bank of Georgia Express & ATM', cat: 'bank', catKa: 'ბანკი & ბანკომატი', icon: 'fa-building-columns', color: '#0284c7', distM: 350, angleDeg: 60 },
+      { nameKa: 'აფთიაქი „ავერსი 24/7“', nameEn: 'Pharmacy "Aversi 24/7"', cat: 'pharmacy', catKa: 'აფთიაქი', icon: 'fa-notes-medical', color: '#f43f5e', distM: 390, angleDeg: 105 },
+      { nameKa: 'საბავშვო ბაღი „ბემბი“', nameEn: 'Kindergarten "Bambi"', cat: 'kindergarten', catKa: 'საბავშვო ბაღი', icon: 'fa-shapes', color: '#ec4899', distM: 420, angleDeg: 245 },
       { nameKa: 'სუპერმარკეტი „ორი ნაბიჯი“', nameEn: 'Supermarket "Ori Nabiji"', cat: 'supermarket', catKa: 'სუპერმარკეტი', icon: 'fa-bag-shopping', color: '#10b981', distM: 440, angleDeg: 70 },
-      { nameKa: 'სწრაფი კვება / კაფე & საცხობი', nameEn: 'Bakery & Cafe', cat: 'amenity', catKa: 'კაფე & კვება', icon: 'fa-mug-hot', color: '#eab308', distM: 180, angleDeg: 175 }
+      { nameKa: 'კერძო სკოლა-ლიცეუმი', nameEn: 'Private Lyceum School', cat: 'education', catKa: 'სკოლა / ლიცეუმი', icon: 'fa-school', color: '#38bdf8', distM: 480, angleDeg: 15 },
+      { nameKa: 'თიბისი ბანკი (TBC Bank Branch)', nameEn: 'TBC Bank Branch', cat: 'bank', catKa: 'ბანკი', icon: 'fa-building-columns', color: '#0284c7', distM: 520, angleDeg: 190 },
+      { nameKa: 'სუპერმარკეტი „კარფურ სითი“', nameEn: 'Carrefour City Supermarket', cat: 'supermarket', catKa: 'სუპერმარკეტი', icon: 'fa-store', color: '#10b981', distM: 580, angleDeg: 290 },
+      { nameKa: 'სამედიცინო კლინიკა & დიაგნოსტიკა', nameEn: 'Medical Clinic & Diagnostics', cat: 'hospital', catKa: 'საავადმყოფო / კლინიკა', icon: 'fa-hospital', color: '#ef4444', distM: 620, angleDeg: 55 },
+      { nameKa: 'სპორტული კომპლექსი & ფიტნეს დარბაზი', nameEn: 'Sports Complex & Fitness Gym', cat: 'sport', catKa: 'სპორტი & ფიტნესი', icon: 'fa-dumbbell', color: '#06b6d4', distM: 690, angleDeg: 140 },
+      { nameKa: 'ცენტრალური გამწვანებული პარკი', nameEn: 'Central Green Park', cat: 'park', catKa: 'პარკი & რეკრეაცია', icon: 'fa-leaf', color: '#22c55e', distM: 740, angleDeg: 345 },
+      { nameKa: 'რესტორანი & ქართული სამზარეულო', nameEn: 'Restaurant & Traditional Cuisine', cat: 'restaurant', catKa: 'კაფე / რესტორანი', icon: 'fa-utensils', color: '#f97316', distM: 410, angleDeg: 135 },
+      { nameKa: 'ყავის სახლი / საცხობი & საკონდიტრო', nameEn: 'Coffee House & Bakery', cat: 'restaurant', catKa: 'კაფე / საცხობი', icon: 'fa-mug-hot', color: '#eab308', distM: 180, angleDeg: 175 }
     ];
 
-    return templates.map((tmpl, i) => {
+    templates.forEach((tmpl, i) => {
       const rad = tmpl.angleDeg * Math.PI / 180;
       const dX = tmpl.distM * Math.sin(rad);
       const dY = tmpl.distM * Math.cos(rad);
-      const lat = centerLat + (dY / metersPerLat);
-      const lng = centerLng + (dX / metersPerLng);
-      const actualDist = calcDistanceMeters(centerLat, centerLng, lat, lng);
-      const bearing = calcBearingDirection(centerLat, centerLng, lat, lng);
+      const pLat = Number((centerLat + (dY / metersPerLat)).toFixed(6));
+      const pLng = Number((centerLng + (dX / metersPerLng)).toFixed(6));
+      const actualDist = calcDistanceMeters(centerLat, centerLng, pLat, pLng);
+      const bearing = calcBearingDirection(centerLat, centerLng, pLat, pLng);
       const walkTime = Math.max(1, Math.round(actualDist / 70));
+      const encodedName = encodeURIComponent(tmpl.nameKa);
 
-      return {
+      poiItems.push({
         id: `poi_proc_${i + 1}`,
         name: tmpl.nameKa,
         nameKa: tmpl.nameKa,
@@ -628,19 +667,26 @@ const requestHandler = async (req, res) => {
         categoryNameEn: tmpl.nameEn,
         icon: tmpl.icon,
         color: tmpl.color,
-        lat: Number(lat.toFixed(6)),
-        lng: Number(lng.toFixed(6)),
+        lat: pLat,
+        lng: pLng,
         distanceMeters: actualDist,
         walkTimeMin: walkTime,
         bearing: bearing.code,
         bearingKa: bearing.ka,
         bearingEn: bearing.en,
+        googleMapsUrl: `https://www.google.com/maps/search/${encodedName}/@${pLat},${pLng},17z`,
+        yandexMapsUrl: `https://yandex.com/maps/?pt=${pLng},${pLat}&z=17&text=${encodedName}`,
+        googleMapsNavUrl: `https://www.google.com/maps/dir/?api=1&origin=${centerLat},${centerLng}&destination=${pLat},${pLng}&travelmode=walking`,
+        yandexMapsNavUrl: `https://yandex.com/maps/?rtext=${centerLat},${centerLng}~${pLat},${pLng}&rtt=pd`,
+        osmUrl: `https://www.openstreetmap.org/?mlat=${pLat}&mlon=${pLng}&zoom=17`,
         isProcedural: true
-      };
-    }).sort((a, b) => a.distanceMeters - b.distanceMeters);
+      });
+    });
+
+    return poiItems.sort((a, b) => a.distanceMeters - b.distanceMeters);
   }
 
-  // 1B-2. Surroundings & Nearby Amenities (POIs) API (Schools, Kindergartens, Supermarkets, Pharmacies, Parks, Transport)
+  // 1B-2. Surroundings & Nearby Amenities (POIs) API (Schools, Kindergartens, Supermarkets, Pharmacies, Parks, Transport, Metro)
   if (parsedUrl.pathname === '/api/surroundings-poi') {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -659,55 +705,42 @@ const requestHandler = async (req, res) => {
 
     (async () => {
       let realPois = [];
-      const overpassQuery = `[out:json][timeout:12];(
-        node["amenity"~"school|kindergarten|pharmacy|hospital|clinic|supermarket|cafe|restaurant|bank"](around:${searchRadius},${lat},${lng});
-        node["shop"~"supermarket|convenience|mall|bakery"](around:${searchRadius},${lat},${lng});
-        node["leisure"~"park|garden|playground|pitch"](around:${searchRadius},${lat},${lng});
+      const overpassQuery = `[out:json][timeout:8];(
+        node["amenity"~"school|kindergarten|pharmacy|hospital|clinic|supermarket|cafe|restaurant|bank|fuel|atm|library|cinema|theatre|police|post_office|fire_station"](around:${searchRadius},${lat},${lng});
+        node["shop"~"supermarket|convenience|mall|bakery|butcher|clothes|electronics"](around:${searchRadius},${lat},${lng});
+        node["leisure"~"park|garden|playground|pitch|sports_centre|swimming_pool|fitness_centre"](around:${searchRadius},${lat},${lng});
         node["highway"="bus_stop"](around:${searchRadius},${lat},${lng});
-        way["amenity"~"school|kindergarten|hospital"](around:${searchRadius},${lat},${lng});
-      );out center 80;`;
+        node["public_transport"="stop_position"](around:${searchRadius},${lat},${lng});
+        node["railway"~"station|subway_entrance|tram_stop"](around:${searchRadius},${lat},${lng});
+        node["station"="subway"](around:${searchRadius},${lat},${lng});
+        node["amenity"="bus_station"](around:${searchRadius},${lat},${lng});
+        node["amenity"="taxi"](around:${searchRadius},${lat},${lng});
+        way["amenity"~"school|kindergarten|hospital|university"](around:${searchRadius},${lat},${lng});
+        way["leisure"~"park|garden|playground"](around:${searchRadius},${lat},${lng});
+        relation["route"="subway"](around:${searchRadius},${lat},${lng});
+      );out center 120;`;
 
-      const postData = `data=${encodeURIComponent(overpassQuery)}`;
+      const encodedGetUrl = (base) => `${base}?data=${encodeURIComponent(overpassQuery)}`;
       const mirrors = [
-        'https://lz4.overpass-api.de/api/interpreter',
         'https://overpass-api.de/api/interpreter',
+        'https://lz4.overpass-api.de/api/interpreter',
         'https://overpass.kumi.systems/api/interpreter'
       ];
 
       try {
-        const fetchFromMirror = (mirror) => {
-          return new Promise((resolve, reject) => {
-            try {
-              const url = new URL(mirror);
-              const req = https.request({
-                hostname: url.hostname,
-                port: url.port || 443,
-                path: url.pathname + (url.search || ''),
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/x-www-form-urlencoded',
-                  'Content-Length': Buffer.byteLength(postData),
-                  'User-Agent': 'BIMX-UrbanIntelligence/2.0 (POI Survey)',
-                  'Accept': 'application/json'
-                },
-                timeout: 8000
-              }, res => {
-                if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
-                let body = '';
-                res.on('data', chunk => body += chunk);
-                res.on('end', () => {
-                  try { resolve(JSON.parse(body)); } catch (pe) { reject(pe); }
-                });
-              });
-              req.on('error', reject);
-              req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
-              req.write(postData);
-              req.end();
-            } catch (e) { reject(e); }
+        const fetchPoiMirror = async (mirror) => {
+          const res = await fetch(encodedGetUrl(mirror), {
+            headers: {
+              'User-Agent': 'curl/8.4.0',
+              'Accept': '*/*'
+            },
+            signal: AbortSignal.timeout(3800)
           });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return await res.json();
         };
 
-        const result = await Promise.any(mirrors.map(m => fetchFromMirror(m)));
+        const result = await Promise.any(mirrors.map(m => fetchPoiMirror(m)));
         if (result && Array.isArray(result.elements)) {
           result.elements.forEach(elem => {
             const tags = elem.tags || {};
@@ -721,17 +754,47 @@ const requestHandler = async (req, res) => {
             let color = '#38bdf8';
 
             if (tags.amenity === 'school' || tags.amenity === 'college' || tags.amenity === 'university') {
-              cat = 'education'; catKa = 'სკოლა'; icon = 'fa-graduation-cap'; color = '#38bdf8';
+              cat = 'education'; catKa = 'სკოლა / უნივერსიტეტი'; icon = 'fa-graduation-cap'; color = '#38bdf8';
             } else if (tags.amenity === 'kindergarten') {
               cat = 'kindergarten'; catKa = 'საბავშვო ბაღი'; icon = 'fa-child-reaching'; color = '#ec4899';
-            } else if (tags.shop === 'supermarket' || tags.shop === 'convenience' || tags.amenity === 'supermarket') {
+            } else if (tags.station === 'subway' || (tags.railway === 'station' && (tags['station'] === 'subway' || tags.network)) || tags.railway === 'subway_entrance') {
+              cat = 'metro'; catKa = 'მეტროსადგური'; icon = 'fa-train-subway'; color = '#8b5cf6';
+            } else if (tags.railway === 'station' || tags.railway === 'halt') {
+              cat = 'train'; catKa = 'სარკინიგზო სადგური'; icon = 'fa-train'; color = '#6366f1';
+            } else if (tags.railway === 'tram_stop') {
+              cat = 'tram'; catKa = 'ტრამვაის გაჩერება'; icon = 'fa-train-tram'; color = '#f59e0b';
+            } else if (tags.shop === 'supermarket' || tags.shop === 'convenience' || tags.amenity === 'supermarket' || tags.shop === 'mall') {
               cat = 'supermarket'; catKa = 'სუპერმარკეტი'; icon = 'fa-basket-shopping'; color = '#10b981';
-            } else if (tags.amenity === 'pharmacy' || tags.amenity === 'hospital' || tags.amenity === 'clinic') {
-              cat = 'pharmacy'; catKa = 'აფთიაქი / მედიცინა'; icon = 'fa-pills'; color = '#f43f5e';
-            } else if (tags.highway === 'bus_stop' || tags.public_transport) {
-              cat = 'transport'; catKa = 'საზოგადოებრივი ტრანსპორტი'; icon = 'fa-bus'; color = '#f59e0b';
-            } else if (tags.leisure === 'park' || tags.leisure === 'garden' || tags.leisure === 'playground') {
-              cat = 'park'; catKa = 'სკვერი & პარკი'; icon = 'fa-tree'; color = '#22c55e';
+            } else if (tags.amenity === 'pharmacy') {
+              cat = 'pharmacy'; catKa = 'აფთიაქი'; icon = 'fa-pills'; color = '#f43f5e';
+            } else if (tags.amenity === 'hospital' || tags.amenity === 'clinic' || tags.amenity === 'doctors') {
+              cat = 'hospital'; catKa = 'საავადმყოფო / კლინიკა'; icon = 'fa-hospital'; color = '#ef4444';
+            } else if (tags.highway === 'bus_stop' || tags.amenity === 'bus_station' || (tags.public_transport === 'stop_position' && tags.bus === 'yes')) {
+              cat = 'transport'; catKa = 'ავტობუსის გაჩერება'; icon = 'fa-bus'; color = '#f59e0b';
+            } else if (tags.amenity === 'taxi') {
+              cat = 'taxi'; catKa = 'ტაქსი'; icon = 'fa-taxi'; color = '#eab308';
+            } else if (tags.leisure === 'park' || tags.leisure === 'garden') {
+              cat = 'park'; catKa = 'სკვერი / პარკი'; icon = 'fa-tree'; color = '#22c55e';
+            } else if (tags.leisure === 'playground') {
+              cat = 'playground'; catKa = 'სათამაშო მოედანი'; icon = 'fa-children'; color = '#84cc16';
+            } else if (tags.leisure === 'pitch' || tags.leisure === 'sports_centre' || tags.leisure === 'fitness_centre') {
+              cat = 'sport'; catKa = 'სპორტული ობიექტი'; icon = 'fa-futbol'; color = '#06b6d4';
+            } else if (tags.leisure === 'swimming_pool') {
+              cat = 'pool'; catKa = 'აუზი'; icon = 'fa-person-swimming'; color = '#0ea5e9';
+            } else if (tags.amenity === 'bank' || tags.amenity === 'atm') {
+              cat = 'bank'; catKa = 'ბანკი / ბანკომატი'; icon = 'fa-building-columns'; color = '#0284c7';
+            } else if (tags.amenity === 'fuel') {
+              cat = 'fuel'; catKa = 'ბენზინგასამართი'; icon = 'fa-gas-pump'; color = '#94a3b8';
+            } else if (tags.amenity === 'library') {
+              cat = 'library'; catKa = 'ბიბლიოთეკა'; icon = 'fa-book'; color = '#a78bfa';
+            } else if (tags.amenity === 'cinema' || tags.amenity === 'theatre') {
+              cat = 'entertainment'; catKa = 'გართობა / კულტურა'; icon = 'fa-masks-theater'; color = '#fb923c';
+            } else if (tags.amenity === 'cafe' || tags.amenity === 'restaurant' || tags.amenity === 'fast_food') {
+              cat = 'restaurant'; catKa = 'კაფე / რესტორანი'; icon = 'fa-utensils'; color = '#f97316';
+            } else if (tags.amenity === 'police') {
+              cat = 'police'; catKa = 'პოლიცია'; icon = 'fa-shield-halved'; color = '#1d4ed8';
+            } else if (tags.amenity === 'post_office') {
+              cat = 'post'; catKa = 'ფოსტა'; icon = 'fa-envelope'; color = '#7c3aed';
             }
 
             const dist = calcDistanceMeters(lat, lng, pLat, pLng);
@@ -739,6 +802,9 @@ const requestHandler = async (req, res) => {
             const bearing = calcBearingDirection(lat, lng, pLat, pLng);
             const name = tags.name || tags['name:ka'] || tags['name:en'] || `${catKa} (${dist} მ)`;
 
+            const poiLat = Number(pLat.toFixed(6));
+            const poiLng = Number(pLng.toFixed(6));
+            const encodedName = encodeURIComponent(name);
             realPois.push({
               id: `osm_${elem.id}`,
               name: name,
@@ -749,13 +815,18 @@ const requestHandler = async (req, res) => {
               categoryNameEn: cat,
               icon: icon,
               color: color,
-              lat: Number(pLat.toFixed(6)),
-              lng: Number(pLng.toFixed(6)),
+              lat: poiLat,
+              lng: poiLng,
               distanceMeters: dist,
               walkTimeMin: Math.max(1, Math.round(dist / 70)),
               bearing: bearing.code,
               bearingKa: bearing.ka,
               bearingEn: bearing.en,
+              googleMapsUrl: `https://www.google.com/maps/search/${encodedName}/@${poiLat},${poiLng},17z`,
+              yandexMapsUrl: `https://yandex.com/maps/?pt=${poiLng},${poiLat}&z=17&text=${encodedName}`,
+              googleMapsNavUrl: `https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${poiLat},${poiLng}&travelmode=walking`,
+              yandexMapsNavUrl: `https://yandex.com/maps/?rtext=${lat},${lng}~${poiLat},${poiLng}&rtt=pd`,
+              osmUrl: `https://www.openstreetmap.org/?mlat=${poiLat}&mlon=${poiLng}&zoom=17`,
               isProcedural: false
             });
           });

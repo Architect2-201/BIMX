@@ -1,0 +1,1608 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>BIMX Mobile App — Architectural AI Platform</title>
+  <meta name="description" content="Premium architectural ConTech & AI mobile platform by BIMX Studio. Land analysis, generative design concepts, and 3D BIM visualization.">
+  <link rel="icon" type="image/png" href="assets/images/favicon.png">
+  <link rel="apple-touch-icon" href="assets/images/favicon.png">
+
+  <!-- Google Fonts: Inter & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- FontAwesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <style>
+    /* ==========================================================================
+       BIMX Mobile App — Precision Architectural ConTech Design System
+       Colors: #080A0D (Base), #101318 (Graphite), #151A20 (Card), #252B33 (Border)
+       Accents: #DCE8F5 (Ice-blue Primary), #7FA9C9 (Technical Blue), #A8C7E5 (AI Cold Blue)
+       ========================================================================== */
+    :root {
+      --bg-base: #080A0D;
+      --bg-surface: #101318;
+      --bg-elevated: #151A20;
+      --bg-card-hover: #1c232c;
+      --border-subtle: #252B33;
+      --border-active: #7FA9C9;
+
+      --text-primary: #F5F7FA;
+      --text-secondary: #9BA3AE;
+      --text-muted: #626B76;
+      --text-inverse: #080A0D;
+
+      --accent-primary: #DCE8F5;
+      --accent-secondary: #7FA9C9;
+      --accent-ai: #A8C7E5;
+      --accent-success: #8FB89A;
+      --accent-warning: #C7A875;
+      --accent-error: #C97878;
+
+      --radius-card: 18px;
+      --radius-btn: 14px;
+      --radius-sm: 10px;
+      --radius-full: 9999px;
+
+      --font-main: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'Space Grotesk', monospace;
+
+      --transition-smooth: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: var(--font-main);
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Studio Presentation Header (Visible on Desktop / Tablets) */
+    .app-showcase-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 28px;
+      background: rgba(8, 10, 13, 0.95);
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .app-brand-area {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .app-brand-logo {
+      height: 24px;
+      width: auto;
+      filter: invert(1);
+      display: block;
+    }
+
+    .app-version-pill {
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      padding: 3px 9px;
+      border-radius: var(--radius-full);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .showcase-mode-switcher {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-surface);
+      padding: 4px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .btn-showcase-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+    }
+
+    .btn-showcase-tab.active {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .btn-showcase-tab:hover:not(.active) {
+      color: var(--text-primary);
+    }
+
+    .app-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-back-web {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      transition: var(--transition-smooth);
+    }
+
+    .btn-back-web:hover {
+      color: var(--text-primary);
+      border-color: var(--accent-secondary);
+      background: var(--bg-surface);
+    }
+
+    /* Presentation Wrapper */
+    .app-presentation-container {
+      width: 100%;
+      min-height: calc(100vh - 70px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    /* ==========================================================================
+       1. MULTI-DEVICE 5-SCREENS SHOWCASE (Replicating the User's Reference Photo)
+       ========================================================================== */
+    .devices-gallery-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 24px;
+      max-width: 1720px;
+      width: 100%;
+      overflow-x: auto;
+      padding: 20px 10px 40px;
+      perspective: 1000px;
+    }
+
+    .phone-mockup-wrapper {
+      flex: 0 0 310px;
+      height: 640px;
+      border-radius: 46px;
+      background: #020305;
+      padding: 11px;
+      box-shadow: 0 28px 65px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.12), inset 0 0 0 2px #262a33;
+      position: relative;
+      user-select: none;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+    }
+
+    .phone-mockup-wrapper:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 38px 80px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(127, 169, 201, 0.3), inset 0 0 0 2px #343c48;
+    }
+
+    .phone-speaker-dynamic-island {
+      position: absolute;
+      top: 19px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 82px;
+      height: 22px;
+      background: #000000;
+      border-radius: 12px;
+      z-index: 999;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 8px;
+    }
+
+    .phone-speaker-dynamic-island::after {
+      content: '';
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #0d141e;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* Screen Frame Inside Phone */
+    .screen-container {
+      width: 100%;
+      height: 100%;
+      border-radius: 36px;
+      background: var(--bg-base);
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Status Bar (9:41, Network, Battery) */
+    .phone-status-bar {
+      height: 38px;
+      padding: 10px 22px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      z-index: 990;
+      flex-shrink: 0;
+    }
+
+    .phone-status-icons {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+    }
+
+    /* Screen Inner Scrollable Content */
+    .screen-body {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      scrollbar-width: none;
+    }
+
+    .screen-body::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* ==========================================================================
+       SCREEN 1: WELCOME / ONBOARDING
+       ========================================================================== */
+    .screen-welcome {
+      position: relative;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 0 20px 28px;
+      background: url('assets/images/app-welcome-bg.jpg') center top / cover no-repeat;
+    }
+
+    .screen-welcome::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(8, 10, 13, 0.25) 0%, rgba(8, 10, 13, 0.75) 55%, #080A0D 95%);
+      pointer-events: none;
+    }
+
+    .welcome-content-wrap {
+      position: relative;
+      z-index: 10;
+      margin-top: 140px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .welcome-logo {
+      height: 36px;
+      width: auto;
+      filter: invert(1) brightness(1.2);
+      margin-bottom: 20px;
+      display: block;
+    }
+
+    .welcome-tagline {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      color: var(--text-secondary);
+      line-height: 1.8;
+      text-transform: uppercase;
+    }
+
+    .welcome-actions {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .btn-app-primary {
+      width: 100%;
+      padding: 14px 20px;
+      border-radius: var(--radius-btn);
+      background: var(--accent-primary);
+      color: var(--text-inverse);
+      font-size: 0.86rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      letter-spacing: 0.02em;
+      transition: var(--transition-smooth);
+      box-shadow: 0 4px 16px rgba(220, 232, 245, 0.18);
+    }
+
+    .btn-app-primary:hover {
+      background: #ffffff;
+      transform: scale(0.99);
+    }
+
+    .btn-app-secondary {
+      width: 100%;
+      padding: 13px 20px;
+      border-radius: var(--radius-btn);
+      background: rgba(16, 19, 24, 0.6);
+      color: var(--text-primary);
+      font-size: 0.82rem;
+      font-weight: 600;
+      border: 1px solid var(--border-subtle);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      letter-spacing: 0.04em;
+      transition: var(--transition-smooth);
+      backdrop-filter: blur(10px);
+    }
+
+    .btn-app-secondary:hover {
+      background: var(--bg-surface);
+      border-color: var(--text-secondary);
+    }
+
+    /* ==========================================================================
+       SCREEN 2: HOME / DASHBOARD
+       ========================================================================== */
+    .screen-home {
+      padding: 6px 16px 70px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .app-screen-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0 6px;
+    }
+
+    .app-header-logo {
+      height: 18px;
+      width: auto;
+      filter: invert(1);
+    }
+
+    .app-user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .app-greeting-box {
+      margin-top: 2px;
+    }
+
+    .greeting-sub {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      font-weight: 400;
+    }
+
+    .greeting-main {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.28;
+      letter-spacing: -0.02em;
+      margin-top: 2px;
+    }
+
+    /* Hero Land Analysis Card */
+    .card-hero-land {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-card);
+      overflow: hidden;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      position: relative;
+    }
+
+    .card-hero-land:hover {
+      border-color: var(--border-active);
+      transform: translateY(-2px);
+    }
+
+    .hero-land-map-thumb {
+      height: 124px;
+      width: 100%;
+      background: radial-gradient(circle at center, rgba(127, 169, 201, 0.15) 0%, rgba(8, 10, 13, 0.8) 75%),
+                  url('https://tile.openstreetmap.org/16/37277/24222.png') center / cover no-repeat;
+      position: relative;
+      border-bottom: 1px solid var(--border-subtle);
+      filter: saturate(0.2) contrast(1.1) brightness(0.65);
+    }
+
+    .hero-land-polygon {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 72px;
+      height: 54px;
+      border: 2px solid var(--accent-secondary);
+      border-radius: 6px;
+      background: rgba(127, 169, 201, 0.22);
+      box-shadow: 0 0 14px rgba(127, 169, 201, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hero-land-pin {
+      width: 18px;
+      height: 18px;
+      background: var(--accent-primary);
+      color: var(--bg-base);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.62rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+    }
+
+    .hero-land-info {
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .hero-land-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--text-primary);
+    }
+
+    .hero-land-desc {
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .hero-land-arrow {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      transition: var(--transition-smooth);
+    }
+
+    .card-hero-land:hover .hero-land-arrow {
+      color: var(--accent-primary);
+      transform: translateX(3px);
+    }
+
+    /* 2x2 Modules Grid */
+    .modules-2x2-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .module-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-card);
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 114px;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+    }
+
+    .module-card:hover {
+      border-color: var(--accent-secondary);
+      background: var(--bg-card-hover);
+      transform: translateY(-2px);
+    }
+
+    .module-icon-wrap {
+      width: 28px;
+      height: 28px;
+      color: var(--text-primary);
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+    }
+
+    .module-title {
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-primary);
+    }
+
+    .module-desc {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      line-height: 1.3;
+      margin-top: 2px;
+    }
+
+    .module-arrow {
+      align-self: flex-end;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Bottom Tab Bar */
+    .phone-bottom-nav {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      background: rgba(16, 19, 24, 0.94);
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 10px 4px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      z-index: 995;
+    }
+
+    .nav-tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      color: var(--text-muted);
+      font-size: 0.65rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      background: none;
+      border: none;
+    }
+
+    .nav-tab-item i {
+      font-size: 1.05rem;
+    }
+
+    .nav-tab-item.active {
+      color: var(--accent-primary);
+      font-weight: 700;
+    }
+
+    /* ==========================================================================
+       SCREEN 3: LAND ANALYSIS
+       ========================================================================== */
+    .screen-land {
+      padding: 6px 16px 70px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .screen-nav-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 2px 0 6px;
+    }
+
+    .btn-nav-back {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-primary);
+      background: none;
+      border: none;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+
+    .screen-nav-title {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .screen-nav-action {
+      color: var(--accent-ai);
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    /* Map Viewport Area */
+    .land-map-viewport {
+      height: 180px;
+      width: 100%;
+      border-radius: var(--radius-card);
+      border: 1px solid var(--border-subtle);
+      overflow: hidden;
+      position: relative;
+      background: #0d121a url('https://tile.openstreetmap.org/16/37277/24222.png') center / cover;
+      filter: saturate(0.2) contrast(1.15) brightness(0.65);
+    }
+
+    .land-map-polygon-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 110px;
+      height: 85px;
+      border: 2px solid var(--accent-secondary);
+      border-radius: 8px;
+      background: rgba(127, 169, 201, 0.22);
+      box-shadow: 0 0 20px rgba(127, 169, 201, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .land-map-floating-tools {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 10;
+    }
+
+    .btn-map-tool {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      background: rgba(16, 19, 24, 0.85);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      font-size: 0.72rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+    }
+
+    .land-map-compass {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(16, 19, 24, 0.8);
+      border: 1px solid var(--border-subtle);
+      color: #ef4444;
+      font-size: 0.65rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Identification header */
+    .land-id-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2px;
+    }
+
+    .land-id-label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .land-id-val {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+    }
+
+    /* Segmented Navigation */
+    .segmented-nav-track {
+      display: flex;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 3px;
+      gap: 4px;
+    }
+
+    .segmented-pill {
+      flex: 1;
+      padding: 6px 4px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: var(--transition-smooth);
+    }
+
+    .segmented-pill.active {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-subtle);
+    }
+
+    /* Architectural Metrics List */
+    .land-metrics-list {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-card);
+      padding: 6px 12px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .metric-item-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      font-size: 0.75rem;
+    }
+
+    .metric-item-row:last-child {
+      border-bottom: none;
+    }
+
+    .metric-label-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-secondary);
+    }
+
+    .metric-label-group i {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      width: 14px;
+    }
+
+    .metric-val {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* ==========================================================================
+       SCREEN 4: DESIGN CONCEPT
+       ========================================================================== */
+    .screen-concept {
+      padding: 6px 16px 70px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .concept-description-text {
+      font-size: 0.76rem;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    .concept-hero-visual {
+      width: 100%;
+      height: 175px;
+      border-radius: var(--radius-card);
+      border: 1px solid var(--border-subtle);
+      overflow: hidden;
+      background: #101318 url('assets/images/app-concept-villa.jpg') center / cover no-repeat;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .concept-thumbnails-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .concept-thumb {
+      height: 52px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      background: #101318 url('assets/images/app-concept-villa.jpg') center / cover no-repeat;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      position: relative;
+    }
+
+    .concept-thumb.active {
+      border-color: var(--accent-secondary);
+      box-shadow: 0 0 10px rgba(127, 169, 201, 0.4);
+    }
+
+    .concept-thumb:hover {
+      transform: scale(1.02);
+    }
+
+    /* Process Stepper Card */
+    .stepper-status-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-card);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 0;
+    }
+
+    .step-icon-wrap {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      flex-shrink: 0;
+    }
+
+    .step-icon-wrap.completed {
+      background: rgba(143, 184, 154, 0.18);
+      color: var(--accent-success);
+      border: 1px solid rgba(143, 184, 154, 0.35);
+    }
+
+    .step-icon-wrap.in-progress {
+      background: rgba(127, 169, 201, 0.15);
+      color: var(--accent-secondary);
+      border: 1px solid rgba(127, 169, 201, 0.4);
+      animation: spin 3s linear infinite;
+    }
+
+    .step-icon-wrap.pending {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-muted);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .step-text-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .step-title {
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .step-status-sub {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    /* ==========================================================================
+       SCREEN 5: 3D MODEL
+       ========================================================================== */
+    .screen-3d {
+      padding: 6px 16px 70px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      height: 100%;
+    }
+
+    .viewport-3d-visual {
+      width: 100%;
+      height: 380px;
+      border-radius: var(--radius-card);
+      border: 1px solid var(--border-subtle);
+      overflow: hidden;
+      position: relative;
+      background: #0d1017 url('assets/images/app-3d-model.jpg') center top / cover no-repeat;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .floating-3d-controls {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 10;
+    }
+
+    .pill-mode-switcher-3d {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      background: rgba(16, 19, 24, 0.88);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-full);
+      padding: 3px;
+      gap: 4px;
+      backdrop-filter: blur(12px);
+      z-index: 10;
+    }
+
+    .btn-3d-pill {
+      padding: 5px 12px;
+      border-radius: var(--radius-full);
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 0.68rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+    }
+
+    .btn-3d-pill.active {
+      background: var(--accent-primary);
+      color: var(--text-inverse);
+      box-shadow: 0 2px 8px rgba(220, 232, 245, 0.25);
+    }
+
+    .preview-thumbnails-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .preview-thumb {
+      height: 52px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      background: #101318 center / cover no-repeat;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+    }
+
+    .preview-thumb.active {
+      border-color: var(--accent-secondary);
+      box-shadow: 0 0 10px rgba(127, 169, 201, 0.4);
+    }
+
+    /* ==========================================================================
+       RESPONSIVE MODES (Single Simulator on Mobile / Compact screens)
+       ========================================================================== */
+    .single-device-stage {
+      display: none;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+    }
+
+    .simulator-nav-pills {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .btn-sim-pill {
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+    }
+
+    .btn-sim-pill.active {
+      background: var(--accent-primary);
+      color: var(--text-inverse);
+      border-color: transparent;
+      box-shadow: 0 2px 10px rgba(220, 232, 245, 0.25);
+    }
+
+    /* When Simulator Mode is active */
+    body.mode-simulator .devices-gallery-row {
+      display: none;
+    }
+    body.mode-simulator .single-device-stage {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Mobile Direct View (When user opens directly on a phone) */
+    @media (max-width: 768px) {
+      .app-showcase-header {
+        padding: 12px 16px;
+      }
+      .showcase-mode-switcher {
+        display: none;
+      }
+      .devices-gallery-row {
+        display: none;
+      }
+      .single-device-stage {
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+      }
+      .phone-mockup-wrapper {
+        width: 100%;
+        max-width: 420px;
+        height: 720px;
+        border-radius: 40px;
+        padding: 10px;
+      }
+    }
+  </style>
+</head>
+<body class="mode-gallery">
+
+  <!-- Studio Presentation Top Header -->
+  <header class="app-showcase-header">
+    <div class="app-brand-area">
+      <img src="assets/images/logo.png" alt="BIMX" class="app-brand-logo">
+      <span class="app-version-pill">Mobile UI v2.4 · Architectural ConTech</span>
+    </div>
+
+    <div class="showcase-mode-switcher">
+      <button type="button" class="btn-showcase-tab active" id="tabGalleryView">
+        <i class="fa-solid fa-layer-group"></i>
+        <span>5-Screens Showcase</span>
+      </button>
+      <button type="button" class="btn-showcase-tab" id="tabSimulatorView">
+        <i class="fa-solid fa-mobile-screen"></i>
+        <span>Interactive Simulator</span>
+      </button>
+    </div>
+
+    <div class="app-header-actions">
+      <a href="parcel-ai.html" class="btn-back-web">
+        <i class="fa-solid fa-compass-drafting"></i>
+        <span>Open Full GIS Web</span>
+      </a>
+      <a href="index.html" class="btn-back-web">
+        <i class="fa-solid fa-house"></i>
+        <span>Home</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="app-presentation-container">
+
+    <!-- ========================================================================
+         MODE 1: 5-SCREENS SHOWCASE (Replicating the User's Reference Picture 1:1)
+         ======================================================================== -->
+    <div class="devices-gallery-row" id="galleryRow">
+
+      <!-- PHONE 1: WELCOME / ONBOARDING -->
+      <div class="phone-mockup-wrapper">
+        <div class="phone-speaker-dynamic-island"></div>
+        <div class="screen-container">
+          <div class="phone-status-bar">
+            <span>9:41</span>
+            <div class="phone-status-icons">
+              <i class="fa-solid fa-signal"></i>
+              <i class="fa-solid fa-wifi"></i>
+              <i class="fa-solid fa-battery-full"></i>
+            </div>
+          </div>
+          <div class="screen-welcome">
+            <div class="welcome-content-wrap">
+              <img src="assets/images/logo.png" alt="BIMX" class="welcome-logo">
+              <div class="welcome-tagline">
+                SMARTER DESIGN<br>BIGGER POSSIBILITIES
+              </div>
+            </div>
+            <div class="welcome-actions">
+              <button type="button" class="btn-app-primary" onclick="switchSimulatorScreen(1)">
+                <span>GET STARTED</span>
+                <i class="fa-solid fa-arrow-right"></i>
+              </button>
+              <button type="button" class="btn-app-secondary">
+                <span>SIGN IN</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PHONE 2: HOME / DASHBOARD -->
+      <div class="phone-mockup-wrapper">
+        <div class="phone-speaker-dynamic-island"></div>
+        <div class="screen-container">
+          <div class="phone-status-bar">
+            <span>9:41</span>
+            <div class="phone-status-icons">
+              <i class="fa-solid fa-signal"></i>
+              <i class="fa-solid fa-wifi"></i>
+              <i class="fa-solid fa-battery-full"></i>
+            </div>
+          </div>
+          <div class="screen-body screen-home">
+            <div class="app-screen-header">
+              <img src="assets/images/logo.png" alt="BIMX" class="app-header-logo">
+              <div class="app-user-avatar">
+                <i class="fa-regular fa-user"></i>
+              </div>
+            </div>
+
+            <div class="app-greeting-box">
+              <div class="greeting-sub">Good morning,</div>
+              <div class="greeting-main">Let's build something<br>great today.</div>
+            </div>
+
+            <!-- Hero Feature: Land Analysis -->
+            <div class="card-hero-land" onclick="switchSimulatorScreen(2)">
+              <div class="hero-land-map-thumb">
+                <div class="hero-land-polygon">
+                  <div class="hero-land-pin">
+                    <i class="fa-solid fa-location-dot"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="hero-land-info">
+                <div>
+                  <div class="hero-land-title">LAND ANALYSIS</div>
+                  <div class="hero-land-desc">AI-powered site analysis &amp; insights</div>
+                </div>
+                <i class="fa-solid fa-arrow-right hero-land-arrow"></i>
+              </div>
+            </div>
+
+            <!-- 2x2 Modules Grid -->
+            <div class="modules-2x2-grid">
+              <div class="module-card" onclick="switchSimulatorScreen(3)">
+                <div class="module-icon-wrap">
+                  <i class="fa-solid fa-cube"></i>
+                </div>
+                <div>
+                  <div class="module-title">DESIGN CONCEPT</div>
+                  <div class="module-desc">Generate architectural concepts</div>
+                </div>
+                <i class="fa-solid fa-arrow-right module-arrow"></i>
+              </div>
+
+              <div class="module-card" onclick="switchSimulatorScreen(4)">
+                <div class="module-icon-wrap">
+                  <i class="fa-solid fa-cubes-stacked"></i>
+                </div>
+                <div>
+                  <div class="module-title">3D MODEL</div>
+                  <div class="module-desc">Explore and visualize your building</div>
+                </div>
+                <i class="fa-solid fa-arrow-right module-arrow"></i>
+              </div>
+
+              <div class="module-card">
+                <div class="module-icon-wrap">
+                  <i class="fa-solid fa-compass-drafting"></i>
+                </div>
+                <div>
+                  <div class="module-title">ENGINEERING</div>
+                  <div class="module-desc">Structural and energy analysis</div>
+                </div>
+                <i class="fa-solid fa-arrow-right module-arrow"></i>
+              </div>
+
+              <div class="module-card">
+                <div class="module-icon-wrap">
+                  <i class="fa-regular fa-file-lines"></i>
+                </div>
+                <div>
+                  <div class="module-title">DOCUMENTS</div>
+                  <div class="module-desc">Plans, reports &amp; exports</div>
+                </div>
+                <i class="fa-solid fa-arrow-right module-arrow"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Tab Bar -->
+          <nav class="phone-bottom-nav">
+            <button type="button" class="nav-tab-item active">
+              <i class="fa-solid fa-house"></i>
+              <span>Home</span>
+            </button>
+            <button type="button" class="nav-tab-item">
+              <i class="fa-regular fa-folder"></i>
+              <span>Projects</span>
+            </button>
+            <button type="button" class="nav-tab-item">
+              <i class="fa-solid fa-shapes"></i>
+              <span>Tools</span>
+            </button>
+            <button type="button" class="nav-tab-item">
+              <i class="fa-solid fa-ellipsis"></i>
+              <span>More</span>
+            </button>
+          </nav>
+        </div>
+      </div>
+
+      <!-- PHONE 3: LAND ANALYSIS -->
+      <div class="phone-mockup-wrapper">
+        <div class="phone-speaker-dynamic-island"></div>
+        <div class="screen-container">
+          <div class="phone-status-bar">
+            <span>9:41</span>
+            <div class="phone-status-icons">
+              <i class="fa-solid fa-signal"></i>
+              <i class="fa-solid fa-wifi"></i>
+              <i class="fa-solid fa-battery-full"></i>
+            </div>
+          </div>
+          <div class="screen-body screen-land">
+            <div class="screen-nav-bar">
+              <button type="button" class="btn-nav-back" onclick="switchSimulatorScreen(1)">
+                <i class="fa-solid fa-arrow-left"></i>
+              </button>
+              <span class="screen-nav-title">Land Analysis</span>
+              <span class="screen-nav-action">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+              </span>
+            </div>
+
+            <!-- GIS Map Viewport -->
+            <div class="land-map-viewport">
+              <div class="land-map-polygon-overlay">
+                <div class="hero-land-pin">
+                  <i class="fa-solid fa-location-dot"></i>
+                </div>
+              </div>
+              <div class="land-map-floating-tools">
+                <button type="button" class="btn-map-tool"><i class="fa-solid fa-layer-group"></i></button>
+                <button type="button" class="btn-map-tool"><i class="fa-solid fa-location-arrow"></i></button>
+                <button type="button" class="btn-map-tool"><i class="fa-solid fa-expand"></i></button>
+              </div>
+              <div class="land-map-compass">N</div>
+            </div>
+
+            <!-- Property Identifiers -->
+            <div class="land-id-row">
+              <div>
+                <div class="land-id-label">Parcel ID</div>
+                <div class="land-id-val">1234567890</div>
+              </div>
+              <div style="text-align: right;">
+                <div class="land-id-label">Area</div>
+                <div class="land-id-val">2,450 m²</div>
+              </div>
+            </div>
+
+            <!-- Segmented Control -->
+            <div class="segmented-nav-track">
+              <button type="button" class="segmented-pill active">Overview</button>
+              <button type="button" class="segmented-pill">K1 / K2 / K3</button>
+              <button type="button" class="segmented-pill">Regulations</button>
+            </div>
+
+            <!-- Architectural Data Table -->
+            <div class="land-metrics-list">
+              <div class="metric-item-row">
+                <div class="metric-label-group">
+                  <i class="fa-regular fa-building"></i>
+                  <span>Land Use</span>
+                </div>
+                <span class="metric-val">Residential</span>
+              </div>
+              <div class="metric-item-row">
+                <div class="metric-label-group">
+                  <i class="fa-solid fa-arrows-up-down"></i>
+                  <span>Building Height (max)</span>
+                </div>
+                <span class="metric-val">15 m</span>
+              </div>
+              <div class="metric-item-row">
+                <div class="metric-label-group">
+                  <i class="fa-solid fa-chart-pie"></i>
+                  <span>Coverage Ratio (K1)</span>
+                </div>
+                <span class="metric-val">0.45</span>
+              </div>
+              <div class="metric-item-row">
+                <div class="metric-label-group">
+                  <i class="fa-solid fa-layer-group"></i>
+                  <span>Intensity (K2)</span>
+                </div>
+                <span class="metric-val">1.2</span>
+              </div>
+              <div class="metric-item-row">
+                <div class="metric-label-group">
+                  <i class="fa-solid fa-ruler-combined"></i>
+                  <span>Setback (K3)</span>
+                </div>
+                <span class="metric-val">3 m</span>
+              </div>
+            </div>
+
+            <a href="parcel-ai.html" class="btn-app-primary" style="margin-top: 4px; text-decoration: none;">
+              <span>VIEW FULL ANALYSIS</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- PHONE 4: DESIGN CONCEPT -->
+      <div class="phone-mockup-wrapper">
+        <div class="phone-speaker-dynamic-island"></div>
+        <div class="screen-container">
+          <div class="phone-status-bar">
+            <span>9:41</span>
+            <div class="phone-status-icons">
+              <i class="fa-solid fa-signal"></i>
+              <i class="fa-solid fa-wifi"></i>
+              <i class="fa-solid fa-battery-full"></i>
+            </div>
+          </div>
+          <div class="screen-body screen-concept">
+            <div class="screen-nav-bar">
+              <button type="button" class="btn-nav-back" onclick="switchSimulatorScreen(1)">
+                <i class="fa-solid fa-arrow-left"></i>
+              </button>
+              <span class="screen-nav-title">Design Concept</span>
+              <span class="screen-nav-action">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+              </span>
+            </div>
+
+            <p class="concept-description-text">
+              AI-powered architectural concepts based on your site, goals and regulations.
+            </p>
+
+            <!-- Large Villa Concept Render -->
+            <div class="concept-hero-visual"></div>
+
+            <!-- Concept Variations -->
+            <div class="concept-thumbnails-row">
+              <div class="concept-thumb active"></div>
+              <div class="concept-thumb" style="filter: brightness(0.85);"></div>
+              <div class="concept-thumb" style="filter: brightness(0.75);"></div>
+            </div>
+
+            <!-- Process Stepper List -->
+            <div class="stepper-status-card">
+              <div class="step-item">
+                <div class="step-icon-wrap completed">
+                  <i class="fa-solid fa-check"></i>
+                </div>
+                <div class="step-text-group">
+                  <span class="step-title">Site Analysis</span>
+                  <span class="step-status-sub">Completed</span>
+                </div>
+                <i class="fa-solid fa-circle-check" style="color: var(--accent-success); font-size: 0.85rem;"></i>
+              </div>
+
+              <div class="step-item">
+                <div class="step-icon-wrap in-progress">
+                  <i class="fa-solid fa-circle-notch"></i>
+                </div>
+                <div class="step-text-group">
+                  <span class="step-title">Design Generation</span>
+                  <span class="step-status-sub">In Progress</span>
+                </div>
+                <span style="width: 14px; height: 14px; border: 2px solid var(--accent-secondary); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></span>
+              </div>
+
+              <div class="step-item">
+                <div class="step-icon-wrap pending">
+                  <i class="fa-regular fa-circle"></i>
+                </div>
+                <div class="step-text-group">
+                  <span class="step-title">3D Visualization</span>
+                  <span class="step-status-sub">Pending</span>
+                </div>
+                <i class="fa-regular fa-circle" style="color: var(--text-muted); font-size: 0.8rem;"></i>
+              </div>
+            </div>
+
+            <button type="button" class="btn-app-primary" style="margin-top: 4px;" onclick="switchSimulatorScreen(4)">
+              <span>VIEW FULL CONCEPT</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PHONE 5: 3D MODEL -->
+      <div class="phone-mockup-wrapper">
+        <div class="phone-speaker-dynamic-island"></div>
+        <div class="screen-container">
+          <div class="phone-status-bar">
+            <span>9:41</span>
+            <div class="phone-status-icons">
+              <i class="fa-solid fa-signal"></i>
+              <i class="fa-solid fa-wifi"></i>
+              <i class="fa-solid fa-battery-full"></i>
+            </div>
+          </div>
+          <div class="screen-body screen-3d">
+            <div class="screen-nav-bar">
+              <button type="button" class="btn-nav-back" onclick="switchSimulatorScreen(1)">
+                <i class="fa-solid fa-arrow-left"></i>
+              </button>
+              <span class="screen-nav-title">3D Model</span>
+              <span class="screen-nav-action">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+              </span>
+            </div>
+
+            <!-- 3D BIM Viewer Area -->
+            <div class="viewport-3d-visual">
+              <div class="floating-3d-controls">
+                <button type="button" class="btn-map-tool" title="Layers"><i class="fa-solid fa-layer-group"></i></button>
+                <button type="button" class="btn-map-tool" title="Settings"><i class="fa-solid fa-gear"></i></button>
+                <button type="button" class="btn-map-tool" title="Fullscreen"><i class="fa-solid fa-expand"></i></button>
+              </div>
+
+              <div class="pill-mode-switcher-3d">
+                <button type="button" class="btn-3d-pill active">3D</button>
+                <button type="button" class="btn-3d-pill">2D</button>
+                <button type="button" class="btn-3d-pill">Sections</button>
+                <button type="button" class="btn-3d-pill">Renders</button>
+              </div>
+            </div>
+
+            <!-- Preview Thumbnails Row -->
+            <div class="preview-thumbnails-row">
+              <div class="preview-thumb active" style="background-image: url('assets/images/app-3d-model.jpg');"></div>
+              <div class="preview-thumb" style="background-image: url('assets/images/app-concept-villa.jpg');"></div>
+              <div class="preview-thumb" style="background-image: url('assets/images/app-welcome-bg.jpg');"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================================================
+         MODE 2: SINGLE INTERACTIVE DEVICE SIMULATOR
+         ======================================================================== -->
+    <div class="single-device-stage" id="singleSimulatorStage">
+      <div class="simulator-nav-pills">
+        <button type="button" class="btn-sim-pill active" onclick="switchSimulatorScreen(0)">1. Welcome</button>
+        <button type="button" class="btn-sim-pill" onclick="switchSimulatorScreen(1)">2. Home</button>
+        <button type="button" class="btn-sim-pill" onclick="switchSimulatorScreen(2)">3. Land Analysis</button>
+        <button type="button" class="btn-sim-pill" onclick="switchSimulatorScreen(3)">4. Design Concept</button>
+        <button type="button" class="btn-sim-pill" onclick="switchSimulatorScreen(4)">5. 3D Model</button>
+      </div>
+
+      <div class="phone-mockup-wrapper" style="height: 680px; flex: 0 0 330px;">
+        <div class="phone-speaker-dynamic-island"></div>
+        <div class="screen-container" id="simActiveScreenContainer">
+          <!-- Dynamic screen injected here -->
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // Tab switching between Gallery Showcase and Single Interactive Simulator
+    const tabGallery = document.getElementById('tabGalleryView');
+    const tabSimulator = document.getElementById('tabSimulatorView');
+
+    tabGallery.addEventListener('click', () => {
+      tabGallery.classList.add('active');
+      tabSimulator.classList.remove('active');
+      document.body.classList.remove('mode-simulator');
+      document.body.classList.add('mode-gallery');
+    });
+
+    tabSimulator.addEventListener('click', () => {
+      tabSimulator.classList.add('active');
+      tabGallery.classList.remove('active');
+      document.body.classList.remove('mode-gallery');
+      document.body.classList.add('mode-simulator');
+      switchSimulatorScreen(1); // Default to Home in simulator
+    });
+
+    // Extract HTML templates of the 5 screens
+    const galleryScreens = document.querySelectorAll('#galleryRow .screen-container');
+    const screenTemplates = Array.from(galleryScreens).map(el => el.innerHTML);
+
+    function switchSimulatorScreen(index) {
+      // If not currently in simulator mode, switch to it
+      if (!document.body.classList.contains('mode-simulator')) {
+        tabSimulator.click();
+      }
+
+      const container = document.getElementById('simActiveScreenContainer');
+      if (container && screenTemplates[index]) {
+        container.innerHTML = screenTemplates[index];
+      }
+
+      // Sync simulator pill active state
+      const pills = document.querySelectorAll('.btn-sim-pill');
+      pills.forEach((p, i) => {
+        p.classList.toggle('active', i === index);
+      });
+    }
+
+    // Auto-detect mobile screen on initial load
+    if (window.innerWidth <= 768) {
+      document.body.classList.remove('mode-gallery');
+      document.body.classList.add('mode-simulator');
+      switchSimulatorScreen(1);
+    }
+  </script>
+</body>
+</html>

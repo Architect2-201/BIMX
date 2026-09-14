@@ -898,8 +898,9 @@
           <li><a href="index.html#services" class="nav-link-item" data-i18n="nav_services">სერვისები</a></li>
           <li><a href="apps.html" class="nav-link-item" data-i18n="nav_apps">აპლიკაციები</a></li>
           <li><a href="plugins.html" class="nav-link-item" data-i18n="nav_plugins">პლაგინები</a></li>
-          <li><a href="land-intelligence.html" class="nav-link-item" data-i18n="nav_land_intel" style="color: var(--cyan-neon); font-weight: 600;">GIS ანალიზი</a></li>
-          <li><a href="parcel-ai.html" class="nav-link-item active" data-i18n="nav_parcel_ai" style="color: #60a5fa; font-weight: 700;">AI ანალიზი</a></li>
+          <li><a href="land-intelligence.html" class="nav-link-item" data-i18n="nav_land_intel" style="color: var(--secondary-accent, #7FA9C9); font-weight: 600;">GIS ანალიზი</a></li>
+          <li><a href="parcel-ai.html" class="nav-link-item active" data-i18n="nav_parcel_ai" style="color: var(--primary-accent, #DCE8F5); font-weight: 700;">AI ანალიზი</a></li>
+          <li><a href="app.html" class="nav-link-item" style="color: var(--ai-accent, #A8C7E5); font-weight: 700;"><i class="fa-solid fa-mobile-screen" style="margin-right: 5px; font-size: 0.82rem;"></i><span data-i18n="nav_app_mobile">BIMX App</span></a></li>
           <li><a href="index.html#projects" class="nav-link-item" data-i18n="nav_portfolio">პროექტები</a></li>
           <li><a href="index.html#calculator" class="nav-link-item" data-i18n="nav_calc">კალკულატორი</a></li>
           <li><a href="index.html#contact" class="nav-link-item" data-i18n="nav_contact">კონტაქტი</a></li>
@@ -1049,6 +1050,18 @@
             <button type="button" class="btn-generate-concept" id="aiGenerateBtn">
               <i class="fa-solid fa-wand-magic-sparkles"></i>
               <span data-i18n="ai_btn_generate">3D კონცეფციის შექმნა</span>
+            </button>
+          </div>
+
+          <!-- 2a-2. Building Mode Switcher: Existing vs AI Development Concept -->
+          <div class="building-mode-selector-wrapper" style="margin-bottom: 12px; background: #151A20; padding: 5px; border-radius: 12px; border: 1px solid #252B33; display: flex; gap: 6px;">
+            <button type="button" class="btn-building-mode-toggle active" id="btnModeConcept" data-mode="concept" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 10px; border-radius: 8px; border: none; background: #DCE8F5; color: #080A0D; font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 10px rgba(220, 232, 245, 0.2);">
+              <i class="fa-solid fa-wand-magic-sparkles"></i>
+              <span data-i18n="mode_concept_bldg">AI კონცეპტი (ახალი)</span>
+            </button>
+            <button type="button" class="btn-building-mode-toggle" id="btnModeExisting" data-mode="existing" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 10px; border-radius: 8px; border: 1px solid #252B33; background: transparent; color: #9BA3AE; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">
+              <i class="fa-solid fa-house-chimney"></i>
+              <span data-i18n="mode_existing_bldg">არსებული შენობა</span>
             </button>
           </div>
 
@@ -2342,12 +2355,19 @@
                 </div>
                 <div class="viewshed-cat-chips-wrap" style="display: flex; flex-wrap: wrap; gap: 4px;">
                   <button type="button" class="v-cat-chip active" data-cat="all">ყველა</button>
+                  <button type="button" class="v-cat-chip" data-cat="metro"><i class="fa-solid fa-train-subway" style="color: #8b5cf6;"></i> მეტრო</button>
+                  <button type="button" class="v-cat-chip" data-cat="transport"><i class="fa-solid fa-bus" style="color: #f59e0b;"></i> ავტობუსი</button>
                   <button type="button" class="v-cat-chip" data-cat="education"><i class="fa-solid fa-graduation-cap" style="color: #38bdf8;"></i> სკოლა</button>
                   <button type="button" class="v-cat-chip" data-cat="kindergarten"><i class="fa-solid fa-child-reaching" style="color: #ec4899;"></i> ბაღი</button>
                   <button type="button" class="v-cat-chip" data-cat="supermarket"><i class="fa-solid fa-basket-shopping" style="color: #10b981;"></i> მაღაზია</button>
                   <button type="button" class="v-cat-chip" data-cat="pharmacy"><i class="fa-solid fa-pills" style="color: #f43f5e;"></i> აფთიაქი</button>
-                  <button type="button" class="v-cat-chip" data-cat="transport"><i class="fa-solid fa-bus" style="color: #f59e0b;"></i> ტრანსპორტი</button>
+                  <button type="button" class="v-cat-chip" data-cat="hospital"><i class="fa-solid fa-hospital" style="color: #ef4444;"></i> კლინიკა</button>
                   <button type="button" class="v-cat-chip" data-cat="park"><i class="fa-solid fa-tree" style="color: #22c55e;"></i> პარკი/სკვერი</button>
+                  <button type="button" class="v-cat-chip" data-cat="playground"><i class="fa-solid fa-children" style="color: #84cc16;"></i> სათამაშო</button>
+                  <button type="button" class="v-cat-chip" data-cat="sport"><i class="fa-solid fa-futbol" style="color: #06b6d4;"></i> სპორტი</button>
+                  <button type="button" class="v-cat-chip" data-cat="restaurant"><i class="fa-solid fa-utensils" style="color: #f97316;"></i> კაფე/რესტ.</button>
+                  <button type="button" class="v-cat-chip" data-cat="bank"><i class="fa-solid fa-building-columns" style="color: #0284c7;"></i> ბანკი</button>
+                  <button type="button" class="v-cat-chip" data-cat="library"><i class="fa-solid fa-book" style="color: #a78bfa;"></i> ბიბლ.</button>
                 </div>
               </div>
 
