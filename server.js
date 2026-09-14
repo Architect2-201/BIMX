@@ -151,16 +151,13 @@ const requestHandler = (req, res) => {
       return;
     }
 
-    let normalizedCode = (cadastralCode || '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim().replace(/[\s\u00A0\-_/]+/g, '.');
+    let normalizedCode = (cadastralCode || '').trim().replace(/[\s\-_/]+/g, '.');
     if (/^\d{11,14}$/.test(normalizedCode)) {
       normalizedCode = `${normalizedCode.slice(0, 2)}.${normalizedCode.slice(2, 4)}.${normalizedCode.slice(4, 6)}.${normalizedCode.slice(6, 9)}.${normalizedCode.slice(9)}`;
     }
     normalizedCode = normalizedCode.replace(/\.{2,}/g, '.').replace(/^\.|\.$/g, '');
-    if (/^\d\./.test(normalizedCode)) {
-      normalizedCode = '0' + normalizedCode;
-    }
 
-    const CADASTRAL_CODE_REGEX = /^\d{1,2}(?:\.\d{1,6}){2,5}(?:[./]\d{1,6})?$/;
+    const CADASTRAL_CODE_REGEX = /^\d{2}(?:\.\d{1,6}){2,5}(?:[./]\d{1,6})?$/;
     if (!CADASTRAL_CODE_REGEX.test(normalizedCode)) {
       res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: "საკადასტრო კოდის ფორმატი არასწორია (მაგ.: 01.10.09.001.001 ან 72.13.12.123)" }));
