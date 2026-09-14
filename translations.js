@@ -455,6 +455,12 @@ const translations = {
     mode_existing_bldg: "არსებული შენობა",
     bldg_manager_title: "შენობების მართვა",
     bldg_add_new: "+ ახალი შენობა",
+    tool_more_tools: "ხელსაწყოები",
+    map_labels_menu_title: "წარწერები & ეტიკეტები",
+    map_satellite_menu_title: "სატელიტური ფენა",
+    parcel_ground_menu_title: "ნაკვეთის ზედაპირი",
+    xray_menu_title: "მიწისქვეშა სართულები (X-Ray)",
+    reset_center_menu_title: "ცენტრზე გასწორება",
 
     // Disclaimers & Warnings
     placement_warning: "შენობის განთავსება არის კონცეპტუალური და არ წარმოადგენს ოფიციალურ განაშენიანების ან სამშენებლო პირობებს.",
@@ -969,6 +975,12 @@ const translations = {
     mode_existing_bldg: "Existing Structure",
     bldg_manager_title: "Buildings Manager",
     bldg_add_new: "+ New Building",
+    tool_more_tools: "Tools",
+    map_labels_menu_title: "Labels & Tags",
+    map_satellite_menu_title: "Satellite Layer",
+    parcel_ground_menu_title: "Parcel Surface",
+    xray_menu_title: "Underground Levels (X-Ray)",
+    reset_center_menu_title: "Reset Center",
 
     // Disclaimers & Warnings
     placement_warning: "Building placement is conceptual and does not constitute official zoning or construction approval.",

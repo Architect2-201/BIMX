@@ -2578,10 +2578,19 @@ img {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
+  padding: 8px 12px;
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-line);
   z-index: 20;
+  gap: 8px;
+  min-height: 48px;
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: none;
+}
+
+.mode-switcher-bar::-webkit-scrollbar {
+  display: none;
 }
 
 .mode-tabs-group {
@@ -2590,11 +2599,12 @@ img {
   padding: 3px;
   border-radius: var(--radius-full);
   border: 1px solid var(--border-line);
+  flex-shrink: 1;
 }
 
 .mode-tab-btn {
-  padding: 6px 14px;
-  font-size: 0.78rem;
+  padding: 5px 11px;
+  font-size: 0.76rem;
   font-weight: 600;
   border-radius: var(--radius-full);
   color: var(--text-secondary);
@@ -2604,7 +2614,8 @@ img {
   transition: all 0.2s;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
+  white-space: nowrap;
 }
 
 .mode-tab-btn:hover {
@@ -2620,7 +2631,149 @@ img {
 .viewport-tools-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Additional Tools Dropdown in Viewport Bar */
+.tools-dropdown-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.tool-dropdown-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-line);
+  color: var(--text-primary);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.tool-dropdown-trigger-btn:hover,
+.tool-dropdown-trigger-btn.active {
+  background: var(--bg-subtle);
+  border-color: var(--border-active);
+  color: var(--cyan-neon);
+}
+
+.tool-dropdown-arrow {
+  font-size: 0.65rem;
+  margin-left: 2px;
+  transition: transform 0.2s ease;
+}
+
+.tool-dropdown-trigger-btn[aria-expanded="true"] .tool-dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.tools-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  left: auto;
+  min-width: 290px;
+  background: rgba(10, 15, 29, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 24px rgba(0, 240, 255, 0.16);
+  padding: 8px;
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 150;
+  animation: dropMenuFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tools-dropdown-menu.show {
+  display: flex;
+}
+
+.tools-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #cbd5e1;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.18s ease;
+  font-family: inherit;
+  width: 100%;
+}
+
+.tools-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.tools-item-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.tools-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.tools-item-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.tools-item-desc {
+  font-size: 0.67rem;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tools-item-toggle-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: rgba(100, 116, 139, 0.2);
+  color: #94a3b8;
+  border: 1px solid rgba(100, 116, 139, 0.3);
+  flex-shrink: 0;
+}
+
+.tools-item-toggle-badge.active {
+  background: rgba(0, 240, 255, 0.15);
+  color: #00f0ff;
+  border-color: rgba(0, 240, 255, 0.45);
+}
+
+.tools-dropdown-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 4px 0;
 }
 
 .tool-icon-btn {

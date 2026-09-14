@@ -1228,6 +1228,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnToolbar) {
       btnToolbar.classList.toggle('active', state.showMapLabels);
     }
+
+    if (typeof window.updateToolsDropdownBadges === 'function') {
+      window.updateToolsDropdownBadges();
+    }
   }
 
   function renderParcelOnMap(parcel) {
@@ -7576,7 +7580,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       if (btnDrawRoad) {
         btnDrawRoad.classList.remove('active');
-        btnDrawRoad.style.display = 'inline-flex';
+        btnDrawRoad.style.display = 'none';
       }
       if (btnFinishRoad) btnFinishRoad.style.display = 'none';
       if (btnCancelRoad) btnCancelRoad.style.display = 'none';
@@ -8175,6 +8179,128 @@ document.addEventListener('DOMContentLoaded', () => {
         setMode(targetMode);
       });
     });
+  }
+
+  function initToolsDropdown() {
+    const btn = document.getElementById('btnToolsDropdown');
+    const menu = document.getElementById('toolsDropdownMenu');
+    if (!btn || !menu) return;
+
+    function updateToolsBadges() {
+      const isLabelsAct = state.showMapLabels !== false;
+      const badgeLabels = document.getElementById('badgeDropdownLabels');
+      if (badgeLabels) {
+        badgeLabels.classList.toggle('active', isLabelsAct);
+        badgeLabels.textContent = isLabelsAct ? 'ჩართ.' : 'გამორთ.';
+      }
+
+      const btnSat = document.getElementById('btnToggleSatellite');
+      const badgeSat = document.getElementById('badgeDropdownSatellite');
+      if (btnSat && badgeSat) {
+        const isSatAct = btnSat.classList.contains('active');
+        badgeSat.classList.toggle('active', isSatAct);
+        badgeSat.textContent = isSatAct ? 'ჩართ.' : 'გამორთ.';
+      }
+
+      const btnGround = document.getElementById('btnToggleParcelGround');
+      const badgeGround = document.getElementById('badgeDropdownParcelGround');
+      if (btnGround && badgeGround) {
+        const isGroundAct = btnGround.classList.contains('active');
+        badgeGround.classList.toggle('active', isGroundAct);
+        badgeGround.textContent = isGroundAct ? 'ჩართ.' : 'გამორთ.';
+      }
+
+      const btnXRay = document.getElementById('btnToggleXRay');
+      const badgeXRay = document.getElementById('badgeDropdownXRay');
+      if (btnXRay && badgeXRay) {
+        const isXRayAct = btnXRay.classList.contains('active');
+        badgeXRay.classList.toggle('active', isXRayAct);
+        badgeXRay.textContent = isXRayAct ? 'ჩართ.' : 'გამორთ.';
+      }
+    }
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = menu.classList.contains('show');
+      if (!isOpen) updateToolsBadges();
+      menu.classList.toggle('show', !isOpen);
+      btn.setAttribute('aria-expanded', !isOpen ? 'true' : 'false');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!menu.contains(e.target) && e.target !== btn) {
+        menu.classList.remove('show');
+        btn.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    // Item: Draw Road
+    const itemRoad = document.getElementById('btnDropdownDrawRoad');
+    if (itemRoad) {
+      itemRoad.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu.classList.remove('show');
+        btn.setAttribute('aria-expanded', 'false');
+        startDrawingRoad();
+      });
+    }
+
+    // Item: Toggle Labels
+    const itemLabels = document.getElementById('btnDropdownToggleLabels');
+    if (itemLabels) {
+      itemLabels.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleMapLabels();
+        updateToolsBadges();
+      });
+    }
+
+    // Item: Toggle Satellite
+    const itemSat = document.getElementById('btnDropdownToggleSatellite');
+    if (itemSat) {
+      itemSat.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const origBtn = document.getElementById('btnToggleSatellite');
+        if (origBtn) origBtn.click();
+        updateToolsBadges();
+      });
+    }
+
+    // Item: Toggle Ground
+    const itemGround = document.getElementById('btnDropdownToggleParcelGround');
+    if (itemGround) {
+      itemGround.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const origBtn = document.getElementById('btnToggleParcelGround');
+        if (origBtn) origBtn.click();
+        updateToolsBadges();
+      });
+    }
+
+    // Item: Toggle X-Ray
+    const itemXRay = document.getElementById('btnDropdownToggleXRay');
+    if (itemXRay) {
+      itemXRay.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const origBtn = document.getElementById('btnToggleXRay');
+        if (origBtn) origBtn.click();
+        updateToolsBadges();
+      });
+    }
+
+    // Item: Reset Center
+    const itemCenter = document.getElementById('btnDropdownResetCenter');
+    if (itemCenter) {
+      itemCenter.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu.classList.remove('show');
+        btn.setAttribute('aria-expanded', 'false');
+        const origBtn = document.getElementById('btnResetCenter');
+        if (origBtn) origBtn.click();
+      });
+    }
+
+    window.updateToolsDropdownBadges = updateToolsBadges;
   }
 
   /* ==========================================================================
@@ -12451,6 +12577,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initMap();
     initThree();
     if (typeof initEngineeringDropdown === 'function') initEngineeringDropdown();
+    if (typeof initToolsDropdown === 'function') initToolsDropdown();
     if (typeof initUtilitiesModuleControls === 'function') initUtilitiesModuleControls();
     if (typeof initUnitMixModuleControls === 'function') initUnitMixModuleControls();
     if (typeof initViewshedModuleControls === 'function') initViewshedModuleControls();

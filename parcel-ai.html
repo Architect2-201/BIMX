@@ -1399,11 +1399,7 @@
               <span data-i18n="tool_clear_draw">წაშლა</span>
             </button>
 
-            <!-- Road / Pathway Drawing Tools -->
-            <button type="button" class="tool-btn-draw tool-btn-road" id="btnDrawRoad" title="ნაკვეთზე მისასვლელი გზის დახაზვა">
-              <i class="fa-solid fa-road"></i>
-              <span data-i18n="tool_draw_road">+ გზის დახაზვა</span>
-            </button>
+            <!-- Road / Pathway Drawing Tools (Shown dynamically during active drawing) -->
             <button type="button" class="tool-btn-draw tool-btn-finish-road" id="btnFinishRoad" style="display: none;" title="გზის ნახაზის დასრულება">
               <i class="fa-solid fa-check"></i>
               <span data-i18n="tool_finish_road">დაასრულე გზა</span>
@@ -1421,25 +1417,96 @@
               <span data-i18n="tool_clear_roads">გზების წაშლა</span>
             </button>
 
-            <!-- 3D X-Ray / Underground View Toggle -->
-            <button type="button" class="tool-icon-btn" id="btnToggleXRay" title="მიწისქვეშა სართულების ხედვა (X-Ray)">
+            <!-- Additional Tools Dropdown Menu -->
+            <div class="tools-dropdown-wrap" id="toolsDropdownWrap">
+              <button type="button" class="tool-btn-draw tool-dropdown-trigger-btn" id="btnToolsDropdown" aria-expanded="false" title="დამატებითი ხელსაწყოები">
+                <i class="fa-solid fa-wrench" style="color: var(--cyan-neon);"></i>
+                <span data-i18n="tool_more_tools">ხელსაწყოები</span>
+                <i class="fa-solid fa-chevron-down tool-dropdown-arrow"></i>
+              </button>
+              <div class="tools-dropdown-menu" id="toolsDropdownMenu">
+                <!-- Road Drawing -->
+                <button type="button" class="tools-dropdown-item" id="btnDropdownDrawRoad">
+                  <span class="tools-item-icon" style="color: #38bdf8; background: rgba(56, 189, 248, 0.12);"><i class="fa-solid fa-road"></i></span>
+                  <div class="tools-item-content">
+                    <span class="tools-item-title" data-i18n="tool_draw_road">+ გზის დახაზვა</span>
+                    <span class="tools-item-desc">მისასვლელი გზის ტრაექტორია და გაბარიტი</span>
+                  </div>
+                </button>
+
+                <div class="tools-dropdown-divider"></div>
+
+                <!-- Map Labels Toggle -->
+                <button type="button" class="tools-dropdown-item" id="btnDropdownToggleLabels">
+                  <span class="tools-item-icon" style="color: #00f0ff; background: rgba(0, 240, 255, 0.12);"><i class="fa-solid fa-tags"></i></span>
+                  <div class="tools-item-content">
+                    <span class="tools-item-title" data-i18n="map_labels_menu_title">წარწერები & ეტიკეტები</span>
+                    <span class="tools-item-desc">შენობების და რუკის მონაცემების წარწერები</span>
+                  </div>
+                  <span class="tools-item-toggle-badge active" id="badgeDropdownLabels">ჩართ.</span>
+                </button>
+
+                <!-- Satellite Imagery Toggle -->
+                <button type="button" class="tools-dropdown-item" id="btnDropdownToggleSatellite">
+                  <span class="tools-item-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.12);"><i class="fa-solid fa-earth-americas"></i></span>
+                  <div class="tools-item-content">
+                    <span class="tools-item-title" data-i18n="map_satellite_menu_title">სატელიტური ფენა</span>
+                    <span class="tools-item-desc">ორთოფოტო აეროგადაღების ჩვენება</span>
+                  </div>
+                  <span class="tools-item-toggle-badge active" id="badgeDropdownSatellite">ჩართ.</span>
+                </button>
+
+                <!-- 3D Parcel Surface / Grey Patch Toggle -->
+                <button type="button" class="tools-dropdown-item" id="btnDropdownToggleParcelGround">
+                  <span class="tools-item-icon" style="color: #f59e0b; background: rgba(245, 158, 11, 0.12);"><i class="fa-solid fa-draw-polygon"></i></span>
+                  <div class="tools-item-content">
+                    <span class="tools-item-title" data-i18n="parcel_ground_menu_title">ნაკვეთის ზედაპირი</span>
+                    <span class="tools-item-desc">საკადასტრო ნაკვეთის 3D პლატფორმა</span>
+                  </div>
+                  <span class="tools-item-toggle-badge active" id="badgeDropdownParcelGround">ჩართ.</span>
+                </button>
+
+                <!-- 3D X-Ray Underground View Toggle -->
+                <button type="button" class="tools-dropdown-item" id="btnDropdownToggleXRay">
+                  <span class="tools-item-icon" style="color: #a855f7; background: rgba(168, 85, 247, 0.12);"><i class="fa-solid fa-layer-group"></i></span>
+                  <div class="tools-item-content">
+                    <span class="tools-item-title" data-i18n="xray_menu_title">მიწისქვეშა სართულები (X-Ray)</span>
+                    <span class="tools-item-desc">პარკინგი და მიწისქვეშა დონეები</span>
+                  </div>
+                  <span class="tools-item-toggle-badge" id="badgeDropdownXRay">გამორთ.</span>
+                </button>
+
+                <div class="tools-dropdown-divider"></div>
+
+                <!-- Reset View / Center on Plot -->
+                <button type="button" class="tools-dropdown-item" id="btnDropdownResetCenter">
+                  <span class="tools-item-icon" style="color: #94a3b8; background: rgba(148, 163, 184, 0.12);"><i class="fa-solid fa-crosshairs"></i></span>
+                  <div class="tools-item-content">
+                    <span class="tools-item-title" data-i18n="reset_center_menu_title">ცენტრზე გასწორება</span>
+                    <span class="tools-item-desc">კამერის საწყის პოზიციაზე დაბრუნება</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <!-- Standalone compatibility triggers (kept accessible for existing script handlers) -->
+            <button type="button" class="tool-btn-draw tool-btn-road" id="btnDrawRoad" style="display: none;" title="ნაკვეთზე მისასვლელი გზის დახაზვა">
+              <i class="fa-solid fa-road"></i>
+              <span data-i18n="tool_draw_road">+ გზის დახაზვა</span>
+            </button>
+            <button type="button" class="tool-icon-btn" id="btnToggleXRay" style="display: none;" title="მიწისქვეშა სართულების ხედვა (X-Ray)">
               <i class="fa-solid fa-layer-group"></i>
             </button>
-
-            <!-- 3D Parcel Surface / Grey Patch Toggle -->
-            <button type="button" class="tool-icon-btn active" id="btnToggleParcelGround" title="საკადასტრო ნაკვეთის ზედაპირის (ნაცრისფერი ფენის) ჩართვა/გათიშვა">
+            <button type="button" class="tool-icon-btn active" id="btnToggleParcelGround" style="display: none;" title="საკადასტრო ნაკვეთის ზედაპირის (ნაცრისფერი ფენის) ჩართვა/გათიშვა">
               <i class="fa-solid fa-draw-polygon"></i>
             </button>
-
-            <!-- Map Labels / Annotations Toggle -->
-            <button type="button" class="tool-icon-btn active" id="btnToggleMapLabelsToolbar" title="წარწერების ჩართვა/გათიშვა (შენობების და რუკის ეტიკეტები)">
+            <button type="button" class="tool-icon-btn active" id="btnToggleMapLabelsToolbar" style="display: none;" title="წარწერების ჩართვა/გათიშვა (შენობების და რუკის ეტიკეტები)">
               <i class="fa-solid fa-tags"></i>
             </button>
-
-            <button type="button" class="tool-icon-btn active" id="btnToggleSatellite" title="Satellite Imagery">
+            <button type="button" class="tool-icon-btn active" id="btnToggleSatellite" style="display: none;" title="Satellite Imagery">
               <i class="fa-solid fa-earth-americas"></i>
             </button>
-            <button type="button" class="tool-icon-btn" id="btnResetCenter" title="Reset View / Center on Plot">
+            <button type="button" class="tool-icon-btn" id="btnResetCenter" style="display: none;" title="Reset View / Center on Plot">
               <i class="fa-solid fa-crosshairs"></i>
             </button>
           </div>
