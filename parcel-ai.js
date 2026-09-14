@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Map Basemap Themes (Satellite, Topo)
     mapTheme: 'satellite',
     combinedMapTheme: 'satellite',
+    showZoningLayer: true, // Yellow zoning context envelope layer toggle
     // Surrounding 3D Urban Fabric (Module 1B & 2B)
     urbanBuildings: [],
     // 3D DEM Terrain & Slope (Module 1C & 2A)
@@ -351,10 +352,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const mapEl = document.getElementById('mapViewport');
     if (!mapEl || typeof L === 'undefined') return;
 
-    // Default center on Tbilisi
+    // Default center on Georgia (entire country overview)
     map = L.map('mapViewport', {
-      center: [41.7248, 44.7712],
-      zoom: 16,
+      center: [42.15, 43.85],
+      zoom: 7.5,
       zoomControl: false,
       attributionControl: false
     });
@@ -415,9 +416,18 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.btn-map-theme').forEach(btn => {
       btn.addEventListener('click', () => {
         const theme = btn.dataset.theme;
-        switchMapBasemap(theme);
+        if (theme) switchMapBasemap(theme);
       });
     });
+
+    // Yellow Zoning Layer toggle button
+    const btnZoning = document.getElementById('btnToggleZoningLayer');
+    if (btnZoning) {
+      btnZoning.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleZoningLayer();
+      });
+    }
 
     // Mouse movement telemetry HUD updates
     map.on('mousemove', (e) => {
@@ -618,8 +628,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const sampleParcelsSelect = document.getElementById('sampleParcelsSelect');
   const cadastralAlertMsg = document.getElementById('cadastralAlertMsg');
 
-  // Regex format supporting dot and dash separators, 4-segment and 5-segment codes
-  const CADASTRAL_CODE_REGEX = /^\d{2}\.\d{1,3}\.\d{1,3}\.\d{1,4}(?:\.\d{1,4})?(?:[./]\d{1,4})?$/;
+  // Regex format supporting dot and dash separators, 4-segment, 5-segment, and 6-segment codes across Georgia
+  const CADASTRAL_CODE_REGEX = /^\d{2}(?:\.\d{1,6}){2,5}(?:[./]\d{1,6})?$/;
 
   function normalizeCode(raw) {
     if (!raw || typeof raw !== 'string') return '';
@@ -855,6 +865,35 @@ document.addEventListener('DOMContentLoaded', () => {
     );
   }
 
+  function toggleZoningLayer(forceState) {
+    if (typeof forceState === 'boolean') {
+      state.showZoningLayer = forceState;
+    } else {
+      state.showZoningLayer = !state.showZoningLayer;
+    }
+
+    if (map && parcelZoningLayerGroup) {
+      if (state.showZoningLayer) {
+        if (!map.hasLayer(parcelZoningLayerGroup)) {
+          parcelZoningLayerGroup.addTo(map);
+        }
+      } else {
+        if (map.hasLayer(parcelZoningLayerGroup)) {
+          map.removeLayer(parcelZoningLayerGroup);
+        }
+      }
+    }
+
+    const btn = document.getElementById('btnToggleZoningLayer');
+    const text = document.getElementById('textToggleZoning');
+    if (btn) {
+      btn.classList.toggle('active', state.showZoningLayer);
+      if (text) {
+        text.textContent = state.showZoningLayer ? 'ყვითელი ფენა' : 'ყვითელი: გამორთ.';
+      }
+    }
+  }
+
   function renderParcelOnMap(parcel) {
     if (!map) return;
 
@@ -894,7 +933,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Draw Surrounding Zoning Envelope (Resolution 14-39 Context)
+    // Draw Surrounding Zoning Envelope (Resolution 14-39 Context - Yellow/Orange Dashed Frame)
     const bounds = parcelPolygonLayer.getBounds();
     const zoneBox = bounds.pad(0.75);
     const zRect = L.rectangle(zoneBox, {
@@ -903,32 +942,33 @@ document.addEventListener('DOMContentLoaded', () => {
       dashArray: '5, 5',
       fillColor: '#fb8500',
       fillOpacity: 0.12,
-      interactive: false
+      interactive: true
     });
-    if (parcelZoningLayerGroup) zRect.addTo(parcelZoningLayerGroup);
+    zRect.bindTooltip('ზონირების კონტური (ყვითელი ფენა) · დააკლიკეთ გასათიშად', { direction: 'top' });
+    zRect.on('click', (e) => {
+      L.DomEvent.stopPropagation(e);
+      toggleZoningLayer(false);
+    });
 
-    // Draw Adjacent Building Contours for urban context
-    const cLat = bounds.getCenter().lat;
-    const cLng = bounds.getCenter().lng;
-    const bldg1 = [
-      [cLat + 0.00035, cLng + 0.0004],
-      [cLat + 0.00065, cLng + 0.0004],
-      [cLat + 0.00065, cLng + 0.00075],
-      [cLat + 0.00035, cLng + 0.00075]
-    ];
-    const bldg2 = [
-      [cLat - 0.00035, cLng - 0.0004],
-      [cLat - 0.00065, cLng - 0.0004],
-      [cLat - 0.00065, cLng - 0.00075],
-      [cLat - 0.00035, cLng - 0.00075]
-    ];
-    if (parcelContoursLayerGroup) {
-      L.polygon(bldg1, { color: '#64748b', weight: 1.5, fillColor: '#94a3b8', fillOpacity: 0.3, interactive: false }).addTo(parcelContoursLayerGroup);
-      L.polygon(bldg2, { color: '#64748b', weight: 1.5, fillColor: '#94a3b8', fillOpacity: 0.3, interactive: false }).addTo(parcelContoursLayerGroup);
+    if (parcelZoningLayerGroup) {
+      zRect.addTo(parcelZoningLayerGroup);
+      if (!state.showZoningLayer) {
+        if (map.hasLayer(parcelZoningLayerGroup)) map.removeLayer(parcelZoningLayerGroup);
+      } else {
+        if (!map.hasLayer(parcelZoningLayerGroup)) parcelZoningLayerGroup.addTo(map);
+      }
     }
 
-    // Fit map bounds to parcel
-    map.fitBounds(parcelPolygonLayer.getBounds(), { padding: [40, 40], maxZoom: 18 });
+    // Strictly NO mock/invented buildings! (bldg1 and bldg2 eliminated)
+    // Only real existing buildings will be loaded into parcelContoursLayerGroup via OpenStreetMap
+
+    // Fly camera smoothly to the specific parcel
+    map.invalidateSize();
+    map.flyToBounds(parcelPolygonLayer.getBounds(), {
+      padding: [50, 50],
+      maxZoom: 18,
+      duration: 1.4
+    });
 
     // Update HUD Badge
     const hudCadastral = document.getElementById('hudCadastral');
@@ -3109,12 +3149,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         bldg.coordinates = cleanCoords;
 
+        let isOverlapping = false;
         const cLat = cleanCoords.reduce((s, c) => s + c[0], 0) / cleanCoords.length;
         const cLng = cleanCoords.reduce((s, c) => s + c[1], 0) / cleanCoords.length;
-        const isCentroidIn = isPointInPolygonGPS([cLat, cLng], state.activeParcel.coordinates);
-        const isAnyVertexIn = cleanCoords.some(pt => isPointInPolygonGPS(pt, state.activeParcel.coordinates));
+        if (isPointInPolygonGPS([cLat, cLng], state.activeParcel.coordinates)) {
+          isOverlapping = true;
+        } else if (cleanCoords.some(pt => isPointInPolygonGPS(pt, state.activeParcel.coordinates))) {
+          isOverlapping = true;
+        } else if (state.activeParcel.coordinates.some(pt => isPointInPolygonGPS(pt, cleanCoords))) {
+          isOverlapping = true;
+        } else if (typeof turf !== 'undefined' && turf.polygon) {
+          try {
+            const pRing = [...state.activeParcel.coordinates.map(p => [p[1], p[0]])];
+            if (pRing.length > 0 && (pRing[0][0] !== pRing[pRing.length - 1][0] || pRing[0][1] !== pRing[pRing.length - 1][1])) {
+              pRing.push(pRing[0]);
+            }
+            const bRing = [...cleanCoords.map(p => [p[1], p[0]])];
+            if (bRing.length > 0 && (bRing[0][0] !== bRing[bRing.length - 1][0] || bRing[0][1] !== bRing[bRing.length - 1][1])) {
+              bRing.push(bRing[0]);
+            }
+            const pPoly = turf.polygon([pRing]);
+            const bPoly = turf.polygon([bRing]);
+            if (turf.booleanIntersects && turf.booleanIntersects(pPoly, bPoly)) {
+              isOverlapping = true;
+            } else if (turf.intersect && turf.intersect(pPoly, bPoly)) {
+              isOverlapping = true;
+            }
+          } catch(e) {}
+        }
 
-        if (isCentroidIn || isAnyVertexIn) {
+        if (isOverlapping) {
           inParcel.push(bldg);
         } else {
           outside.push(bldg);
@@ -3122,6 +3186,27 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       state.existingParcelBuildings = inParcel;
+
+      // Render real neighborhood buildings in 2D contours layer (replacing old fake boxes)
+      if (parcelContoursLayerGroup) {
+        parcelContoursLayerGroup.clearLayers();
+        outside.slice(0, 200).forEach(b => {
+          if (!b.coordinates || b.coordinates.length < 3) return;
+          const poly = L.polygon(b.coordinates, {
+            color: '#64748b',
+            weight: 1.5,
+            fillColor: '#94a3b8',
+            fillOpacity: 0.28,
+            className: 'osm-real-building'
+          });
+          const bTitle = b.name || (b.housenumber ? `№${b.housenumber}` : null) || 'შენობა';
+          poly.bindTooltip(`<strong>${bTitle}</strong>${b.levels ? `<br>${b.levels} სართული` : ''}${b.height ? ` (${b.height} მ)` : ''}`, {
+            direction: 'center',
+            opacity: 0.9
+          });
+          poly.addTo(parcelContoursLayerGroup);
+        });
+      }
 
       // Realistic architectural styling palettes for real existing structures
       const EXISTING_PALETTES = {
@@ -3253,6 +3338,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const localPts = gpsToLocalMeters(bldg.coordinates, centerGps);
         if (localPts.length < 3) return;
 
+        const bX = localPts.reduce((s, p) => s + p.x, 0) / localPts.length;
+        const bY = localPts.reduce((s, p) => s + p.y, 0) / localPts.length;
+        const groundY = (typeof state.getTerrainHeightAt === 'function')
+          ? state.getTerrainHeightAt(bX, -bY)
+          : 0;
+
         const shape = new THREE.Shape();
         localPts.forEach((pt, idx) => {
           if (idx === 0) shape.moveTo(pt.x, pt.y);
@@ -3261,10 +3352,11 @@ document.addEventListener('DOMContentLoaded', () => {
         shape.closePath();
 
         const height = Math.max(6.0, Math.min(65.0, bldg.height || 9.0));
-        const extrudeGeom = new THREE.ExtrudeGeometry(shape, { depth: height, bevelEnabled: false });
+        const extrudeGeom = new THREE.ExtrudeGeometry(shape, { depth: height + 1.8, bevelEnabled: false });
 
         const mesh = new THREE.Mesh(extrudeGeom, clayMat);
         mesh.rotation.x = -Math.PI / 2;
+        mesh.position.y = groundY - 1.5;
         mesh.castShadow = true;
         mesh.receiveShadow = true;
         urbanGroup.add(mesh);
@@ -3272,6 +3364,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const edges = new THREE.EdgesGeometry(extrudeGeom, 25);
         const line = new THREE.LineSegments(edges, edgeLineMat);
         line.rotation.x = -Math.PI / 2;
+        line.position.y = groundY - 1.5;
         urbanGroup.add(line);
       });
 
@@ -3453,7 +3546,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     3d. Dynamic 3D DEM Displaced Terrain Mesh & Topography (Module 1C & 2A)
+     3d. Real 3D Topographic DEM Displaced Terrain Mesh & Elevation Modeling (Copernicus 90m)
      ========================================================================== */
   async function renderParcelTerrain3D(parcel, centerLat, centerLng) {
     if (!terrainGroup) return;
@@ -3464,36 +3557,95 @@ document.addEventListener('DOMContentLoaded', () => {
       if (child.geometry) child.geometry.dispose();
     }
 
-    let baseElevation = 480;
-    try {
-      const res = await fetch(`/api/elevation?lat=${centerLat}&lng=${centerLng}`);
-      if (res.ok) {
-        const d = await res.json();
-        if (d && typeof d.elevation === 'number') baseElevation = d.elevation;
-      }
-    } catch (e) {}
-
     const localPoints = gpsToLocalMeters(parcel.coordinates, { lat: centerLat, lng: centerLng });
     const xs = localPoints.map(p => p.x);
     const ys = localPoints.map(p => p.y);
     const spanX = Math.max(...xs) - Math.min(...xs);
     const spanY = Math.max(...ys) - Math.min(...ys);
     const parcelSpan = Math.max(spanX, spanY, 35);
+    const terrainRadius = Math.min(600, Math.max(160, Math.ceil(parcelSpan * 2.5)));
+    const terrainSize = terrainRadius * 2;
 
+    let baseElevation = 480;
+    let grid = null;
+    let gridSize = 7;
     let naturalSlope = 2.5;
-    const tText = (parcel.terrain || '').toLowerCase();
-    if (tText.includes('6%') || tText.includes('დახრილ')) naturalSlope = 6.0;
-    else if (tText.includes('1%') || tText.includes('ვაკე')) naturalSlope = 1.2;
-    else if (tText.includes('3%')) naturalSlope = 3.0;
-    else if (tText.includes('12%') || tText.includes('ფერდობ')) naturalSlope = 12.0;
-    else if (tText.includes('2%')) naturalSlope = 2.0;
+    let deltaZ = 2.0;
 
-    const deltaZ = (naturalSlope / 100) * parcelSpan;
+    try {
+      const res = await fetch(`/api/elevation?lat=${centerLat}&lng=${centerLng}&grid=true&radius=${terrainRadius}`);
+      if (res.ok) {
+        const d = await res.json();
+        if (d && typeof d.elevation === 'number') {
+          baseElevation = d.elevation;
+          parcel.elevation = baseElevation;
+          if (Array.isArray(d.grid) && d.grid.length === (d.gridSize * d.gridSize)) {
+            grid = d.grid;
+            gridSize = d.gridSize;
+          }
+          if (d.slopePct != null) naturalSlope = d.slopePct;
+          if (d.deltaZ != null) deltaZ = d.deltaZ;
+        }
+      }
+    } catch (e) {
+      console.warn('Elevation DEM query note:', e);
+    }
+
+    // High-precision Bilinear Interpolation over Real Elevation DEM Grid
+    function sampleElevationAtLocal(lx, ly) {
+      if (!grid || grid.length !== gridSize * gridSize) {
+        // Natural topographic falloff fallback
+        return baseElevation + (lx * 0.7 - ly * 0.4) * (naturalSlope / 100) * 0.5;
+      }
+      // Grid covers [-terrainRadius, +terrainRadius] in X (East) and Y (North)
+      // row 0 is North (+terrainRadius), row (gridSize-1) is South (-terrainRadius)
+      // col 0 is West (-terrainRadius), col (gridSize-1) is East (+terrainRadius)
+      const u = (lx + terrainRadius) / (2 * terrainRadius);
+      const v = (terrainRadius - ly) / (2 * terrainRadius);
+      const cu = Math.max(0, Math.min(1, u)) * (gridSize - 1);
+      const cv = Math.max(0, Math.min(1, v)) * (gridSize - 1);
+      const c0 = Math.floor(cu);
+      const c1 = Math.min(gridSize - 1, c0 + 1);
+      const r0 = Math.floor(cv);
+      const r1 = Math.min(gridSize - 1, r0 + 1);
+      const fu = cu - c0;
+      const fv = cv - r0;
+
+      const p00 = grid[r0 * gridSize + c0];
+      const p10 = grid[r0 * gridSize + c1];
+      const p01 = grid[r1 * gridSize + c0];
+      const p11 = grid[r1 * gridSize + c1];
+
+      const top = p00 * (1 - fu) + p10 * fu;
+      const bot = p01 * (1 - fu) + p11 * fu;
+      return top * (1 - fv) + bot * fv;
+    }
+
+    // Provide global terrain height lookup in World Coordinates: (worldX, worldZ)
+    // Note: in Three.js world space, worldZ = -localY, so localY = -worldZ
+    state.getTerrainHeightAt = function(worldX, worldZ) {
+      const elev = sampleElevationAtLocal(worldX, -worldZ);
+      return elev - baseElevation;
+    };
+
     state.terrainData = {
       elevation: baseElevation,
       deltaZ: parseFloat(deltaZ.toFixed(1)),
-      slopePct: parseFloat(naturalSlope.toFixed(1))
+      slopePct: parseFloat(naturalSlope.toFixed(1)),
+      grid,
+      gridSize,
+      radius: terrainRadius
     };
+
+    // Update Side Panel and HUD Topographic Attributes
+    const isEn = state.currentLang === 'en';
+    const elevFormatted = `${Math.round(baseElevation).toLocaleString()} ${isEn ? 'm a.s.l.' : 'მ (ზ.დ.)'}`;
+
+    const infoElev = document.getElementById('infoParcelElevation');
+    if (infoElev) infoElev.textContent = elevFormatted;
+
+    const hudElev = document.getElementById('hudElevation');
+    if (hudElev) hudElev.textContent = `H: ${elevFormatted}`;
 
     const hudSlope = document.getElementById('hudTerrainSlope');
     if (hudSlope) {
@@ -3504,47 +3656,50 @@ document.addEventListener('DOMContentLoaded', () => {
       infoTerrain.textContent = `${naturalSlope <= 3 ? 'ვაკე / მცირედ დახრილი' : (naturalSlope <= 8 ? 'დახრილი რელიეფი' : 'მკვეთრად დახრილი ფერდობი')} (${naturalSlope.toFixed(1)}%, ΔZ: ${deltaZ.toFixed(1)} მ)`;
     }
 
-    const terrainSize = Math.max(260, parcelSpan * 4);
-    const segments = 36;
+    // Construct 3D Real Topographic Plane Geometry
+    const segments = 48;
     const terrainGeom = new THREE.PlaneGeometry(terrainSize, terrainSize, segments, segments);
     const posAttr = terrainGeom.attributes.position;
 
-    const slopeRad = (naturalSlope / 100);
     for (let i = 0; i < posAttr.count; i++) {
       const vx = posAttr.getX(i);
       const vy = posAttr.getY(i);
-      const elevDisp = (vx * 0.7 - vy * 0.4) * slopeRad * 0.6 + Math.sin(vx * 0.05) * Math.cos(vy * 0.05) * 0.6;
+      const elev = sampleElevationAtLocal(vx, vy);
+      const elevDisp = elev - baseElevation;
       posAttr.setZ(i, elevDisp);
     }
     terrainGeom.computeVertexNormals();
 
+    // Architectural Sleek Topography Material
     const terrainMat = new THREE.MeshStandardMaterial({
       color: 0x111827,
-      roughness: 0.9,
-      metalness: 0.1,
+      roughness: 0.88,
+      metalness: 0.12,
       wireframe: false
     });
 
     const terrainMesh = new THREE.Mesh(terrainGeom, terrainMat);
     terrainMesh.rotation.x = -Math.PI / 2;
-    terrainMesh.position.y = -0.15;
+    terrainMesh.position.y = -0.05;
     terrainMesh.receiveShadow = true;
     terrainGroup.add(terrainMesh);
 
+    // Subtle Topographic Contour Wireframe
     const terrainWireMat = new THREE.MeshBasicMaterial({
       color: 0x00f2fe,
       wireframe: true,
       transparent: true,
-      opacity: 0.06
+      opacity: 0.08
     });
     const terrainWire = new THREE.Mesh(terrainGeom, terrainWireMat);
     terrainWire.rotation.x = -Math.PI / 2;
-    terrainWire.position.y = -0.14;
+    terrainWire.position.y = -0.04;
     terrainGroup.add(terrainWire);
 
+    // 3D Draped Cadastral Boundary Line
     const boundaryPoints3D = localPoints.map(p => {
-      const elev = (p.x * 0.7 - (-p.y) * 0.4) * slopeRad * 0.6 + 0.18;
-      return new THREE.Vector3(p.x, elev, -p.y);
+      const elevDisp = (sampleElevationAtLocal(p.x, p.y) - baseElevation) + 0.35;
+      return new THREE.Vector3(p.x, elevDisp, -p.y);
     });
     boundaryPoints3D.push(boundaryPoints3D[0].clone());
 
@@ -3555,6 +3710,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     const boundaryLine = new THREE.Line(boundaryGeom, boundaryMat);
     terrainGroup.add(boundaryLine);
+
+    // Synchronize 3D Buildings with Real Terrain Heights
+    if (typeof renderUrbanFabric3D === 'function') {
+      renderUrbanFabric3D(state.buildingThermalData);
+    }
+    if (typeof renderAllBuildings3D === 'function') {
+      renderAllBuildings3D();
+    }
   }
 
   /* ==========================================================================
@@ -5004,6 +5167,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const fp = computeFootprintGeometry(parcel, bldg);
       if (!fp || !fp.corners || fp.corners.length < 3) return;
 
+      const bldgCenterX = fp.corners.reduce((s, p) => s + p.x, 0) / fp.corners.length;
+      const bldgCenterY = fp.corners.reduce((s, p) => s + p.y, 0) / fp.corners.length;
+      const groundY = (typeof state.getTerrainHeightAt === 'function')
+        ? state.getTerrainHeightAt(bldgCenterX, -bldgCenterY)
+        : 0;
+
+      const bldgContainer = new THREE.Group();
+      bldgContainer.position.y = groundY;
+      const origAdd = buildingGroup.add.bind(buildingGroup);
+      buildingGroup.add = (...args) => bldgContainer.add(...args);
+
       const floorsAbove = bldg.floorsAbove || 5;
       const floorsBelow = bldg.floorsBelow || 1;
       const floorH = bldg.floorHeight || 3.3;
@@ -5378,6 +5552,10 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const baseOutline = new THREE.Line(baseGeom, baseMat);
       buildingGroup.add(baseOutline);
+
+      // Restore buildingGroup.add and add the elevated building container
+      buildingGroup.add = origAdd;
+      origAdd(bldgContainer);
     });
 
     // Render 3D Roads and Pathways
@@ -5415,6 +5593,14 @@ document.addEventListener('DOMContentLoaded', () => {
     set('infoParcelArea', `${parcel.area.toLocaleString()} ${isEn ? 'm²' : 'მ²'}`);
     set('infoParcelShape', isEn ? parcel.shapeEn : parcel.shape);
     set('infoParcelAddress', isEn ? parcel.addressEn : parcel.address);
+    const elevNum = (parcel.elevation != null)
+      ? parcel.elevation
+      : ((state.terrainData && state.terrainData.elevation != null) ? state.terrainData.elevation : null);
+    const elevVal = (elevNum != null)
+      ? `${Math.round(elevNum).toLocaleString()} ${isEn ? 'm a.s.l.' : 'მ (ზ.დ.)'}`
+      : '—';
+    set('infoParcelElevation', elevVal);
+    set('hudElevation', elevVal !== '—' ? `H: ${elevVal}` : 'H: —');
     set('infoParcelTerrain', isEn ? parcel.terrainEn : parcel.terrain);
     set('infoParcelMainZone', hasZone ? (isEn ? parcel.mainZoneEn : parcel.mainZoneKa) : unknownZone);
     set('infoParcelSubZone', hasZone ? (isEn ? (parcel.subZoneEn || parcel.subzoneEn) : (parcel.subZoneKa || parcel.subzoneKa)) : unknownZone);
@@ -10642,9 +10828,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof initEngineeringDropdown === 'function') initEngineeringDropdown();
     if (typeof initUtilitiesModuleControls === 'function') initUtilitiesModuleControls();
     if (typeof initUnitMixModuleControls === 'function') initUnitMixModuleControls();
-    if (typeof initWindModuleControls === 'function') initWindModuleControls();
-    // Auto-search first sample parcel
-    searchParcel('01.15.02.038.003');
-    setMode('3d');
+    // Initial Stage: Display full map of Georgia without any parcel or buildings until cadastral code is entered
+    setMode('map');
+    if (map) {
+      setTimeout(() => {
+        map.invalidateSize();
+        map.setView([42.15, 43.85], 7.5);
+      }, 120);
+    }
   }, 100);
 });

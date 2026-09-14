@@ -502,7 +502,7 @@ const translations = {
     export_btn_geojson: "GeoJSON მონაცემები",
     export_btn_obj: "3D OBJ მოდელი",
 
-    // Footer
+    parcel_info_elevation: "ნიშნული ზღვის დონიდან",
     footer_tagline: "Building Information Modeling & Digital Engineering Excellence.",
     footer_rights: "ყველა უფლება დაცულია."
   },
@@ -1010,7 +1010,7 @@ const translations = {
     export_btn_geojson: "GeoJSON Data",
     export_btn_obj: "3D OBJ Model",
 
-    // Footer
+    parcel_info_elevation: "Elevation Above Sea Level",
     footer_tagline: "Building Information Modeling & Digital Engineering Excellence.",
     footer_rights: "All rights reserved."
   }

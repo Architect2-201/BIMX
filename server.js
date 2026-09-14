@@ -157,7 +157,7 @@ const requestHandler = (req, res) => {
     }
     normalizedCode = normalizedCode.replace(/\.{2,}/g, '.').replace(/^\.|\.$/g, '');
 
-    const CADASTRAL_CODE_REGEX = /^\d{2}\.\d{1,3}\.\d{1,3}\.\d{1,4}(?:\.\d{1,4})?(?:[./]\d{1,4})?$/;
+    const CADASTRAL_CODE_REGEX = /^\d{2}(?:\.\d{1,6}){2,5}(?:[./]\d{1,6})?$/;
     if (!CADASTRAL_CODE_REGEX.test(normalizedCode)) {
       res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: "საკადასტრო კოდის ფორმატი არასწორია (მაგ.: 01.10.09.001.001 ან 72.13.12.123)" }));
@@ -353,11 +353,15 @@ const requestHandler = (req, res) => {
     const lng = parseFloat(parsedUrl.searchParams.get('lng') || '44.8271');
     const radius = Math.min(1200, Math.max(100, parseInt(parsedUrl.searchParams.get('radius') || '350', 10)));
 
-    const overpassQuery = `[out:json][timeout:25];(way["building"](around:${radius},${lat},${lng});relation["building"](around:${radius},${lat},${lng}););out body;>;out skel qt;`;
+    const overpassQuery = `[out:json][timeout:15];way["building"](around:${radius},${lat},${lng});out body;>;out skel qt;`;
+    const postData = `data=${encodeURIComponent(overpassQuery)}`;
 
     const mirrors = [
+      'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+      'https://overpass.private.coffee/api/interpreter',
       'https://overpass-api.de/api/interpreter',
-      'https://lz4.overpass-api.de/api/interpreter'
+      'https://lz4.overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter'
     ];
 
     (async () => {
@@ -365,43 +369,65 @@ const requestHandler = (req, res) => {
       let nodeMap = {};
       let fetchSuccess = false;
 
-      for (const mirror of mirrors) {
-        try {
-          const mirrorUrl = `${mirror}?data=${encodeURIComponent(overpassQuery)}`;
-          const rawData = await new Promise((resolve, reject) => {
-            const req = https.get(mirrorUrl, {
+      const fetchFromMirror = (mirror) => {
+        return new Promise((resolve, reject) => {
+          try {
+            const url = new URL(mirror);
+            const req = https.request({
+              hostname: url.hostname,
+              port: url.port || 443,
+              path: url.pathname + (url.search || ''),
+              method: 'POST',
               headers: {
-                'User-Agent': 'curl/8.4.0',
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Length': Buffer.byteLength(postData),
+                'User-Agent': 'BIMX-UrbanIntelligence/2.0 (Architectural GIS Research)',
                 'Accept': 'application/json'
               },
-              timeout: 14000
+              timeout: 6500
             }, res => {
               if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
               let body = '';
               res.on('data', chunk => body += chunk);
-              res.on('end', () => resolve(body));
+              res.on('end', () => {
+                if (body && body.trim().startsWith('{')) {
+                  try {
+                    const parsed = JSON.parse(body);
+                    resolve(parsed);
+                  } catch (pe) {
+                    reject(pe);
+                  }
+                } else {
+                  reject(new Error('Non-JSON response'));
+                }
+              });
             });
             req.on('error', reject);
             req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
-          });
-
-          if (rawData) {
-            const parsed = JSON.parse(rawData);
-            (parsed.elements || []).forEach(elem => {
-              if (elem.type === 'node') {
-                nodeMap[elem.id] = [elem.lat, elem.lon];
-              } else if (elem.type === 'way' && elem.tags && elem.tags.building) {
-                ways.push(elem);
-              }
-            });
-            if (ways.length > 0) {
-              fetchSuccess = true;
-              break;
-            }
+            req.write(postData);
+            req.end();
+          } catch (e) {
+            reject(e);
           }
-        } catch (mirrorErr) {
-          console.warn(`[Server] Overpass mirror ${mirror} warning:`, mirrorErr.message);
+        });
+      };
+
+      try {
+        const fastestResult = await Promise.any(mirrors.map(m => fetchFromMirror(m)));
+        if (fastestResult && fastestResult.elements) {
+          fastestResult.elements.forEach(elem => {
+            if (elem.type === 'node') {
+              nodeMap[elem.id] = [elem.lat, elem.lon];
+            } else if (elem.type === 'way' && elem.tags && elem.tags.building) {
+              ways.push(elem);
+            }
+          });
+          if (ways.length > 0) {
+            fetchSuccess = true;
+          }
         }
+      } catch (err) {
+        console.warn('[Server] Overpass all mirrors error or timeout:', err.message);
       }
 
       if (fetchSuccess && ways.length > 0) {
@@ -473,22 +499,24 @@ const requestHandler = (req, res) => {
         }
       }
 
-      // If empty result or all mirrors failed, fallback gracefully (flagged as procedural)
+      // Strict rule: Only return real existing buildings. If no buildings found, return empty array (never fake procedural buildings)
       if (!res.headersSent) {
-        const fallback = generateProceduralUrbanFabric(lat, lng);
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ status: 'OK', source: 'procedural_fallback', count: fallback.length, buildings: fallback }));
+        res.end(JSON.stringify({ status: 'OK', source: 'overpass_empty', count: 0, buildings: [] }));
       }
     })();
     return;
   }
 
   // 1C. DEM / Elevation & Topography Slope API
+  // 1C. High-Precision Copernicus DEM 90m Elevation & 3D Topographic Mesh API (Open-Meteo)
+  const elevationCache = new Map();
+
   if (parsedUrl.pathname === '/api/elevation') {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
 
     if (req.method === 'OPTIONS') {
       res.writeHead(204);
@@ -498,60 +526,126 @@ const requestHandler = (req, res) => {
 
     const lat = parseFloat(parsedUrl.searchParams.get('lat') || '41.7151');
     const lng = parseFloat(parsedUrl.searchParams.get('lng') || '44.8271');
+    const isGrid = parsedUrl.searchParams.get('grid') === 'true';
+    const radiusMeters = Math.min(600, Math.max(80, parseFloat(parsedUrl.searchParams.get('radius') || '200')));
+    const gridSize = 7; // 7x7 = 49 elevation samples across terrain area
 
-    // Base elevation model for Tbilisi based on geographical coordinates
-    // Saburtalo ~ 450-520m, Vake ~ 480-560m, Old Tbilisi ~ 390-430m, Mtatsminda ~ 600-750m, Didi Dighomi ~ 510-540m
-    function estimateTbilisiElevation(la, lo) {
-      const baseLat = 41.7151;
-      const baseLng = 44.8271;
-      const dLat = (la - baseLat) * 111000;
-      const dLng = (lo - baseLng) * 82000;
-      // Realistic topographical formula for Tbilisi basin
-      const elev = 430 + (dLat * 0.015) - (dLng * 0.008) + Math.sin(la * 500) * 12 + Math.cos(lo * 500) * 8;
-      return Math.round(elev * 10) / 10;
+    // Regional fallback elevation model across Georgia if offline
+    function getRegionalFallbackElevation(la, lo) {
+      if (lo < 42.0) return Math.round(15 + Math.sin(la * 100) * 10); // Black Sea / Coastal
+      if (la > 42.5 && lo > 44.4) return 1740; // Kazbegi / High Caucasus
+      if (la > 42.8 && lo < 43.0) return 1520; // Svaneti / Mestia
+      if (lo > 44.6 && lo < 45.1 && la > 41.6 && la < 41.9) return 480; // Tbilisi Basin
+      if (lo > 42.5 && lo < 43.0 && la > 42.1 && la < 42.4) return 150; // Imereti / Kutaisi
+      if (lo > 44.8 && lo < 45.2 && la > 41.4 && la < 41.7) return 370; // Kvemo Kartli / Rustavi
+      if (lo > 45.3 && la > 41.5 && la < 42.1) return 550; // Kakheti
+      return 520;
     }
 
-    // Attempt Open-Elevation query with timeout fallback
-    const openElevUrl = `https://api.open-elevation.com/api/v1/lookup?locations=${lat},${lng}`;
-    const elevReq = https.get(openElevUrl, { timeout: 3500 }, (elevRes) => {
-      let data = '';
-      elevRes.on('data', c => { data += c; });
-      elevRes.on('end', () => {
-        try {
-          const parsed = JSON.parse(data);
-          if (parsed.results && parsed.results[0] && typeof parsed.results[0].elevation === 'number') {
-            const el = parsed.results[0].elevation;
-            if (!res.headersSent) {
+    const cacheKey = `${lat.toFixed(4)}_${lng.toFixed(4)}_${isGrid ? radiusMeters : 'single'}`;
+    if (elevationCache.has(cacheKey)) {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(elevationCache.get(cacheKey)));
+      return;
+    }
+
+    (async () => {
+      try {
+        if (!isGrid) {
+          // Single-point elevation query
+          const apiUrl = `https://api.open-meteo.com/v1/elevation?latitude=${lat.toFixed(6)}&longitude=${lng.toFixed(6)}`;
+          const elevRes = await fetch(apiUrl, { signal: AbortSignal.timeout(4000) });
+          if (elevRes.ok) {
+            const elevData = await elevRes.json();
+            const el = Array.isArray(elevData.elevation) ? elevData.elevation[0] : elevData.elevation;
+            if (typeof el === 'number') {
+              const result = { status: 'OK', elevation: Math.round(el * 10) / 10, source: 'copernicus-dem-90m' };
+              elevationCache.set(cacheKey, result);
               res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-              res.end(JSON.stringify({ status: 'OK', elevation: el, source: 'open-elevation' }));
+              res.end(JSON.stringify(result));
+              return;
             }
-            return;
           }
-        } catch (e) {}
-        if (!res.headersSent) {
-          const est = estimateTbilisiElevation(lat, lng);
-          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-          res.end(JSON.stringify({ status: 'OK', elevation: est, source: 'topographical_model' }));
+        } else {
+          // 7x7 Grid elevation query for real 3D topographic relief mesh
+          const dLatDeg = radiusMeters / 111132;
+          const dLngDeg = radiusMeters / (111132 * Math.cos(lat * Math.PI / 180));
+          const stepLat = (dLatDeg * 2) / (gridSize - 1);
+          const stepLng = (dLngDeg * 2) / (gridSize - 1);
+
+          const lats = [];
+          const lngs = [];
+          for (let r = 0; r < gridSize; r++) {
+            const curLat = (lat + dLatDeg - r * stepLat).toFixed(6);
+            for (let c = 0; c < gridSize; c++) {
+              const curLng = (lng - dLngDeg + c * stepLng).toFixed(6);
+              lats.push(curLat);
+              lngs.push(curLng);
+            }
+          }
+
+          const apiUrl = `https://api.open-meteo.com/v1/elevation?latitude=${lats.join(',')}&longitude=${lngs.join(',')}`;
+          const elevRes = await fetch(apiUrl, { signal: AbortSignal.timeout(4500) });
+          if (elevRes.ok) {
+            const elevData = await elevRes.json();
+            if (Array.isArray(elevData.elevation) && elevData.elevation.length === (gridSize * gridSize)) {
+              const elevs = elevData.elevation;
+              const centerIdx = Math.floor((gridSize * gridSize) / 2);
+              const centerElevation = elevs[centerIdx];
+              const minElevation = Math.min(...elevs);
+              const maxElevation = Math.max(...elevs);
+              const deltaZ = Math.round((maxElevation - minElevation) * 10) / 10;
+              const slopePct = Math.round(((deltaZ / (radiusMeters * 1.5)) * 100) * 10) / 10;
+
+              const result = {
+                status: 'OK',
+                elevation: Math.round(centerElevation * 10) / 10,
+                centerLat: lat,
+                centerLng: lng,
+                gridSize,
+                radiusMeters,
+                grid: elevs,
+                minElevation,
+                maxElevation,
+                deltaZ,
+                slopePct,
+                source: 'copernicus-dem-90m'
+              };
+              elevationCache.set(cacheKey, result);
+              res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+              res.end(JSON.stringify(result));
+              return;
+            }
+          }
         }
-      });
-    });
-
-    elevReq.on('error', () => {
-      if (!res.headersSent) {
-        const est = estimateTbilisiElevation(lat, lng);
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ status: 'OK', elevation: est, source: 'topographical_model' }));
+      } catch (err) {
+        console.warn('[Server] Open-Meteo elevation API note:', err.message);
       }
-    });
 
-    elevReq.on('timeout', () => {
-      elevReq.destroy();
-      if (!res.headersSent) {
-        const est = estimateTbilisiElevation(lat, lng);
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ status: 'OK', elevation: est, source: 'topographical_model' }));
-      }
-    });
+      // Fallback response if external DEM is temporarily unreachable
+      const baseEst = getRegionalFallbackElevation(lat, lng);
+      const fallbackResult = isGrid ? {
+        status: 'OK',
+        elevation: baseEst,
+        centerLat: lat,
+        centerLng: lng,
+        gridSize,
+        radiusMeters,
+        grid: new Array(gridSize * gridSize).fill(baseEst),
+        minElevation: baseEst,
+        maxElevation: baseEst + 2.0,
+        deltaZ: 2.0,
+        slopePct: 2.5,
+        source: 'regional_fallback'
+      } : {
+        status: 'OK',
+        elevation: baseEst,
+        source: 'regional_fallback'
+      };
+
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(fallbackResult));
+    })();
     return;
   }
 

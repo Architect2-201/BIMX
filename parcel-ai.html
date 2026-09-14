@@ -410,7 +410,7 @@
             <label for="cadastralCodeInput" style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;" data-i18n="parcel_lbl_cadastral">
               საკადასტრო კოდი
             </label>
-            <input type="text" id="cadastralCodeInput" class="cadastral-input" placeholder="01.15.02.038.003" value="01.15.02.038.003" data-i18n-ph="parcel_ph_cadastral">
+            <input type="text" id="cadastralCodeInput" class="cadastral-input" placeholder="01.15.02.038.003" value="" data-i18n-ph="parcel_ph_cadastral">
           </div>
 
           <button type="button" class="btn-cadastral-search" id="cadastralSearchBtn">
@@ -844,6 +844,9 @@
               </button>
               <button type="button" class="btn-map-theme" data-theme="topo" title="ტოპოგრაფიული რელიეფის რუკა">
                 <i class="fa-solid fa-mountain-sun"></i> <span data-i18n="map_theme_topo">ტოპოგრაფიული</span>
+              </button>
+              <button type="button" class="btn-map-theme btn-zoning active" id="btnToggleZoningLayer" title="ყვითელი ფენის ჩართვა/გათიშვა (ზონირების არეალი)">
+                <i class="fa-solid fa-draw-polygon" style="color: #fb8500;"></i> <span id="textToggleZoning">ყვითელი ფენა</span>
               </button>
             </div>
           </div>
@@ -1619,13 +1622,13 @@
               <i class="fa-solid fa-location-dot" style="color: var(--cyan-neon);"></i>
               <span id="hudCadastral">01.15.02.038.003</span>
             </div>
-            <div class="hud-pill-badge">
-              <i class="fa-solid fa-chart-area" style="color: var(--cyan-neon);"></i>
-              <span id="hudArea">1,250 მ²</span>
+            <div class="hud-pill-badge" id="hudElevationBadge" title="აბსოლუტური ნიშნული ზღვის დონიდან">
+              <i class="fa-solid fa-water" style="color: var(--cyan-neon);"></i>
+              <span id="hudElevation">H: — მ (ზ.დ.)</span>
             </div>
             <div class="hud-terrain-pill" id="hudTerrainSlopePill" title="DEM ტოპოგრაფიული რელიეფის დახრა">
               <i class="fa-solid fa-mountain"></i>
-              <span id="hudTerrainSlope">დახრა: 2.1% (ΔZ: 1.8 მ)</span>
+              <span id="hudTerrainSlope">დახრა: —% (ΔZ: — მ)</span>
             </div>
           </div>
 
@@ -1680,6 +1683,10 @@
               <div class="analytic-data-item">
                 <span class="label" data-i18n="parcel_info_address">მისამართი</span>
                 <span class="val" id="infoParcelAddress">თბილისი, საბურთალო, პეკინის გამზ. #28</span>
+              </div>
+              <div class="analytic-data-item" id="infoParcelElevationItem">
+                <span class="label" data-i18n="parcel_info_elevation">ნიშნული ზღვის დონიდან</span>
+                <span class="val" id="infoParcelElevation" style="font-weight: 700; color: var(--cyan-neon, #00f2fe);">—</span>
               </div>
               <div class="analytic-data-item">
                 <span class="label" data-i18n="urban_main_zone">ძირითადი ზონა</span>

@@ -2806,6 +2806,13 @@ img {
   box-shadow: 0 0 12px rgba(0, 240, 255, 0.25);
 }
 
+.btn-map-theme.btn-zoning.active {
+  background: rgba(251, 133, 0, 0.18);
+  border-color: rgba(251, 133, 0, 0.6);
+  color: #fb8500;
+  box-shadow: 0 0 12px rgba(251, 133, 0, 0.25);
+}
+
 /* Map Telemetry HUD (Bottom Right) */
 .map-telemetry-hud {
   position: absolute;

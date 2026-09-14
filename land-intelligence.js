@@ -26,11 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('resize', () => {
     if (mapInstance) mapInstance.invalidateSize();
   });
-  // Auto-run initial analysis on load
-  const initialCode = document.getElementById('cadastralCodeInput').value;
-  if (initialCode) {
-    runAnalysis(initialCode, 'residential_single');
-  }
+  // Initial state: do not run auto-analysis until user enters cadastral code
 });
 
 function initMobileMenu() {
@@ -57,11 +53,11 @@ function initGISMap() {
   const mapElement = document.getElementById('gisMap');
   if (!mapElement) return;
 
-  // Default centered on Tbilisi (Rustaveli Avenue coordinates)
+  // Initial view: full map of Georgia
   mapInstance = L.map('gisMap', {
     zoomControl: true,
     attributionControl: false
-  }).setView([41.724, 44.771], 16);
+  }).setView([42.15, 43.85], 7.5);
 
   // OpenStreetMap cartography tiles (no watermark, clean high-contrast)
   streetLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -652,6 +648,16 @@ function renderAnalysisResults(data) {
   setText('blockAMunicipality', mun.nameKa);
   setText('blockADistrict', adm.districtKa);
   setText('blockAAddress', p.address || '—');
+  if (p.centroid && p.centroid.length >= 2) {
+    fetch(`/api/elevation?lat=${p.centroid[0]}&lng=${p.centroid[1]}`)
+      .then(res => res.json())
+      .then(d => {
+        if (d && typeof d.elevation === 'number') {
+          setText('blockAElevation', `${Math.round(d.elevation).toLocaleString()} მ (ზ.დ.)`);
+        }
+      })
+      .catch(() => {});
+  }
   setText('blockAWidth', p.dimensions ? `${p.dimensions.minWidthM} მ` : '—');
   setText('blockADepth', p.dimensions ? `${p.dimensions.avgDepthM} მ` : '—');
   setText('blockAPerimeter', p.dimensions ? `${p.dimensions.perimeterM} მ` : '—');
@@ -863,23 +869,29 @@ function updateMapGeometry(coordinates, centroid, primaryZone, restrictions, tas
     });
   }
 
-  // Draw Building Contours (Nearby existing structures)
-  const cLat = bounds.getCenter().lat;
-  const cLng = bounds.getCenter().lng;
-  const bldg1 = [
-    [cLat + 0.00035, cLng + 0.0004],
-    [cLat + 0.00065, cLng + 0.0004],
-    [cLat + 0.00065, cLng + 0.00075],
-    [cLat + 0.00035, cLng + 0.00075]
-  ];
-  const bldg2 = [
-    [cLat - 0.00035, cLng - 0.0004],
-    [cLat - 0.00065, cLng - 0.0004],
-    [cLat - 0.00065, cLng - 0.00075],
-    [cLat - 0.00035, cLng - 0.00075]
-  ];
-  L.polygon(bldg1, { color: '#64748b', weight: 1.5, fillColor: '#94a3b8', fillOpacity: 0.3 }).addTo(contoursLayer);
-  L.polygon(bldg2, { color: '#64748b', weight: 1.5, fillColor: '#94a3b8', fillOpacity: 0.3 }).addTo(contoursLayer);
+  // Fetch and display real OSM building contours if available (no fake procedural boxes)
+  if (contoursLayer) {
+    contoursLayer.clearLayers();
+    const cLat = bounds.getCenter().lat;
+    const cLng = bounds.getCenter().lng;
+    fetch(`/api/overpass?lat=${cLat}&lng=${cLng}&radius=350`)
+      .then(r => r.json())
+      .then(d => {
+        if (d && d.buildings && d.buildings.length) {
+          d.buildings.slice(0, 150).forEach(b => {
+            if (b.coordinates && b.coordinates.length >= 3) {
+              L.polygon(b.coordinates, {
+                color: '#64748b',
+                weight: 1.5,
+                fillColor: '#94a3b8',
+                fillOpacity: 0.28
+              }).addTo(contoursLayer);
+            }
+          });
+        }
+      })
+      .catch(() => {});
+  }
 
   // Draw Red Line road buffer along front if present
   const redLineRestr = (restrictions || []).find(r => r.type === 'RED_LINE');
