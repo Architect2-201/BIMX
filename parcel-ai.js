@@ -452,6 +452,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let scene, camera, renderer, controls;
   let buildingGroup, groundGroup, urbanGroup, terrainGroup, sunPathGroup, roadGroup, solarHeatmapGroup;
   let utility3DGroup, unitMix3DGroup, wind3DGroup, windParticles, windHeatmapMesh, windProbeMarker;
+  let viewshed3DGroup, mapRadiusCircles = [], mapPoiMarkers = [];
   let sunLight, ambientLight, fillLight;
 
   function initThree() {
@@ -551,6 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
     utility3DGroup = new THREE.Group();
     unitMix3DGroup = new THREE.Group();
     wind3DGroup = new THREE.Group();
+    viewshed3DGroup = new THREE.Group();
 
     scene.add(terrainGroup);
     scene.add(groundGroup);
@@ -562,6 +564,7 @@ document.addEventListener('DOMContentLoaded', () => {
     scene.add(utility3DGroup);
     scene.add(unitMix3DGroup);
     scene.add(wind3DGroup);
+    scene.add(viewshed3DGroup);
 
     // Initialize SunCalc position & controls
     updateSolarLighting();
@@ -862,6 +865,11 @@ document.addEventListener('DOMContentLoaded', () => {
         generateConceptFromPrompt(promptValue);
       } else {
         generateDefaultConcept(parcelData);
+      }
+
+      // If viewshed mode is currently active, run surroundings & viewshed analysis
+      if (state.currentMode === 'viewshed' && typeof runSurroundingsAnalysis === 'function') {
+        runSurroundingsAnalysis();
       }
       return;
     }
@@ -7498,6 +7506,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const utilitiesControlPanel = document.getElementById('utilitiesControlPanel');
     const unitMixControlPanel = document.getElementById('unitMixControlPanel');
     const windSimulationControlPanel = document.getElementById('windSimulationControlPanel');
+    const viewshedControlPanel = document.getElementById('viewshedControlPanel');
     const mapThemeSwitcher = document.getElementById('mapThemeSwitcherBar');
     const mapTelemetry = document.getElementById('mapTelemetryHud');
 
@@ -7506,6 +7515,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (utilitiesControlPanel) utilitiesControlPanel.style.display = 'none';
     if (unitMixControlPanel) unitMixControlPanel.style.display = 'none';
     if (windSimulationControlPanel) windSimulationControlPanel.style.display = 'none';
+    if (viewshedControlPanel) viewshedControlPanel.style.display = 'none';
 
     // 3D Groups visibility
     if (sunPathGroup) sunPathGroup.visible = false;
@@ -7513,9 +7523,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (utility3DGroup) utility3DGroup.visible = (mode === 'utilities');
     if (unitMix3DGroup) unitMix3DGroup.visible = (mode === 'unitmix');
     if (wind3DGroup) wind3DGroup.visible = (mode === 'wind');
+    if (viewshed3DGroup) viewshed3DGroup.visible = (mode === 'viewshed');
     if (groundGroup) groundGroup.visible = (state.showParcelGround !== false);
     if (typeof setUtilitiesXRay === 'function') {
       setUtilitiesXRay(mode === 'utilities' && (state.utilitiesData && state.utilitiesData.showXRay !== false));
+    }
+
+    if (mode !== 'viewshed') {
+      if (typeof clearMapViewshedLayers === 'function') clearMapViewshedLayers();
     }
 
     if (mode === 'map') {
@@ -7623,6 +7638,33 @@ document.addEventListener('DOMContentLoaded', () => {
       initWindSimulation3D();
       applyBuildingAerodynamicColors3D(true);
       onWindowResize();
+    } else if (mode === 'viewshed') {
+      if (mapViewport) mapViewport.style.display = 'block';
+      if (threeViewport) threeViewport.style.display = 'block';
+      const viewshedControlPanel = document.getElementById('viewshedControlPanel');
+      if (viewshedControlPanel) viewshedControlPanel.style.display = 'flex';
+      if (buildingGroup) buildingGroup.visible = true;
+      if (urbanGroup) urbanGroup.visible = true;
+      if (viewshed3DGroup) viewshed3DGroup.visible = (state.show3DViewRays !== false);
+      if (mapThemeSwitcher) mapThemeSwitcher.style.display = 'none';
+      if (mapTelemetry) mapTelemetry.style.display = 'none';
+      renderAllBuildings3D();
+      renderUrbanFabric3D();
+      switchMapBasemap(state.combinedMapTheme || 'satellite');
+      if (buildingFootprintLayer) {
+        map.removeLayer(buildingFootprintLayer);
+        buildingFootprintLayer = null;
+      }
+      if (map) setTimeout(() => map.invalidateSize(), 50);
+      onWindowResize();
+      if (controls && camera) {
+        camera.position.set(45, 35, 55);
+        controls.target.set(0, 8, 0);
+        controls.update();
+      }
+      if (typeof runSurroundingsAnalysis === 'function') {
+        runSurroundingsAnalysis();
+      }
     }
   }
 
@@ -9613,6 +9655,577 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
+     10d. Surroundings, Nearby Infrastructure (POIs) & 360° Viewshed Module
+     ========================================================================== */
+  let viewshedPoiList = [];
+  let currentViewshedScore = 85;
+
+  function clearMapViewshedLayers() {
+    if (mapRadiusCircles && mapRadiusCircles.length > 0) {
+      mapRadiusCircles.forEach(layer => {
+        if (map && map.hasLayer(layer)) map.removeLayer(layer);
+      });
+      mapRadiusCircles = [];
+    }
+    if (mapPoiMarkers && mapPoiMarkers.length > 0) {
+      mapPoiMarkers.forEach(marker => {
+        if (map && map.hasLayer(marker)) map.removeLayer(marker);
+      });
+      mapPoiMarkers = [];
+    }
+  }
+
+  function initViewshedModuleControls() {
+    const btnVTabPoi = document.getElementById('btnVTabPoi');
+    const btnVTabViews = document.getElementById('btnVTabViews');
+    const vTabContentPoi = document.getElementById('vTabContentPoi');
+    const vTabContentViews = document.getElementById('vTabContentViews');
+
+    if (btnVTabPoi && btnVTabViews) {
+      btnVTabPoi.addEventListener('click', () => {
+        btnVTabPoi.classList.add('active');
+        btnVTabPoi.style.background = '#10b981';
+        btnVTabPoi.style.color = '#fff';
+        btnVTabViews.classList.remove('active');
+        btnVTabViews.style.background = 'transparent';
+        btnVTabViews.style.color = '#94a3b8';
+        if (vTabContentPoi) vTabContentPoi.style.display = 'block';
+        if (vTabContentViews) vTabContentViews.style.display = 'none';
+      });
+
+      btnVTabViews.addEventListener('click', () => {
+        btnVTabViews.classList.add('active');
+        btnVTabViews.style.background = '#10b981';
+        btnVTabViews.style.color = '#fff';
+        btnVTabPoi.classList.remove('active');
+        btnVTabPoi.style.background = 'transparent';
+        btnVTabPoi.style.color = '#94a3b8';
+        if (vTabContentViews) vTabContentViews.style.display = 'block';
+        if (vTabContentPoi) vTabContentPoi.style.display = 'none';
+        computeAndRender3DViewshed();
+      });
+    }
+
+    // Radius Filter Pills
+    document.querySelectorAll('.viewshed-filter-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        document.querySelectorAll('.viewshed-filter-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        state.viewshedFilterRadius = pill.dataset.radius || 'all';
+        renderMapRadiusCircles();
+        renderMapPoiMarkers();
+        renderViewshedPoiList();
+      });
+    });
+
+    // Category Filter Chips
+    document.querySelectorAll('.v-cat-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('.v-cat-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        state.viewshedFilterCat = chip.dataset.cat || 'all';
+        renderMapPoiMarkers();
+        renderViewshedPoiList();
+      });
+    });
+
+    // Search Input
+    const searchInput = document.getElementById('vPoiSearchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', () => {
+        renderViewshedPoiList();
+        renderMapPoiMarkers();
+      });
+    }
+
+    // View Level Selector
+    const selectViewLevel = document.getElementById('selectViewLevel');
+    if (selectViewLevel) {
+      selectViewLevel.addEventListener('change', (e) => {
+        state.viewshedViewLevel = e.target.value;
+        computeAndRender3DViewshed();
+      });
+    }
+
+    // Visual Toggles
+    const chkRays = document.getElementById('chkShow3DViewRays');
+    if (chkRays) {
+      chkRays.addEventListener('change', (e) => {
+        state.show3DViewRays = e.target.checked;
+        if (viewshed3DGroup) viewshed3DGroup.visible = e.target.checked;
+      });
+    }
+
+    const chkRings = document.getElementById('chkShowMapRadiusRings');
+    if (chkRings) {
+      chkRings.addEventListener('change', (e) => {
+        state.showMapRadiusRings = e.target.checked;
+        renderMapRadiusCircles();
+      });
+    }
+
+    const chkMarkers = document.getElementById('chkShowMapPoiMarkers');
+    if (chkMarkers) {
+      chkMarkers.addEventListener('change', (e) => {
+        state.showMapPoiMarkers = e.target.checked;
+        renderMapPoiMarkers();
+      });
+    }
+
+    // Refresh Button
+    const btnRefresh = document.getElementById('btnRefreshViewshed');
+    if (btnRefresh) {
+      btnRefresh.addEventListener('click', () => {
+        runSurroundingsAnalysis(true);
+      });
+    }
+  }
+
+  async function runSurroundingsAnalysis(forceRefresh = false) {
+    if (!state.activeParcel || !state.activeParcel.coordinates || state.activeParcel.coordinates.length < 3) {
+      return;
+    }
+
+    const centerGps = computeParcelCenter(state.activeParcel.coordinates);
+    const centerLat = centerGps[0];
+    const centerLng = centerGps[1];
+
+    try {
+      const res = await fetch(`/api/surroundings-poi?lat=${centerLat}&lng=${centerLng}&radius=1000`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.pois) {
+          viewshedPoiList = data.pois;
+          state.surroundingsData = data;
+        }
+      }
+    } catch (e) {
+      console.warn('Surroundings POI fetch error:', e);
+    }
+
+    renderMapRadiusCircles();
+    renderMapPoiMarkers();
+    renderViewshedPoiList();
+    computeAndRender3DViewshed();
+  }
+
+  function renderMapRadiusCircles() {
+    if (!map || !state.activeParcel || !state.activeParcel.coordinates) return;
+    clearMapViewshedLayers();
+
+    if (state.showMapRadiusRings === false) return;
+
+    const centerGps = computeParcelCenter(state.activeParcel.coordinates);
+    const centerLat = centerGps[0];
+    const centerLng = centerGps[1];
+
+    const radii = [
+      { r: 300, color: '#10b981', label: '300 მ (~3-4 წთ)', fillOpacity: 0.08, dash: '4, 6' },
+      { r: 500, color: '#0ea5e9', label: '500 მ (~6-7 წთ)', fillOpacity: 0.05, dash: '5, 8' },
+      { r: 1000, color: '#f59e0b', label: '1000 მ (~15 წთ)', fillOpacity: 0.03, dash: '6, 10' }
+    ];
+
+    radii.forEach(item => {
+      // If user selected a specific radius filter, only show up to that radius
+      if (state.viewshedFilterRadius && state.viewshedFilterRadius !== 'all') {
+        const maxR = parseInt(state.viewshedFilterRadius, 10);
+        if (item.r > maxR) return;
+      }
+
+      const circle = L.circle([centerLat, centerLng], {
+        radius: item.r,
+        color: item.color,
+        weight: 2,
+        dashArray: item.dash,
+        fillColor: item.color,
+        fillOpacity: item.fillOpacity
+      }).addTo(map);
+
+      circle.bindTooltip(`<strong>${item.label}</strong>`, {
+        permanent: false,
+        direction: 'top',
+        className: 'viewshed-circle-tooltip'
+      });
+
+      mapRadiusCircles.push(circle);
+
+      // Distance tag marker at North point of circle
+      const latOffset = item.r / 111139;
+      const tagMarker = L.marker([centerLat + latOffset, centerLng], {
+        icon: L.divIcon({
+          className: 'radius-circle-tag-icon',
+          html: `<div style="background: rgba(15,23,42,0.85); border: 1px solid ${item.color}; color: ${item.color}; font-size: 0.68rem; font-weight: 700; padding: 2px 6px; border-radius: 10px; white-space: nowrap; box-shadow: 0 0 8px rgba(0,0,0,0.5);">${item.r} მ</div>`,
+          iconSize: [40, 20],
+          iconAnchor: [20, 10]
+        })
+      }).addTo(map);
+
+      mapRadiusCircles.push(tagMarker);
+    });
+  }
+
+  function renderMapPoiMarkers() {
+    if (!map || !viewshedPoiList || viewshedPoiList.length === 0) return;
+
+    // Clear previous markers
+    mapPoiMarkers.forEach(m => {
+      if (map && map.hasLayer(m)) map.removeLayer(m);
+    });
+    mapPoiMarkers = [];
+
+    if (state.showMapPoiMarkers === false) return;
+
+    const filterRadius = (state.viewshedFilterRadius && state.viewshedFilterRadius !== 'all') ? parseInt(state.viewshedFilterRadius, 10) : 10000;
+    const filterCat = state.viewshedFilterCat || 'all';
+    const searchVal = (document.getElementById('vPoiSearchInput')?.value || '').toLowerCase().trim();
+
+    const filtered = viewshedPoiList.filter(p => {
+      if (p.distanceMeters > filterRadius) return false;
+      if (filterCat !== 'all' && p.category !== filterCat) return false;
+      if (searchVal && !p.name.toLowerCase().includes(searchVal) && !p.categoryNameKa.toLowerCase().includes(searchVal)) return false;
+      return true;
+    });
+
+    filtered.forEach(poi => {
+      const markerHtml = `
+        <div style="width: 28px; height: 28px; border-radius: 50%; background: ${poi.color}; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; box-shadow: 0 0 10px ${poi.color}, 0 2px 6px rgba(0,0,0,0.6); border: 2px solid #ffffff; cursor: pointer; transition: transform 0.2s ease;">
+          <i class="fa-solid ${poi.icon}"></i>
+        </div>
+      `;
+
+      const marker = L.marker([poi.lat, poi.lng], {
+        icon: L.divIcon({
+          className: 'viewshed-poi-marker',
+          html: markerHtml,
+          iconSize: [28, 28],
+          iconAnchor: [14, 14]
+        })
+      }).addTo(map);
+
+      const popupContent = `
+        <div style="font-family: inherit; min-width: 170px;">
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+            <span style="background: ${poi.color}; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 700;">
+              ${poi.categoryNameKa}
+            </span>
+            <span style="font-size: 0.72rem; color: #38bdf8; font-weight: 700; margin-left: auto;">
+              ${poi.distanceMeters} მ
+            </span>
+          </div>
+          <strong style="font-size: 0.85rem; color: #0f172a; display: block; line-height: 1.25;">${poi.name}</strong>
+          <div style="font-size: 0.72rem; color: #64748b; margin-top: 4px; display: flex; align-items: center; justify-content: space-between;">
+            <span><i class="fa-solid fa-person-walking" style="color: #10b981;"></i> ~${poi.walkTimeMin} წთ ფეხით</span>
+            <span><i class="fa-solid fa-compass"></i> ${poi.bearingKa}</span>
+          </div>
+        </div>
+      `;
+
+      marker.bindPopup(popupContent, { maxWidth: 240, className: 'poi-custom-popup' });
+      mapPoiMarkers.push(marker);
+    });
+  }
+
+  function renderViewshedPoiList() {
+    const listEl = document.getElementById('viewshedPoiList');
+    if (!listEl) return;
+
+    if (!viewshedPoiList || viewshedPoiList.length === 0) {
+      listEl.innerHTML = '<div style="font-size: 0.75rem; color: #94a3b8; text-align: center; padding: 18px 0;">ობიექტები იტვირთება...</div>';
+      return;
+    }
+
+    // Update KPI counts
+    const count300 = viewshedPoiList.filter(p => p.distanceMeters <= 300).length;
+    const count500 = viewshedPoiList.filter(p => p.distanceMeters <= 500).length;
+    const count1000 = viewshedPoiList.filter(p => p.distanceMeters <= 1000).length;
+
+    const elKpi300 = document.getElementById('vKpi300');
+    const elKpi500 = document.getElementById('vKpi500');
+    const elKpi1000 = document.getElementById('vKpi1000');
+
+    if (elKpi300) elKpi300.textContent = count300;
+    if (elKpi500) elKpi500.textContent = count500;
+    if (elKpi1000) elKpi1000.textContent = count1000;
+
+    const filterRadius = (state.viewshedFilterRadius && state.viewshedFilterRadius !== 'all') ? parseInt(state.viewshedFilterRadius, 10) : 10000;
+    const filterCat = state.viewshedFilterCat || 'all';
+    const searchVal = (document.getElementById('vPoiSearchInput')?.value || '').toLowerCase().trim();
+
+    const filtered = viewshedPoiList.filter(p => {
+      if (p.distanceMeters > filterRadius) return false;
+      if (filterCat !== 'all' && p.category !== filterCat) return false;
+      if (searchVal && !p.name.toLowerCase().includes(searchVal) && !p.categoryNameKa.toLowerCase().includes(searchVal)) return false;
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      listEl.innerHTML = '<div style="font-size: 0.75rem; color: #94a3b8; text-align: center; padding: 14px 0;">ამ ფილტრით ობიექტები არ მოიძებნა</div>';
+      return;
+    }
+
+    listEl.innerHTML = filtered.map(poi => `
+      <div class="v-poi-card" data-poi-id="${poi.id}" data-lat="${poi.lat}" data-lng="${poi.lng}">
+        <div class="v-poi-icon-wrap" style="background: ${poi.color}22; color: ${poi.color}; border: 1px solid ${poi.color}55;">
+          <i class="fa-solid ${poi.icon}"></i>
+        </div>
+        <div class="v-poi-info">
+          <div class="v-poi-name" title="${poi.name}">${poi.name}</div>
+          <div class="v-poi-meta">
+            <span class="v-poi-dist-badge"><i class="fa-solid fa-ruler"></i> ${poi.distanceMeters} მ</span>
+            <span class="v-poi-walk-badge"><i class="fa-solid fa-person-walking"></i> ~${poi.walkTimeMin} წთ</span>
+            <span style="margin-left: auto; color: #64748b;"><i class="fa-solid fa-compass"></i> ${poi.bearing}</span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    // Attach click event to fly to POI on map
+    listEl.querySelectorAll('.v-poi-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const pLat = parseFloat(card.dataset.lat);
+        const pLng = parseFloat(card.dataset.lng);
+        if (map && !isNaN(pLat) && !isNaN(pLng)) {
+          map.flyTo([pLat, pLng], 17, { animate: true, duration: 0.8 });
+          const targetMarker = mapPoiMarkers.find(m => {
+            const ll = m.getLatLng();
+            return Math.abs(ll.lat - pLat) < 0.0001 && Math.abs(ll.lng - pLng) < 0.0001;
+          });
+          if (targetMarker) {
+            setTimeout(() => targetMarker.openPopup(), 400);
+          }
+        }
+      });
+    });
+  }
+
+  function computeAndRender3DViewshed() {
+    if (!viewshed3DGroup || !state.activeParcel || typeof THREE === 'undefined') return;
+
+    // Clear previous 3D sightline objects
+    while (viewshed3DGroup.children.length > 0) {
+      const child = viewshed3DGroup.children[0];
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) {
+        if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+        else child.material.dispose();
+      }
+      viewshed3DGroup.remove(child);
+    }
+
+    const activeBldg = (typeof getActiveBuilding === 'function') ? getActiveBuilding() : (state.buildings && state.buildings[0]);
+    const floorsAbove = activeBldg ? (activeBldg.floorsAbove || 3) : (state.floorsAbove || 3);
+    const totalHeight = floorsAbove * 3.2;
+
+    let rayY = totalHeight * 0.95; // Default top floor / roof level
+    if (state.viewshedViewLevel === '1') {
+      rayY = 2.0;
+    } else if (state.viewshedViewLevel === 'mid') {
+      rayY = Math.max(2.5, totalHeight * 0.5);
+    }
+
+    // Origin point in local meters at active building center
+    let originX = 0;
+    let originZ = 0;
+    if (activeBldg && activeBldg.footprintCoords && activeBldg.footprintCoords.length >= 3) {
+      const centerGps = computeParcelCenter(state.activeParcel.coordinates);
+      const bldgLocal = gpsToLocalMeters(activeBldg.footprintCoords, centerGps);
+      let sumX = 0, sumZ = 0;
+      bldgLocal.forEach(p => { sumX += p.x; sumZ += p.y; });
+      originX = sumX / bldgLocal.length;
+      originZ = sumZ / bldgLocal.length;
+    }
+
+    const originVec = new THREE.Vector3(originX, rayY, originZ);
+
+    const directions = [
+      { code: 'N', nameKa: 'ჩრდილოეთი', angleDeg: 0, dirVec: new THREE.Vector3(0, 0, -1) },
+      { code: 'NE', nameKa: 'ჩრდ-აღმოსავლეთი', angleDeg: 45, dirVec: new THREE.Vector3(0.7071, 0, -0.7071) },
+      { code: 'E', nameKa: 'აღმოსავლეთი', angleDeg: 90, dirVec: new THREE.Vector3(1, 0, 0) },
+      { code: 'SE', nameKa: 'სამხრ-აღმოსავლეთი', angleDeg: 135, dirVec: new THREE.Vector3(0.7071, 0, 0.7071) },
+      { code: 'S', nameKa: 'სამხრეთი', angleDeg: 180, dirVec: new THREE.Vector3(0, 0, 1) },
+      { code: 'SW', nameKa: 'სამხრ-დასავლეთი', angleDeg: 225, dirVec: new THREE.Vector3(-0.7071, 0, 0.7071) },
+      { code: 'W', nameKa: 'დასავლეთი', angleDeg: 270, dirVec: new THREE.Vector3(-1, 0, 0) },
+      { code: 'NW', nameKa: 'ჩრდ-დასავლეთი', angleDeg: 315, dirVec: new THREE.Vector3(-0.7071, 0, -0.7071) }
+    ];
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.far = 380; // Sightline range in meters
+
+    const urbanMeshes = [];
+    if (urbanGroup) {
+      urbanGroup.traverse(child => {
+        if (child.isMesh && child.visible) urbanMeshes.push(child);
+      });
+    }
+
+    let totalScore = 0;
+    const directionResults = [];
+
+    directions.forEach(d => {
+      raycaster.set(originVec, d.dirVec);
+      const hits = raycaster.intersectObjects(urbanMeshes, false);
+
+      let obstacleDist = 380;
+      if (hits && hits.length > 0) {
+        obstacleDist = Math.max(12, hits[0].distance);
+      }
+
+      // Quality evaluation
+      let status = 'open';
+      let statusKa = 'ღია პანორამა';
+      let score = 95;
+      let rayColor = 0x10b981; // Green
+
+      if (obstacleDist < 75) {
+        status = 'obstructed';
+        statusKa = 'დაბლოკილი';
+        score = Math.round(Math.max(15, (obstacleDist / 75) * 45));
+        rayColor = 0xef4444; // Red
+      } else if (obstacleDist < 200) {
+        status = 'partial';
+        statusKa = 'ნაწილობრივი';
+        score = Math.round(50 + ((obstacleDist - 75) / 125) * 35);
+        rayColor = 0xf59e0b; // Amber
+      } else {
+        score = Math.min(100, Math.round(85 + ((obstacleDist - 200) / 180) * 15));
+      }
+
+      totalScore += score;
+
+      directionResults.push({
+        ...d,
+        dist: obstacleDist,
+        status,
+        statusKa,
+        score,
+        colorHex: rayColor
+      });
+
+      // Render 3D View Cone / Ray Fan
+      const coneLength = Math.min(obstacleDist, 220);
+      const endVec = originVec.clone().add(d.dirVec.clone().multiplyScalar(coneLength));
+
+      // Laser line ray
+      const rayGeo = new THREE.BufferGeometry().setFromPoints([originVec, endVec]);
+      const rayMat = new THREE.LineBasicMaterial({
+        color: rayColor,
+        linewidth: 3,
+        transparent: true,
+        opacity: 0.85
+      });
+      const rayLine = new THREE.Line(rayGeo, rayMat);
+      viewshed3DGroup.add(rayLine);
+
+      // Semi-transparent 3D sightline sector cone (flat triangle fan)
+      const fanGeo = new THREE.BufferGeometry();
+      const leftVec = d.dirVec.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), 0.2).multiplyScalar(coneLength * 0.9);
+      const rightVec = d.dirVec.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), -0.2).multiplyScalar(coneLength * 0.9);
+
+      const fanVerts = new Float32Array([
+        originVec.x, originVec.y, originVec.z,
+        originVec.x + leftVec.x, originVec.y + leftVec.y, originVec.z + leftVec.z,
+        originVec.x + rightVec.x, originVec.y + rightVec.y, originVec.z + rightVec.z
+      ]);
+      fanGeo.setAttribute('position', new THREE.BufferAttribute(fanVerts, 3));
+      fanGeo.computeVertexNormals();
+
+      const fanMat = new THREE.MeshBasicMaterial({
+        color: rayColor,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.18,
+        depthWrite: false
+      });
+      const fanMesh = new THREE.Mesh(fanGeo, fanMat);
+      viewshed3DGroup.add(fanMesh);
+
+      // 3D Direction Endpoint Sphere
+      const sphereGeo = new THREE.SphereGeometry(1.2, 12, 12);
+      const sphereMat = new THREE.MeshBasicMaterial({ color: rayColor });
+      const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
+      sphereMesh.position.copy(endVec);
+      viewshed3DGroup.add(sphereMesh);
+    });
+
+    // Compute Overall Score
+    currentViewshedScore = Math.round(totalScore / directions.length);
+
+    // Update UI Elements
+    const elScore = document.getElementById('vOverallScoreVal');
+    const elBadge = document.getElementById('vOverallScoreBadge');
+    const elDesc = document.getElementById('vViewshedSummaryDesc');
+    const elGrid = document.getElementById('viewshedDirectionsGrid');
+    const elArch = document.getElementById('vArchRecommendationText');
+
+    if (elScore) elScore.textContent = `${currentViewshedScore} / 100`;
+
+    if (elBadge) {
+      if (currentViewshedScore >= 80) {
+        elBadge.className = 'solar-status-pill day';
+        elBadge.style.background = 'rgba(16, 185, 129, 0.2)';
+        elBadge.style.borderColor = '#10b981';
+        elBadge.style.color = '#34d399';
+        elBadge.innerHTML = '<i class="fa-solid fa-star"></i> <span>მაღალი პოტენციალი</span>';
+      } else if (currentViewshedScore >= 60) {
+        elBadge.className = 'solar-status-pill day';
+        elBadge.style.background = 'rgba(245, 158, 11, 0.2)';
+        elBadge.style.borderColor = '#f59e0b';
+        elBadge.style.color = '#fbbf24';
+        elBadge.innerHTML = '<i class="fa-solid fa-circle-half-stroke"></i> <span>საშუალო პოტენციალი</span>';
+      } else {
+        elBadge.className = 'solar-status-pill night';
+        elBadge.style.background = 'rgba(239, 68, 68, 0.2)';
+        elBadge.style.borderColor = '#ef4444';
+        elBadge.style.color = '#f87171';
+        elBadge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> <span>დაბალი / შეზღუდული</span>';
+      }
+    }
+
+    // Top unobstructed directions
+    const openDirs = directionResults.filter(d => d.status === 'open').map(d => d.nameKa);
+    const obstDirs = directionResults.filter(d => d.status === 'obstructed').map(d => d.nameKa);
+
+    if (elDesc) {
+      let descText = `შერჩეულ სიმაღლეზე (${rayY.toFixed(1)} მ) შენობის საშუალო ხედვის ინდექსია ${currentViewshedScore}%. `;
+      if (openDirs.length > 0) {
+        descText += `ღია, დაუბრკოლებელი პანორამა იშლება მიმართულებებზე: ${openDirs.join(', ')}. `;
+      }
+      if (obstDirs.length > 0) {
+        descText += `შეზღუდული ხედია მიმართულებებზე: ${obstDirs.join(', ')}.`;
+      }
+      elDesc.textContent = descText;
+    }
+
+    if (elArch) {
+      let archText = `ვიტრაჟებისა და მთავარი საცხოვრებელი ოთახების განთავსება რეკომენდებულია `;
+      if (openDirs.length > 0) {
+        archText += `${openDirs.slice(0, 2).join(' და ')} ფასადებზე მაქსიმალური ღია ხედისა და ბუნებრივი განათებისთვის.`;
+      } else {
+        archText += `ზედა სართულებზე, რათა შენობა გასცდეს მეზობელი ფასადების დაბრკოლებას.`;
+      }
+      elArch.textContent = archText;
+    }
+
+    if (elGrid) {
+      elGrid.innerHTML = directionResults.map(d => `
+        <div class="v-dir-card">
+          <div class="v-dir-header">
+            <span class="v-dir-code"><i class="fa-solid fa-compass" style="color: #64748b;"></i> ${d.code} (${d.nameKa})</span>
+            <span class="v-dir-badge ${d.status}">${d.statusKa}</span>
+          </div>
+          <div class="v-dir-bar">
+            <div class="v-dir-bar-fill" style="width: ${d.score}%; background: ${d.status === 'open' ? '#10b981' : d.status === 'partial' ? '#f59e0b' : '#ef4444'};"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="v-dir-dist">${d.dist >= 350 ? '>350 მ (თავისუფალი)' : `${Math.round(d.dist)} მ დაბრკოლებამდე`}</span>
+            <span style="font-size: 0.7rem; font-weight: 700; color: #f1f5f9;">${d.score}%</span>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  /* ==========================================================================
      11. Viewport Tools (Satellite Switch, Reset Center, Measure)
      ========================================================================== */
   const btnToggleSatellite = document.getElementById('btnToggleSatellite');
@@ -11065,6 +11678,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof initEngineeringDropdown === 'function') initEngineeringDropdown();
     if (typeof initUtilitiesModuleControls === 'function') initUtilitiesModuleControls();
     if (typeof initUnitMixModuleControls === 'function') initUnitMixModuleControls();
+    if (typeof initViewshedModuleControls === 'function') initViewshedModuleControls();
     initMobileSystem();
     // Initial Stage: Display full map of Georgia without any parcel or buildings until cadastral code is entered
     setMode('map');

@@ -2658,14 +2658,16 @@ img {
   outline: none;
 }
 
-/* Combined PIP / Split Mode */
-.viewport-stage.mode-combined #mapViewport {
+/* Combined PIP / Split Mode & Surroundings Viewshed */
+.viewport-stage.mode-combined #mapViewport,
+.viewport-stage.mode-viewshed #mapViewport {
   width: 50%;
   right: 50%;
   display: block;
 }
 
-.viewport-stage.mode-combined #threeViewport {
+.viewport-stage.mode-combined #threeViewport,
+.viewport-stage.mode-viewshed #threeViewport {
   width: 50%;
   left: 50%;
   display: block;
@@ -6042,6 +6044,163 @@ img {
   border-radius: 4px;
   font-size: 0.68rem;
   line-height: 1.35;
+}
+
+/* ==========================================================================
+   Surroundings, Nearby Infrastructure (POIs) & 360° Viewshed Styles
+   ========================================================================== */
+.viewshed-filter-pill {
+  padding: 5px 6px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+.viewshed-filter-pill:hover,
+.viewshed-filter-pill.active {
+  background: rgba(16, 185, 129, 0.25);
+  border-color: #10b981;
+  color: #34d399;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.25);
+}
+
+.v-cat-chip {
+  padding: 4px 8px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  color: #94a3b8;
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+.v-cat-chip:hover,
+.v-cat-chip.active {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+  color: #f1f5f9;
+}
+
+.v-poi-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.v-poi-card:hover {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(56, 189, 248, 0.4);
+  transform: translateX(2px);
+}
+.v-poi-icon-wrap {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 0.8rem;
+}
+.v-poi-info {
+  flex: 1;
+  min-width: 0;
+}
+.v-poi-name {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #f8fafc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.v-poi-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.68rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+.v-poi-dist-badge {
+  color: #38bdf8;
+  font-weight: 700;
+}
+.v-poi-walk-badge {
+  color: #a3e635;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.v-dir-card {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 7px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.v-dir-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.v-dir-code {
+  font-weight: 700;
+  font-size: 0.74rem;
+  color: #f1f5f9;
+}
+.v-dir-badge {
+  font-size: 0.64rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+.v-dir-badge.open {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+.v-dir-badge.partial {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+.v-dir-badge.obstructed {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+.v-dir-bar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.v-dir-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+.v-dir-dist {
+  font-size: 0.65rem;
+  color: #94a3b8;
 }
 
 

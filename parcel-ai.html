@@ -541,7 +541,8 @@
       }
 
       /* Combined Mode Split on Mobile Stage */
-      .viewport-stage.mode-combined #mapViewport {
+      .viewport-stage.mode-combined #mapViewport,
+      .viewport-stage.mode-viewshed #mapViewport {
         position: absolute !important;
         top: 0 !important;
         left: 0 !important;
@@ -552,7 +553,8 @@
         display: block !important;
         border-bottom: 2px solid rgba(56, 189, 248, 0.4) !important;
       }
-      .viewport-stage.mode-combined #threeViewport {
+      .viewport-stage.mode-combined #threeViewport,
+      .viewport-stage.mode-viewshed #threeViewport {
         position: absolute !important;
         top: 50% !important;
         left: 0 !important;
@@ -1286,6 +1288,10 @@
             <button type="button" class="mode-tab-btn" data-mode="solar" role="tab" aria-selected="false">
               <i class="fa-solid fa-sun" style="color: #f59e0b;"></i>
               <span data-i18n="mode_solar">მზის ანალიზი</span>
+            </button>
+            <button type="button" class="mode-tab-btn" data-mode="viewshed" role="tab" aria-selected="false" title="ხედებისა და გარემო ინფრასტრუქტურის კვლევა (სკოლა, ბაღი, მაღაზიები, 360° ხედები)">
+              <i class="fa-solid fa-binoculars" style="color: #10b981;"></i>
+              <span data-i18n="mode_viewshed">ხედები & გარემო</span>
             </button>
             <!-- Engineering & Computational Dropdown Menu -->
             <div class="mode-dropdown-wrap" id="analysisDropdownWrap">
@@ -2214,6 +2220,163 @@
                 <i class="fa-solid fa-file-pdf"></i>
                 <span>ქარის ანალიზის PDF</span>
               </button>
+            </div>
+          </div>
+
+          <!-- Floating Surroundings, Infrastructure & 360° Viewshed Control Panel -->
+          <div class="solar-control-panel engineering-panel" id="viewshedControlPanel" style="display: none;">
+            <!-- Header -->
+            <div class="solar-header">
+              <div class="solar-title-wrap">
+                <i class="fa-solid fa-binoculars solar-header-sun-icon" style="color: #10b981; filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.6)); animation: none;"></i>
+                <div>
+                  <span class="solar-header-title">ხედები & ინფრასტრუქტურა</span>
+                  <span class="solar-header-sub">360° პანორამა · რადიუსები · POI კვლევა</span>
+                </div>
+              </div>
+              <div class="solar-header-actions">
+                <button type="button" class="btn-solar-play" id="btnRefreshViewshed" title="კვლევის განახლება">
+                  <i class="fa-solid fa-rotate"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Viewshed Sub-Tabs (POI Infrastructure vs 360° Views) -->
+            <div class="viewshed-tabs-nav" style="display: flex; gap: 6px; background: rgba(15, 23, 42, 0.6); padding: 4px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.08);">
+              <button type="button" class="viewshed-tab-btn active" id="btnVTabPoi" data-vtab="poi" style="flex: 1; padding: 8px 10px; border-radius: 6px; border: none; background: #10b981; color: #fff; font-size: 0.78rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                <i class="fa-solid fa-map-location-dot"></i>
+                <span>ობიექტები & რადიუსი</span>
+              </button>
+              <button type="button" class="viewshed-tab-btn" id="btnVTabViews" data-vtab="views" style="flex: 1; padding: 8px 10px; border-radius: 6px; border: none; background: transparent; color: #94a3b8; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                <i class="fa-solid fa-compass"></i>
+                <span>360° ხედები (3D)</span>
+              </button>
+            </div>
+
+            <!-- Tab 1: Nearby Infrastructure & Radius ISOCHRONES -->
+            <div id="vTabContentPoi" class="viewshed-tab-content">
+              <!-- Radius Filter Pills (300m, 500m, 1000m) -->
+              <div class="solar-section-row">
+                <div class="solar-label-row">
+                  <span class="solar-section-label"><i class="fa-solid fa-bullseye" style="color: #10b981;"></i> საფეხმავლო რადიუსი:</span>
+                </div>
+                <div class="viewshed-radius-pills-row" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;">
+                  <button type="button" class="viewshed-filter-pill active" data-radius="all">ყველა</button>
+                  <button type="button" class="viewshed-filter-pill" data-radius="300">300 მ</button>
+                  <button type="button" class="viewshed-filter-pill" data-radius="500">500 მ</button>
+                  <button type="button" class="viewshed-filter-pill" data-radius="1000">1000 მ</button>
+                </div>
+              </div>
+
+              <!-- Live Radius Metric Counters -->
+              <div class="viewshed-kpi-row" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center;">
+                <div class="viewshed-kpi-card" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 6px 4px;">
+                  <div style="font-size: 0.65rem; color: #94a3b8;">≤300მ (3-4წთ)</div>
+                  <strong style="font-size: 1.1rem; color: #34d399;" id="vKpi300">0</strong>
+                </div>
+                <div class="viewshed-kpi-card" style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 6px 4px;">
+                  <div style="font-size: 0.65rem; color: #94a3b8;">≤500მ (6-7წთ)</div>
+                  <strong style="font-size: 1.1rem; color: #38bdf8;" id="vKpi500">0</strong>
+                </div>
+                <div class="viewshed-kpi-card" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 6px 4px;">
+                  <div style="font-size: 0.65rem; color: #94a3b8;">≤1000მ (15წთ)</div>
+                  <strong style="font-size: 1.1rem; color: #fbbf24;" id="vKpi1000">0</strong>
+                </div>
+              </div>
+
+              <!-- Category Filter Chips -->
+              <div class="solar-section-row">
+                <div class="solar-label-row">
+                  <span class="solar-section-label"><i class="fa-solid fa-filter" style="color: #38bdf8;"></i> კატეგორიები:</span>
+                </div>
+                <div class="viewshed-cat-chips-wrap" style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  <button type="button" class="v-cat-chip active" data-cat="all">ყველა</button>
+                  <button type="button" class="v-cat-chip" data-cat="education"><i class="fa-solid fa-graduation-cap" style="color: #38bdf8;"></i> სკოლა</button>
+                  <button type="button" class="v-cat-chip" data-cat="kindergarten"><i class="fa-solid fa-child-reaching" style="color: #ec4899;"></i> ბაღი</button>
+                  <button type="button" class="v-cat-chip" data-cat="supermarket"><i class="fa-solid fa-basket-shopping" style="color: #10b981;"></i> მაღაზია</button>
+                  <button type="button" class="v-cat-chip" data-cat="pharmacy"><i class="fa-solid fa-pills" style="color: #f43f5e;"></i> აფთიაქი</button>
+                  <button type="button" class="v-cat-chip" data-cat="transport"><i class="fa-solid fa-bus" style="color: #f59e0b;"></i> ტრანსპორტი</button>
+                  <button type="button" class="v-cat-chip" data-cat="park"><i class="fa-solid fa-tree" style="color: #22c55e;"></i> პარკი/სკვერი</button>
+                </div>
+              </div>
+
+              <!-- Search filter input -->
+              <div class="v-search-box" style="position: relative;">
+                <input type="text" id="vPoiSearchInput" placeholder="ობიექტის ძიება (მაგ: ნიკორა, სკოლა)..." style="width: 100%; font-size: 0.78rem; padding: 7px 10px 7px 28px; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; color: #fff;">
+                <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 9px; top: 9px; font-size: 0.75rem; color: #64748b;"></i>
+              </div>
+
+              <!-- Scrollable POI Cards Container -->
+              <div class="viewshed-poi-list-container" id="viewshedPoiList" style="max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 2px;">
+                <!-- Dynamically populated POI items -->
+              </div>
+            </div>
+
+            <!-- Tab 2: 360° Viewshed Analysis & Sightlines -->
+            <div id="vTabContentViews" class="viewshed-tab-content" style="display: none;">
+              <!-- Overall Viewshed Score Card -->
+              <div class="solar-section-row" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 10px;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <div>
+                    <span style="font-size: 0.7rem; color: #94a3b8; text-transform: uppercase;">პანორამული ხედვის ინდექსი</span>
+                    <div style="font-size: 1.5rem; font-weight: 800; color: #34d399;" id="vOverallScoreVal">88 / 100</div>
+                  </div>
+                  <div class="solar-status-pill day" id="vOverallScoreBadge" style="background: rgba(16, 185, 129, 0.2); border-color: #10b981; color: #34d399;">
+                    <i class="fa-solid fa-star"></i> <span>მაღალი პოტენციალი</span>
+                  </div>
+                </div>
+                <p id="vViewshedSummaryDesc" style="font-size: 0.75rem; color: #cbd5e1; margin-top: 8px; line-height: 1.45; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 8px;">
+                  ანალიზი აფასებს ხედის გახსნილობას 360°-ზე. ჩრდილოეთ და დასავლეთ მხარეს შენობას აქვს დაუბრკოლებელი ღია პანორამა.
+                </p>
+              </div>
+
+              <!-- Floor Level Sightline Selector -->
+              <div class="solar-section-row">
+                <div class="solar-label-row">
+                  <span class="solar-section-label"><i class="fa-solid fa-layer-group" style="color: #38bdf8;"></i> ხედვის სიმაღლე / სართული:</span>
+                </div>
+                <select id="selectViewLevel" class="select-compact" style="width: 100%; font-size: 0.78rem;">
+                  <option value="1">1-ლი სართული (ქვედა დონე / ეზოს ხედი)</option>
+                  <option value="mid">შუა სართულები (ურბანული ქსოვილი)</option>
+                  <option value="top" selected>ზედა სართული / სახურავი (360° პანორამა)</option>
+                </select>
+              </div>
+
+              <!-- 8-Direction Radial Grid (N, NE, E, SE, S, SW, W, NW) -->
+              <div class="solar-section-row">
+                <div class="solar-label-row">
+                  <span class="solar-section-label"><i class="fa-solid fa-compass" style="color: #10b981;"></i> 8-მხრივი ხედვის ხარისხი:</span>
+                </div>
+                <div class="viewshed-directions-grid" id="viewshedDirectionsGrid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;">
+                  <!-- Dynamically rendered 8 direction cards -->
+                </div>
+              </div>
+
+              <!-- Architectural Recommendation Box -->
+              <div class="solar-section-row" style="background: rgba(30, 41, 59, 0.7); border-radius: 8px; padding: 10px; border-left: 3px solid #10b981;">
+                <div style="font-size: 0.75rem; font-weight: 700; color: #34d399; margin-bottom: 4px;">
+                  <i class="fa-solid fa-lightbulb"></i> არქიტექტურული რეკომენდაცია:
+                </div>
+                <div id="vArchRecommendationText" style="font-size: 0.73rem; color: #cbd5e1; line-height: 1.4;">
+                  ვიტრაჟებისა და მთავარი საცხოვრებელი ოთახების განთავსება უპირატესია დასავლეთ და ჩრდილოეთ ფასადებზე მაქსიმალური პანორამული ხედისა და ინსოლაციისთვის.
+                </div>
+              </div>
+            </div>
+
+            <!-- Visual Toggles -->
+            <div class="solar-toggles-grid" style="margin-top: 4px;">
+              <label class="solar-toggle-item">
+                <input type="checkbox" id="chkShow3DViewRays" checked>
+                <span>3D ხედვის სხივები (360°)</span>
+              </label>
+              <label class="solar-toggle-item">
+                <input type="checkbox" id="chkShowMapRadiusRings" checked>
+                <span>რუკაზე რადიუსები (300/500/1000მ)</span>
+              </label>
+              <label class="solar-toggle-item">
+                <input type="checkbox" id="chkShowMapPoiMarkers" checked>
+                <span>ობიექტების მარკერები</span>
+              </label>
             </div>
           </div>
 
