@@ -645,11 +645,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function normalizeCode(raw) {
     if (!raw || typeof raw !== 'string') return '';
-    let code = raw.trim().replace(/[\s\-_/]+/g, '.');
-    if (/^\d{11,14}$/.test(code)) {
-      code = `${code.slice(0, 2)}.${code.slice(2, 4)}.${code.slice(4, 6)}.${code.slice(6, 9)}.${code.slice(9)}`;
+    let clean = raw.trim();
+
+    // Extract digits and valid separator sequences (stripping prefixes like "ს/კ", "№", "N", "კოდი:")
+    const match = clean.match(/[\d]+(?:[\s.\-_/:]+[\d]+)+/);
+    if (match) {
+      clean = match[0];
     }
-    return code.replace(/\.{2,}/g, '.').replace(/^\.|\.$/g, '');
+    clean = clean.replace(/[\s\-_/:]+/g, '.').replace(/\.{2,}/g, '.').replace(/^\.|\.$/g, '');
+
+    // Handle continuous 11-14 digits without dots
+    if (/^\d{11,14}$/.test(clean)) {
+      clean = `${clean.slice(0, 2)}.${clean.slice(2, 4)}.${clean.slice(4, 6)}.${clean.slice(6, 9)}.${clean.slice(9)}`;
+    }
+
+    let parts = clean.split('.');
+    // If unit/apartment code (6+ segments in Tbilisi), take parent 5 segments for parcel
+    if (parts.length > 5 && parts[0] === '01') {
+      parts = parts.slice(0, 5);
+    }
+
+    // Zero-pad segments so NAPR search succeeds
+    if (parts.length === 5 && parts.every(p => /^\d+$/.test(p))) {
+      parts[0] = parts[0].padStart(2, '0');
+      parts[1] = parts[1].padStart(2, '0');
+      parts[2] = parts[2].padStart(2, '0');
+      parts[3] = parts[3].padStart(3, '0');
+      parts[4] = parts[4].padStart(3, '0');
+      return parts.join('.');
+    } else if (parts.length === 4 && parts.every(p => /^\d+$/.test(p))) {
+      parts[0] = parts[0].padStart(2, '0');
+      parts[1] = parts[1].padStart(2, '0');
+      parts[2] = parts[2].padStart(2, '0');
+      parts[3] = parts[3].padStart(3, '0');
+      return parts.join('.');
+    }
+
+    return clean;
   }
 
   function isValidCadastralCode(code) {
@@ -7507,6 +7539,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const unitMixControlPanel = document.getElementById('unitMixControlPanel');
     const windSimulationControlPanel = document.getElementById('windSimulationControlPanel');
     const viewshedControlPanel = document.getElementById('viewshedControlPanel');
+    const viewshedMapFloatingBar = document.getElementById('viewshedMapFloatingBar');
     const mapThemeSwitcher = document.getElementById('mapThemeSwitcherBar');
     const mapTelemetry = document.getElementById('mapTelemetryHud');
 
@@ -7516,6 +7549,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (unitMixControlPanel) unitMixControlPanel.style.display = 'none';
     if (windSimulationControlPanel) windSimulationControlPanel.style.display = 'none';
     if (viewshedControlPanel) viewshedControlPanel.style.display = 'none';
+    if (viewshedMapFloatingBar) viewshedMapFloatingBar.style.display = 'none';
 
     // 3D Groups visibility
     if (sunPathGroup) sunPathGroup.visible = false;
@@ -7531,6 +7565,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (mode !== 'viewshed') {
       if (typeof clearMapViewshedLayers === 'function') clearMapViewshedLayers();
+      if (viewportStage) viewportStage.classList.remove('viewshed-view-3d', 'viewshed-view-split');
     }
 
     if (mode === 'map') {
@@ -7639,10 +7674,11 @@ document.addEventListener('DOMContentLoaded', () => {
       applyBuildingAerodynamicColors3D(true);
       onWindowResize();
     } else if (mode === 'viewshed') {
-      if (mapViewport) mapViewport.style.display = 'block';
-      if (threeViewport) threeViewport.style.display = 'block';
       const viewshedControlPanel = document.getElementById('viewshedControlPanel');
       if (viewshedControlPanel) viewshedControlPanel.style.display = 'flex';
+      const viewshedMapFloatingBar = document.getElementById('viewshedMapFloatingBar');
+      if (viewshedMapFloatingBar) viewshedMapFloatingBar.style.display = 'flex';
+
       if (buildingGroup) buildingGroup.visible = true;
       if (urbanGroup) urbanGroup.visible = true;
       if (viewshed3DGroup) viewshed3DGroup.visible = (state.show3DViewRays !== false);
@@ -7655,13 +7691,15 @@ document.addEventListener('DOMContentLoaded', () => {
         map.removeLayer(buildingFootprintLayer);
         buildingFootprintLayer = null;
       }
-      if (map) setTimeout(() => map.invalidateSize(), 50);
-      onWindowResize();
-      if (controls && camera) {
-        camera.position.set(45, 35, 55);
-        controls.target.set(0, 8, 0);
-        controls.update();
+
+      if (typeof applyViewshedSubview === 'function') {
+        applyViewshedSubview(state.viewshedSubview || 'map');
+      } else {
+        if (mapViewport) mapViewport.style.display = 'block';
+        if (threeViewport) threeViewport.style.display = 'none';
+        if (map) setTimeout(() => map.invalidateSize(), 50);
       }
+
       if (typeof runSurroundingsAnalysis === 'function') {
         runSurroundingsAnalysis();
       }
@@ -9659,6 +9697,7 @@ document.addEventListener('DOMContentLoaded', () => {
      ========================================================================== */
   let viewshedPoiList = [];
   let currentViewshedScore = 85;
+  let mapViewshedSightline = null;
 
   function clearMapViewshedLayers() {
     if (mapRadiusCircles && mapRadiusCircles.length > 0) {
@@ -9673,6 +9712,110 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       mapPoiMarkers = [];
     }
+    if (mapViewshedSightline && map && map.hasLayer(mapViewshedSightline)) {
+      map.removeLayer(mapViewshedSightline);
+      mapViewshedSightline = null;
+    }
+  }
+
+  function applyViewshedSubview(subview) {
+    state.viewshedSubview = subview;
+    if (!viewportStage) return;
+
+    viewportStage.classList.remove('viewshed-view-3d', 'viewshed-view-split');
+
+    const btnMap = document.getElementById('btnViewshedSubMap');
+    const btn3D = document.getElementById('btnViewshedSub3D');
+    const btnSplit = document.getElementById('btnViewshedSubSplit');
+
+    if (btnMap) btnMap.classList.toggle('active', subview === 'map');
+    if (btn3D) btn3D.classList.toggle('active', subview === '3d');
+    if (btnSplit) btnSplit.classList.toggle('active', subview === 'split');
+
+    const floatingBar = document.getElementById('viewshedMapFloatingBar');
+
+    if (subview === '3d') {
+      viewportStage.classList.add('viewshed-view-3d');
+      if (threeViewport) threeViewport.style.display = 'block';
+      if (mapViewport) mapViewport.style.display = 'none';
+      if (floatingBar) floatingBar.style.display = 'none';
+      onWindowResize();
+      if (controls && camera) {
+        camera.position.set(45, 35, 55);
+        controls.target.set(0, 8, 0);
+        controls.update();
+      }
+      computeAndRender3DViewshed();
+    } else if (subview === 'split') {
+      viewportStage.classList.add('viewshed-view-split');
+      if (mapViewport) mapViewport.style.display = 'block';
+      if (threeViewport) threeViewport.style.display = 'block';
+      if (floatingBar) floatingBar.style.display = 'flex';
+      setTimeout(() => {
+        if (map) {
+          map.invalidateSize();
+          fitActiveViewshedRadiusBounds();
+        }
+        onWindowResize();
+      }, 60);
+      computeAndRender3DViewshed();
+    } else {
+      // Default: 'map' - 100% full view of the map and radius
+      if (mapViewport) mapViewport.style.display = 'block';
+      if (threeViewport) threeViewport.style.display = 'none';
+      if (floatingBar) floatingBar.style.display = 'flex';
+      setTimeout(() => {
+        if (map) {
+          map.invalidateSize();
+          fitActiveViewshedRadiusBounds();
+        }
+      }, 60);
+    }
+  }
+
+  function fitActiveViewshedRadiusBounds() {
+    if (!map || !state.activeParcel || !state.activeParcel.coordinates) return;
+    const centerGps = computeParcelCenter(state.activeParcel.coordinates);
+    let targetRadius = 1000;
+    if (state.viewshedFilterRadius === '300') targetRadius = 300;
+    else if (state.viewshedFilterRadius === '500') targetRadius = 500;
+    else if (state.viewshedFilterRadius === '1000') targetRadius = 1000;
+    else targetRadius = 1000;
+
+    const latOffset = (targetRadius * 1.15) / 111139;
+    const lngOffset = (targetRadius * 1.15) / (111139 * Math.cos((centerGps[0] * Math.PI) / 180));
+
+    const bounds = [
+      [centerGps[0] - latOffset, centerGps[1] - lngOffset],
+      [centerGps[0] + latOffset, centerGps[1] + lngOffset]
+    ];
+
+    map.flyToBounds(bounds, {
+      padding: [40, 40],
+      duration: 0.8,
+      maxZoom: 17
+    });
+  }
+
+  function drawPoiSightline(fromGps, toGps, poi) {
+    if (!map) return;
+    if (mapViewshedSightline && map.hasLayer(mapViewshedSightline)) {
+      map.removeLayer(mapViewshedSightline);
+      mapViewshedSightline = null;
+    }
+
+    mapViewshedSightline = L.polyline([fromGps, toGps], {
+      color: poi.color || '#38bdf8',
+      weight: 3,
+      dashArray: '6, 8',
+      opacity: 0.9
+    }).addTo(map);
+
+    mapViewshedSightline.bindTooltip(`<strong>${poi.name}: ${poi.distanceMeters} მ (~${poi.walkTimeMin} წთ)</strong>`, {
+      permanent: true,
+      direction: 'center',
+      className: 'viewshed-circle-tooltip'
+    });
   }
 
   function initViewshedModuleControls() {
@@ -9691,6 +9834,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnVTabViews.style.color = '#94a3b8';
         if (vTabContentPoi) vTabContentPoi.style.display = 'block';
         if (vTabContentViews) vTabContentViews.style.display = 'none';
+        applyViewshedSubview('map');
       });
 
       btnVTabViews.addEventListener('click', () => {
@@ -9702,19 +9846,65 @@ document.addEventListener('DOMContentLoaded', () => {
         btnVTabPoi.style.color = '#94a3b8';
         if (vTabContentViews) vTabContentViews.style.display = 'block';
         if (vTabContentPoi) vTabContentPoi.style.display = 'none';
-        computeAndRender3DViewshed();
+        applyViewshedSubview('3d');
       });
     }
 
-    // Radius Filter Pills
+    // Subview buttons (Map, 3D, Split)
+    const btnSubMap = document.getElementById('btnViewshedSubMap');
+    const btnSub3D = document.getElementById('btnViewshedSub3D');
+    const btnSubSplit = document.getElementById('btnViewshedSubSplit');
+
+    if (btnSubMap) btnSubMap.addEventListener('click', () => applyViewshedSubview('map'));
+    if (btnSub3D) btnSub3D.addEventListener('click', () => applyViewshedSubview('3d'));
+    if (btnSubSplit) btnSubSplit.addEventListener('click', () => applyViewshedSubview('split'));
+
+    // Collapse / Expand panel button
+    const btnCollapse = document.getElementById('btnCollapseViewshedPanel');
+    const viewshedPanel = document.getElementById('viewshedControlPanel');
+    if (btnCollapse && viewshedPanel) {
+      btnCollapse.addEventListener('click', () => {
+        viewshedPanel.classList.toggle('is-collapsed');
+        const icon = btnCollapse.querySelector('i');
+        if (icon) {
+          if (viewshedPanel.classList.contains('is-collapsed')) {
+            icon.className = 'fa-solid fa-chevron-down';
+          } else {
+            icon.className = 'fa-solid fa-chevron-up';
+          }
+        }
+      });
+    }
+
+    function setRadiusFilter(rad) {
+      state.viewshedFilterRadius = rad || 'all';
+
+      // Sync floating map bar buttons
+      document.querySelectorAll('.viewshed-map-floating-bar .v-map-rad-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.radius === state.viewshedFilterRadius);
+      });
+
+      // Sync panel pills
+      document.querySelectorAll('.viewshed-filter-pill').forEach(pill => {
+        pill.classList.toggle('active', pill.dataset.radius === state.viewshedFilterRadius);
+      });
+
+      renderMapRadiusCircles();
+      renderMapPoiMarkers();
+      renderViewshedPoiList();
+    }
+
+    // Map floating quick radius buttons
+    document.querySelectorAll('.viewshed-map-floating-bar .v-map-rad-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        setRadiusFilter(btn.dataset.radius);
+      });
+    });
+
+    // Panel Radius Filter Pills
     document.querySelectorAll('.viewshed-filter-pill').forEach(pill => {
       pill.addEventListener('click', () => {
-        document.querySelectorAll('.viewshed-filter-pill').forEach(p => p.classList.remove('active'));
-        pill.classList.add('active');
-        state.viewshedFilterRadius = pill.dataset.radius || 'all';
-        renderMapRadiusCircles();
-        renderMapPoiMarkers();
-        renderViewshedPoiList();
+        setRadiusFilter(pill.dataset.radius);
       });
     });
 
@@ -9820,25 +10010,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const centerLng = centerGps[1];
 
     const radii = [
-      { r: 300, color: '#10b981', label: '300 მ (~3-4 წთ)', fillOpacity: 0.08, dash: '4, 6' },
-      { r: 500, color: '#0ea5e9', label: '500 მ (~6-7 წთ)', fillOpacity: 0.05, dash: '5, 8' },
-      { r: 1000, color: '#f59e0b', label: '1000 მ (~15 წთ)', fillOpacity: 0.03, dash: '6, 10' }
+      { r: 300, color: '#10b981', label: '300 მ (~3-4 წთ)', fillOpacity: 0.09, dash: '4, 6' },
+      { r: 500, color: '#0ea5e9', label: '500 მ (~6-7 წთ)', fillOpacity: 0.06, dash: '5, 8' },
+      { r: 1000, color: '#f59e0b', label: '1000 მ (~14-15 წთ)', fillOpacity: 0.03, dash: '6, 10' }
     ];
 
     radii.forEach(item => {
-      // If user selected a specific radius filter, only show up to that radius
       if (state.viewshedFilterRadius && state.viewshedFilterRadius !== 'all') {
         const maxR = parseInt(state.viewshedFilterRadius, 10);
         if (item.r > maxR) return;
       }
 
+      const isSelected = (state.viewshedFilterRadius === String(item.r));
       const circle = L.circle([centerLat, centerLng], {
         radius: item.r,
         color: item.color,
-        weight: 2,
-        dashArray: item.dash,
+        weight: isSelected ? 3.5 : 2,
+        dashArray: isSelected ? null : item.dash,
         fillColor: item.color,
-        fillOpacity: item.fillOpacity
+        fillOpacity: isSelected ? item.fillOpacity * 1.8 : item.fillOpacity
       }).addTo(map);
 
       circle.bindTooltip(`<strong>${item.label}</strong>`, {
@@ -9854,20 +10044,21 @@ document.addEventListener('DOMContentLoaded', () => {
       const tagMarker = L.marker([centerLat + latOffset, centerLng], {
         icon: L.divIcon({
           className: 'radius-circle-tag-icon',
-          html: `<div style="background: rgba(15,23,42,0.85); border: 1px solid ${item.color}; color: ${item.color}; font-size: 0.68rem; font-weight: 700; padding: 2px 6px; border-radius: 10px; white-space: nowrap; box-shadow: 0 0 8px rgba(0,0,0,0.5);">${item.r} მ</div>`,
-          iconSize: [40, 20],
-          iconAnchor: [20, 10]
+          html: `<div style="background: rgba(15,23,42,0.9); border: 1.5px solid ${item.color}; color: ${item.color}; font-size: 0.7rem; font-weight: 800; padding: 2px 7px; border-radius: 12px; white-space: nowrap; box-shadow: 0 0 10px rgba(0,0,0,0.6);">${item.r} მ (${item.r === 300 ? '~4 წთ' : item.r === 500 ? '~7 წთ' : '~14 წთ'})</div>`,
+          iconSize: [60, 22],
+          iconAnchor: [30, 11]
         })
       }).addTo(map);
 
       mapRadiusCircles.push(tagMarker);
     });
+
+    fitActiveViewshedRadiusBounds();
   }
 
   function renderMapPoiMarkers() {
     if (!map || !viewshedPoiList || viewshedPoiList.length === 0) return;
 
-    // Clear previous markers
     mapPoiMarkers.forEach(m => {
       if (map && map.hasLayer(m)) map.removeLayer(m);
     });
@@ -9886,10 +10077,17 @@ document.addEventListener('DOMContentLoaded', () => {
       return true;
     });
 
+    const centerGps = computeParcelCenter(state.activeParcel.coordinates);
+
     filtered.forEach(poi => {
       const markerHtml = `
-        <div style="width: 28px; height: 28px; border-radius: 50%; background: ${poi.color}; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; box-shadow: 0 0 10px ${poi.color}, 0 2px 6px rgba(0,0,0,0.6); border: 2px solid #ffffff; cursor: pointer; transition: transform 0.2s ease;">
-          <i class="fa-solid ${poi.icon}"></i>
+        <div class="poi-map-marker-wrap">
+          <div class="poi-map-icon-bubble" style="background: ${poi.color}; box-shadow: 0 0 10px ${poi.color}88;">
+            <i class="fa-solid ${poi.icon}"></i>
+          </div>
+          <div class="poi-map-name-pill" style="border-left: 3px solid ${poi.color};">
+            ${poi.name} <span class="poi-pill-dist">${poi.distanceMeters}მ</span>
+          </div>
         </div>
       `;
 
@@ -9897,30 +10095,35 @@ document.addEventListener('DOMContentLoaded', () => {
         icon: L.divIcon({
           className: 'viewshed-poi-marker',
           html: markerHtml,
-          iconSize: [28, 28],
-          iconAnchor: [14, 14]
+          iconSize: [120, 50],
+          iconAnchor: [60, 14]
         })
       }).addTo(map);
 
       const popupContent = `
-        <div style="font-family: inherit; min-width: 170px;">
-          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
-            <span style="background: ${poi.color}; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 700;">
+        <div style="font-family: inherit; min-width: 180px;">
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 5px;">
+            <span style="background: ${poi.color}; color: #fff; padding: 2px 7px; border-radius: 4px; font-size: 0.68rem; font-weight: 700;">
               ${poi.categoryNameKa}
             </span>
-            <span style="font-size: 0.72rem; color: #38bdf8; font-weight: 700; margin-left: auto;">
+            <span style="font-size: 0.76rem; color: #0284c7; font-weight: 800; margin-left: auto;">
               ${poi.distanceMeters} მ
             </span>
           </div>
-          <strong style="font-size: 0.85rem; color: #0f172a; display: block; line-height: 1.25;">${poi.name}</strong>
-          <div style="font-size: 0.72rem; color: #64748b; margin-top: 4px; display: flex; align-items: center; justify-content: space-between;">
+          <strong style="font-size: 0.88rem; color: #0f172a; display: block; line-height: 1.3;">${poi.name}</strong>
+          <div style="font-size: 0.74rem; color: #475569; margin-top: 6px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #e2e8f0; padding-top: 5px;">
             <span><i class="fa-solid fa-person-walking" style="color: #10b981;"></i> ~${poi.walkTimeMin} წთ ფეხით</span>
             <span><i class="fa-solid fa-compass"></i> ${poi.bearingKa}</span>
           </div>
         </div>
       `;
 
-      marker.bindPopup(popupContent, { maxWidth: 240, className: 'poi-custom-popup' });
+      marker.bindPopup(popupContent, { maxWidth: 260, className: 'poi-custom-popup' });
+
+      marker.on('click', () => {
+        drawPoiSightline(centerGps, [poi.lat, poi.lng], poi);
+      });
+
       mapPoiMarkers.push(marker);
     });
   }
@@ -9934,7 +10137,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Update KPI counts
     const count300 = viewshedPoiList.filter(p => p.distanceMeters <= 300).length;
     const count500 = viewshedPoiList.filter(p => p.distanceMeters <= 500).length;
     const count1000 = viewshedPoiList.filter(p => p.distanceMeters <= 1000).length;
@@ -9979,13 +10181,21 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `).join('');
 
-    // Attach click event to fly to POI on map
     listEl.querySelectorAll('.v-poi-card').forEach(card => {
       card.addEventListener('click', () => {
         const pLat = parseFloat(card.dataset.lat);
         const pLng = parseFloat(card.dataset.lng);
+        const poiId = card.dataset.poiId;
+        const targetPoi = viewshedPoiList.find(p => p.id === poiId);
         if (map && !isNaN(pLat) && !isNaN(pLng)) {
+          if (state.viewshedSubview !== 'map') {
+            applyViewshedSubview('map');
+          }
           map.flyTo([pLat, pLng], 17, { animate: true, duration: 0.8 });
+          const centerGps = computeParcelCenter(state.activeParcel.coordinates);
+          if (targetPoi) {
+            drawPoiSightline(centerGps, [pLat, pLng], targetPoi);
+          }
           const targetMarker = mapPoiMarkers.find(m => {
             const ll = m.getLatLng();
             return Math.abs(ll.lat - pLat) < 0.0001 && Math.abs(ll.lng - pLng) < 0.0001;

@@ -541,8 +541,7 @@
       }
 
       /* Combined Mode Split on Mobile Stage */
-      .viewport-stage.mode-combined #mapViewport,
-      .viewport-stage.mode-viewshed #mapViewport {
+      .viewport-stage.mode-combined #mapViewport {
         position: absolute !important;
         top: 0 !important;
         left: 0 !important;
@@ -553,8 +552,7 @@
         display: block !important;
         border-bottom: 2px solid rgba(56, 189, 248, 0.4) !important;
       }
-      .viewport-stage.mode-combined #threeViewport,
-      .viewport-stage.mode-viewshed #threeViewport {
+      .viewport-stage.mode-combined #threeViewport {
         position: absolute !important;
         top: 50% !important;
         left: 0 !important;
@@ -562,6 +560,34 @@
         bottom: 0 !important;
         width: 100% !important;
         height: 50% !important;
+        display: block !important;
+      }
+
+      /* Viewshed Mode on Mobile: 100% Full Viewport Map or 3D */
+      .viewport-stage.mode-viewshed #mapViewport {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        display: block !important;
+      }
+      .viewport-stage.mode-viewshed #threeViewport {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        display: none !important;
+      }
+      .viewport-stage.mode-viewshed.viewshed-view-3d #mapViewport {
+        display: none !important;
+      }
+      .viewport-stage.mode-viewshed.viewshed-view-3d #threeViewport {
         display: block !important;
       }
       .combined-subview-tag {
@@ -1458,6 +1484,15 @@
             </div>
           </div>
 
+          <!-- Quick Radius Switcher Bar on Map (Exclusive for Viewshed / Surroundings Mode) -->
+          <div id="viewshedMapFloatingBar" class="viewshed-map-floating-bar" style="display: none;">
+            <span class="v-map-bar-title"><i class="fa-solid fa-bullseye"></i> რადიუსი:</span>
+            <button type="button" class="v-map-rad-btn active" data-radius="all">ყველა</button>
+            <button type="button" class="v-map-rad-btn" data-radius="300"><i class="fa-solid fa-person-walking"></i> 300 მ (~4 წთ)</button>
+            <button type="button" class="v-map-rad-btn" data-radius="500"><i class="fa-solid fa-person-walking"></i> 500 მ (~7 წთ)</button>
+            <button type="button" class="v-map-rad-btn" data-radius="1000"><i class="fa-solid fa-person-walking"></i> 1000 მ (~14 წთ)</button>
+          </div>
+
           <!-- Map Telemetry HUD (Coordinates, Zoom & Style badge) -->
           <div id="mapTelemetryHud" class="map-telemetry-hud" style="display: none;">
             <div class="map-hud-item" id="mapHudCoords" title="ცენტრის კოორდინატები">
@@ -2238,7 +2273,23 @@
                 <button type="button" class="btn-solar-play" id="btnRefreshViewshed" title="კვლევის განახლება">
                   <i class="fa-solid fa-rotate"></i>
                 </button>
+                <button type="button" class="btn-panel-collapse" id="btnCollapseViewshedPanel" title="პანელის ჩაკეცვა/გაშლა">
+                  <i class="fa-solid fa-chevron-up"></i>
+                </button>
               </div>
+            </div>
+
+            <!-- Viewport Stage Display Switcher (Map vs 3D vs Split) -->
+            <div class="viewshed-subview-switcher" id="viewshedSubviewSwitcher">
+              <button type="button" class="viewshed-subview-btn active" data-subview="map" id="btnViewshedSubMap" title="სრული რუკა და ობიექტების რადიუსი">
+                <i class="fa-solid fa-map"></i> <span>რუკა</span>
+              </button>
+              <button type="button" class="viewshed-subview-btn" data-subview="3d" id="btnViewshedSub3D" title="3D WebGL ხედები და სხივები">
+                <i class="fa-solid fa-cube"></i> <span>3D ხედი</span>
+              </button>
+              <button type="button" class="viewshed-subview-btn" data-subview="split" id="btnViewshedSubSplit" title="გაყოფილი ხედი (რუკა + 3D)">
+                <i class="fa-solid fa-table-columns"></i> <span>გაყოფილი</span>
+              </button>
             </div>
 
             <!-- Viewshed Sub-Tabs (POI Infrastructure vs 360° Views) -->

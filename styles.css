@@ -2658,19 +2658,59 @@ img {
   outline: none;
 }
 
-/* Combined PIP / Split Mode & Surroundings Viewshed */
-.viewport-stage.mode-combined #mapViewport,
-.viewport-stage.mode-viewshed #mapViewport {
+/* Combined PIP / Split Mode */
+.viewport-stage.mode-combined #mapViewport {
   width: 50%;
   right: 50%;
   display: block;
 }
 
-.viewport-stage.mode-combined #threeViewport,
-.viewport-stage.mode-viewshed #threeViewport {
+.viewport-stage.mode-combined #threeViewport {
   width: 50%;
   left: 50%;
   display: block;
+}
+
+/* Surroundings & Viewshed Mode: Full Map by default so user can clearly explore the surroundings & radius */
+.viewport-stage.mode-viewshed #mapViewport {
+  width: 100%;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: block;
+  z-index: 10;
+}
+
+.viewport-stage.mode-viewshed #threeViewport {
+  display: none;
+}
+
+/* Sub-views for Viewshed: 3D only */
+.viewport-stage.mode-viewshed.viewshed-view-3d #mapViewport {
+  display: none;
+}
+.viewport-stage.mode-viewshed.viewshed-view-3d #threeViewport {
+  width: 100%;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: block;
+}
+
+/* Desktop Split View for Viewshed (when explicitly selected) */
+@media (min-width: 901px) {
+  .viewport-stage.mode-viewshed.viewshed-view-split #mapViewport {
+    width: 50%;
+    right: 50%;
+    display: block;
+  }
+  .viewport-stage.mode-viewshed.viewshed-view-split #threeViewport {
+    width: 50%;
+    left: 50%;
+    display: block;
+  }
 }
 
 /* HUD Overlay on Viewport */
@@ -6201,6 +6241,188 @@ img {
 .v-dir-dist {
   font-size: 0.65rem;
   color: #94a3b8;
+}
+
+/* Floating Quick Radius Bar directly on Map in Viewshed Mode */
+.viewshed-map-floating-bar {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 35;
+  background: rgba(10, 15, 29, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 30px;
+  padding: 4px 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65), 0 0 20px rgba(16, 185, 129, 0.2);
+  animation: fadeInDown 0.3s ease;
+  max-width: calc(100vw - 32px);
+  overflow-x: auto;
+}
+
+.viewshed-map-floating-bar .v-map-bar-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #38bdf8;
+  padding: 2px 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.viewshed-map-floating-bar .v-map-rad-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.viewshed-map-floating-bar .v-map-rad-btn:hover {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+  color: #fff;
+}
+
+.viewshed-map-floating-bar .v-map-rad-btn.active {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-color: #34d399;
+  color: #fff;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+}
+
+/* POI Marker Label directly on Leaflet Map */
+.poi-map-marker-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  pointer-events: auto !important;
+}
+
+.poi-map-marker-wrap:hover .poi-map-icon-bubble {
+  transform: scale(1.18);
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.8), 0 4px 10px rgba(0, 0, 0, 0.7);
+}
+
+.poi-map-icon-bubble {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+  border: 2px solid #ffffff;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.poi-map-name-pill {
+  margin-top: 3px;
+  background: rgba(10, 15, 29, 0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #f8fafc;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 12px;
+  white-space: nowrap;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: auto;
+}
+
+.poi-map-name-pill .poi-pill-dist {
+  color: #38bdf8;
+  font-weight: 800;
+  margin-left: 3px;
+}
+
+/* Sub-view switcher in Viewshed Control Panel */
+.viewshed-subview-switcher {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  background: rgba(15, 23, 42, 0.6);
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.viewshed-subview-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 6px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.viewshed-subview-btn:hover {
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.viewshed-subview-btn.active {
+  background: #38bdf8;
+  color: #04101e;
+  font-weight: 700;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+}
+
+/* Panel Minimize / Expand Handle */
+.solar-control-panel.is-collapsed {
+  max-height: 52px !important;
+  overflow: hidden !important;
+  padding: 10px 14px !important;
+  width: auto !important;
+}
+
+.solar-control-panel.is-collapsed > *:not(.solar-header) {
+  display: none !important;
+}
+
+.btn-panel-collapse {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #94a3b8;
+  border-radius: 6px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-panel-collapse:hover {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
 }
 
 

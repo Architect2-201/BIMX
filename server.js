@@ -151,11 +151,35 @@ const requestHandler = (req, res) => {
       return;
     }
 
-    let normalizedCode = (cadastralCode || '').trim().replace(/[\s\-_/]+/g, '.');
+    let rawCode = (cadastralCode || '').trim();
+    const match = rawCode.match(/[\d]+(?:[\s.\-_/:]+[\d]+)+/);
+    if (match) {
+      rawCode = match[0];
+    }
+    let normalizedCode = rawCode.replace(/[\s\-_/:]+/g, '.').replace(/\.{2,}/g, '.').replace(/^\.|\.$/g, '');
+
     if (/^\d{11,14}$/.test(normalizedCode)) {
       normalizedCode = `${normalizedCode.slice(0, 2)}.${normalizedCode.slice(2, 4)}.${normalizedCode.slice(4, 6)}.${normalizedCode.slice(6, 9)}.${normalizedCode.slice(9)}`;
     }
-    normalizedCode = normalizedCode.replace(/\.{2,}/g, '.').replace(/^\.|\.$/g, '');
+
+    let parts = normalizedCode.split('.');
+    if (parts.length > 5 && parts[0] === '01') {
+      parts = parts.slice(0, 5);
+    }
+    if (parts.length === 5 && parts.every(p => /^\d+$/.test(p))) {
+      parts[0] = parts[0].padStart(2, '0');
+      parts[1] = parts[1].padStart(2, '0');
+      parts[2] = parts[2].padStart(2, '0');
+      parts[3] = parts[3].padStart(3, '0');
+      parts[4] = parts[4].padStart(3, '0');
+      normalizedCode = parts.join('.');
+    } else if (parts.length === 4 && parts.every(p => /^\d+$/.test(p))) {
+      parts[0] = parts[0].padStart(2, '0');
+      parts[1] = parts[1].padStart(2, '0');
+      parts[2] = parts[2].padStart(2, '0');
+      parts[3] = parts[3].padStart(3, '0');
+      normalizedCode = parts.join('.');
+    }
 
     const CADASTRAL_CODE_REGEX = /^\d{2}(?:\.\d{1,6}){2,5}(?:[./]\d{1,6})?$/;
     if (!CADASTRAL_CODE_REGEX.test(normalizedCode)) {
