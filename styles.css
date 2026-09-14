@@ -2698,6 +2698,33 @@ img {
   backdrop-filter: blur(10px);
 }
 
+.hud-pill-badge.hud-toggle-btn {
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.hud-pill-badge.hud-toggle-btn:hover {
+  border-color: var(--cyan-neon);
+  background: rgba(15, 23, 42, 0.95);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.hud-pill-badge.hud-toggle-btn.active {
+  border-color: rgba(0, 240, 255, 0.5);
+  color: #38bdf8;
+}
+
+.hud-pill-badge.hud-toggle-btn:not(.active) {
+  opacity: 0.65;
+  color: var(--text-muted);
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(10, 15, 24, 0.8);
+}
+
 .viewport-compass {
   position: absolute;
   top: 14px;

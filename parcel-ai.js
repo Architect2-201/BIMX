@@ -56,6 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
     mapTheme: 'satellite',
     combinedMapTheme: 'satellite',
     showZoningLayer: true, // Yellow zoning context envelope layer toggle
+    showParcelGround: true, // 3D Cadastral parcel grey surface layer toggle
     // Surrounding 3D Urban Fabric (Module 1B & 2B)
     urbanBuildings: [],
     // 3D DEM Terrain & Slope (Module 1C & 2A)
@@ -3849,6 +3850,7 @@ document.addEventListener('DOMContentLoaded', () => {
     groundMesh.receiveShadow = true;
     groundMesh.position.y = 0.05;
     groundGroup.add(groundMesh);
+    groundGroup.visible = (state.showParcelGround !== false);
 
     // Render Dynamic Displaced 3D Terrain & Draped Boundary
     renderParcelTerrain3D(parcel, parcelCenter.lat, parcelCenter.lng);
@@ -7413,6 +7415,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (utility3DGroup) utility3DGroup.visible = (mode === 'utilities');
     if (unitMix3DGroup) unitMix3DGroup.visible = (mode === 'unitmix');
     if (wind3DGroup) wind3DGroup.visible = (mode === 'wind');
+    if (groundGroup) groundGroup.visible = (state.showParcelGround !== false);
     if (typeof setUtilitiesXRay === 'function') {
       setUtilitiesXRay(mode === 'utilities' && (state.utilitiesData && state.utilitiesData.showXRay !== false));
     }
@@ -9545,6 +9548,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnClearDraw = document.getElementById('btnClearDraw');
   const btnEditFootprintQuick = document.getElementById('btnEditFootprintQuick');
   const btnToggleXRay = document.getElementById('btnToggleXRay');
+  const btnToggleParcelGround = document.getElementById('btnToggleParcelGround');
+  const btnHudToggleParcelGround = document.getElementById('btnHudToggleParcelGround');
 
   if (btnDrawBuilding) {
     btnDrawBuilding.addEventListener('click', () => {
@@ -9683,6 +9688,42 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       renderAllBuildings3D();
     });
+  }
+
+  function updateParcelGroundUI() {
+    const isVisible = (state.showParcelGround !== false);
+    if (groundGroup) {
+      groundGroup.visible = isVisible;
+    }
+    if (btnToggleParcelGround) {
+      btnToggleParcelGround.classList.toggle('active', isVisible);
+    }
+    if (btnHudToggleParcelGround) {
+      btnHudToggleParcelGround.classList.toggle('active', isVisible);
+      const txt = document.getElementById('textHudParcelGround');
+      if (txt) {
+        const isEn = (state.currentLang === 'en');
+        txt.textContent = isVisible
+          ? (isEn ? 'Parcel Surface: ON' : 'ნაკვეთის ფენა: ჩართული')
+          : (isEn ? 'Parcel Surface: OFF' : 'ნაკვეთის ფენა: გამორთული');
+      }
+    }
+  }
+
+  function toggleParcelGround(show) {
+    if (show === undefined) {
+      state.showParcelGround = !(state.showParcelGround !== false);
+    } else {
+      state.showParcelGround = !!show;
+    }
+    updateParcelGroundUI();
+  }
+
+  if (btnToggleParcelGround) {
+    btnToggleParcelGround.addEventListener('click', () => toggleParcelGround());
+  }
+  if (btnHudToggleParcelGround) {
+    btnHudToggleParcelGround.addEventListener('click', () => toggleParcelGround());
   }
 
   // Multi-Building Manager and Floor Function Presets Hookup
@@ -10811,6 +10852,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.lang-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       state.currentLang = btn.dataset.lang || 'ka';
+      if (typeof updateParcelGroundUI === 'function') {
+        updateParcelGroundUI();
+      }
       if (state.activeParcel) {
         updateParcelAttributesUI(state.activeParcel);
         evaluateStatutoryCompliance(state.activeParcel);
