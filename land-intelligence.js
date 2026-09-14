@@ -504,11 +504,47 @@ function setCadastralSample(code, use, zone) {
  */
 function normalizeCadastralInput(raw) {
   if (!raw || typeof raw !== 'string') return '';
-  let code = raw.trim().replace(/[\s\-_/]+/g, '.');
-  if (/^\d{11,14}$/.test(code)) {
-    code = `${code.slice(0, 2)}.${code.slice(2, 4)}.${code.slice(4, 6)}.${code.slice(6, 9)}.${code.slice(9)}`;
+  let clean = raw.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, ' ').trim();
+  let parts = clean.split(/[^\d]+/).filter(Boolean);
+  if (parts.length === 0) return '';
+
+  if (parts.length === 1) {
+    let digits = parts[0];
+    if (digits.length === 11) digits = '0' + digits;
+    if (digits.length === 12) {
+      return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4, 6)}.${digits.slice(6, 9)}.${digits.slice(9)}`;
+    }
+    if (digits.length >= 13) {
+      return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4, 6)}.${digits.slice(6, 9)}.${digits.slice(9, 12)}`;
+    }
+    if (digits.length === 9 || digits.length === 10) {
+      if (digits.length === 9) digits = '0' + digits;
+      return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4, 6)}.${digits.slice(6)}`;
+    }
   }
-  return code.replace(/\.{2,}/g, '.').replace(/^\.|\.$/g, '');
+
+  if (parts.length > 5) parts = parts.slice(0, 5);
+
+  if (parts.length === 5) {
+    return [
+      parts[0].padStart(2, '0'),
+      parts[1].padStart(2, '0'),
+      parts[2].padStart(2, '0'),
+      parts[3].padStart(3, '0'),
+      parts[4].padStart(3, '0')
+    ].join('.');
+  }
+
+  if (parts.length === 4) {
+    return [
+      parts[0].padStart(2, '0'),
+      parts[1].padStart(2, '0'),
+      parts[2].padStart(2, '0'),
+      parts[3].padStart(3, '0')
+    ].join('.');
+  }
+
+  return parts.join('.');
 }
 
 /**

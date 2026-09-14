@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { fetchParcelByCadastralCode } from "../../../lib/napr-client";
 
 /**
  * app/api/parcel/route.ts
@@ -22,26 +23,29 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // TODO: ჩაანაცვლე რეალური NAPR/maps.gov.ge endpoint-ით
-  // (იხ. lib/napr-client.ts-ის თავში მითითებული ინსტრუქცია).
-  return NextResponse.json(
-    {
-      error:
-        "Proxy ჯერ არ არის კონფიგურირებული — შეავსე რეალური upstream URL " +
-        "app/api/parcel/route.ts-ში, მას შემდეგ რაც დაადგენ ზუსტ endpoint-ს.",
-    },
-    { status: 501 }
-  );
+  try {
+    const parcel = await fetchParcelByCadastralCode(cadastralCode);
+    if (parcel && parcel.boundary && parcel.boundary.length > 0) {
+      // Map [lng, lat] from napr-client to [lat, lng] for Leaflet frontend
+      const coordinates = parcel.boundary.map(([lng, lat]) => [lat, lng]);
+      return NextResponse.json({
+        status: true,
+        cadastralCode: parcel.cadastralCode,
+        address: parcel.address,
+        areaSqm: parcel.areaSqm,
+        coordinates: coordinates,
+        shapeWkt: parcel.shapeWkt
+      });
+    }
 
-  // მაგალითი რეალური იმპლემენტაციისთვის:
-  //
-  // const upstreamUrl = `https://<REAL_NAPR_ENDPOINT>/query?where=CADASTRAL_CODE='${cadastralCode}'&f=geojson`;
-  // const upstreamRes = await fetch(upstreamUrl);
-  // if (!upstreamRes.ok) {
-  //   return NextResponse.json({ error: "NAPR request failed" }, { status: 502 });
-  // }
-  // const data = await upstreamRes.json();
-  // return NextResponse.json(data);
-  // // ← შენიშვნა: არც აქ ხდება cadastralCode-ის შენახვა disk/db-ზე,
-  // //   მხოლოდ request-ის სიცოცხლის ხანგრძლივობით მეხსიერებაშია.
+    return NextResponse.json(
+      { status: false, error: "ნაკვეთის გეომეტრია ვერ მოიძებნა" },
+      { status: 404 }
+    );
+  } catch (err: any) {
+    return NextResponse.json(
+      { status: false, error: err.message || "შეცდომა NAPR სერვისიდან მონაცემების წამოღებისას" },
+      { status: 500 }
+    );
+  }
 }

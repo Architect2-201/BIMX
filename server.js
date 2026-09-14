@@ -61,16 +61,60 @@ function generateR12Dxf(code, boundary, redLines, footprint, setback) {
   dxf += "0\nENDSEC\n0\nEOF\n";
   return dxf;
 }
+function universalNormalizeCadastral(rawCode) {
+  if (!rawCode || typeof rawCode !== 'string') return '';
+  let clean = rawCode.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, ' ').trim();
+  let parts = clean.split(/[^\d]+/).filter(Boolean);
+  if (parts.length === 0) return '';
 
-const requestHandler = (req, res) => {
+  if (parts.length === 1) {
+    let digits = parts[0];
+    if (digits.length === 11) digits = '0' + digits;
+    if (digits.length === 12) {
+      return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4, 6)}.${digits.slice(6, 9)}.${digits.slice(9)}`;
+    }
+    if (digits.length >= 13) {
+      return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4, 6)}.${digits.slice(6, 9)}.${digits.slice(9, 12)}`;
+    }
+    if (digits.length === 9 || digits.length === 10) {
+      if (digits.length === 9) digits = '0' + digits;
+      return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4, 6)}.${digits.slice(6)}`;
+    }
+  }
+
+  if (parts.length > 5) parts = parts.slice(0, 5);
+
+  if (parts.length === 5) {
+    return [
+      parts[0].padStart(2, '0'),
+      parts[1].padStart(2, '0'),
+      parts[2].padStart(2, '0'),
+      parts[3].padStart(3, '0'),
+      parts[4].padStart(3, '0')
+    ].join('.');
+  }
+
+  if (parts.length === 4) {
+    return [
+      parts[0].padStart(2, '0'),
+      parts[1].padStart(2, '0'),
+      parts[2].padStart(2, '0'),
+      parts[3].padStart(3, '0')
+    ].join('.');
+  }
+
+  return parts.join('.');
+}
+
+// Request Handler for Node HTTP & Serverless Cloud
+const requestHandler = async (req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost:3000'}`);
 
-  // LAND INTELLIGENCE ENGINE GEORGIA - POST & GET /api/land-analysis
+  // API route for Full Land Intelligence Analysis
   if (parsedUrl.pathname === '/api/land-analysis') {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
 
     if (req.method === 'OPTIONS') {
       res.writeHead(204);
@@ -79,14 +123,15 @@ const requestHandler = (req, res) => {
     }
 
     const handleAnalysis = async (cadastralCode, constructionType, buildingUse, manualCoefficients, zoneOverride) => {
-      if (!cadastralCode) {
+      const normalizedCode = universalNormalizeCadastral(cadastralCode);
+      if (!normalizedCode) {
         res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: "cadastralCode (საკადასტრო კოდი) აუცილებელია" }));
         return;
       }
       try {
         const result = await landIntelligenceService.analyzeLandParcel(
-          cadastralCode,
+          normalizedCode,
           constructionType || 'new_construction',
           buildingUse || 'residential_single',
           manualCoefficients || null,
@@ -151,35 +196,7 @@ const requestHandler = (req, res) => {
       return;
     }
 
-    let rawCode = (cadastralCode || '').trim();
-    const match = rawCode.match(/[\d]+(?:[\s.\-_/:]+[\d]+)+/);
-    if (match) {
-      rawCode = match[0];
-    }
-    let normalizedCode = rawCode.replace(/[\s\-_/:]+/g, '.').replace(/\.{2,}/g, '.').replace(/^\.|\.$/g, '');
-
-    if (/^\d{11,14}$/.test(normalizedCode)) {
-      normalizedCode = `${normalizedCode.slice(0, 2)}.${normalizedCode.slice(2, 4)}.${normalizedCode.slice(4, 6)}.${normalizedCode.slice(6, 9)}.${normalizedCode.slice(9)}`;
-    }
-
-    let parts = normalizedCode.split('.');
-    if (parts.length > 5 && parts[0] === '01') {
-      parts = parts.slice(0, 5);
-    }
-    if (parts.length === 5 && parts.every(p => /^\d+$/.test(p))) {
-      parts[0] = parts[0].padStart(2, '0');
-      parts[1] = parts[1].padStart(2, '0');
-      parts[2] = parts[2].padStart(2, '0');
-      parts[3] = parts[3].padStart(3, '0');
-      parts[4] = parts[4].padStart(3, '0');
-      normalizedCode = parts.join('.');
-    } else if (parts.length === 4 && parts.every(p => /^\d+$/.test(p))) {
-      parts[0] = parts[0].padStart(2, '0');
-      parts[1] = parts[1].padStart(2, '0');
-      parts[2] = parts[2].padStart(2, '0');
-      parts[3] = parts[3].padStart(3, '0');
-      normalizedCode = parts.join('.');
-    }
+    const normalizedCode = universalNormalizeCadastral(cadastralCode);
 
     const CADASTRAL_CODE_REGEX = /^\d{2}(?:\.\d{1,6}){2,5}(?:[./]\d{1,6})?$/;
     if (!CADASTRAL_CODE_REGEX.test(normalizedCode)) {
