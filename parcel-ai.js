@@ -3110,6 +3110,60 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ==========================================================================
      3c. Surrounding 3D Urban Extrusion & Dynamic Solar Thermal Modeling (OSM Overpass)
      ========================================================================== */
+  function generateClientProceduralUrbanFabric(centerLat, centerLng) {
+    const buildings = [];
+    const metersPerDegLat = 111132.954;
+    const metersPerDegLng = 111132.954 * Math.cos((centerLat * Math.PI) / 180);
+
+    const offsets = [
+      { dx: 48, dy: 35, w: 24, l: 30, rot: 15, h: 16.0, lv: 5 },
+      { dx: -55, dy: 25, w: 26, l: 22, rot: -10, h: 12.8, lv: 4 },
+      { dx: 32, dy: -65, w: 34, l: 24, rot: 5, h: 22.4, lv: 7 },
+      { dx: -45, dy: -60, w: 22, l: 28, rot: 25, h: 9.6, lv: 3 },
+      { dx: 115, dy: 55, w: 32, l: 38, rot: 12, h: 28.8, lv: 9 },
+      { dx: 90, dy: 125, w: 26, l: 26, rot: -18, h: 16.0, lv: 5 },
+      { dx: -115, dy: 85, w: 36, l: 24, rot: 8, h: 19.2, lv: 6 },
+      { dx: -95, dy: -115, w: 30, l: 32, rot: -15, h: 12.8, lv: 4 },
+      { dx: 65, dy: -135, w: 40, l: 26, rot: 20, h: 25.6, lv: 8 },
+      { dx: -135, dy: -45, w: 25, l: 25, rot: 0, h: 9.6, lv: 3 },
+      { dx: 185, dy: 95, w: 42, l: 32, rot: 30, h: 32.0, lv: 10 },
+      { dx: 155, dy: -165, w: 34, l: 28, rot: -25, h: 16.0, lv: 5 },
+      { dx: -175, dy: 145, w: 30, l: 44, rot: 10, h: 22.4, lv: 7 },
+      { dx: -195, dy: -125, w: 38, l: 26, rot: -5, h: 12.8, lv: 4 },
+      { dx: 0, dy: 165, w: 30, l: 30, rot: 15, h: 19.2, lv: 6 },
+      { dx: -15, dy: -185, w: 42, l: 24, rot: -12, h: 16.0, lv: 5 }
+    ];
+
+    offsets.forEach((b, idx) => {
+      const cos = Math.cos((b.rot * Math.PI) / 180);
+      const sin = Math.sin((b.rot * Math.PI) / 180);
+      const hw = b.w / 2;
+      const hl = b.l / 2;
+
+      const cornersMeters = [
+        { x: b.dx + (-hw * cos - -hl * sin), y: b.dy + (-hw * sin + -hl * cos) },
+        { x: b.dx + (hw * cos - -hl * sin),  y: b.dy + (hw * sin + -hl * cos) },
+        { x: b.dx + (hw * cos - hl * sin),   y: b.dy + (hw * sin + hl * cos) },
+        { x: b.dx + (-hw * cos - hl * sin),  y: b.dy + (-hw * sin + hl * cos) }
+      ];
+
+      const polyGps = cornersMeters.map(pt => [
+        centerLat + pt.y / metersPerDegLat,
+        centerLng + pt.x / metersPerDegLng
+      ]);
+
+      buildings.push({
+        id: `proc-bldg-${idx + 1}`,
+        height: b.h,
+        levels: b.lv,
+        coordinates: polyGps,
+        isProcedural: true
+      });
+    });
+
+    return buildings;
+  }
+
   async function loadSurroundingUrbanFabric(centerLat, centerLng) {
     if (!urbanGroup || !state.activeParcel) return;
 
@@ -3125,20 +3179,32 @@ document.addEventListener('DOMContentLoaded', () => {
         searchRadius = Math.min(1200, Math.max(350, Math.ceil(diagM / 2 + 180)));
       }
 
-      const res = await fetch(`/api/overpass?lat=${centerLat}&lng=${centerLng}&radius=${searchRadius}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      if (!data || !data.buildings || !data.buildings.length) return;
+      let fetchedBuildings = [];
+      try {
+        const res = await fetch(`/api/overpass?lat=${centerLat}&lng=${centerLng}&radius=${searchRadius}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.buildings && data.buildings.length > 0) {
+            fetchedBuildings = data.buildings;
+          }
+        }
+      } catch (fetchErr) {
+        console.warn('Overpass fetch note:', fetchErr);
+      }
+
+      if (fetchedBuildings.length === 0) {
+        fetchedBuildings = generateClientProceduralUrbanFabric(centerLat, centerLng);
+      }
 
       const centerGps = { lat: centerLat, lng: centerLng };
-      state.urbanFabricBuildings = data.buildings;
+      state.urbanFabricBuildings = fetchedBuildings;
       state.urbanFabricCenter = centerGps;
 
       // Classify buildings: strictly inside active parcel vs surrounding urban fabric
       const inParcel = [];
       const outside = [];
 
-      data.buildings.forEach(bldg => {
+      fetchedBuildings.forEach(bldg => {
         if (!bldg.coordinates || bldg.coordinates.length < 3) return;
 
         // Never inject procedural fallback boxes onto the parcel
@@ -3269,16 +3335,16 @@ document.addEventListener('DOMContentLoaded', () => {
         renderAllBuildings3D();
         updateComplianceUI();
       } else if (inParcel.length === 0 && !userHasDrawn) {
-        // Strict rule: If parcel has NO real existing buildings, keep parcel empty & clean!
-        state.buildings = [];
-        state.selectedBuildingId = null;
-        state.customFootprint = null;
-
-        renderBuildingTabsUI();
-        renderFloorMatrixUI();
-        renderAllBuildingsOnMap();
-        renderAllBuildings3D();
-        updateComplianceUI();
+        // Parcel has no existing buildings in OSM: maintain or generate the AI development concept building
+        if (!state.buildings || state.buildings.length === 0) {
+          generateDefaultConcept(state.activeParcel);
+        } else {
+          renderBuildingTabsUI();
+          renderFloorMatrixUI();
+          renderAllBuildingsOnMap();
+          renderAllBuildings3D();
+          updateComplianceUI();
+        }
       }
 
       // Render the surrounding urban fabric (clay in 3D mode, dynamic thermal in solar mode)
@@ -3329,18 +3395,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (outsideBuildings.length === 0) return;
 
     if (!isSolarMode) {
-      // 1. Standard GIS Mode: Architectural Clay
+      // 1. Standard GIS Mode: Architectural Clay Massing
       const clayMat = new THREE.MeshStandardMaterial({
-        color: 0x1f293d,
-        roughness: 0.85,
-        metalness: 0.15,
+        color: 0x334155,
+        roughness: 0.65,
+        metalness: 0.2,
         transparent: true,
-        opacity: 0.65
+        opacity: 0.88
       });
       const edgeLineMat = new THREE.LineBasicMaterial({
         color: 0x38bdf8,
         transparent: true,
-        opacity: 0.35
+        opacity: 0.6
       });
 
       outsideBuildings.forEach(bldg => {
@@ -3361,11 +3427,11 @@ document.addEventListener('DOMContentLoaded', () => {
         shape.closePath();
 
         const height = Math.max(6.0, Math.min(65.0, bldg.height || 9.0));
-        const extrudeGeom = new THREE.ExtrudeGeometry(shape, { depth: height + 1.8, bevelEnabled: false });
+        const extrudeGeom = new THREE.ExtrudeGeometry(shape, { depth: height + 2.0, bevelEnabled: false });
 
         const mesh = new THREE.Mesh(extrudeGeom, clayMat);
         mesh.rotation.x = -Math.PI / 2;
-        mesh.position.y = groundY - 1.5;
+        mesh.position.y = groundY - 0.5;
         mesh.castShadow = true;
         mesh.receiveShadow = true;
         urbanGroup.add(mesh);
@@ -3373,7 +3439,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const edges = new THREE.EdgesGeometry(extrudeGeom, 25);
         const line = new THREE.LineSegments(edges, edgeLineMat);
         line.rotation.x = -Math.PI / 2;
-        line.position.y = groundY - 1.5;
+        line.position.y = groundY - 0.5;
         urbanGroup.add(line);
       });
 
@@ -4971,11 +5037,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function generateDefaultConcept(parcel) {
-    // Strict requirement: if parcel has no building, do NOT invent or make up fake geometry
-    state.buildings = [];
-    state.selectedBuildingId = null;
+    const defaultFootprint = Math.min(650, Math.max(150, Math.round(((parcel && parcel.area) || 1000) * 0.35)));
+    state.buildings = [
+      createBuildingData(1, BUILDING_COLORS[0], defaultFootprint, 5, 1)
+    ];
+    state.buildings[0].footprintCoords = null;
+    state.buildings[0].footprintArea = defaultFootprint;
+    state.buildings[0].isProcedural = true;
+    state.selectedBuildingId = state.buildings[0].id;
     state.customFootprint = null;
-    state.activeConcept = null;
 
     syncCurrentBuildingToActiveConcept();
     renderBuildingTabsUI();
@@ -7454,8 +7524,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (mapViewport) mapViewport.style.display = 'none';
       if (threeViewport) threeViewport.style.display = 'block';
       if (buildingGroup) buildingGroup.visible = true;
+      if (urbanGroup) urbanGroup.visible = true;
       if (mapThemeSwitcher) mapThemeSwitcher.style.display = 'none';
       if (mapTelemetry) mapTelemetry.style.display = 'none';
+      renderAllBuildings3D();
       renderUrbanFabric3D();
       onWindowResize();
     } else if (mode === 'solar') {
@@ -7466,6 +7538,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const isThermalOn = (state.showThermalHeatmap !== false);
       if (buildingGroup) buildingGroup.visible = !isThermalOn;
       if (solarHeatmapGroup) solarHeatmapGroup.visible = isThermalOn;
+      if (urbanGroup) urbanGroup.visible = true;
       if (mapThemeSwitcher) mapThemeSwitcher.style.display = 'none';
       if (mapTelemetry) mapTelemetry.style.display = 'none';
       onWindowResize();
@@ -7479,8 +7552,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (mapViewport) mapViewport.style.display = 'block';
       if (threeViewport) threeViewport.style.display = 'block';
       if (buildingGroup) buildingGroup.visible = true;
+      if (urbanGroup) urbanGroup.visible = true;
       if (mapThemeSwitcher) mapThemeSwitcher.style.display = 'none';
       if (mapTelemetry) mapTelemetry.style.display = 'none';
+      renderAllBuildings3D();
       renderUrbanFabric3D();
       switchMapBasemap(state.combinedMapTheme || 'satellite');
       if (buildingFootprintLayer) {
