@@ -56,6 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
     mapTheme: 'satellite',
     combinedMapTheme: 'satellite',
     showZoningLayer: true, // Yellow zoning context envelope layer toggle
+    showMapLabels: true, // Map labels and annotations toggle (existing buildings, radius tags)
     showParcelGround: true, // 3D Cadastral parcel grey surface layer toggle
     // Surrounding 3D Urban Fabric (Module 1B & 2B)
     urbanBuildings: [],
@@ -427,6 +428,23 @@ document.addEventListener('DOMContentLoaded', () => {
       btnZoning.addEventListener('click', (e) => {
         e.stopPropagation();
         toggleZoningLayer();
+      });
+    }
+
+    // Map Labels / Annotations toggle buttons
+    const btnMapLabels = document.getElementById('btnToggleMapLabels');
+    if (btnMapLabels) {
+      btnMapLabels.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleMapLabels();
+      });
+    }
+
+    const btnToolbarLabels = document.getElementById('btnToggleMapLabelsToolbar');
+    if (btnToolbarLabels) {
+      btnToolbarLabels.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleMapLabels();
       });
     }
 
@@ -1162,6 +1180,53 @@ document.addEventListener('DOMContentLoaded', () => {
       if (text) {
         text.textContent = state.showZoningLayer ? 'ყვითელი ფენა' : 'ყვითელი: გამორთ.';
       }
+    }
+  }
+
+  function toggleMapLabels(forceState) {
+    if (typeof forceState === 'boolean') {
+      state.showMapLabels = forceState;
+    } else {
+      state.showMapLabels = !state.showMapLabels;
+    }
+
+    const mapEl = document.getElementById('mapViewport');
+    if (mapEl) {
+      mapEl.classList.toggle('hide-map-labels', !state.showMapLabels);
+    }
+    if (map && map.getContainer()) {
+      map.getContainer().classList.toggle('hide-map-labels', !state.showMapLabels);
+    }
+
+    if (map) {
+      map.eachLayer(layer => {
+        if (layer.getTooltip && layer.getTooltip()) {
+          if (!state.showMapLabels) {
+            layer.closeTooltip();
+          } else if (layer.getTooltip().options && layer.getTooltip().options.permanent) {
+            layer.openTooltip();
+          }
+        }
+      });
+    }
+
+    const btn = document.getElementById('btnToggleMapLabels');
+    const text = document.getElementById('textToggleMapLabels');
+    if (btn) {
+      btn.classList.toggle('active', state.showMapLabels);
+      if (text) {
+        const isEn = (state.currentLang === 'en' || (typeof currentLang !== 'undefined' && currentLang === 'en'));
+        if (state.showMapLabels) {
+          text.textContent = isEn ? 'Labels' : 'წარწერები';
+        } else {
+          text.textContent = isEn ? 'Labels: Off' : 'წარწერები: გამორთ.';
+        }
+      }
+    }
+
+    const btnToolbar = document.getElementById('btnToggleMapLabelsToolbar');
+    if (btnToolbar) {
+      btnToolbar.classList.toggle('active', state.showMapLabels);
     }
   }
 
@@ -3650,6 +3715,9 @@ document.addEventListener('DOMContentLoaded', () => {
             className: 'existing-bldg-tooltip'
           });
           poly.addTo(parcelContoursLayerGroup);
+          if (state.showMapLabels === false) {
+            poly.closeTooltip();
+          }
         });
       }
 

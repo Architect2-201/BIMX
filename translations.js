@@ -445,6 +445,7 @@ const translations = {
     map_theme_satellite: "სატელიტი",
     map_theme_voyager: "ურბანული",
     map_theme_topo: "ტოპოგრაფიული",
+    map_labels: "წარწერები",
 
     // Provenance Badges
     badge_official: "ოფიციალური მონაცემი",
@@ -958,6 +959,7 @@ const translations = {
     map_theme_satellite: "Satellite",
     map_theme_voyager: "Urban",
     map_theme_topo: "Topographic",
+    map_labels: "Labels",
 
     // Provenance Badges
     badge_official: "Official Data",
