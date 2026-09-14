@@ -1080,11 +1080,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (parcelZoningLayerGroup) parcelZoningLayerGroup.clearLayers();
     if (parcelContoursLayerGroup) parcelContoursLayerGroup.clearLayers();
 
-    // Create Leaflet Polygon
+    // Create Leaflet Polygon (Red boundary line)
     parcelPolygonLayer = L.polygon(parcel.coordinates, {
-      color: '#00f0ff',
+      color: '#ff2a2a',
       weight: 3,
-      fillColor: '#00f0ff',
+      fillColor: '#ff2a2a',
       fillOpacity: 0.18,
       dashArray: '4 4'
     }).addTo(map);
@@ -3880,7 +3880,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const boundaryGeom = new THREE.BufferGeometry().setFromPoints(boundaryPoints3D);
     const boundaryMat = new THREE.LineBasicMaterial({
-      color: 0x00f2fe,
+      color: 0xff2a2a,
       linewidth: 3
     });
     const boundaryLine = new THREE.Line(boundaryGeom, boundaryMat);
