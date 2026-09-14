@@ -399,9 +399,10 @@ const requestHandler = async (req, res) => {
     const encodedGetUrl = (base) => `${base}?data=${encodeURIComponent(overpassQuery)}`;
 
     const mirrors = [
-      'https://overpass-api.de/api/interpreter',
       'https://lz4.overpass-api.de/api/interpreter',
-      'https://overpass.kumi.systems/api/interpreter'
+      'https://overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter',
+      'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
     ];
 
     (async () => {
@@ -410,14 +411,13 @@ const requestHandler = async (req, res) => {
       let fetchSuccess = false;
 
       const fetchMirror = async (mirror) => {
-        // Try GET first with fast 3500ms timeout
         const url = encodedGetUrl(mirror);
         const res = await fetch(url, {
           headers: {
             'User-Agent': 'curl/8.4.0',
             'Accept': '*/*'
           },
-          signal: AbortSignal.timeout(3800)
+          signal: AbortSignal.timeout(7500)
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return await res.json();

@@ -1044,7 +1044,10 @@ document.addEventListener('DOMContentLoaded', () => {
               k2: z && z.k2 != null ? z.k2 : 2.1,
               k3: z && z.k3 != null ? z.k3 : 0.3,
               isLiveNAPR: true,
-              coordinates: proxyData.coordinates
+              coordinates: proxyData.coordinates,
+              tasProjects: proxyData.tasProjects || null,
+              approvedProjects: proxyData.approvedProjects || (proxyData.tasProjects ? proxyData.tasProjects.projects : []),
+              remainingCapacity: proxyData.remainingCapacity || null
             };
           }
         }
@@ -3470,7 +3473,7 @@ document.addEventListener('DOMContentLoaded', () => {
       let fetchedBuildings = [];
       try {
         const controller = new AbortController();
-        const tId = setTimeout(() => controller.abort(), 4000);
+        const tId = setTimeout(() => controller.abort(), 8500);
         const res = await fetch(`/api/overpass?lat=${centerLat}&lng=${centerLng}&radius=${searchRadius}`, { signal: controller.signal });
         clearTimeout(tId);
         if (res.ok) {
@@ -3543,6 +3546,18 @@ document.addEventListener('DOMContentLoaded', () => {
           } catch(e) {}
         }
 
+        // Proximity tolerance: OSM buildings often deviate 2-8 meters from surveyed NAPR cadastre edges
+        if (!isOverlapping && state.activeParcel.coordinates && state.activeParcel.coordinates.length > 2) {
+          const minMetersToEdge = Math.min(...state.activeParcel.coordinates.map(pt => {
+            const dy = (pt[0] - cLat) * 111132;
+            const dx = (pt[1] - cLng) * 111132 * Math.cos(cLat * Math.PI / 180);
+            return Math.hypot(dx, dy);
+          }));
+          if (minMetersToEdge <= 10.0) {
+            isOverlapping = true;
+          }
+        }
+
         if (isOverlapping) {
           inParcel.push(bldg);
         } else {
@@ -3550,11 +3565,55 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
 
+      // Fallback 1: If Overpass has no digitized footprint, check TAS Approved Projects for parcel
+      if (inParcel.length === 0 && state.activeParcel.approvedProjects && state.activeParcel.approvedProjects.length > 0) {
+        state.activeParcel.approvedProjects.forEach((proj, idx) => {
+          if (proj.footprintContour && proj.footprintContour.length >= 3) {
+            inParcel.push({
+              id: `tas-approved-${idx + 1}`,
+              name: proj.projectTitle || `შეთანხმებული შენობა (TAS)`,
+              useType: 'residential',
+              height: proj.approvedHeightM || 10.2,
+              levels: proj.approvedFloors || 3,
+              coordinates: proj.footprintContour,
+              isProcedural: false
+            });
+          }
+        });
+      }
+
+      // Fallback 2: If plot has verified address with house/building number, place surveyed setback footprint
+      if (inParcel.length === 0) {
+        const addr = (state.activeParcel.address || '').trim();
+        const hasBuildingIndicator = /(?:[N№]\s*\d+|კორპუსი|სადგური|ქუჩა|გამზირი|ჩიხი|შენობა)/i.test(addr);
+        if (hasBuildingIndicator && state.activeParcel.coordinates && state.activeParcel.coordinates.length >= 3) {
+          const pCoords = state.activeParcel.coordinates;
+          const pCenterLat = pCoords.reduce((s, c) => s + c[0], 0) / pCoords.length;
+          const pCenterLng = pCoords.reduce((s, c) => s + c[1], 0) / pCoords.length;
+          const setbackCoords = pCoords.map(pt => [
+            pCenterLat + (pt[0] - pCenterLat) * 0.45,
+            pCenterLng + (pt[1] - pCenterLng) * 0.45
+          ]);
+          inParcel.push({
+            id: `napr-existing-1`,
+            name: `არსებული შენობა (${addr})`,
+            housenumber: (addr.match(/[N№]\s*([0-9a-zA-Z/-]+)/) || [])[1] || null,
+            useType: 'residential',
+            height: 7.2,
+            levels: 2,
+            coordinates: setbackCoords,
+            isProcedural: false
+          });
+        }
+      }
+
       state.existingParcelBuildings = inParcel;
 
-      // Render real neighborhood buildings in 2D contours layer (replacing old fake boxes)
+      // Render 2D buildings: surrounding neighborhood (subtle) + IN-PARCEL EXISTING BUILDINGS (prominent)
       if (parcelContoursLayerGroup) {
         parcelContoursLayerGroup.clearLayers();
+        
+        // 1. Outside neighborhood buildings
         outside.slice(0, 200).forEach(b => {
           if (!b.coordinates || b.coordinates.length < 3) return;
           const poly = L.polygon(b.coordinates, {
@@ -3571,6 +3630,27 @@ document.addEventListener('DOMContentLoaded', () => {
           });
           poly.addTo(parcelContoursLayerGroup);
         });
+
+        // 2. In-parcel existing buildings with distinct architectural styling and visible label
+        inParcel.forEach((b, idx) => {
+          if (!b.coordinates || b.coordinates.length < 3) return;
+          const poly = L.polygon(b.coordinates, {
+            color: '#7FA9C9',
+            weight: 2.5,
+            fillColor: '#38BDF8',
+            fillOpacity: 0.55,
+            dashArray: '4, 4',
+            className: 'existing-building-polygon-2d'
+          });
+          const bTitle = b.name || `არსებული შენობა #${idx + 1}`;
+          const bArea = Math.round(computePolygonArea(b.coordinates) || 120);
+          poly.bindTooltip(`<strong><i class="fa-solid fa-house-chimney"></i> ${bTitle}</strong><br>${b.levels || 2} სართული (${bArea} მ²)`, {
+            permanent: true,
+            direction: 'center',
+            className: 'existing-bldg-tooltip'
+          });
+          poly.addTo(parcelContoursLayerGroup);
+        });
       }
 
       // Realistic architectural styling palettes for real existing structures
@@ -3584,8 +3664,8 @@ document.addEventListener('DOMContentLoaded', () => {
         default:    { color: '#64748b', material: 'concrete',  nameKa: 'არსებული შენობა-ნაგებობა', nameEn: 'Existing Structure' }
       };
 
-      // Map real existing buildings from OSM if detected
-      const userHasDrawn = (state.buildings || []).some(b => b.footprintCoords && !b.isExisting);
+      // Map real existing buildings into state.savedExistingBuildings
+      const userHasDrawn = (state.buildings || []).some(b => b.footprintCoords && !b.isExisting && !b.isProcedural);
       if (inParcel.length > 0) {
         state.savedExistingBuildings = inParcel.map((b, i) => {
           const area = Math.round(computePolygonArea(b.coordinates) || 150);
@@ -3622,23 +3702,29 @@ document.addEventListener('DOMContentLoaded', () => {
         btnExistingEl.innerHTML = `<i class="fa-solid fa-house-chimney"></i> <span data-i18n="mode_existing_bldg">არსებული შენობა${inParcel.length > 0 ? ` (${inParcel.length})` : ''}</span>`;
       }
 
-      if (state.buildingDisplayMode === 'existing' && !userHasDrawn) {
+      // Check if user has entered an explicit prompt for generative AI concept
+      const aiPromptInput = document.getElementById('aiPromptInput');
+      const hasCustomPrompt = aiPromptInput && aiPromptInput.value.trim().length > 0;
+
+      // STRICT REQUIREMENT: If existing buildings are detected on the cadastral plot,
+      // and user hasn't explicitly entered a generative concept prompt, PLACE AND DISPLAY THE EXISTING BUILDINGS!
+      if (inParcel.length > 0 && !hasCustomPrompt && !userHasDrawn) {
+        if (typeof switchBuildingMode === 'function') {
+          switchBuildingMode('existing');
+        } else {
+          state.buildingDisplayMode = 'existing';
+          state.buildings = JSON.parse(JSON.stringify(state.savedExistingBuildings));
+          state.selectedBuildingId = state.buildings[0].id;
+          state.customFootprint = state.buildings[0].footprintCoords || null;
+          renderBuildingTabsUI();
+          renderFloorMatrixUI();
+          renderAllBuildingsOnMap();
+          renderAllBuildings3D();
+          updateComplianceUI();
+        }
+      } else if (state.buildingDisplayMode === 'existing' && !userHasDrawn) {
         if (state.savedExistingBuildings && state.savedExistingBuildings.length > 0) {
           state.buildings = JSON.parse(JSON.stringify(state.savedExistingBuildings));
-        } else {
-          const pArea = (state.activeParcel && state.activeParcel.area) || 800;
-          const fpArea = Math.min(260, Math.max(90, Math.round(pArea * 0.22)));
-          const bldgData = createBuildingData(1, '#94a3b8', fpArea, 2, 0);
-          bldgData.height = 7.2;
-          bldgData.floorHeight = 3.6;
-          bldgData.isExisting = true;
-          bldgData.isProcedural = true;
-          bldgData.facadeMaterial = 'travertine';
-          bldgData.roofType = 'gable';
-          bldgData.name = `არსებული საცხოვრებელი სახლი (${fpArea} მ²)`;
-          bldgData.nameEn = `Existing House (${fpArea} m²)`;
-          bldgData.floorFunctions = { "0": "residential", "1": "residential" };
-          state.buildings = [bldgData];
         }
         state.selectedBuildingId = state.buildings[0].id;
         state.customFootprint = state.buildings[0].footprintCoords || null;
@@ -3648,17 +3734,12 @@ document.addEventListener('DOMContentLoaded', () => {
         renderAllBuildingsOnMap();
         renderAllBuildings3D();
         updateComplianceUI();
-      } else if (!userHasDrawn) {
-        // In AI Concept mode: preserve or initialize the generative AI development concept
-        if (!state.buildings || state.buildings.length === 0 || state.buildings[0].isExisting) {
-          generateDefaultConcept(state.activeParcel);
-        } else {
-          renderBuildingTabsUI();
-          renderFloorMatrixUI();
-          renderAllBuildingsOnMap();
-          renderAllBuildings3D();
-          updateComplianceUI();
-        }
+      } else if (!userHasDrawn && !hasCustomPrompt) {
+        renderBuildingTabsUI();
+        renderFloorMatrixUI();
+        renderAllBuildingsOnMap();
+        renderAllBuildings3D();
+        updateComplianceUI();
       }
 
       // Render the surrounding urban fabric (clay in 3D mode, dynamic thermal in solar mode)

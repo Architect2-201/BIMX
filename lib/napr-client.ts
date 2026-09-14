@@ -104,22 +104,37 @@ export async function fetchParcelByCadastralCode(
   }
 
   // 2. გეომეტრიის ამოღება
-  const geomUrl = geomLink.startsWith("http") ? geomLink : `${NAPR_BASE_URL}${geomLink}`;
-  const geomRes = await fetch(geomUrl, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      "Referer": "https://maps.gov.ge/map/portal/",
-      "Origin": "https://maps.gov.ge",
-      "X-Requested-With": "XMLHttpRequest",
-    },
-  });
+  const baseGeomUrl = geomLink.startsWith("http") ? geomLink : `${NAPR_BASE_URL}${geomLink}`;
+  const candidates = [
+    baseGeomUrl,
+    baseGeomUrl.replace("getinfo.alpha", "getinfo") + (baseGeomUrl.includes("lang=") ? "" : "&lang=ka"),
+    baseGeomUrl + (baseGeomUrl.includes("lang=") ? "" : "&lang=ka")
+  ];
 
-  if (!geomRes.ok) {
-    throw new Error(`NAPR geometry fetch failed: ${geomRes.status}`);
+  let geomData: any = null;
+  for (const candidate of candidates) {
+    try {
+      const gRes = await fetch(candidate, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Referer": "https://maps.gov.ge/map/portal/",
+          "Origin": "https://maps.gov.ge",
+          "Accept": "*/*"
+        },
+      });
+      const txt = await gRes.text();
+      if (!txt.includes("Access Denied")) {
+        geomData = JSON.parse(txt);
+        if (geomData?.data?.[0]?.shape) break;
+      }
+    } catch (e) {}
   }
 
-  const geomData = await geomRes.json();
-  const shapeWkt: string = geomData.data?.[0]?.shape || "";
+  if (!geomData?.data?.[0]?.shape) {
+    throw new Error(`NAPR geometry fetch failed for: ${normalizedCode}`);
+  }
+
+  const shapeWkt: string = geomData.data[0].shape || "";
   const boundary = shapeWkt ? parseWktPolygon(shapeWkt) : [];
   const areaSqm = calculatePolygonAreaSqm(boundary);
 
