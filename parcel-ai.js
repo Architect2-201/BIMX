@@ -906,12 +906,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (parcelZoningLayerGroup) parcelZoningLayerGroup.clearLayers();
     if (parcelContoursLayerGroup) parcelContoursLayerGroup.clearLayers();
 
-    // Create Leaflet Polygon
+    // Create Leaflet Polygon (Red cadastral contour)
     parcelPolygonLayer = L.polygon(parcel.coordinates, {
-      color: '#00f0ff',
+      color: '#ff2222',
       weight: 3,
-      fillColor: '#00f0ff',
-      fillOpacity: 0.18,
+      fillColor: '#ff2222',
+      fillOpacity: 0.12,
       dashArray: '4 4'
     }).addTo(map);
 
@@ -3706,7 +3706,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const boundaryGeom = new THREE.BufferGeometry().setFromPoints(boundaryPoints3D);
     const boundaryMat = new THREE.LineBasicMaterial({
-      color: 0x00f2fe,
+      color: 0xff2222,
       linewidth: 3
     });
     const boundaryLine = new THREE.Line(boundaryGeom, boundaryMat);

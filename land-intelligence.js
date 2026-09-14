@@ -780,13 +780,13 @@ function updateMapGeometry(coordinates, centroid, primaryZone, restrictions, tas
   contoursLayer.clearLayers();
   if (approvedProjectsLayer) approvedProjectsLayer.clearLayers();
 
-  // Draw Parcel Boundary (High contrast neon cyan)
+  // Draw Parcel Boundary (Red contour)
   const polygon = L.polygon(coordinates, {
-    color: '#00f0ff',
+    color: '#ff2222',
     weight: 3,
     opacity: 0.95,
-    fillColor: '#00f0ff',
-    fillOpacity: 0.22
+    fillColor: '#ff2222',
+    fillOpacity: 0.12
   }).addTo(parcelLayer);
 
   // Click on parcel opens information modal on parcel tab
