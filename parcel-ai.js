@@ -609,16 +609,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.addEventListener('resize', onWindowResize);
+    window.addEventListener('orientationchange', () => {
+      setTimeout(onWindowResize, 150);
+    });
   }
 
   function onWindowResize() {
+    if (map) {
+      map.invalidateSize();
+    }
     const container = document.getElementById('threeViewport');
     if (!container || !renderer || !camera) return;
     const width = container.clientWidth;
     const height = container.clientHeight;
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-    renderer.setSize(width, height);
+    if (width > 0 && height > 0) {
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    }
   }
 
   /* ==========================================================================

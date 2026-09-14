@@ -134,66 +134,6 @@
     .tas-key { padding: 6px 6px 6px 0; color: #475569; font-weight: 600; width: 120px; min-width: 120px; white-space: nowrap; vertical-align: top; }
     .tas-val { padding: 6px 0 6px 6px; color: #0f172a; font-weight: 600; text-align: right; word-break: break-word; vertical-align: top; }
 
-    /* Mobile Adaptations for Parcel AI */
-    @media (max-width: 992px) {
-      .gis-workspace-wrapper {
-        padding: 16px 12px 40px;
-      }
-      .gis-workspace-grid {
-        grid-template-columns: 1fr !important;
-        gap: 20px;
-      }
-      .center-viewport-container {
-        height: 480px;
-        min-height: 480px;
-      }
-      .gis-panel {
-        max-height: none !important;
-      }
-    }
-
-    @media (max-width: 640px) {
-      .parcel-top-intro {
-        padding: 85px 0 16px;
-      }
-      .intro-flex {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 14px;
-      }
-      .banner-system-status {
-        width: 100%;
-      }
-      .parcel-main-heading {
-        font-size: 1.6rem;
-      }
-      .gis-info-modal {
-        width: calc(100% - 16px);
-        right: 8px;
-        bottom: 8px;
-        max-height: calc(100% - 16px);
-      }
-      .gis-info-body {
-        flex-direction: column;
-      }
-      .gis-info-tabs {
-        width: 100%;
-        min-width: 100%;
-        flex-direction: row;
-        border-right: none;
-        border-bottom: 1px solid #e2e8f0;
-        overflow-x: auto;
-      }
-      .gis-info-tab-item {
-        padding: 8px 10px;
-        white-space: nowrap;
-        border-bottom: none;
-        border-left: none;
-      }
-      .gis-info-tab-item.active {
-        border-bottom: 3px solid #1f4e79;
-        border-left: none;
-      }
     /* Solar Insolation & Shadow Control Floating HUD styles are centrally managed in styles.css */
 
     /* Terrain Topography Pill */
@@ -304,6 +244,402 @@
       background: linear-gradient(135deg, rgba(0, 242, 254, 0.35), rgba(79, 172, 254, 0.35));
       box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
       transform: translateY(-1px);
+    }
+
+    /* ==========================================================================
+       Complete Mobile & Full-Screen Architecture (Standards-Compliant UX)
+       ========================================================================== */
+    html, body {
+      max-width: 100vw;
+      overflow-x: hidden;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    /* Tablets & Medium Screens (max-width: 1024px) */
+    @media (max-width: 1024px) {
+      .gis-workspace-wrapper {
+        padding: 12px 12px 40px !important;
+      }
+      .gis-workspace-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+      }
+      .gis-panel {
+        max-height: none !important;
+      }
+      .center-viewport-container {
+        height: 60vh !important;
+        min-height: 480px !important;
+        max-height: 600px !important;
+      }
+    }
+
+    /* Mobile Phones (max-width: 768px) */
+    @media (max-width: 768px) {
+      .header {
+        padding: 8px 12px !important;
+      }
+      .brand-logo-img {
+        height: 34px !important;
+      }
+      .parcel-top-intro {
+        padding: 76px 12px 12px !important;
+      }
+      .intro-flex {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 10px !important;
+      }
+      .parcel-main-heading {
+        font-size: 1.35rem !important;
+        line-height: 1.25 !important;
+        margin-bottom: 4px !important;
+      }
+      .parcel-main-lead {
+        font-size: 0.82rem !important;
+        line-height: 1.4 !important;
+        margin-bottom: 8px !important;
+      }
+      .banner-system-status {
+        width: 100% !important;
+        font-size: 0.75rem !important;
+        padding: 8px 12px !important;
+        border-radius: 8px !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+      }
+
+      /* Workspace Structure */
+      .gis-workspace-wrapper {
+        padding: 6px 8px 36px !important;
+      }
+      .gis-workspace-grid {
+        gap: 14px !important;
+      }
+      .gis-panel {
+        border-radius: 12px !important;
+      }
+      .gis-panel-header {
+        padding: 10px 12px !important;
+      }
+      .gis-panel-body {
+        padding: 12px 10px !important;
+      }
+
+      /* Viewport Container - Full Screen Mobile Focus */
+      .center-viewport-container {
+        height: 65vh !important;
+        min-height: 440px !important;
+        max-height: 560px !important;
+        border-radius: 12px !important;
+        margin: 2px 0 10px !important;
+      }
+      .viewport-stage {
+        min-height: 370px !important;
+      }
+
+      /* Viewport Stage Combined Mode on Mobile */
+      .viewport-stage.mode-combined #mapViewport {
+        width: 100% !important;
+        height: 50% !important;
+        top: 0 !important;
+        left: 0 !important;
+      }
+      .viewport-stage.mode-combined #threeViewport {
+        width: 100% !important;
+        height: 50% !important;
+        top: 50% !important;
+        left: 0 !important;
+      }
+
+      /* Mode Switcher Bar on Mobile */
+      .mode-switcher-bar {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        padding: 8px 8px !important;
+        gap: 8px !important;
+        background: #080c14 !important;
+      }
+      .mode-tabs-group {
+        display: flex !important;
+        width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+        white-space: nowrap !important;
+        gap: 4px !important;
+        padding: 3px !important;
+        border-radius: 8px !important;
+        flex-shrink: 0 !important;
+      }
+      .mode-tabs-group::-webkit-scrollbar {
+        display: none !important;
+      }
+      .mode-tab-btn {
+        flex-shrink: 0 !important;
+        padding: 6px 11px !important;
+        font-size: 0.74rem !important;
+        gap: 5px !important;
+        border-radius: 6px !important;
+      }
+      .mode-dropdown-wrap {
+        position: relative !important;
+        flex-shrink: 0 !important;
+      }
+      .mode-dropdown-btn {
+        flex-shrink: 0 !important;
+        padding: 6px 11px !important;
+        font-size: 0.74rem !important;
+      }
+      .mode-dropdown-menu {
+        position: absolute !important;
+        top: 100% !important;
+        left: 0 !important;
+        right: auto !important;
+        min-width: 250px !important;
+        max-width: calc(100vw - 32px) !important;
+        z-index: 100 !important;
+      }
+
+      /* Viewport Tools Bar on Mobile */
+      .viewport-tools-group {
+        display: flex !important;
+        width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+        white-space: nowrap !important;
+        gap: 6px !important;
+        padding: 2px 0 !important;
+        flex-shrink: 0 !important;
+      }
+      .viewport-tools-group::-webkit-scrollbar {
+        display: none !important;
+      }
+      .tool-btn-draw {
+        flex-shrink: 0 !important;
+        padding: 5px 9px !important;
+        font-size: 0.72rem !important;
+        border-radius: 6px !important;
+      }
+      .tool-icon-btn {
+        flex-shrink: 0 !important;
+        width: 32px !important;
+        height: 32px !important;
+        min-width: 32px !important;
+        border-radius: 6px !important;
+      }
+
+      /* Floating HUD Overlays in Viewport */
+      .viewport-hud-overlay {
+        top: 8px !important;
+        left: 8px !important;
+        right: 48px !important;
+        max-width: calc(100% - 56px) !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        gap: 4px !important;
+        pointer-events: none !important;
+      }
+      .hud-pill-badge, .hud-terrain-pill {
+        padding: 4px 7px !important;
+        font-size: 0.68rem !important;
+        gap: 4px !important;
+        border-radius: 6px !important;
+        pointer-events: auto !important;
+        backdrop-filter: blur(8px) !important;
+      }
+      .viewport-compass {
+        top: 8px !important;
+        right: 8px !important;
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 0.72rem !important;
+      }
+      .viewport-bottom-disclaimer {
+        font-size: 0.68rem !important;
+        padding: 6px 10px !important;
+      }
+      .drawing-guide-banner {
+        top: 8px !important;
+        left: 8px !important;
+        right: 8px !important;
+        font-size: 0.72rem !important;
+        padding: 6px 10px !important;
+      }
+      .road-drawing-bar {
+        bottom: 8px !important;
+        left: 8px !important;
+        right: 8px !important;
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+        padding: 6px 8px !important;
+      }
+      .map-theme-switcher-bar {
+        bottom: 8px !important;
+        left: 8px !important;
+        right: 8px !important;
+        max-width: calc(100% - 16px) !important;
+        overflow-x: auto !important;
+        white-space: nowrap !important;
+        padding: 4px 6px !important;
+        gap: 4px !important;
+      }
+      .btn-map-theme {
+        flex-shrink: 0 !important;
+        padding: 4px 8px !important;
+        font-size: 0.68rem !important;
+      }
+      .map-telemetry-hud {
+        display: none !important;
+      }
+      .solar-control-panel {
+        left: 8px !important;
+        right: 8px !important;
+        bottom: 8px !important;
+        width: calc(100% - 16px) !important;
+        max-height: 48vh !important;
+        overflow-y: auto !important;
+        padding: 10px !important;
+        border-radius: 10px !important;
+      }
+
+      /* Form Fields & Sliders Touch Optimization */
+      .cadastral-input {
+        font-size: 16px !important;
+        padding: 10px 12px !important;
+      }
+      .sample-parcels-select {
+        font-size: 14px !important;
+        padding: 9px 10px !important;
+      }
+      .btn-cadastral-search, .btn-generate-concept {
+        padding: 11px 14px !important;
+        font-size: 0.88rem !important;
+      }
+      .ai-prompt-textarea {
+        font-size: 15px !important;
+        padding: 10px !important;
+      }
+      .slider-custom {
+        height: 8px !important;
+        margin: 10px 0 !important;
+      }
+      .slider-custom::-webkit-slider-thumb {
+        width: 22px !important;
+        height: 22px !important;
+      }
+      .slider-custom::-moz-range-thumb {
+        width: 22px !important;
+        height: 22px !important;
+      }
+
+      /* Multi-Building Colors & Tabs */
+      .building-tabs-scroll {
+        display: flex !important;
+        overflow-x: auto !important;
+        gap: 6px !important;
+        padding-bottom: 4px !important;
+      }
+      .color-swatches-list {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+      }
+      .color-swatch-dot {
+        width: 28px !important;
+        height: 28px !important;
+        border-radius: 50% !important;
+      }
+
+      /* K-Coefficients & Right Panel */
+      .k-coefficients-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 6px !important;
+      }
+      .k-item-card {
+        padding: 8px 6px !important;
+      }
+      .k-metric-value {
+        font-size: 1.1rem !important;
+      }
+      .attributes-grid {
+        grid-template-columns: 1fr !important;
+        gap: 6px !important;
+      }
+      .export-buttons-grid-extended {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 6px !important;
+      }
+      .btn-export-tile-primary {
+        grid-column: span 2 !important;
+        padding: 10px !important;
+        font-size: 0.82rem !important;
+      }
+      .btn-export-tile {
+        padding: 8px 6px !important;
+        font-size: 0.74rem !important;
+      }
+
+      /* GIS Info Modal on Mobile */
+      .gis-info-modal {
+        width: calc(100% - 16px) !important;
+        left: 8px !important;
+        right: 8px !important;
+        bottom: 8px !important;
+        max-height: calc(100% - 16px) !important;
+        border-radius: 10px !important;
+      }
+      .gis-info-body {
+        flex-direction: column !important;
+      }
+      .gis-info-tabs {
+        width: 100% !important;
+        min-width: 100% !important;
+        flex-direction: row !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        border-right: none !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+      }
+      .gis-info-tab-item {
+        padding: 8px 10px !important;
+        white-space: nowrap !important;
+        border-bottom: none !important;
+        border-left: none !important;
+        font-size: 0.76rem !important;
+      }
+      .gis-info-tab-item.active {
+        border-bottom: 3px solid #1f4e79 !important;
+        border-left: none !important;
+      }
+    }
+
+    /* Small Mobile Devices (max-width: 480px) */
+    @media (max-width: 480px) {
+      .center-viewport-container {
+        height: 60vh !important;
+        min-height: 400px !important;
+      }
+      .viewport-stage {
+        min-height: 330px !important;
+      }
+      .parcel-main-heading {
+        font-size: 1.22rem !important;
+      }
+      .gis-panel-title {
+        font-size: 0.82rem !important;
+      }
+      .k-item-card {
+        padding: 6px 4px !important;
+      }
+      .k-metric-value {
+        font-size: 0.95rem !important;
+      }
+      .k-item-label {
+        font-size: 0.68rem !important;
+      }
     }
   </style>
 </head>
