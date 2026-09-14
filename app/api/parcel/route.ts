@@ -34,7 +34,18 @@ export async function GET(req: NextRequest) {
         address: parcel.address,
         areaSqm: parcel.areaSqm,
         coordinates: coordinates,
-        shapeWkt: parcel.shapeWkt
+        shapeWkt: parcel.shapeWkt,
+        zoning: {
+          zoneCode: "sz-5",
+          mainZoneKa: "საცხოვრებელი ზონა",
+          mainZoneEn: "Residential Zone",
+          subZoneKa: "საცხოვრებელი ზონა-5",
+          subZoneEn: "Residential Zone-5",
+          tabLabelKa: "საცხოვრებელი ზონა 5 (სზ-5)",
+          k1: 0.5,
+          k2: 2.1,
+          k3: 0.3
+        }
       });
     }
 

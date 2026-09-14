@@ -282,6 +282,156 @@ document.addEventListener('DOMContentLoaded', () => {
         [42.2675, 42.7020],
         [42.2676, 42.7012]
       ]
+    },
+    '01.11.13.002.264': {
+      code: '01.11.13.002.264',
+      address: 'ქ. თბილისი, გლდანი, კვარტალი 11.13, ნაკვეთი №264',
+      addressEn: 'Tbilisi, Gldani, Quarter 11.13, Plot #264',
+      area: 7780,
+      shape: 'მრავალკუთხა (რეგულარული)',
+      shapeEn: 'Polygonal (Regular)',
+      terrain: 'ვაკე რელიეფი (1.5%)',
+      terrainEn: 'Flat terrain (1.5%)',
+      mainZoneKa: 'საცხოვრებელი ზონა',
+      mainZoneEn: 'Residential Zone',
+      subzoneKa: 'საცხოვრებელი ზონა-6',
+      subzoneEn: 'Residential Zone-6',
+      subZoneKa: 'საცხოვრებელი ზონა-6',
+      subZoneEn: 'Residential Zone-6',
+      tabLabelKa: 'საცხოვრებელი ზონა 6 (სზ-6)',
+      subzoneKey: 'sz-6',
+      zone: 'საცხოვრებელი ზონა-6',
+      zoneEn: 'Residential Zone-6',
+      k1: 0.5,
+      k2: 2.5,
+      k3: 0.3,
+      coordinates: [
+        [41.7915, 44.8180],
+        [41.7924, 44.8188],
+        [41.7918, 44.8202],
+        [41.7909, 44.8194],
+        [41.7915, 44.8180]
+      ]
+    },
+    '01.10.09.001.001': {
+      code: '01.10.09.001.001',
+      address: 'ქ. თბილისი, ვაკე, ი. ჭავჭავაძის გამზირი №28',
+      addressEn: 'Tbilisi, Vake, 28 I. Chavchavadze Ave.',
+      area: 1240,
+      shape: 'მართკუთხა',
+      shapeEn: 'Rectangular',
+      terrain: 'ვაკე რელიეფი (2%)',
+      terrainEn: 'Flat terrain (2%)',
+      mainZoneKa: 'საზოგადოებრივ-საქმიანი ზონა',
+      mainZoneEn: 'Public Business Zone',
+      subzoneKa: 'საზოგადოებრივ-საქმიანი ზონა-2',
+      subzoneEn: 'Public Business Zone-2',
+      subZoneKa: 'საზოგადოებრივ-საქმიანი ზონა-2',
+      subZoneEn: 'Public Business Zone-2',
+      tabLabelKa: 'საზოგადოებრივ-საქმიანი ზონა 2 (სსზ-2)',
+      subzoneKey: 'ssz-2',
+      zone: 'საზოგადოებრივ-საქმიანი ზონა-2',
+      zoneEn: 'Public Business Zone-2',
+      k1: 0.7,
+      k2: 3.5,
+      k3: 0.1,
+      coordinates: [
+        [41.7110, 44.7560],
+        [41.7118, 44.7572],
+        [41.7112, 44.7578],
+        [41.7104, 44.7566],
+        [41.7110, 44.7560]
+      ]
+    },
+    '01.17.01.015.002': {
+      code: '01.17.01.015.002',
+      address: 'ქ. თბილისი, მთაწმინდა, ლ. ასათიანის ქუჩა №14',
+      addressEn: 'Tbilisi, Mtatsminda, 14 L. Asatiani St.',
+      area: 840,
+      shape: 'ტრაპეცია',
+      shapeEn: 'Trapezoidal',
+      terrain: 'მცირედ დახრილი (3%)',
+      terrainEn: 'Slight slope (3%)',
+      mainZoneKa: 'ისტორიული დაცვის ზონა (იზ)',
+      mainZoneEn: 'Historical Protection Zone (HZ)',
+      subzoneKa: 'საცხოვრებელი ზონა-3',
+      subzoneEn: 'Residential Zone-3',
+      subZoneKa: 'საცხოვრებელი ზონა-3',
+      subZoneEn: 'Residential Zone-3',
+      tabLabelKa: 'საცხოვრებელი ზონა 3 (სზ-3)',
+      subzoneKey: 'sz-3',
+      zone: 'საცხოვრებელი ზონა-3',
+      zoneEn: 'Residential Zone-3',
+      k1: 0.5,
+      k2: 1.8,
+      k3: 0.3,
+      coordinates: [
+        [41.6925, 44.8010],
+        [41.6932, 44.8018],
+        [41.6928, 44.8024],
+        [41.6921, 44.8016],
+        [41.6925, 44.8010]
+      ]
+    },
+    '02.01.01.001.001': {
+      code: '02.01.01.001.001',
+      address: 'ქ. რუსთავი, მ. კოსტავას გამზირი №1',
+      addressEn: 'Rustavi, 1 M. Kostava Ave.',
+      area: 2400,
+      shape: 'მართკუთხა',
+      shapeEn: 'Rectangular',
+      terrain: 'ვაკე (1%)',
+      terrainEn: 'Flat (1%)',
+      mainZoneKa: 'საზოგადოებრივ-საქმიანი ზონა',
+      mainZoneEn: 'Public Business Zone',
+      subzoneKa: 'საზოგადოებრივ-საქმიანი ზონა-2',
+      subzoneEn: 'Public Business Zone-2',
+      subZoneKa: 'საზოგადოებრივ-საქმიანი ზონა-2',
+      subZoneEn: 'Public Business Zone-2',
+      tabLabelKa: 'საზოგადოებრივ-საქმიანი ზონა 2 (სსზ-2)',
+      subzoneKey: 'ssz-2',
+      zone: 'საზოგადოებრივ-საქმიანი ზონა-2',
+      zoneEn: 'Public Business Zone-2',
+      k1: 0.7,
+      k2: 3.2,
+      k3: 0.15,
+      coordinates: [
+        [41.5490, 45.0170],
+        [41.5498, 45.0182],
+        [41.5492, 45.0190],
+        [41.5484, 45.0178],
+        [41.5490, 45.0170]
+      ]
+    },
+    '72.13.12.123': {
+      code: '72.13.12.123',
+      address: 'მცხეთა, მცხეთის მუნიციპალიტეტი, არაგვის ქუჩა',
+      addressEn: 'Mtskheta Municipality, Aragvi St.',
+      area: 1400,
+      shape: 'მართკუთხა (რეგულარული)',
+      shapeEn: 'Rectangular (Regular)',
+      terrain: 'მდინარისპირა ვაკე (1.5%)',
+      terrainEn: 'Riverside flat (1.5%)',
+      mainZoneKa: 'საცხოვრებელი ზონა',
+      mainZoneEn: 'Residential Zone',
+      subzoneKa: 'საცხოვრებელი ზონა-2',
+      subzoneEn: 'Residential Zone-2',
+      subZoneKa: 'საცხოვრებელი ზონა-2',
+      subZoneEn: 'Residential Zone-2',
+      tabLabelKa: 'საცხოვრებელი ზონა 2 (სზ-2)',
+      subzoneKey: 'sz-2',
+      zone: 'საცხოვრებელი ზონა-2',
+      zoneEn: 'Residential Zone-2',
+      k1: 0.5,
+      k2: 1.6,
+      k3: 0.35,
+      coordinates: [
+        [41.8440, 44.7170],
+        [41.8447, 44.7179],
+        [41.8442, 44.7187],
+        [41.8435, 44.7178],
+        [41.8440, 44.7170]
+      ]
     }
   };
 
@@ -860,24 +1010,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const centerLat = baseLat + latOffset;
     const centerLng = baseLng + lngOffset;
 
-    const dLat = 0.00028 + (parcelNum % 5) * 0.00004;
-    const dLng = 0.00038 + (block % 5) * 0.00005;
+    const targetArea = Math.round(650 + (hash * 31 + parcelNum * 17) % 2200);
+    const aspect = 1.32;
+    const widthM = Math.sqrt(targetArea / aspect);
+    const lengthM = widthM * aspect;
 
-    const coords = [
-      [Number((centerLat - dLat).toFixed(6)), Number((centerLng - dLng).toFixed(6))],
-      [Number((centerLat + dLat).toFixed(6)), Number((centerLng - dLng).toFixed(6))],
-      [Number((centerLat + dLat * 0.95).toFixed(6)), Number((centerLng + dLng).toFixed(6))],
-      [Number((centerLat - dLat * 1.05).toFixed(6)), Number((centerLng + dLng).toFixed(6))],
-      [Number((centerLat - dLat).toFixed(6)), Number((centerLng - dLng).toFixed(6))]
+    const halfLengthDeg = (lengthM / 2) / 111132.954;
+    const halfWidthDeg = (widthM / 2) / (111132.954 * Math.cos(centerLat * Math.PI / 180));
+
+    // Slight realistic orientation angle (-5 to +5 deg)
+    const angleRad = ((hash % 10) - 5) * (Math.PI / 180);
+    const cosA = Math.cos(angleRad);
+    const sinA = Math.sin(angleRad);
+
+    const cornersLocal = [
+      [-halfWidthDeg, -halfLengthDeg],
+      [-halfWidthDeg,  halfLengthDeg],
+      [ halfWidthDeg,  halfLengthDeg],
+      [ halfWidthDeg, -halfLengthDeg]
     ];
 
-    const area = Math.round(650 + (hash * 19) % 2500);
+    const coords = cornersLocal.map(([dx, dy]) => {
+      const rotX = dx * cosA - dy * sinA;
+      const rotY = dx * sinA + dy * cosA;
+      return [
+        Number((centerLat + rotY).toFixed(6)),
+        Number((centerLng + rotX).toFixed(6))
+      ];
+    });
+    coords.push([coords[0][0], coords[0][1]]); // Closed ring
 
     return {
       code: code,
       address: `${regData.name === 'თბილისი' ? 'ქ. თბილისი' : regData.name}, ${districtName}, კვარტალი ${district}.${sector}, ნაკვეთი №${parcelNum}`,
       addressEn: `${regData.name}, District ${district}.${sector}, Plot #${parcelNum}`,
-      area: area,
+      area: targetArea,
       shape: "ოფიციალური კონტური (NAPR)",
       shapeEn: "Official Boundary (NAPR)",
       terrain: "ვაკე / სტანდარტული რელიეფი",
@@ -1114,6 +1281,28 @@ document.addEventListener('DOMContentLoaded', () => {
       if (banner) banner.style.display = 'none';
       updateToolbarButtons();
 
+      // Ensure active mode is concept and button styling reflects it
+      state.buildingDisplayMode = 'concept';
+      const btnModeConcept = document.getElementById('btnModeConcept');
+      const btnModeExisting = document.getElementById('btnModeExisting');
+      if (btnModeConcept) {
+        btnModeConcept.classList.add('active');
+        btnModeConcept.style.background = '#DCE8F5';
+        btnModeConcept.style.color = '#080A0D';
+        btnModeConcept.style.borderColor = 'transparent';
+        btnModeConcept.style.boxShadow = '0 2px 10px rgba(220, 232, 245, 0.2)';
+      }
+      if (btnModeExisting) {
+        btnModeExisting.classList.remove('active');
+        btnModeExisting.style.background = 'transparent';
+        btnModeExisting.style.color = '#9BA3AE';
+        btnModeExisting.style.borderColor = '#252B33';
+        btnModeExisting.style.boxShadow = 'none';
+        btnModeExisting.innerHTML = `<i class="fa-solid fa-house-chimney"></i> <span data-i18n="mode_existing_bldg">არსებული შენობა</span>`;
+      }
+      state.savedExistingBuildings = [];
+      state.existingParcelBuildings = [];
+
       // Render Plot on Leaflet Map
       renderParcelOnMap(parcelData);
 
@@ -1130,13 +1319,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof checkUtilityCollisions === 'function') checkUtilityCollisions();
       }
 
-      // Trigger Initial or Existing Concept
+      // Always initialize clean architectural building concept for this parcel
+      generateDefaultConcept(parcelData);
+
+      // If user had prompt text in AI prompt, apply it over the new building
       const aiText = document.getElementById('aiPromptInput');
       const promptValue = aiText ? aiText.value.trim() : '';
       if (promptValue) {
         generateConceptFromPrompt(promptValue);
-      } else {
-        generateDefaultConcept(parcelData);
       }
 
       // If viewshed mode is currently active, run surroundings & viewshed analysis
@@ -3651,34 +3841,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
 
-      // Fallback 2: If plot has verified address with house/building number, place surveyed setback footprint
-      if (inParcel.length === 0) {
-        const addr = (state.activeParcel.address || '').trim();
-        const hasBuildingIndicator = /(?:[N№]\s*\d+|კორპუსი|სადგური|ქუჩა|გამზირი|ჩიხი|შენობა)/i.test(addr);
-        if (hasBuildingIndicator && state.activeParcel.coordinates && state.activeParcel.coordinates.length >= 3) {
-          const pCoords = state.activeParcel.coordinates;
-          const pCenterLat = pCoords.reduce((s, c) => s + c[0], 0) / pCoords.length;
-          const pCenterLng = pCoords.reduce((s, c) => s + c[1], 0) / pCoords.length;
-          const setbackCoords = pCoords.map(pt => [
-            pCenterLat + (pt[0] - pCenterLat) * 0.45,
-            pCenterLng + (pt[1] - pCenterLng) * 0.45
-          ]);
-          inParcel.push({
-            id: `napr-existing-1`,
-            name: `არსებული შენობა (${addr})`,
-            housenumber: (addr.match(/[N№]\s*([0-9a-zA-Z/-]+)/) || [])[1] || null,
-            useType: 'residential',
-            height: 7.2,
-            levels: 2,
-            coordinates: setbackCoords,
-            isProcedural: false
-          });
-        }
-      }
-
       state.existingParcelBuildings = inParcel;
 
-      // Render 2D buildings: surrounding neighborhood (subtle) + IN-PARCEL EXISTING BUILDINGS (prominent)
+      // Render 2D buildings: surrounding neighborhood (subtle)
       if (parcelContoursLayerGroup) {
         parcelContoursLayerGroup.clearLayers();
         
@@ -3700,28 +3865,25 @@ document.addEventListener('DOMContentLoaded', () => {
           poly.addTo(parcelContoursLayerGroup);
         });
 
-        // 2. In-parcel existing buildings with distinct architectural styling and visible label
+        // 2. In-parcel existing buildings from OSM if present
         inParcel.forEach((b, idx) => {
           if (!b.coordinates || b.coordinates.length < 3) return;
           const poly = L.polygon(b.coordinates, {
             color: '#7FA9C9',
             weight: 2.5,
             fillColor: '#38BDF8',
-            fillOpacity: 0.55,
+            fillOpacity: 0.45,
             dashArray: '4, 4',
             className: 'existing-building-polygon-2d'
           });
           const bTitle = b.name || `არსებული შენობა #${idx + 1}`;
           const bArea = Math.round(computePolygonArea(b.coordinates) || 120);
           poly.bindTooltip(`<strong><i class="fa-solid fa-house-chimney"></i> ${bTitle}</strong><br>${b.levels || 2} სართული (${bArea} მ²)`, {
-            permanent: true,
+            permanent: false,
             direction: 'center',
             className: 'existing-bldg-tooltip'
           });
           poly.addTo(parcelContoursLayerGroup);
-          if (state.showMapLabels === false) {
-            poly.closeTooltip();
-          }
         });
       }
 
@@ -3774,39 +3936,21 @@ document.addEventListener('DOMContentLoaded', () => {
         btnExistingEl.innerHTML = `<i class="fa-solid fa-house-chimney"></i> <span data-i18n="mode_existing_bldg">არსებული შენობა${inParcel.length > 0 ? ` (${inParcel.length})` : ''}</span>`;
       }
 
-      // Check if user has entered an explicit prompt for generative AI concept
-      const aiPromptInput = document.getElementById('aiPromptInput');
-      const hasCustomPrompt = aiPromptInput && aiPromptInput.value.trim().length > 0;
-
-      // STRICT REQUIREMENT: If existing buildings are detected on the cadastral plot,
-      // and user hasn't explicitly entered a generative concept prompt, PLACE AND DISPLAY THE EXISTING BUILDINGS!
-      if (inParcel.length > 0 && !hasCustomPrompt && !userHasDrawn) {
-        if (typeof switchBuildingMode === 'function') {
-          switchBuildingMode('existing');
-        } else {
-          state.buildingDisplayMode = 'existing';
-          state.buildings = JSON.parse(JSON.stringify(state.savedExistingBuildings));
-          state.selectedBuildingId = state.buildings[0].id;
-          state.customFootprint = state.buildings[0].footprintCoords || null;
-          renderBuildingTabsUI();
-          renderFloorMatrixUI();
-          renderAllBuildingsOnMap();
-          renderAllBuildings3D();
-          updateComplianceUI();
-        }
-      } else if (state.buildingDisplayMode === 'existing' && !userHasDrawn) {
+      // If user is explicitly in 'existing' mode, display existing structures
+      if (state.buildingDisplayMode === 'existing' && !userHasDrawn) {
         if (state.savedExistingBuildings && state.savedExistingBuildings.length > 0) {
           state.buildings = JSON.parse(JSON.stringify(state.savedExistingBuildings));
         }
-        state.selectedBuildingId = state.buildings[0].id;
-        state.customFootprint = state.buildings[0].footprintCoords || null;
+        state.selectedBuildingId = (state.buildings[0] && state.buildings[0].id) || null;
+        state.customFootprint = (state.buildings[0] && state.buildings[0].footprintCoords) || null;
         syncCurrentBuildingToActiveConcept();
         renderBuildingTabsUI();
         renderFloorMatrixUI();
         renderAllBuildingsOnMap();
         renderAllBuildings3D();
         updateComplianceUI();
-      } else if (!userHasDrawn && !hasCustomPrompt) {
+      } else if (!userHasDrawn) {
+        // Concept mode (default): preserve the architectural design concept
         renderBuildingTabsUI();
         renderFloorMatrixUI();
         renderAllBuildingsOnMap();
