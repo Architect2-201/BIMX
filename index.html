@@ -1,695 +1,1914 @@
 <!DOCTYPE html>
-<html lang="ka" data-theme="dark">
+<html class="dark scroll-smooth" lang="ka">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
   <title>BIMX Studio — არქიტექტურული BIM და ციფრული ინჟინერია</title>
   <meta name="description" content="მაღალტექნოლოგიური BIM მოდელირება (LOD 200-500), კონსტრუქციული და MEP კოორდინაცია, Scan-to-BIM და ციფრული ტყუპები საქართველოში.">
-  <meta name="keywords" content="BIM Georgia, Revit, ArchiCAD, MEP, Clash Detection, Scan to BIM, BIMX Studio, ციფრული ინჟინერია">
-
-  <!-- OpenGraph -->
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://www.bimx.ge/">
-  <meta property="og:title" content="BIMX Studio — არქიტექტურული BIM და ციფრული ინჟინერია">
-  <meta property="og:description" content="მინიმალისტური და ინოვაციური BIM მოდელირება, საინჟინრო კოორდინაცია და ციფრული ტყუპები.">
-  <meta property="og:image" content="assets/images/hero-bim.jpg">
-
-  <!-- Favicon -->
   <link rel="icon" type="image/png" href="assets/images/favicon.png">
-  <link rel="apple-touch-icon" href="assets/images/favicon.png">
 
-  <!-- Icons (FontAwesome) -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Google Fonts & Material Symbols -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
 
-  <!-- Stylesheet -->
-  <link rel="stylesheet" href="styles.css">
+  <style>
+    @layer base {
+      html, body { margin: 0; padding: 0; }
+      body { overscroll-behavior: none; }
+      main > :first-child { margin-top: 0 !important; }
+      main > :last-child { margin-bottom: 0 !important; }
+    }
+    ::-webkit-scrollbar { display: none; }
+
+    /* High-end architectural scanning & glow animations */
+    @keyframes scanline {
+      0% { transform: translateY(-100%); }
+      100% { transform: translateY(1000%); }
+    }
+    .hud-scanline {
+      animation: scanline 7s linear infinite;
+    }
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 0.35; transform: scale(1); }
+      50% { opacity: 0.65; transform: scale(1.08); }
+    }
+    .animate-pulse-glow {
+      animation: pulse-glow 5s ease-in-out infinite;
+    }
+    .reveal-on-scroll {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity, transform;
+    }
+    .reveal-on-scroll.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal-on-scroll {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+      }
+      .hud-scanline, .animate-pulse-glow {
+        animation: none !important;
+      }
+    }
+
+    /* Nav underline animation */
+    .nav-link {
+      position: relative;
+    }
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: 4px;
+      left: 50%;
+      width: 0;
+      height: 2px;
+      background-color: #a1cced;
+      transition: width 0.25s ease, left 0.25s ease;
+      border-radius: 9999px;
+    }
+    .nav-link:hover::after {
+      width: 60%;
+      left: 20%;
+    }
+
+    /* 3D Parallax Viewport Styles */
+    .viewport-perspective-wrap {
+      perspective: 1200px;
+      perspective-origin: center center;
+    }
+    .viewport-card-tilt {
+      transform-style: preserve-3d;
+      will-change: transform;
+      transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .viewport-card-tilt.is-resetting {
+      transition: transform 0.65s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.3s ease, box-shadow 0.3s ease !important;
+    }
+    .layer-depth-back {
+      transform: translateZ(-25px) scale(1.05);
+      will-change: transform;
+    }
+    .layer-depth-mid {
+      transform: translateZ(15px);
+      will-change: transform;
+    }
+    .layer-depth-front {
+      transform: translateZ(38px);
+      will-change: transform;
+    }
+    .layer-depth-high {
+      transform: translateZ(52px);
+      will-change: transform;
+    }
+  </style>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-error-container": "#ffdad6",
+            "on-primary-container": "#5a6671",
+            "surface-tint": "#bcc8d4",
+            "on-tertiary-container": "#496782",
+            "surface-dim": "#101319",
+            "on-surface-variant": "#c4c7cb",
+            "outline-variant": "#44474b",
+            "outline": "#8e9195",
+            "on-secondary": "#00344d",
+            "surface-container-high": "#272a2f",
+            "inverse-on-surface": "#2e3036",
+            "secondary-fixed-dim": "#a1cced",
+            "on-background": "#e1e2e9",
+            "on-surface": "#e1e2e9",
+            "primary-fixed": "#d8e4f1",
+            "on-tertiary": "#11334b",
+            "surface": "#101319",
+            "surface-container-highest": "#32353a",
+            "primary": "#ffffff",
+            "surface-container-lowest": "#0b0e13",
+            "on-tertiary-fixed-variant": "#2b4a63",
+            "tertiary": "#ffffff",
+            "on-secondary-fixed-variant": "#1d4b67",
+            "tertiary-fixed": "#cce5ff",
+            "on-primary-fixed-variant": "#3d4852",
+            "on-error": "#690005",
+            "on-primary": "#26323b",
+            "secondary": "#a1cced",
+            "on-tertiary-fixed": "#001d31",
+            "surface-container-low": "#191c21",
+            "inverse-surface": "#e1e2e9",
+            "tertiary-fixed-dim": "#abcae8",
+            "error": "#ffb4ab",
+            "surface-variant": "#32353a",
+            "on-secondary-container": "#90badb",
+            "surface-bright": "#36393f",
+            "secondary-container": "#1d4b67",
+            "on-primary-fixed": "#111d26",
+            "surface-container": "#1d2025",
+            "primary-container": "#d8e4f1",
+            "inverse-primary": "#54606b",
+            "on-secondary-fixed": "#001e2f",
+            "error-container": "#93000a",
+            "primary-fixed-dim": "#bcc8d4",
+            "tertiary-container": "#cce5ff",
+            "background": "#101319",
+            "secondary-fixed": "#c9e6ff"
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          spacing: {
+            "margin": "2rem",
+            "space-xs": "0.25rem",
+            "margin-mobile": "1rem",
+            "space-md": "1rem",
+            "space-sm": "0.5rem",
+            "gutter": "1.5rem",
+            "gutter-mobile": "0.75rem",
+            "space-lg": "1.5rem",
+            "space-xl": "2.5rem"
+          },
+          fontFamily: {
+            "label-caps": ["JetBrains Mono"],
+            "headline-md": ["Inter"],
+            "body-lg": ["Inter"],
+            "headline-sm": ["Inter"],
+            "body-md": ["Inter"],
+            "technical-code": ["JetBrains Mono"],
+            "headline-lg": ["Inter"],
+            "display-hero": ["Inter"],
+            "body-sm": ["Inter"],
+            "display-hero-mobile": ["Inter"],
+            "data-metric": ["JetBrains Mono"]
+          },
+          fontSize: {
+            "label-caps": ["11px", { lineHeight: "14px", letterSpacing: "0.08em", fontWeight: "500" }],
+            "headline-md": ["24px", { lineHeight: "32px", letterSpacing: "-0.015em", fontWeight: "500" }],
+            "body-lg": ["16px", { lineHeight: "24px", letterSpacing: "-0.005em", fontWeight: "400" }],
+            "headline-sm": ["18px", { lineHeight: "26px", letterSpacing: "-0.01em", fontWeight: "500" }],
+            "body-md": ["14px", { lineHeight: "20px", letterSpacing: "0em", fontWeight: "400" }],
+            "technical-code": ["12px", { lineHeight: "16px", letterSpacing: "0.02em", fontWeight: "400" }],
+            "headline-lg": ["32px", { lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "600" }],
+            "display-hero": ["56px", { lineHeight: "64px", letterSpacing: "-0.03em", fontWeight: "600" }],
+            "body-sm": ["12px", { lineHeight: "18px", letterSpacing: "0.01em", fontWeight: "400" }],
+            "display-hero-mobile": ["36px", { lineHeight: "44px", letterSpacing: "-0.02em", fontWeight: "600" }],
+            "data-metric": ["20px", { lineHeight: "24px", letterSpacing: "-0.02em", fontWeight: "600" }]
+          }
+        }
+      }
+    };
+  </script>
 </head>
-<body>
 
-  <!-- ==========================================================================
-       Header (Single Pristine Vector Logo, Smooth Navigation)
-       ========================================================================== -->
-  <header class="header" id="mainHeader">
-    <div class="container-fluid nav-layout">
-      <!-- Pristine Original Logo with Subtle Shadow -->
-      <a href="index.html" class="brand-logo-link" id="brandLogo" aria-label="BIMX Studio Home">
-        <img src="assets/images/logo.png" alt="BIMX Studio" class="brand-logo-img">
-      </a>
+<body class="bg-background font-body-md text-on-surface antialiased min-h-screen selection:bg-secondary-container selection:text-on-secondary-container">
 
-      <!-- Desktop Nav Links -->
-      <nav>
-        <ul class="nav-links-list" id="navLinksList">
-          <li><a href="index.html" class="nav-link-item active" data-i18n="nav_home">მთავარი</a></li>
-          <li><a href="#services" class="nav-link-item" data-i18n="nav_services">სერვისები</a></li>
-          <li><a href="apps.html" class="nav-link-item" data-i18n="nav_apps">აპლიკაციები</a></li>
-          <li><a href="land-intelligence.html" class="nav-link-item" data-i18n="nav_land_intel" style="color: var(--secondary-accent, #7FA9C9); font-weight: 600;">GIS ანალიზი</a></li>
-          <li><a href="parcel-ai.html" class="nav-link-item" data-i18n="nav_parcel_ai" style="color: var(--ai-accent, #A8C7E5); font-weight: 600;">AI ანალიზი</a></li>
-          <li><a href="#projects" class="nav-link-item" data-i18n="nav_portfolio">პროექტები</a></li>
-          <li><a href="#calculator" class="nav-link-item" data-i18n="nav_calc">კალკულატორი</a></li>
-          <li><a href="#contact" class="nav-link-item" data-i18n="nav_contact">კონტაქტი</a></li>
-        </ul>
+  <!-- ==================== HEADER ==================== -->
+  <header class="fixed top-0 left-0 right-0 z-50 bg-surface/85 backdrop-blur-xl border-b border-outline-variant/20 shadow-[0_1px_16px_rgba(0,0,0,0.5)] transition-all duration-300">
+    <div class="h-20 w-full px-gutter flex items-center justify-between gap-space-md">
+      <!-- Logo + Brand -->
+      <div class="flex items-center gap-space-md flex-shrink-0">
+        <a class="flex items-center gap-space-sm focus:outline-none group" data-path="home" href="index.html">
+          <img alt="BIMX Logo" class="h-8 w-auto object-contain transition-transform duration-300 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida/AEtjO1UlQpLmx3hxMLrFft0DZd9fgb_zM6MGcwAutdadGpF3vMTF4O9GXDKcqZFAVeWvxpupLDWhlmcsfzZ8xQ-LKZA1eWrX7BjUUmZ5P4TrA46ZJZL1ssPJOH6MwiSt9bTS-cIkJ4KM3Dr0Ud_lWy8u_MzNfOtA8cmvY3p-1AsglJo9lqy0tHHJ9FLTfRuVYVxllZV2iAOkS9Ssf4ZgqY6NcqnZt1FWKN8IPZE_lhjE5AVg8jkyrltPVLM-aLh_ElX224se7IL1ZAbLuqI">
+          <span class="font-headline-sm font-bold text-primary tracking-wider flex items-center gap-1.5">BIM<span class="text-secondary">X</span></span>
+        </a>
+        <div class="hidden xl:flex items-center gap-space-xs pl-space-sm">
+          <span class="flex h-2 w-2 rounded-full bg-secondary animate-pulse"></span>
+        </div>
+      </div>
+
+      <!-- Desktop Navigation -->
+      <nav class="hidden lg:flex items-center gap-1 p-1 bg-surface-container-lowest/80 border border-outline-variant/30 rounded-xl" data-active-classes="bg-surface-container-high text-primary font-medium rounded-lg shadow-inner">
+        <a aria-current="page" class="px-3 py-2 transition-all bg-surface-container-high text-primary font-medium rounded-lg shadow-inner" data-path="home" href="index.html">მთავარი</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60 transition-all duration-200" data-path="services" href="#modules">სერვისები</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60 transition-all duration-200" data-path="bim-modules" href="#modules">BIM მოდულები</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-body-md text-secondary-fixed-dim hover:text-primary hover:bg-surface-container-high/60 transition-all duration-200" data-path="gis-analysis" href="land-intelligence.html">GIS ანალიზი</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-body-md text-secondary hover:text-primary hover:bg-surface-container-high/60 transition-all duration-200" data-path="parcel-ai" href="parcel-ai.html">AI ანალიზი</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60 transition-all duration-200" data-path="projects" href="#projects">პროექტები</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60 transition-all duration-200" data-path="calculator" href="#calculator">კალკულატორი</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60 transition-all duration-200" data-path="contact" href="#contact">კონტაქტი</a>
       </nav>
 
       <!-- Actions Group -->
-      <div class="nav-actions-group">
+      <div class="flex items-center gap-space-md">
         <!-- Language Switcher -->
-        <div class="lang-switch-box">
-          <button type="button" class="lang-btn active" data-lang="ka">KA</button>
-          <span style="color: var(--text-muted); opacity: 0.4;">/</span>
-          <button type="button" class="lang-btn" data-lang="en">EN</button>
+        <div class="flex items-center p-0.5 bg-surface-container-lowest border border-outline-variant/30 rounded-lg">
+          <button class="px-2 py-1 rounded font-technical-code text-technical-code bg-surface-container-high text-primary font-medium shadow-sm transition-all active:scale-95" type="button">KA</button>
+          <button class="px-2 py-1 rounded font-technical-code text-technical-code text-outline hover:text-on-surface transition-all active:scale-95" type="button">EN</button>
         </div>
 
-        <!-- Theme Toggle -->
-        <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle Light/Dark Theme">
-          <i class="fa-regular fa-sun"></i>
+        <!-- Edit Toggle Button -->
+        <button id="header-edit-toggle" type="button" class="hidden md:inline-flex items-center gap-1.5 h-10 px-3 rounded-lg font-technical-code text-technical-code border border-secondary/30 bg-surface-container-low hover:bg-surface-container text-secondary hover:text-primary transition-all active:scale-95" title="ინლაინ რედაქტირების ჩართვა">
+          <span class="material-symbols-outlined text-[18px]">edit_note</span>
+          <span class="hidden xl:inline">ედითი</span>
         </button>
 
-        <a href="#contact" class="btn-pill btn-pill-primary header-cta-btn" data-i18n="nav_cta">კონსულტაცია</a>
+        <!-- Admin Hub Button -->
+        <button id="header-admin-btn" type="button" class="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-lg font-technical-code text-technical-code bg-surface-container-high hover:bg-surface-bright text-primary border border-outline-variant/40 hover:border-secondary/50 shadow-sm transition-all active:scale-95">
+          <span class="material-symbols-outlined text-[18px] text-secondary">admin_panel_settings</span>
+          <span class="hidden sm:inline">ადმინ პანელი</span>
+        </button>
 
-        <!-- Mobile Hamburger -->
-        <button class="mobile-hamburger" id="mobileHamburger" aria-label="Toggle mobile menu">
-          <span></span>
-          <span></span>
-          <span></span>
+        <!-- Consultation CTA -->
+        <a class="hidden sm:inline-flex items-center justify-center h-10 px-space-md rounded-lg font-body-md text-body-md font-medium bg-primary-container text-on-primary-fixed hover:bg-primary hover:text-on-primary hover:shadow-[0_0_24px_rgba(216,228,241,0.35)] active:scale-95 transition-all duration-200" data-path="consultation" href="#contact">კონსულტაცია</a>
+
+        <!-- User Profile Avatar -->
+        <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-secondary transition-all active:scale-95">
+          <span class="material-symbols-outlined text-on-primary text-[18px]">person</span>
+        </div>
+
+        <!-- Mobile Hamburger Button -->
+        <button id="mobile-menu-toggle" type="button" class="lg:hidden p-2 rounded-lg bg-surface-container text-on-surface hover:text-primary border border-outline-variant/30">
+          <span class="material-symbols-outlined text-[24px]">menu</span>
         </button>
       </div>
+    </div>
+
+    <!-- Mobile Drawer Menu -->
+    <div id="mobile-nav-drawer" class="lg:hidden hidden px-gutter py-4 bg-surface-container-low border-b border-outline-variant/30 flex flex-col gap-2">
+      <a class="px-3 py-2 rounded-lg bg-surface-container-high text-primary font-medium" href="index.html">მთავარი</a>
+      <a class="px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container" href="#modules">სერვისები</a>
+      <a class="px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container" href="#modules">BIM მოდულები</a>
+      <a class="px-3 py-2 rounded-lg text-secondary-fixed-dim hover:text-primary hover:bg-surface-container" href="land-intelligence.html">GIS ანალიზი</a>
+      <a class="px-3 py-2 rounded-lg text-secondary hover:text-primary hover:bg-surface-container" href="parcel-ai.html">AI ანალიზი (საკადასტრო)</a>
+      <a class="px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container" href="#projects">პროექტები</a>
+      <a class="px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container" href="#calculator">კალკულატორი</a>
+      <a class="px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container" href="#contact">კონტაქტი</a>
     </div>
   </header>
 
-  <!-- ==========================================================================
-       Hero Section (Full-Width Widescreen with Architectural Laser Scanner)
-       ========================================================================== -->
-  <section class="hero-widescreen" id="hero">
-    <div class="container-fluid hero-widescreen-grid">
-      <!-- Left Content Column -->
-      <div class="hero-text-block">
-        <div class="hero-badge-row">
-          <span class="label-hud">
-            <span class="hud-dot"></span>
-            <span data-i18n="hero_eyebrow">BIMX Studio · დაარსდა 2024</span>
-          </span>
-          <span class="hero-tag">ISO 19650 · OpenBIM</span>
-        </div>
+  <!-- ==================== MAIN CONTENT ==================== -->
+  <main class="w-full pt-20 bg-background">
+    <div class="flex flex-col w-full text-on-surface">
 
-        <h1 class="hero-headline-big">
-          <span data-i18n="hero_title_1">ციფრული ინჟინერია</span>
-          <span class="highlight-gradient" data-i18n="hero_title_2">და BIM ტექნოლოგია</span>
-          <span class="light" data-i18n="hero_title_3">პრაქტიკოსი ინჟინრებისგან</span>
-        </h1>
+      <!-- ==================== HERO SECTION ==================== -->
+      <section class="relative w-full px-gutter pt-space-xl pb-space-xl overflow-hidden reveal-on-scroll is-visible" id="hero-section">
+        <!-- Ambient Structural Glow -->
+        <div class="absolute top-1/4 right-1/4 w-96 h-96 bg-secondary-container/25 rounded-full blur-3xl pointer-events-none -z-10 animate-pulse-glow"></div>
+        <div class="absolute bottom-10 left-10 w-72 h-72 bg-surface-container-high/40 rounded-full blur-2xl pointer-events-none -z-10 animate-pulse-glow" style="animation-delay: 2.5s;"></div>
 
-        <p class="hero-description-lead" data-i18n="hero_desc">
-          არქიტექტურული და საინჟინრო მოდელირება, საერთაშორისო სტანდარტები (ISO 19650), Clash Detection და ციფრული ტყუპები მასშტაბური მშენებლობებისთვის.
-        </p>
-
-        <div class="hero-cta-buttons">
-          <a href="#calculator" class="btn-pill btn-pill-primary" id="heroCalcBtn">
-            <span data-i18n="hero_btn_calc">კალკულატორი</span>
-            <i class="fa-solid fa-arrow-right"></i>
-          </a>
-          <a href="#services" class="btn-pill btn-pill-outline" id="heroServicesBtn">
-            <span data-i18n="hero_btn_explore">სერვისების ნახვა</span>
-            <i class="fa-solid fa-arrow-down"></i>
-          </a>
-        </div>
-
-        <!-- Technical Numerical Strip -->
-        <div class="hero-tech-strip">
-          <div class="tech-stat-unit">
-            <span class="stat-counter-number" data-target="50">50+</span>
-            <span class="stat-counter-label" data-i18n="num_1_lbl">შესრულებული პროექტი</span>
+        <div class="max-w-7xl mx-auto flex flex-col gap-space-xl">
+          <!-- Top Badges & Protocol Indicator -->
+          <div class="flex flex-wrap items-center justify-between gap-space-md">
+            <div class="inline-flex items-center gap-space-xs px-3 py-1.5 rounded-lg bg-surface-container-low border border-outline-variant/30 hover:border-secondary/40 transition-colors">
+              <span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+              <span class="font-label-caps text-label-caps text-secondary-fixed-dim uppercase">BIMX STUDIO · დაარსდა 2026</span>
+              <span class="text-outline-variant font-technical-code text-technical-code">/</span>
+              <span class="font-label-caps text-label-caps text-on-surface-variant">ISO 19650 · OPENBIM</span>
+            </div>
+            <div class="hidden md:flex items-center gap-space-md px-3 py-1.5 rounded-lg bg-surface-container-lowest border border-outline-variant/30 font-technical-code text-technical-code text-on-surface-variant group cursor-default">
+              <span class="text-secondary flex items-center gap-1.5">
+                <span class="inline-block w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
+                <span id="hero-coord-status">GRID A-01 // ELEV: +34.500m</span>
+              </span>
+              <span class="text-outline-variant">|</span>
+              <span class="group-hover:text-primary transition-colors">41.7151° N, 44.8271° E</span>
+            </div>
           </div>
-          <div class="tech-stat-unit">
-            <span class="stat-counter-number" data-target="150000">150,000+</span>
-            <span class="stat-counter-label" data-i18n="num_2_lbl">დამუშავებული მ²</span>
+
+          <!-- Hero Main Split Layout -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-space-xl items-center">
+            <!-- Left Column: Typography & Intent -->
+            <div class="lg:col-span-7 flex flex-col gap-space-lg">
+              <h1 class="font-display-hero text-display-hero-mobile lg:text-display-hero text-primary tracking-tight font-semibold">
+                ციფრული ინჟინერია და BIM ტექნოლოგია <span class="text-secondary-fixed-dim">პრაქტიკოსი</span> ინჟინრებისგან
+              </h1>
+              <p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl leading-relaxed">
+                არქიტექტურული და საინჟინრო მოდელირება, საერთაშორისო სტანდარტები (ISO 19650), Clash Detection და ციფრული ტყუპები მასშტაბური მშენებლობებისთვის.
+              </p>
+              <div class="flex flex-wrap items-center gap-space-md pt-space-xs">
+                <a class="relative group overflow-hidden inline-flex items-center justify-center h-11 px-6 rounded-lg font-body-md text-body-md font-semibold bg-primary text-on-primary hover:bg-secondary-fixed hover:shadow-[0_0_30px_rgba(161,204,237,0.5)] active:scale-95 transition-all duration-200" href="#calculator">
+                  <span class="relative z-10 flex items-center">
+                    კალკულატორი
+                    <span class="material-symbols-outlined ml-2 text-[18px] group-hover:rotate-12 transition-transform duration-200">calculate</span>
+                  </span>
+                  <span class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out"></span>
+                </a>
+                <a class="inline-flex items-center justify-center h-11 px-6 rounded-lg font-body-md text-body-md font-medium bg-surface-container hover:bg-surface-container-high text-on-surface border border-outline-variant/30 hover:border-secondary/40 hover:text-primary active:scale-95 transition-all duration-200 group" href="#modules">
+                  სერვისების ნახვა
+                  <span class="material-symbols-outlined ml-2 text-[18px] group-hover:translate-x-1.5 transition-transform duration-200">arrow_forward</span>
+                </a>
+              </div>
+
+              <!-- Quick Micro-telemetry Status Pill -->
+              <div class="flex flex-wrap items-center gap-space-sm pt-space-sm">
+                <span class="px-2.5 py-1 rounded bg-surface-container-high border border-outline-variant/30 font-technical-code text-technical-code text-secondary flex items-center gap-1.5 hover:border-secondary transition-colors cursor-default">
+                  <span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span> 3D Model
+                </span>
+                <span class="px-2.5 py-1 rounded bg-surface-container-high border border-outline-variant/30 font-technical-code text-technical-code text-on-surface-variant flex items-center gap-1.5 hover:border-secondary/60 hover:text-secondary transition-colors cursor-default">
+                  <span class="w-1.5 h-1.5 rounded-full bg-secondary/60"></span> MEP Clash Free
+                </span>
+                <span class="px-2.5 py-1 rounded bg-surface-container-high border border-outline-variant/30 font-technical-code text-technical-code text-on-surface-variant flex items-center gap-1.5 hover:border-secondary/60 hover:text-secondary transition-colors cursor-default">
+                  <span class="w-1.5 h-1.5 rounded-full bg-secondary/60"></span> LiDAR Point Cloud
+                </span>
+              </div>
+            </div>
+
+            <!-- Right Column: HUD Architectural Viewport Card (3D Tilt & Parallax Enabled) -->
+            <div class="lg:col-span-5 relative group viewport-perspective-wrap" id="hero-viewport-wrap">
+              <div class="viewport-card-tilt relative w-full rounded-2xl bg-surface-container-low border border-outline-variant/40 p-space-md shadow-2xl overflow-hidden flex flex-col gap-space-sm transition-all duration-500 hover:border-secondary/50 hover:shadow-[0_16px_50px_rgba(0,0,0,0.7)] is-resetting" id="hero-viewport-card" style="transform: perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1);">
+                <!-- Subtle glowing scanline effect -->
+                <div class="pointer-events-none absolute inset-x-0 h-24 bg-gradient-to-b from-transparent via-secondary/10 to-transparent hud-scanline -z-0"></div>
+
+                <!-- Terminal HUD Header -->
+                <div class="layer-depth-front flex items-center justify-between pb-space-xs font-technical-code text-technical-code text-outline relative z-10 transition-transform duration-200 ease-out" id="hud-header" style="transform: translate3d(0px, 0px, 30px);">
+                  <div class="flex items-center gap-2">
+                    <span class="relative flex h-2.5 w-2.5">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-secondary"></span>
+                    </span>
+                    <span class="text-primary font-medium tracking-wide">BIMX_VIEWPORT // LIVE_STAGE</span>
+                  </div>
+                  <span class="text-secondary-fixed-dim bg-surface-container px-2 py-0.5 rounded text-[10px] border border-outline-variant/30">LOD 400 · IFC4.3</span>
+                </div>
+
+                <!-- Viewport Graphic Surface with Deep Parallax -->
+                <div class="relative w-full h-72 rounded-xl overflow-hidden bg-surface-container-lowest border border-outline-variant/30 group-hover:border-secondary/30 transition-colors">
+                  <img class="layer-depth-mid w-full h-full object-cover transition-transform duration-300 ease-out" data-alt="Futuristic architectural isometric 3D wireframe and BIM digital twin visualization" id="hud-img-target" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAG3uxAZ3c-UCbM8u_-QmmAY778WC0aujE_aS-WrNEOaO0DtJTd0hx6O-ZasxCTr1ZXn1EC10uqW1SVWLurU5EIUo3ikSkCueLAJYFyMdEb_OdIR9l-MbWAnNjqiHd1WI0f6_rsIzFjWB4owoc8rCESyn8yAZClUmK9PmeXFYt5PdaKCXUU9ESz0jTKmwGoOVWHJR5WLXczQz27laLYCXsFT5EoA0ilvZrOpXVIVxGuaYFhJJu_7a8GiQ" style="transform: translate3d(0px, 0px, 15px) scale(1.05);">
+                  <!-- Viewport grid gradient overlay -->
+                  <div class="layer-depth-back absolute inset-0 bg-gradient-to-t from-surface-dim/90 via-transparent to-surface-dim/30 pointer-events-none transition-transform duration-300 ease-out" id="hud-grid-overlay" style="transform: translate3d(0px, 0px, -20px) scale(1.04);"></div>
+
+                  <!-- Floating CAD Telemetry Tag Overlays -->
+                  <div class="layer-depth-high absolute top-3 left-3 px-2.5 py-1 rounded bg-surface-dim/90 backdrop-blur border border-outline-variant/40 font-technical-code text-technical-code text-secondary shadow-md flex items-center gap-1.5 transition-transform duration-200 ease-out" id="hud-tag-section" style="transform: translate3d(0px, 0px, 45px);">
+                    <span class="w-1.5 h-1.5 rounded-full bg-secondary animate-ping"></span>
+                    SECTION A-A // ELEV: +54.200m
+                  </div>
+                  <div class="layer-depth-high absolute bottom-3 right-3 px-2.5 py-1 rounded bg-surface-dim/90 backdrop-blur border border-outline-variant/40 font-technical-code text-technical-code text-primary flex items-center gap-1.5 shadow-md transition-transform duration-200 ease-out" id="hud-tag-clash" style="transform: translate3d(0px, 0px, 48px);">
+                    <span class="material-symbols-outlined text-[14px] text-secondary animate-pulse">verified</span>
+                    AUTONOMOUS CLASH: 0 DETECTED
+                  </div>
+                </div>
+
+                <!-- Parametric Inspector Bar -->
+                <div class="layer-depth-front grid grid-cols-3 gap-2 pt-1 font-technical-code text-technical-code relative z-10 transition-transform duration-200 ease-out" id="hud-bottom-bar" style="transform: translate3d(0px, 0px, 32px);">
+                  <div class="p-2 rounded bg-surface-container/90 border border-outline-variant/30 flex flex-col hover:border-secondary/40 transition-colors">
+                    <span class="text-outline text-[10px]">ROTATION</span>
+                    <span class="text-primary font-medium" id="hud-azimuth">AZ: 142.4°</span>
+                  </div>
+                  <div class="p-2 rounded bg-surface-container/90 border border-outline-variant/30 flex flex-col hover:border-secondary/40 transition-colors">
+                    <span class="text-outline text-[10px]">TOLERANCE</span>
+                    <span class="text-secondary font-medium">±1.2 mm</span>
+                  </div>
+                  <div class="p-2 rounded bg-surface-container/90 border border-outline-variant/30 flex flex-col hover:border-secondary/40 transition-colors">
+                    <span class="text-outline text-[10px]">GEOMETRY</span>
+                    <span class="text-primary font-medium flex items-center gap-1">PARAMETRIC <span class="w-1 h-1 rounded-full bg-secondary"></span></span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="tech-stat-unit">
-            <span class="stat-counter-number">0%</span>
-            <span class="stat-counter-label" data-i18n="num_3_lbl">შეჯახება მშენებლობაზე</span>
-          </div>
-          <div class="tech-stat-unit">
-            <span class="stat-counter-number" style="font-size: 1.4rem;">ISO 19650</span>
-            <span class="stat-counter-label" data-i18n="num_4_lbl">ხარისხის სტანდარტი</span>
-          </div>
-        </div>
-      </div>
 
-      <!-- Right Interactive Laser Scanning Viewport -->
-      <div class="hero-viewport-frame">
-        <img src="assets/images/hero-bim.jpg" alt="BIM 3D Architectural Model" class="viewport-media-layer" id="viewportImg">
-        
-        <!-- Laser Sweep Animation Line -->
-        <div class="laser-scan-bar"></div>
-
-        <!-- HUD Badge Overlay -->
-        <div class="hud-viewport-badge">
-          <div class="hud-dot"></div>
-          <div class="hud-coords">
-            <div>GRID A-01 // ELEV: +34.500m</div>
-            <div style="opacity: 0.7;">COORDS: 41.7151° N, 44.8271° E</div>
-          </div>
-        </div>
-
-        <!-- Interactive Viewport Mode Switcher -->
-        <div class="viewport-mode-switch">
-          <button type="button" class="mode-btn active" data-view="render">3D Model</button>
-          <button type="button" class="mode-btn" data-view="mep">MEP Clash</button>
-          <button type="button" class="mode-btn" data-view="scan">LiDAR Point Cloud</button>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==========================================================================
-       01, 02, 03 - 3-Column Editorial Grid
-       ========================================================================== -->
-  <section class="editorial-section" id="services">
-    <div class="container-fluid">
-      <div class="editorial-cols-grid">
-        <!-- Col 01 -->
-        <div class="editorial-card anim-reveal">
-          <p class="card-num-tag" data-i18n="col_1_tag">01 — სერვისები</p>
-          <h3 class="card-main-title" data-i18n="col_1_title">კომპლექსური BIM მომსახურება</h3>
-          <p class="card-main-desc" data-i18n="col_1_desc">
-            პროექტის ყველა ეტაპის სრული ციფრული მოდელირება (LOD 200–500): არქიტექტურა, რკინაბეტონისა და ფოლადის კონსტრუქციები, MEP საინჟინრო კომუნიკაციები და Clash Detection.
-          </p>
-          <div>
-            <a href="#modules" class="btn-pill btn-pill-outline">
-              <span data-i18n="col_1_btn">ყველა სერვისი</span>
-              <i class="fa-solid fa-arrow-right"></i>
-            </a>
-          </div>
-        </div>
-
-        <!-- Col 02 -->
-        <div class="editorial-card anim-reveal" style="transition-delay: 0.15s;">
-          <p class="card-num-tag" data-i18n="col_2_tag">02 — უპირატესობა</p>
-          <h3 class="card-main-title" data-i18n="col_2_title">რატომ BIMX Studio</h3>
-          <div class="card-main-desc">
-            <ul class="card-check-list">
-              <li data-i18n="col_2_item_1">30%-ით შემცირებული მშენებლობის დრო</li>
-              <li data-i18n="col_2_item_2">ხარჯების ეკონომია და ნულოვანი შეჯახება ობიექტზე</li>
-              <li data-i18n="col_2_item_3">Revit, ArchiCAD, Navisworks & OpenBIM (IFC) თავსებადობა</li>
-              <li data-i18n="col_2_item_4">ISO 19650 საერთაშორისო მართვის სტანდარტები</li>
-            </ul>
-          </div>
-          <div>
-            <a href="#philosophy" class="btn-pill btn-pill-outline">
-              <span data-i18n="col_2_btn">შეიტყვეთ მეტი</span>
-              <i class="fa-solid fa-arrow-right"></i>
-            </a>
-          </div>
-        </div>
-
-        <!-- Col 03 -->
-        <div class="editorial-card anim-reveal" style="transition-delay: 0.3s;">
-          <p class="card-num-tag" data-i18n="col_3_tag">03 — მხარდაჭერა</p>
-          <h3 class="card-main-title" data-i18n="col_3_title">ტექნიკური კონსულტაცია და პარტნიორობა</h3>
-          <p class="card-main-desc" data-i18n="col_3_desc">
-            ჩვენი ინჟინრები მზად არიან გაგიწიონ სრული ტექნიკური მხარდაჭერა პროექტის საწყისი ჩანაფიქრიდან ობიექტის ექსპლუატაციაში მიღებამდე.
-          </p>
-          <div>
-            <a href="#contact" class="btn-pill btn-pill-outline">
-              <span data-i18n="col_3_btn">დაგვიკავშირდით</span>
-              <i class="fa-solid fa-arrow-right"></i>
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==========================================================================
-       Philosophy / Sticky Split Manifesto
-       ========================================================================== -->
-  <section class="philosophy-strip" id="philosophy">
-    <div class="container-fluid philosophy-split-layout">
-      <!-- Sticky Left Title -->
-      <div class="sticky-manifesto-aside anim-reveal">
-        <p class="label-hud">
-          <span class="hud-dot"></span>
-          <span data-i18n="philo_tag">ფილოსოფია</span>
-        </p>
-        <h2 class="heading-architectural" style="margin-top: 18px; margin-bottom: 20px;">
-          <span data-i18n="philo_heading_1">ზუსტი ციფრული</span>
-          <span data-i18n="philo_heading_2">მოდელირება</span>
-          <span class="light" data-i18n="philo_heading_3">თანამედროვე მშენებლობაში</span>
-        </h2>
-        <p class="subheading-architectural" data-i18n="philo_sub">
-          BIM (Building Information Modeling) არ არის მხოლოდ 3D ნახაზი — ეს არის მონაცემებით მართვადი ციფრული ეკოსისტემა.
-        </p>
-        <div style="margin-top: 32px;">
-          <a href="#contact" class="btn-pill btn-pill-primary" data-i18n="nav_cta">მოითხოვეთ კონსულტაცია</a>
-        </div>
-      </div>
-
-      <!-- Right Detailed Manifesto -->
-      <div class="manifesto-body-block anim-reveal" style="transition-delay: 0.15s;">
-        <p data-i18n="philo_text_1">
-          ჩვენი მთავარი მიზანია თანამედროვე BIM ტექნოლოგიების დანერგვა საქართველოს საპროექტო და სამშენებლო ინდუსტრიაში. ციფრული მოდელირების მეშვეობით შენობის ყველა კომპონენტი იქმნება ვირტუალურად ზუსტი ფიზიკური და საინჟინრო პარამეტრებით.
-        </p>
-        <p data-i18n="philo_text_2">
-          ეს პროცესი გამორიცხავს შეცდომებს მშენებლობის დაწყებამდე, ამცირებს გაუთვალისწინებელ ხარჯებს 15%-მდე და უზრუნველყოფს მშენებლების, არქიტექტორებისა და დამკვეთის სრულ კოორდინაციას.
-        </p>
-
-        <div class="manifesto-author-box">
-          <p style="font-weight: 700; font-size: 1.1rem;" data-i18n="philo_author">BIMX საინჟინრო გუნდი</p>
-          <p class="label-hud" style="margin-top: 4px;" data-i18n="philo_role">BIM Management & Coordination</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==========================================================================
-       Modules / Catalogue Grid
-       ========================================================================== -->
-  <section class="modules-section" id="modules">
-    <div class="container-fluid">
-      <div class="anim-reveal">
-        <p class="label-hud">
-          <span class="hud-dot"></span>
-          <span data-i18n="cat_tag">მოდულები & სერვისები</span>
-        </p>
-        <h2 class="heading-architectural" data-i18n="cat_title" style="margin-top: 10px;">BIMX საინჟინრო პაკეტები</h2>
-        <p class="subheading-architectural" data-i18n="cat_subtitle" style="margin-top: 8px;">
-          აირჩიეთ თქვენი ობიექტის მასშტაბსა და მოთხოვნებზე მორგებული BIM მოდული
-        </p>
-      </div>
-
-      <div class="modules-widescreen-grid">
-        <!-- Module 1 -->
-        <div class="module-brick anim-reveal">
-          <div class="module-top-row">
-            <div class="module-icon-wrap"><i class="fa-solid fa-building"></i></div>
-            <span class="label-hud" data-i18n="mod_1_tag">მოდული 01</span>
-          </div>
-          <h3 class="module-brick-title" data-i18n="mod_1_title">არქიტექტურული BIM</h3>
-          <p class="module-brick-desc" data-i18n="mod_1_desc">
-            LOD 200–500 დეტალიზაცია, 3D ვირტუალური მოდელი, ავტომატური არქიტექტურული სპეციფიკაციები და სამუშაო ნახაზები.
-          </p>
-          <div class="module-foot-row">
-            <span class="spec-badge" data-i18n="mod_1_badge">Revit / ArchiCAD</span>
-            <i class="fa-solid fa-arrow-right" style="color: var(--cyan-neon);"></i>
+          <!-- Hero Key Metrics Row (4 Metrics) -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-space-md pt-space-md">
+            <div class="p-space-md rounded-xl bg-surface-container-low border border-outline-variant/30 flex flex-col gap-1 shadow-sm hover:bg-surface-container hover:border-secondary/40 hover:-translate-y-1 transition-all duration-300 group cursor-default">
+              <span class="font-data-metric text-data-metric text-primary group-hover:text-secondary-fixed-dim transition-colors">50+</span>
+              <span class="font-body-md text-body-md text-on-surface-variant">შესრულებული პროექტი</span>
+            </div>
+            <div class="p-space-md rounded-xl bg-surface-container-low border border-outline-variant/30 flex flex-col gap-1 shadow-sm hover:bg-surface-container hover:border-secondary/40 hover:-translate-y-1 transition-all duration-300 group cursor-default">
+              <span class="font-data-metric text-data-metric text-primary group-hover:text-secondary-fixed-dim transition-colors">150,000+</span>
+              <span class="font-body-md text-body-md text-on-surface-variant">დამუშავებული მ²</span>
+            </div>
+            <div class="p-space-md rounded-xl bg-surface-container-low border border-outline-variant/30 flex flex-col gap-1 shadow-sm hover:bg-surface-container hover:border-secondary/40 hover:-translate-y-1 transition-all duration-300 group cursor-default">
+              <div class="flex items-center gap-2">
+                <span class="font-data-metric text-data-metric text-secondary">0%</span>
+                <span class="text-xs px-1.5 py-0.5 rounded bg-secondary-container text-on-secondary-container font-technical-code">ZERO RISK</span>
+              </div>
+              <span class="font-body-md text-body-md text-on-surface-variant">შეჯახება მშენებლობაზე</span>
+            </div>
+            <div class="p-space-md rounded-xl bg-surface-container-low border border-outline-variant/30 flex flex-col gap-1 shadow-sm hover:bg-surface-container hover:border-secondary/40 hover:-translate-y-1 transition-all duration-300 group cursor-default">
+              <span class="font-data-metric text-data-metric text-primary group-hover:text-secondary-fixed-dim transition-colors">ISO 19650</span>
+              <span class="font-body-md text-body-md text-on-surface-variant">ხარისხის სტანდარტი</span>
+            </div>
           </div>
         </div>
+      </section>
 
-        <!-- Module 2 -->
-        <div class="module-brick anim-reveal" style="transition-delay: 0.1s;">
-          <div class="module-top-row">
-            <div class="module-icon-wrap"><i class="fa-solid fa-cubes-stacked"></i></div>
-            <span class="label-hud" data-i18n="mod_2_tag">მოდული 02</span>
+      <!-- ==================== VALUE PROPOSITION (3 COLUMNS) ==================== -->
+      <section class="w-full px-gutter py-space-xl bg-surface-container-lowest border-y border-outline-variant/20 reveal-on-scroll is-visible">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-space-lg">
+          <!-- Col 1 -->
+          <div class="p-space-lg rounded-2xl bg-surface-container-low border border-outline-variant/30 flex flex-col justify-between gap-space-lg shadow-md hover:shadow-2xl hover:border-secondary/40 hover:-translate-y-1.5 transition-all duration-300 group relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-secondary-container/10 rounded-full blur-2xl group-hover:bg-secondary-container/25 transition-all pointer-events-none"></div>
+            <div class="flex flex-col gap-space-md relative z-10">
+              <span class="font-label-caps text-label-caps text-secondary uppercase tracking-widest">01 — სერვისები</span>
+              <h2 class="font-headline-md text-headline-md text-primary font-semibold group-hover:text-secondary-fixed-dim transition-colors">
+                კომპლექსური BIM მომსახურება
+              </h2>
+              <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+                პროექტის ყველა ეტაპის სრული ციფრული მოდელირება (LOD 200–500): არქიტექტურა, რკინაბეტონისა და ფოლადის კონსტრუქციები, MEP საინჟინრო კომუნიკაციები და Clash Detection.
+              </p>
+            </div>
+            <div class="relative z-10">
+              <a class="inline-flex items-center gap-2 font-technical-code text-technical-code text-secondary hover:text-primary transition-colors" href="#modules">
+                <span>ყველა სერვისი</span>
+                <span class="material-symbols-outlined text-[16px] group-hover:translate-x-1.5 transition-transform duration-200">arrow_forward</span>
+              </a>
+            </div>
           </div>
-          <h3 class="module-brick-title" data-i18n="mod_2_title">სამშენებლო კონსტრუქციები</h3>
-          <p class="module-brick-desc" data-i18n="mod_2_desc">
-            რკინაბეტონის და ლითონის კონსტრუქციების ზუსტი მოდელირება, არმატურის დეტალიზაცია და კონსტრუქციული კვანძები.
-          </p>
-          <div class="module-foot-row">
-            <span class="spec-badge" data-i18n="mod_2_badge">Structural BIM</span>
-            <i class="fa-solid fa-arrow-right" style="color: var(--cyan-neon);"></i>
+
+          <!-- Col 2 -->
+          <div class="p-space-lg rounded-2xl bg-surface-container border border-outline-variant/40 flex flex-col justify-between gap-space-lg shadow-md hover:shadow-2xl hover:border-secondary/50 hover:-translate-y-1.5 transition-all duration-300 group relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-secondary/15 rounded-full blur-2xl group-hover:bg-secondary/25 transition-all pointer-events-none"></div>
+            <div class="flex flex-col gap-space-md relative z-10">
+              <span class="font-label-caps text-label-caps text-secondary uppercase tracking-widest">02 — უპირატესობა</span>
+              <h2 class="font-headline-md text-headline-md text-primary font-semibold group-hover:text-secondary-fixed-dim transition-colors">
+                რატომ BIMX Studio
+              </h2>
+              <ul class="flex flex-col gap-2.5 font-body-md text-body-md text-on-surface-variant">
+                <li class="flex items-start gap-2">
+                  <span class="material-symbols-outlined text-secondary text-[18px] mt-0.5 group-hover:scale-110 transition-transform">check_circle</span>
+                  <span>30%-ით შემცირებული მშენებლობის დრო</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="material-symbols-outlined text-secondary text-[18px] mt-0.5 group-hover:scale-110 transition-transform">check_circle</span>
+                  <span>ხარჯების ეკონომია და ნულოვანი შეჯახება ობიექტზე</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="material-symbols-outlined text-secondary text-[18px] mt-0.5 group-hover:scale-110 transition-transform">check_circle</span>
+                  <span>Revit, ArchiCAD, Navisworks &amp; OpenBIM (IFC)</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="material-symbols-outlined text-secondary text-[18px] mt-0.5 group-hover:scale-110 transition-transform">check_circle</span>
+                  <span>ISO 19650 საერთაშორისო მართვის სტანდარტები</span>
+                </li>
+              </ul>
+            </div>
+            <div class="relative z-10">
+              <a class="inline-flex items-center gap-2 font-technical-code text-technical-code text-secondary hover:text-primary transition-colors" href="#philosophy">
+                <span>შეიტყვეთ მეტი</span>
+                <span class="material-symbols-outlined text-[16px] group-hover:translate-x-1.5 transition-transform duration-200">arrow_forward</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Col 3 -->
+          <div class="p-space-lg rounded-2xl bg-surface-container-low border border-outline-variant/30 flex flex-col justify-between gap-space-lg shadow-md hover:shadow-2xl hover:border-secondary/40 hover:-translate-y-1.5 transition-all duration-300 group relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-secondary-container/10 rounded-full blur-2xl group-hover:bg-secondary-container/25 transition-all pointer-events-none"></div>
+            <div class="flex flex-col gap-space-md relative z-10">
+              <span class="font-label-caps text-label-caps text-secondary uppercase tracking-widest">03 — მხარდაჭერა</span>
+              <h2 class="font-headline-md text-headline-md text-primary font-semibold group-hover:text-secondary-fixed-dim transition-colors">
+                ტექნიკური კონსულტაცია და პარტნიორობა
+              </h2>
+              <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+                ჩვენი ინჟინრები მზად არიან გაგიწიონ სრული ტექნიკური მხარდაჭერა პროექტის საწყისი ჩანაფიქრიდან ობიექტის ექსპლუატაციაში მიღებამდე.
+              </p>
+            </div>
+            <div class="relative z-10">
+              <a class="inline-flex items-center gap-2 font-technical-code text-technical-code text-secondary hover:text-primary transition-colors" href="#contact">
+                <span>დაგვიკავშირდით</span>
+                <span class="material-symbols-outlined text-[16px] group-hover:translate-x-1.5 transition-transform duration-200">arrow_forward</span>
+              </a>
+            </div>
           </div>
         </div>
+      </section>
 
-        <!-- Module 3 -->
-        <div class="module-brick anim-reveal" style="transition-delay: 0.2s;">
-          <div class="module-top-row">
-            <div class="module-icon-wrap"><i class="fa-solid fa-network-wired"></i></div>
-            <span class="label-hud" data-i18n="mod_3_tag">მოდული 03</span>
+      <!-- ==================== PHILOSOPHY & METHODOLOGY ==================== -->
+      <section class="w-full px-gutter py-space-xl reveal-on-scroll is-visible" id="philosophy">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-space-xl items-center">
+          <!-- Left Narrative -->
+          <div class="lg:col-span-6 flex flex-col gap-space-md">
+            <span class="font-label-caps text-label-caps text-secondary uppercase tracking-widest">ფილოსოფია</span>
+            <h2 class="font-headline-lg text-headline-lg text-primary font-semibold leading-tight">
+              ზუსტი ციფრული მოდელირება თანამედროვე მშენებლობაში
+            </h2>
+            <p class="font-body-lg text-body-lg text-secondary-fixed-dim">
+              BIM (Building Information Modeling) არ არის მხოლოდ 3D ნახაზი — ეს არის მონაცემებით მართვადი ციფრული ეკოსისტემა.
+            </p>
+            <div class="pt-2">
+              <a class="inline-flex items-center h-10 px-5 rounded-lg bg-surface-container-high hover:bg-surface-bright text-primary border border-outline-variant/30 hover:border-secondary/40 font-body-md text-body-md font-medium transition-all duration-200 active:scale-95 group" href="#contact">
+                მოითხოვეთ კონსულტაცია
+                <span class="material-symbols-outlined ml-2 text-[18px] group-hover:translate-x-1 transition-transform">support_agent</span>
+              </a>
+            </div>
           </div>
-          <h3 class="module-brick-title" data-i18n="mod_3_title">MEP საინჟინრო ქსელები</h3>
-          <p class="module-brick-desc" data-i18n="mod_3_desc">
-            HVAC (ვენტილაცია-კონდიცირება), წყალმომარაგება-კანალიზაცია, ელექტროობა და სუსტი დენები ერთიან მოცულობაში.
-          </p>
-          <div class="module-foot-row">
-            <span class="spec-badge" data-i18n="mod_3_badge">MEP Systems</span>
-            <i class="fa-solid fa-arrow-right" style="color: var(--cyan-neon);"></i>
+
+          <!-- Right Detailed Manifesto Card -->
+          <div class="lg:col-span-6 p-space-xl rounded-2xl bg-surface-container-low border border-outline-variant/40 shadow-xl flex flex-col gap-space-md hover:border-secondary/40 transition-colors">
+            <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+              ჩვენი მთავარი მიზანია თანამედროვე BIM ტექნოლოგიების დანერგვა საქართველოს საპროექტო და სამშენებლო ინდუსტრიაში. ციფრული მოდელირების მეშვეობით შენობის ყველა კომპონენტი იქმნება ვირტუალურად ზუსტი ფიზიკური და საინჟინრო პარამეტრებით.
+            </p>
+            <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+              ეს პროცესი გამორიცხავს შეცდომებს მშენებლობის დაწყებამდე, ამცირებს გაუთვალისწინებელ ხარჯებს <span class="text-secondary font-medium">15%-მდე</span> და უზრუნველყოფს მშენებლების, არქიტექტორებისა და დამკვეთის სრულ კოორდინაციას.
+            </p>
+            <!-- Quote attribution block -->
+            <div class="pt-space-sm flex items-center gap-space-sm border-t border-outline-variant/20 pt-space-md">
+              <div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container shadow-inner">
+                <span class="material-symbols-outlined text-[20px]">architecture</span>
+              </div>
+              <div class="flex flex-col">
+                <span class="font-body-md text-body-md font-semibold text-primary">BIMX საინჟინრო გუნდი</span>
+                <span class="font-technical-code text-technical-code text-outline">BIM MANAGEMENT &amp; COORDINATION</span>
+              </div>
+            </div>
           </div>
         </div>
+      </section>
 
-        <!-- Module 4 -->
-        <div class="module-brick anim-reveal">
-          <div class="module-top-row">
-            <div class="module-icon-wrap"><i class="fa-solid fa-triangle-exclamation"></i></div>
-            <span class="label-hud" data-i18n="mod_4_tag">მოდული 04</span>
-          </div>
-          <h3 class="module-brick-title" data-i18n="mod_4_title">Clash Detection & კოორდინაცია</h3>
-          <p class="module-brick-desc" data-i18n="mod_4_desc">
-            დისციპლინათაშორისი კონფლიქტების იდენტიფიცირება Navisworks-ში მშენებლობის დაწყებამდე. ნულოვანი შეცდომა ობიექტზე.
-          </p>
-          <div class="module-foot-row">
-            <span class="spec-badge" data-i18n="mod_4_badge">Navisworks / Solibri</span>
-            <i class="fa-solid fa-arrow-right" style="color: var(--cyan-neon);"></i>
-          </div>
-        </div>
-
-        <!-- Module 5 (Flagship Scan to BIM) -->
-        <div class="module-brick module-brick-flagship anim-reveal" style="transition-delay: 0.15s;">
-          <div class="module-top-row">
-            <div class="module-icon-wrap" style="background: rgba(0, 240, 255, 0.2);"><i class="fa-solid fa-sparkles"></i></div>
-            <span class="label-hud" style="color: var(--cyan-neon);" data-i18n="mod_5_tag">ფლაგმანი</span>
-          </div>
-          <h3 class="module-brick-title" style="font-size: 1.5rem;" data-i18n="mod_5_title">Scan to BIM & ციფრული ტყუპი</h3>
-          <p class="module-brick-desc" data-i18n="mod_5_desc">
-            არსებული შენობების ლაზერული სკანირება (LiDAR Point Cloud) და ზუსტ პარამეტრულ BIM მოდელად გარდაქმნა რეკონსტრუქციისთვის.
-          </p>
-          <div class="module-foot-row" style="border-top-color: rgba(255, 255, 255, 0.15);">
-            <span class="spec-badge" style="background: rgba(0, 240, 255, 0.15); color: #ffffff;" data-i18n="mod_5_badge">LiDAR Point Cloud</span>
-            <i class="fa-solid fa-arrow-up-right-from-square" style="color: var(--cyan-neon);"></i>
-          </div>
-        </div>
-      </div>
-
-      <!-- Interactive Clash Radar Visualizer Hotspot Box -->
-      <div class="clash-visualizer-box anim-reveal" style="margin-top: 60px;">
-        <img src="assets/images/mep-coordination.jpg" alt="MEP Clash Detection & Spatial Coordination">
-        
-        <!-- Hotspot Node 1 -->
-        <div class="hotspot-node" style="top: 32%; left: 37%;">
-          <div class="hotspot-card-tooltip">
-            <div class="label-hud" style="color: var(--amber-neon);">CLASH #014 RESOLVED</div>
-            <div style="font-size: 0.85rem; font-weight: 600; margin-top: 4px;">HVAC Duct vs Main Girder W14x90</div>
-            <div style="font-size: 0.75rem; color: var(--text-muted);">Offset: +140mm // Navisworks Auto-Sync</div>
-          </div>
-        </div>
-
-        <!-- Hotspot Node 2 -->
-        <div class="hotspot-node" style="top: 48%; left: 66%;">
-          <div class="hotspot-card-tooltip">
-            <div class="label-hud" style="color: var(--amber-neon);">CLASH #029 RESOLVED</div>
-            <div style="font-size: 0.85rem; font-weight: 600; margin-top: 4px;">Fire Sprinkler Line vs Cable Tray</div>
-            <div style="font-size: 0.75rem; color: var(--text-muted);">Elevation rerouted // Zero on-site delay</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==========================================================================
-       Projects / Portfolio
-       ========================================================================== -->
-  <section class="portfolio-showcase-section" id="projects">
-    <div class="container-fluid">
-      <div class="anim-reveal">
-        <p class="label-hud">
-          <span class="hud-dot"></span>
-          <span data-i18n="proj_tag">პროექტები</span>
-        </p>
-        <h2 class="heading-architectural" data-i18n="proj_title" style="margin-top: 10px;">შერჩეული ნამუშევრები</h2>
-        <p class="subheading-architectural" data-i18n="proj_subtitle" style="margin-top: 8px;">
-          ჩვენი გუნდის მიერ წარმატებით კოორდინირებული და მოდელირებული ობიექტები
-        </p>
-      </div>
-
-      <div class="filter-pills-wrap">
-        <button class="filter-btn-pill active" data-filter="all" data-i18n="proj_filter_all">ყველა</button>
-        <button class="filter-btn-pill" data-filter="commercial" data-i18n="proj_filter_comm">კომერციული</button>
-        <button class="filter-btn-pill" data-filter="residential" data-i18n="proj_filter_res">საცხოვრებელი</button>
-        <button class="filter-btn-pill" data-filter="industrial" data-i18n="proj_filter_ind">ინდუსტრიული</button>
-      </div>
-
-      <div class="portfolio-tri-grid">
-        <!-- Project 1 -->
-        <article class="portfolio-card-item anim-reveal" data-category="commercial">
-          <div class="portfolio-photo-wrap">
-            <img src="assets/images/hero-bim.jpg" alt="Horizon Business Complex">
-          </div>
-          <div class="portfolio-caption">
-            <p class="label-hud" style="color: var(--cyan-neon); margin-bottom: 6px;" data-i18n="proj_1_meta">კომერციული · LOD 350 · 32,000 მ²</p>
-            <h3 style="font-size: 1.3rem; margin-bottom: 10px;" data-i18n="proj_1_title">ჰორიზონტი ბიზნეს კომპლექსი</h3>
-            <p style="color: var(--text-secondary); font-size: 0.9rem;" data-i18n="proj_1_desc">
-              სრული MEP და კონსტრუქციული კოორდინაცია. 140+ შეჯახების აღმოფხვრა ვირტუალურ გარემოში.
+      <!-- ==================== ENGINEERING PACKAGES & MODULES ==================== -->
+      <section class="w-full px-gutter py-space-xl bg-surface-container-lowest border-y border-outline-variant/20 reveal-on-scroll is-visible" id="modules">
+        <div class="max-w-7xl mx-auto flex flex-col gap-space-xl">
+          <!-- Section Header -->
+          <div class="flex flex-col gap-space-xs max-w-2xl">
+            <span class="font-label-caps text-label-caps text-secondary uppercase tracking-widest">მოდულები &amp; სერვისები</span>
+            <h2 class="font-headline-lg text-headline-lg text-primary font-semibold">BIMX საინჟინრო პაკეტები</h2>
+            <p class="font-body-md text-body-md text-on-surface-variant">
+              აირჩიეთ თქვენი ობიექტის მასშტაბსა და მოთხოვნებზე მორგებული BIM მოდული
             </p>
           </div>
-        </article>
 
-        <!-- Project 2 -->
-        <article class="portfolio-card-item anim-reveal" data-category="residential" style="transition-delay: 0.15s;">
-          <div class="portfolio-photo-wrap">
-            <img src="assets/images/mep-coordination.jpg" alt="Goldfield Residences">
-          </div>
-          <div class="portfolio-caption">
-            <p class="label-hud" style="color: var(--cyan-neon); margin-bottom: 6px;" data-i18n="proj_2_meta">საცხოვრებელი · LOD 400 · 18,500 მ²</p>
-            <h3 style="font-size: 1.3rem; margin-bottom: 10px;" data-i18n="proj_2_title">გოლდფილდ რეზიდენციები</h3>
-            <p style="color: var(--text-secondary); font-size: 0.9rem;" data-i18n="proj_2_desc">
-              დეტალური არქიტექტურული და კონსტრუქციული BIM მოდელი ავტომატური სპეციფიკაციებით.
-            </p>
-          </div>
-        </article>
-
-        <!-- Project 3 -->
-        <article class="portfolio-card-item anim-reveal" data-category="industrial" style="transition-delay: 0.3s;">
-          <div class="portfolio-photo-wrap">
-            <img src="assets/images/scan-to-bim.jpg" alt="Terminal Logistics Hub">
-          </div>
-          <div class="portfolio-caption">
-            <p class="label-hud" style="color: var(--cyan-neon); margin-bottom: 6px;" data-i18n="proj_3_meta">ინდუსტრიული · Scan-to-BIM · 24,000 მ²</p>
-            <h3 style="font-size: 1.3rem; margin-bottom: 10px;" data-i18n="proj_3_title">ტერმინალის ლოგისტიკური ჰაბი</h3>
-            <p style="color: var(--text-secondary); font-size: 0.9rem;" data-i18n="proj_3_desc">
-              არსებული ინფრასტრუქტურის 3D ლაზერული სკანირება და ციფრული ტყუპის მომზადება რეკონსტრუქციისთვის.
-            </p>
-          </div>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==========================================================================
-       Interactive Calculator
-       ========================================================================== -->
-  <section class="calculator-section" id="calculator">
-    <div class="container-fluid">
-      <div class="anim-reveal">
-        <p class="label-hud">
-          <span class="hud-dot"></span>
-          <span data-i18n="calc_tag">ონლაინ კალკულატორი</span>
-        </p>
-        <h2 class="heading-architectural" data-i18n="calc_title" style="margin-top: 10px;">პროექტის ღირებულებისა და ვადის შეფასება</h2>
-        <p class="subheading-architectural" data-i18n="calc_subtitle" style="margin-top: 8px;">
-          გამოთვალეთ საორიენტაციო ბიუჯეტი და შესრულების დრო თქვენი ობიექტის პარამეტრების მიხედვით
-        </p>
-      </div>
-
-      <div class="calculator-mega-card anim-reveal">
-        <div class="calc-dual-grid">
-          <!-- Inputs Stack -->
-          <div class="calc-fields-stack">
-            <!-- Area Slider -->
-            <div>
-              <div class="calc-row-label">
-                <label for="calcArea" class="calc-text-label" data-i18n="calc_lbl_area">სამშენებლო ფართობი (მ²):</label>
-                <span class="calc-val-pill" id="calcAreaVal">5,000 m²</span>
+          <!-- Modules Bento Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-space-md">
+            <!-- Module 01 -->
+            <div class="p-space-lg rounded-2xl bg-surface-container-low border border-outline-variant/30 flex flex-col justify-between gap-space-md shadow-md hover:bg-surface-container hover:border-secondary/60 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-300 group">
+              <div class="flex flex-col gap-space-sm">
+                <div class="flex items-center justify-between">
+                  <div class="w-10 h-10 rounded-xl bg-surface-container group-hover:bg-secondary-container flex items-center justify-center text-secondary group-hover:text-secondary-fixed transition-colors">
+                    <span class="material-symbols-outlined">domain</span>
+                  </div>
+                  <span class="font-label-caps text-label-caps text-outline group-hover:text-secondary transition-colors">მოდული 01</span>
+                </div>
+                <h3 class="font-headline-sm text-headline-sm text-primary font-semibold group-hover:text-secondary-fixed-dim transition-colors">არქიტექტურული BIM</h3>
+                <p class="font-body-md text-body-md text-on-surface-variant">
+                  LOD 200–500 დეტალიზაცია, 3D ვირტუალური მოდელი, ავტომატური არქიტექტურული სპეციფიკაციები და სამუშაო ნახაზები.
+                </p>
               </div>
-              <input type="range" class="range-input-styled" id="calcArea" min="500" max="60000" step="500" value="5000">
+              <div class="flex items-center justify-between pt-space-xs font-technical-code text-technical-code">
+                <span class="text-secondary">Revit / ArchiCAD</span>
+                <span class="material-symbols-outlined text-[18px] text-outline group-hover:text-secondary group-hover:translate-x-1.5 transition-all duration-200">east</span>
+              </div>
             </div>
 
-            <!-- Building Type -->
-            <div>
-              <label for="calcType" class="calc-text-label" data-i18n="calc_lbl_type" style="display: block; margin-bottom: 8px;">ობიექტის ტიპი:</label>
-              <select id="calcType" class="select-input-styled">
-                <option value="commercial" data-i18n="calc_type_commercial">კომერციული / საოფისე</option>
-                <option value="residential" data-i18n="calc_type_residential">საცხოვრებელი კომპლექსი</option>
-                <option value="industrial" data-i18n="calc_type_industrial">საწარმოო / სასაწყობო</option>
-                <option value="public" data-i18n="calc_type_public">საზოგადოებრივი / ინფრასტრუქტურული</option>
-              </select>
+            <!-- Module 02 -->
+            <div class="p-space-lg rounded-2xl bg-surface-container-low border border-outline-variant/30 flex flex-col justify-between gap-space-md shadow-md hover:bg-surface-container hover:border-secondary/60 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-300 group">
+              <div class="flex flex-col gap-space-sm">
+                <div class="flex items-center justify-between">
+                  <div class="w-10 h-10 rounded-xl bg-surface-container group-hover:bg-secondary-container flex items-center justify-center text-secondary group-hover:text-secondary-fixed transition-colors">
+                    <span class="material-symbols-outlined">foundation</span>
+                  </div>
+                  <span class="font-label-caps text-label-caps text-outline group-hover:text-secondary transition-colors">მოდული 02</span>
+                </div>
+                <h3 class="font-headline-sm text-headline-sm text-primary font-semibold group-hover:text-secondary-fixed-dim transition-colors">სამშენებლო კონსტრუქციები</h3>
+                <p class="font-body-md text-body-md text-on-surface-variant">
+                  რკინაბეტონის და ლითონის კონსტრუქციების ზუსტი მოდელირება, არმატურის დეტალიზაცია და კონსტრუქციული კვანძები.
+                </p>
+              </div>
+              <div class="flex items-center justify-between pt-space-xs font-technical-code text-technical-code">
+                <span class="text-secondary">Structural BIM</span>
+                <span class="material-symbols-outlined text-[18px] text-outline group-hover:text-secondary group-hover:translate-x-1.5 transition-all duration-200">east</span>
+              </div>
             </div>
 
-            <!-- LOD Level -->
-            <div>
-              <label for="calcLod" class="calc-text-label" data-i18n="calc_lbl_lod" style="display: block; margin-bottom: 8px;">დეტალიზაციის დონე (LOD):</label>
-              <select id="calcLod" class="select-input-styled">
-                <option value="200" data-i18n="calc_lod_200">LOD 200 — კონცეპტუალური მოცულობები</option>
-                <option value="300" selected data-i18n="calc_lod_300">LOD 300 — ზუსტი გეომეტრია და სისტემები</option>
-                <option value="350" data-i18n="calc_lod_350">LOD 350 — კვანძები და კოორდინაცია</option>
-                <option value="400" data-i18n="calc_lod_400">LOD 400 — წარმოებისა და მონტაჟის დონე</option>
-              </select>
+            <!-- Module 03 -->
+            <div class="p-space-lg rounded-2xl bg-surface-container-low border border-outline-variant/30 flex flex-col justify-between gap-space-md shadow-md hover:bg-surface-container hover:border-secondary/60 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-300 group">
+              <div class="flex flex-col gap-space-sm">
+                <div class="flex items-center justify-between">
+                  <div class="w-10 h-10 rounded-xl bg-surface-container group-hover:bg-secondary-container flex items-center justify-center text-secondary group-hover:text-secondary-fixed transition-colors">
+                    <span class="material-symbols-outlined">air</span>
+                  </div>
+                  <span class="font-label-caps text-label-caps text-outline group-hover:text-secondary transition-colors">მოდული 03</span>
+                </div>
+                <h3 class="font-headline-sm text-headline-sm text-primary font-semibold group-hover:text-secondary-fixed-dim transition-colors">MEP საინჟინრო ქსელები</h3>
+                <p class="font-body-md text-body-md text-on-surface-variant">
+                  HVAC (ვენტილაცია-კონდიცირება), წყალმომარაგება-კანალიზაცია, ელექტროობა და სუსტი დენები ერთიან მოცულობაში.
+                </p>
+              </div>
+              <div class="flex items-center justify-between pt-space-xs font-technical-code text-technical-code">
+                <span class="text-secondary">MEP Systems</span>
+                <span class="material-symbols-outlined text-[18px] text-outline group-hover:text-secondary group-hover:translate-x-1.5 transition-all duration-200">east</span>
+              </div>
             </div>
 
-            <!-- Disciplines -->
-            <div>
-              <label class="calc-text-label" data-i18n="calc_lbl_disciplines" style="display: block; margin-bottom: 10px;">საჭირო დისციპლინები:</label>
-              <div class="checks-grid-layout">
-                <label class="check-pill-option checked">
-                  <input type="checkbox" class="calc-disc-checkbox" value="arch" checked>
-                  <span data-i18n="calc_disc_arch">არქიტექტურა (ARCH)</span>
-                </label>
-                <label class="check-pill-option checked">
-                  <input type="checkbox" class="calc-disc-checkbox" value="struct" checked>
-                  <span data-i18n="calc_disc_struct">კონსტრუქციები (STRUCT)</span>
-                </label>
-                <label class="check-pill-option checked">
-                  <input type="checkbox" class="calc-disc-checkbox" value="mep" checked>
-                  <span data-i18n="calc_disc_mep">საინჟინრო ქსელები (MEP)</span>
-                </label>
-                <label class="check-pill-option checked">
-                  <input type="checkbox" class="calc-disc-checkbox" value="clash" checked>
-                  <span data-i18n="calc_disc_clash">Clash Detection</span>
-                </label>
+            <!-- Module 04 -->
+            <div class="p-space-lg rounded-2xl bg-surface-container-low border border-outline-variant/30 flex flex-col justify-between gap-space-md shadow-md hover:bg-surface-container hover:border-secondary/60 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-300 group">
+              <div class="flex flex-col gap-space-sm">
+                <div class="flex items-center justify-between">
+                  <div class="w-10 h-10 rounded-xl bg-surface-container group-hover:bg-secondary-container flex items-center justify-center text-secondary group-hover:text-secondary-fixed transition-colors">
+                    <span class="material-symbols-outlined">troubleshoot</span>
+                  </div>
+                  <span class="font-label-caps text-label-caps text-outline group-hover:text-secondary transition-colors">მოდული 04</span>
+                </div>
+                <h3 class="font-headline-sm text-headline-sm text-primary font-semibold group-hover:text-secondary-fixed-dim transition-colors">Clash Detection &amp; კოორდინაცია</h3>
+                <p class="font-body-md text-body-md text-on-surface-variant">
+                  დისციპლინათაშორისი კონფლიქტების იდენტიფიცირება Navisworks-ში მშენებლობის დაწყებამდე. ნულოვანი შეცდომა ობიექტზე.
+                </p>
+              </div>
+              <div class="flex items-center justify-between pt-space-xs font-technical-code text-technical-code">
+                <span class="text-secondary">Navisworks / Solibri</span>
+                <span class="material-symbols-outlined text-[18px] text-outline group-hover:text-secondary group-hover:translate-x-1.5 transition-all duration-200">east</span>
+              </div>
+            </div>
+
+            <!-- Flagship Module: Scan to BIM (Spans 2 cols on desktop) -->
+            <div class="lg:col-span-2 p-space-lg rounded-2xl bg-surface-container border border-outline-variant/40 flex flex-col justify-between gap-space-md shadow-lg hover:bg-surface-container-high hover:border-secondary/60 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] transition-all duration-300 group">
+              <div class="flex flex-col gap-space-sm">
+                <div class="flex items-center justify-between">
+                  <div class="w-10 h-10 rounded-xl bg-secondary-container flex items-center justify-center text-secondary-fixed group-hover:scale-105 transition-transform">
+                    <span class="material-symbols-outlined">radar</span>
+                  </div>
+                  <span class="px-2 py-0.5 rounded bg-secondary-container text-on-secondary-container font-technical-code text-technical-code border border-secondary/30">ფლაგმანი</span>
+                </div>
+                <h3 class="font-headline-sm text-headline-sm text-primary font-semibold group-hover:text-secondary-fixed-dim transition-colors">Scan to BIM &amp; ციფრული ტყუპი</h3>
+                <p class="font-body-md text-body-md text-on-surface-variant max-w-xl">
+                  არსებული შენობების ლაზერული სკანირება (LiDAR Point Cloud) და ზუსტ პარამეტრულ BIM მოდელად გარდაქმნა რეკონსტრუქციისა და ისტორიული შენობების ადაპტაციისთვის.
+                </p>
+              </div>
+              <div class="flex items-center justify-between pt-space-xs font-technical-code text-technical-code">
+                <span class="text-secondary font-medium">LiDAR Point Cloud / 3D Laser Reality Mesh</span>
+                <span class="material-symbols-outlined text-[18px] text-primary group-hover:translate-x-1.5 group-hover:text-secondary transition-all duration-200">open_in_new</span>
               </div>
             </div>
           </div>
 
-          <!-- Summary View Box -->
-          <div class="calc-summary-box">
-            <div>
-              <div>
-                <p class="label-hud" data-i18n="calc_res_est_cost">საორიენტაციო ბიუჯეტი</p>
-                <p class="summary-cost-num" id="calcResultCost">₾ 24,800</p>
+          <!-- Live Clash Resolution Visual Showcase Strip -->
+          <div class="relative w-full rounded-2xl overflow-hidden bg-surface-container-low border border-outline-variant/40 shadow-xl group">
+            <div class="relative h-64 md:h-80 w-full overflow-hidden">
+              <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" data-alt="Industrial architectural mechanical room clash detection" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC379nvWiRl2r1ssGs6IBTH_spsZrtHJkTCwWgt-kXbC0uWt-ASagXBm0j5pBv1UqMhqcwInvtZyZekX_Naw5wQBRJucZ4YAi-R0ujtXZOLKcfDktEN0U9z9n_tfDfZWCZoUjFaUhXD76qWdC3OVNsHcSE-0UlZTRg8lDWzFSP1Si_ezESKZbdZk6l2L8owgwUubbogv18a1iM4n_aHN4oc-PwP8jAGXE-YG0rVmMPGNfu4CXmLzh65_g">
+              <div class="absolute inset-0 bg-gradient-to-t from-surface-dim via-surface-dim/40 to-transparent"></div>
+              <!-- Real-Time Telemetry HUD Overlays -->
+              <div class="absolute bottom-4 left-4 right-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 font-technical-code text-technical-code">
+                <div class="px-3 py-2 rounded-lg bg-surface-dim/90 backdrop-blur border border-outline-variant/40 hover:border-secondary/50 flex items-center gap-2 shadow-lg transition-colors cursor-default">
+                  <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+                  </span>
+                  <span class="text-primary font-medium">CLASH #014 RESOLVED</span>
+                  <span class="text-outline">·</span>
+                  <span class="text-on-surface-variant">HVAC Duct vs Main Girder W14x90 (+140mm)</span>
+                </div>
+                <div class="px-3 py-2 rounded-lg bg-surface-dim/90 backdrop-blur border border-outline-variant/40 hover:border-secondary/50 flex items-center gap-2 shadow-lg transition-colors cursor-default">
+                  <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+                  </span>
+                  <span class="text-primary font-medium">CLASH #029 RESOLVED</span>
+                  <span class="text-outline">·</span>
+                  <span class="text-on-surface-variant">Fire Sprinkler vs Cable Tray (Zero Delay)</span>
+                </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-              <div style="margin-top: 24px;">
-                <p class="label-hud" data-i18n="calc_res_est_time">საორიენტაციო ვადა</p>
-                <p class="summary-time-num" id="calcResultTime">6 კვირა</p>
+      <!-- ==================== SELECTED PROJECTS SHOWCASE ==================== -->
+      <section class="w-full px-gutter py-space-xl reveal-on-scroll is-visible" id="projects">
+        <div class="max-w-7xl mx-auto flex flex-col gap-space-xl">
+          <!-- Section Header + Filter Segmented Control -->
+          <div class="flex flex-col md:flex-row md:items-end justify-between gap-space-md">
+            <div class="flex flex-col gap-space-xs max-w-xl">
+              <span class="font-label-caps text-label-caps text-secondary uppercase tracking-widest">პროექტები</span>
+              <h2 class="font-headline-lg text-headline-lg text-primary font-semibold">შერჩეული ნამუშევრები</h2>
+              <p class="font-body-md text-body-md text-on-surface-variant">
+                ჩვენი გუნდის მიერ წარმატებით კოორდინირებული და მოდელირებული ობიექტები
+              </p>
+            </div>
+
+            <!-- Filter Segmented Tabs -->
+            <div class="inline-flex p-1 rounded-xl bg-surface-container-low border border-outline-variant/30 font-body-sm text-body-sm" id="project-filters">
+              <button class="project-filter-btn px-3.5 py-1.5 rounded-lg bg-surface-container-high text-primary font-medium shadow-sm transition-all active:scale-95" data-filter="all" type="button">ყველა</button>
+              <button class="project-filter-btn px-3.5 py-1.5 rounded-lg text-on-surface-variant hover:text-primary transition-all active:scale-95" data-filter="commercial" type="button">კომერციული</button>
+              <button class="project-filter-btn px-3.5 py-1.5 rounded-lg text-on-surface-variant hover:text-primary transition-all active:scale-95" data-filter="residential" type="button">საცხოვრებელი</button>
+              <button class="project-filter-btn px-3.5 py-1.5 rounded-lg text-on-surface-variant hover:text-primary transition-all active:scale-95" data-filter="industrial" type="button">ინდუსტრიული</button>
+            </div>
+          </div>
+
+          <!-- Projects Grid (3 Items) -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-space-lg" id="projects-container">
+            <!-- Project 1 -->
+            <div class="project-card rounded-2xl bg-surface-container-low border border-outline-variant/30 overflow-hidden shadow-lg hover:border-secondary/50 hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col group" data-category="commercial">
+              <div class="relative h-56 w-full overflow-hidden bg-surface-container-lowest">
+                <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Commercial Business Complex" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCGN5viumzsjt2GNZ8bCAg_raMnzIVbJeXFmeqG04jQF3GJ_JZ3pt-DQSJHWphm2NW3j7Jolr9YeB35R9B4dnTlB1GpYPifRy6mVGOVfoNB2Qp3XOyIY4GGpSKDRCYxIzJRIIzBz1ih_Vw2gF8pscmdGht4U6qCZqc9Z4VuCDy5LlbBp5WVYLhuZHrzd31SLHJEsc6kce7eOea0btXkv7H9mjYUK5zbC6W61hjB46J3Q23SJEi6fOn6xg">
+                <div class="absolute inset-0 bg-gradient-to-t from-surface-dim/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div class="absolute top-3 left-3 px-2 py-0.5 rounded bg-surface-dim/80 backdrop-blur border border-outline-variant/30 font-technical-code text-technical-code text-secondary">
+                  LOD 350 · 32,000 მ²
+                </div>
               </div>
-
-              <div style="margin-top: 24px;">
-                <p class="label-hud" data-i18n="calc_res_formats">მისაღები ფორმატები</p>
-                <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
-                  <span class="spec-badge">.RVT</span>
-                  <span class="spec-badge">.IFC 4</span>
-                  <span class="spec-badge">.NWD</span>
-                  <span class="spec-badge">.DWG</span>
-                  <span class="spec-badge">PDF Sheets</span>
+              <div class="p-space-lg flex flex-col justify-between flex-grow gap-space-md">
+                <div class="flex flex-col gap-space-xs">
+                  <span class="font-technical-code text-technical-code text-outline">კომერციული</span>
+                  <h3 class="font-headline-sm text-headline-sm text-primary font-semibold group-hover:text-secondary-fixed-dim transition-colors">ჰორიზონტი ბიზნეს კომპლექსი</h3>
+                  <p class="font-body-md text-body-md text-on-surface-variant">
+                    სრული MEP და კონსტრუქციული კოორდინაცია. 140+ შეჯახების აღმოფხვრა ვირტუალურ გარემოში.
+                  </p>
+                </div>
+                <div class="pt-space-xs flex items-center justify-between">
+                  <span class="font-technical-code text-technical-code text-secondary-fixed-dim">IFC4 / Navisworks Federated</span>
+                  <span class="material-symbols-outlined text-[18px] text-outline group-hover:text-secondary group-hover:translate-x-1 transition-all">arrow_forward</span>
                 </div>
               </div>
             </div>
 
-            <button type="button" class="btn-pill btn-pill-primary" id="applyCalcBtn" style="width: 100%; justify-content: center; margin-top: 28px;" data-i18n="calc_btn_apply">
-              შეთავაზების მიღება ამ მონაცემებით
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==========================================================================
-       Contact Section
-       ========================================================================== -->
-  <section class="contact-section-full" id="contact">
-    <div class="container-fluid contact-split-grid">
-      <!-- Direct Contact Info -->
-      <div class="anim-reveal">
-        <p class="label-hud">
-          <span class="hud-dot"></span>
-          <span data-i18n="contact_tag">კონტაქტი</span>
-        </p>
-        <h2 class="heading-architectural" data-i18n="contact_title" style="margin-top: 10px;">დაიწყეთ თქვენი პროექტი</h2>
-        <p class="subheading-architectural" data-i18n="contact_subtitle" style="margin-top: 8px;">
-          მოგვწერეთ პროექტის მოკლე აღწერა ან დაგვიკავშირდით პირდაპირ
-        </p>
-
-        <div class="contact-direct-cards">
-          <div class="contact-info-row">
-            <div class="contact-icon-bubble"><i class="fa-solid fa-phone"></i></div>
-            <div>
-              <p class="label-hud" data-i18n="contact_phone_lbl">ტელეფონი</p>
-              <p><a href="tel:+995599000000" style="font-weight: 700; font-size: 1.1rem;">+995 (599) 00-00-00</a></p>
+            <!-- Project 2 -->
+            <div class="project-card rounded-2xl bg-surface-container-low border border-outline-variant/30 overflow-hidden shadow-lg hover:border-secondary/50 hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col group" data-category="residential">
+              <div class="relative h-56 w-full overflow-hidden bg-surface-container-lowest">
+                <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Residential Complex" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB7VbZlJIBDOK5Zf4Q3_TL6V_TYA5-rVPS7gbhnliIzWXJUjsGYQvrLiZTOvhPEhIdmVI3sM9H0FQ8MLyjq6t5gzEKu83sM5m8tDMJF-KUSlobSJ5TMLYwCCTjAeYR0d9dOufSTIpH8hEcwCURTxDvbL7ibLxVhVazuKfz9uB_W9Y5dwuw3WMZ891p4YEFX10sxqBICZdChBlEtpobAvSmaGdycvs8kidwKz8eVOeMzNhSXgn-C2rwSwQ">
+                <div class="absolute inset-0 bg-gradient-to-t from-surface-dim/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div class="absolute top-3 left-3 px-2 py-0.5 rounded bg-surface-dim/80 backdrop-blur border border-outline-variant/30 font-technical-code text-technical-code text-secondary">
+                  LOD 400 · 18,500 მ²
+                </div>
+              </div>
+              <div class="p-space-lg flex flex-col justify-between flex-grow gap-space-md">
+                <div class="flex flex-col gap-space-xs">
+                  <span class="font-technical-code text-technical-code text-outline">საცხოვრებელი</span>
+                  <h3 class="font-headline-sm text-headline-sm text-primary font-semibold group-hover:text-secondary-fixed-dim transition-colors">გოლდფილდ რეზიდენციები</h3>
+                  <p class="font-body-md text-body-md text-on-surface-variant">
+                    დეტალური არქიტექტურული და კონსტრუქციული BIM მოდელი ავტომატური სპეციფიკაციებით.
+                  </p>
+                </div>
+                <div class="pt-space-xs flex items-center justify-between">
+                  <span class="font-technical-code text-technical-code text-secondary-fixed-dim">Revit Structural Detailing</span>
+                  <span class="material-symbols-outlined text-[18px] text-outline group-hover:text-secondary group-hover:translate-x-1 transition-all">arrow_forward</span>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div class="contact-info-row">
-            <div class="contact-icon-bubble"><i class="fa-solid fa-envelope"></i></div>
-            <div>
-              <p class="label-hud" data-i18n="contact_email_lbl">ელ-ფოსტა</p>
-              <p><a href="mailto:info@bimx.ge" style="font-weight: 700; font-size: 1.1rem;">info@bimx.ge</a></p>
-            </div>
-          </div>
-
-          <div class="contact-info-row">
-            <div class="contact-icon-bubble"><i class="fa-solid fa-share-nodes"></i></div>
-            <div>
-              <p class="label-hud" data-i18n="contact_social_lbl">სოციალური ქსელები</p>
-              <div class="socials-round-list">
-                <a href="https://www.instagram.com/_bim_x_/" target="_blank" class="round-social-btn" aria-label="Instagram">
-                  <i class="fa-brands fa-instagram"></i>
-                </a>
-                <a href="https://wa.me/995599000000" target="_blank" class="round-social-btn" aria-label="WhatsApp">
-                  <i class="fa-brands fa-whatsapp"></i>
-                </a>
-                <a href="https://www.facebook.com" target="_blank" class="round-social-btn" aria-label="Facebook">
-                  <i class="fa-brands fa-facebook-f"></i>
-                </a>
-                <a href="https://www.linkedin.com" target="_blank" class="round-social-btn" aria-label="LinkedIn">
-                  <i class="fa-brands fa-linkedin-in"></i>
-                </a>
+            <!-- Project 3 -->
+            <div class="project-card rounded-2xl bg-surface-container-low border border-outline-variant/30 overflow-hidden shadow-lg hover:border-secondary/50 hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col group" data-category="industrial">
+              <div class="relative h-56 w-full overflow-hidden bg-surface-container-lowest">
+                <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Industrial Logistics Hub" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCI1YD7bOrR2YnArVqn9gwZqX2SDrutLPM7IeLlzD8s5gJ2KpOl10pMVXrJhN8r8lrpmdQAudVaGXu53pwSqNAs3lnWddZIAgbcrOmDE_imvtZd1897Kg8x5EqP_x0NNEU5bLzUgdSRO-FXFG1NU-rLqmbSJ5Wokx4gmRPiJzFqkJS8KyP-WPR9unfGvGhRyYCF1nN5kIIRIXdrW_2OO3Fdhu5tfVQZfFqmkcjEfn2zkzuUJFnoov0xhA">
+                <div class="absolute inset-0 bg-gradient-to-t from-surface-dim/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div class="absolute top-3 left-3 px-2 py-0.5 rounded bg-surface-dim/80 backdrop-blur border border-outline-variant/30 font-technical-code text-technical-code text-secondary">
+                  Scan-to-BIM · 24,000 მ²
+                </div>
+              </div>
+              <div class="p-space-lg flex flex-col justify-between flex-grow gap-space-md">
+                <div class="flex flex-col gap-space-xs">
+                  <span class="font-technical-code text-technical-code text-outline">ინდუსტრიული</span>
+                  <h3 class="font-headline-sm text-headline-sm text-primary font-semibold group-hover:text-secondary-fixed-dim transition-colors">ტერმინალის ლოგისტიკური ჰაბი</h3>
+                  <p class="font-body-md text-body-md text-on-surface-variant">
+                    არსებული ინფრასტრუქტურის 3D ლაზერული სკანირება და ციფრული ტყუპის მომზადება რეკონსტრუქციისთვის.
+                  </p>
+                </div>
+                <div class="pt-space-xs flex items-center justify-between">
+                  <span class="font-technical-code text-technical-code text-secondary-fixed-dim">LiDAR Point Cloud to BIM</span>
+                  <span class="material-symbols-outlined text-[18px] text-outline group-hover:text-secondary group-hover:translate-x-1 transition-all">arrow_forward</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Contact Form -->
-      <div class="anim-reveal" style="transition-delay: 0.15s;">
-        <form class="contact-form-layout" id="contactForm">
-          <div>
-            <input type="text" class="input-styled-field" id="contactName" required data-i18n-ph="contact_form_name" placeholder="თქვენი სახელი / კომპანია">
+      <!-- ==================== INTERACTIVE CALCULATOR ==================== -->
+      <section class="w-full px-gutter py-space-xl bg-surface-container-lowest border-y border-outline-variant/20 reveal-on-scroll is-visible" id="calculator">
+        <div class="max-w-7xl mx-auto flex flex-col gap-space-xl">
+          <div class="flex flex-col gap-space-xs max-w-xl">
+            <span class="font-label-caps text-label-caps text-secondary uppercase tracking-widest">ონლაინ კალკულატორი</span>
+            <h2 class="font-headline-lg text-headline-lg text-primary font-semibold">პროექტის ღირებულებისა და ვადის შეფასება</h2>
+            <p class="font-body-md text-body-md text-on-surface-variant">
+              გამოთვალეთ საორიენტაციო ბიუჯეტი და შესრულების დრო თქვენი ობიექტის პარამეტრების მიხედვით
+            </p>
           </div>
-          <div>
-            <input type="email" class="input-styled-field" id="contactEmail" required data-i18n-ph="contact_form_email" placeholder="ელ-ფოსტა">
+
+          <!-- Calculator Form & Output Container -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-space-xl items-start">
+            <!-- Input Parameters Form -->
+            <div class="lg:col-span-7 p-space-xl rounded-2xl bg-surface-container-low border border-outline-variant/30 shadow-xl flex flex-col gap-space-lg">
+              <!-- Area Slider & Direct Manual Number Input -->
+              <div class="flex flex-col gap-space-sm">
+                <div class="flex items-center justify-between flex-wrap gap-2">
+                  <label class="font-body-md text-body-md font-medium text-primary" for="calc-area-num">სამშენებლო ფართობი (მ²):</label>
+                  <div class="flex items-center gap-2">
+                    <div class="relative">
+                      <input class="w-32 h-9 px-3 pr-8 rounded-lg bg-surface-container text-right font-technical-code text-technical-code text-secondary border border-outline-variant/40 focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary font-semibold transition-all" id="calc-area-num" max="100000" min="200" step="100" type="number" value="5000">
+                      <span class="absolute right-2.5 top-2 font-technical-code text-[11px] text-outline pointer-events-none">მ²</span>
+                    </div>
+                  </div>
+                </div>
+                <input class="w-full accent-secondary h-2 bg-surface-container rounded-lg cursor-pointer transition-all hover:brightness-110" id="calc-area" max="50000" min="500" step="250" type="range" value="5000">
+                <div class="flex items-center justify-between gap-1 pt-0.5">
+                  <div class="flex gap-1.5 flex-wrap">
+                    <button class="area-preset-btn px-2.5 py-1 rounded bg-surface-container hover:bg-surface-container-high border border-outline-variant/30 text-outline hover:text-primary font-technical-code text-[11px] active:scale-95 transition-all" data-value="1000" type="button">1,000 მ²</button>
+                    <button class="area-preset-btn px-2.5 py-1 rounded bg-surface-container-high border border-secondary/50 text-secondary font-technical-code text-[11px] active:scale-95 transition-all" data-value="5000" type="button">5,000 მ²</button>
+                    <button class="area-preset-btn px-2.5 py-1 rounded bg-surface-container hover:bg-surface-container-high border border-outline-variant/30 text-outline hover:text-primary font-technical-code text-[11px] active:scale-95 transition-all" data-value="15000" type="button">15,000 მ²</button>
+                    <button class="area-preset-btn px-2.5 py-1 rounded bg-surface-container hover:bg-surface-container-high border border-outline-variant/30 text-outline hover:text-primary font-technical-code text-[11px] active:scale-95 transition-all" data-value="30000" type="button">30,000 მ²</button>
+                  </div>
+                  <span class="font-technical-code text-[11px] text-outline hidden sm:inline">მაქს: 50,000+ მ²</span>
+                </div>
+              </div>
+
+              <!-- Facility Type Dropdown with dynamic rates -->
+              <div class="flex flex-col gap-space-xs">
+                <div class="flex items-center justify-between">
+                  <label class="font-body-md text-body-md font-medium text-primary" for="calc-type">ობიექტის ტიპი:</label>
+                  <span class="font-technical-code text-[11px] text-secondary-fixed-dim" id="calc-type-rate-badge">ტარიფი: 2.20 ₾/მ²</span>
+                </div>
+                <div class="relative">
+                  <select class="w-full h-11 px-3.5 rounded-lg bg-surface-container text-on-surface border border-outline-variant/30 font-body-md text-body-md appearance-none focus:outline-none focus:ring-1 focus:ring-secondary cursor-pointer hover:border-secondary/40 transition-colors" id="calc-type">
+                    <option data-rate="2.2" selected value="commercial">კომერციული / საოფისე ცენტრი (2.20 ₾/მ²)</option>
+                    <option data-rate="1.8" value="residential">საცხოვრებელი კომპლექსი (1.80 ₾/მ²)</option>
+                    <option data-rate="1.2" value="industrial">საწარმოო / სასაწყობო / ლოგისტიკა (1.20 ₾/მ²)</option>
+                    <option data-rate="2.6" value="public">საზოგადოებრივი / ინფრასტრუქტურა (2.60 ₾/მ²)</option>
+                  </select>
+                  <span class="material-symbols-outlined absolute right-3 top-3 text-outline pointer-events-none text-[20px]">expand_more</span>
+                </div>
+              </div>
+
+              <!-- LOD Level Selector with Multipliers -->
+              <div class="flex flex-col gap-space-xs">
+                <div class="flex items-center justify-between">
+                  <label class="font-body-md text-body-md font-medium text-primary" for="calc-lod">დეტალიზაციის დონე (LOD):</label>
+                  <span class="font-technical-code text-[11px] text-secondary-fixed-dim" id="calc-lod-factor-badge">კოეფიციენტი: 1.00x</span>
+                </div>
+                <div class="relative">
+                  <select class="w-full h-11 px-3.5 rounded-lg bg-surface-container text-on-surface border border-outline-variant/30 font-body-md text-body-md appearance-none focus:outline-none focus:ring-1 focus:ring-secondary cursor-pointer hover:border-secondary/40 transition-colors" id="calc-lod">
+                    <option data-factor="0.7" value="lod200">LOD 200 — კონცეპტუალური მოცულობები (0.7x)</option>
+                    <option data-factor="1.0" selected value="lod300">LOD 300 — ზუსტი გეომეტრია და სისტემები (1.0x)</option>
+                    <option data-factor="1.35" value="lod350">LOD 350 — კვანძები და კოორდინაცია (1.35x)</option>
+                    <option data-factor="1.65" value="lod400">LOD 400 — წარმოებისა და მონტაჟის დონე (1.65x)</option>
+                  </select>
+                  <span class="material-symbols-outlined absolute right-3 top-3 text-outline pointer-events-none text-[20px]">expand_more</span>
+                </div>
+              </div>
+
+              <!-- Disciplines Checkboxes with Individual Weight -->
+              <div class="flex flex-col gap-space-xs">
+                <div class="flex items-center justify-between">
+                  <span class="font-body-md text-body-md font-medium text-primary">საჭირო დისციპლინები &amp; კოორდინაცია:</span>
+                  <span class="font-technical-code text-[11px] text-outline">დატვირთვის გადანაწილება</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-body-sm text-body-sm">
+                  <label class="flex items-center justify-between p-2.5 rounded-lg bg-surface-container border border-outline-variant/30 cursor-pointer hover:bg-surface-container-high hover:border-secondary/40 transition-all select-none">
+                    <div class="flex items-center gap-2.5">
+                      <input checked class="calc-discipline w-4 h-4 rounded accent-secondary cursor-pointer" data-discipline="arch" data-weight="0.35" type="checkbox">
+                      <span>არქიტექტურა (ARCH)</span>
+                    </div>
+                    <span class="font-technical-code text-[11px] text-secondary/80">35%</span>
+                  </label>
+                  <label class="flex items-center justify-between p-2.5 rounded-lg bg-surface-container border border-outline-variant/30 cursor-pointer hover:bg-surface-container-high hover:border-secondary/40 transition-all select-none">
+                    <div class="flex items-center gap-2.5">
+                      <input checked class="calc-discipline w-4 h-4 rounded accent-secondary cursor-pointer" data-discipline="struct" data-weight="0.30" type="checkbox">
+                      <span>კონსტრუქციები (STRUCT)</span>
+                    </div>
+                    <span class="font-technical-code text-[11px] text-secondary/80">30%</span>
+                  </label>
+                  <label class="flex items-center justify-between p-2.5 rounded-lg bg-surface-container border border-outline-variant/30 cursor-pointer hover:bg-surface-container-high hover:border-secondary/40 transition-all select-none">
+                    <div class="flex items-center gap-2.5">
+                      <input checked class="calc-discipline w-4 h-4 rounded accent-secondary cursor-pointer" data-discipline="mep" data-weight="0.35" type="checkbox">
+                      <span>საინჟინრო ქსელები (MEP)</span>
+                    </div>
+                    <span class="font-technical-code text-[11px] text-secondary/80">35%</span>
+                  </label>
+                  <label class="flex items-center justify-between p-2.5 rounded-lg bg-surface-container border border-outline-variant/30 cursor-pointer hover:bg-surface-container-high hover:border-secondary/40 transition-all select-none">
+                    <div class="flex items-center gap-2.5">
+                      <input checked class="calc-discipline w-4 h-4 rounded accent-secondary cursor-pointer" data-discipline="clash" data-weight="0.15" type="checkbox">
+                      <span>Clash Detection</span>
+                    </div>
+                    <span class="font-technical-code text-[11px] text-secondary">+15%</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Timeline Delivery Speed Mode Toggle -->
+              <div class="p-space-md rounded-xl bg-surface-container/70 border border-outline-variant/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div class="flex flex-col gap-0.5">
+                  <span class="font-body-sm text-body-sm font-semibold text-primary flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-secondary text-[18px]">speed</span>
+                    ვადის რეჟიმი (Execution Mode)
+                  </span>
+                  <span class="font-technical-code text-[11px] text-outline">დაჩქარებული ტემპი (-30% დრო, +25% საინჟინრო რესურსი)</span>
+                </div>
+                <div class="inline-flex p-1 rounded-lg bg-surface-container-lowest border border-outline-variant/30" id="calc-speed-group">
+                  <button class="calc-speed-btn px-3 py-1 rounded font-technical-code text-technical-code font-medium transition-all bg-surface-container-high shadow-sm text-primary" data-speed="standard" type="button">სტანდარტული</button>
+                  <button class="calc-speed-btn px-3 py-1 rounded font-technical-code text-technical-code hover:text-primary transition-all text-outline" data-speed="express" type="button">Express (-30% დრო)</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dynamic Summary & Itemized Breakdown Card -->
+            <div class="lg:col-span-5 p-space-xl rounded-2xl bg-surface-container border border-outline-variant/40 shadow-2xl flex flex-col gap-space-md relative overflow-hidden">
+              <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-secondary-container/20 rounded-full blur-2xl pointer-events-none"></div>
+
+              <!-- Price Block -->
+              <div class="flex flex-col gap-1 relative z-10">
+                <div class="flex items-center justify-between">
+                  <span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">საორიენტაციო ბიუჯეტი</span>
+                  <span class="px-2 py-0.5 rounded bg-surface-container-lowest font-technical-code text-[11px] text-secondary border border-outline-variant/30" id="calc-unit-rate">₾ 2.53 / მ²</span>
+                </div>
+                <div class="font-display-hero text-headline-lg lg:text-display-hero text-primary font-semibold tracking-tight transition-all duration-300" id="calc-price-result">12,650 ₾</div>
+                <span class="font-technical-code text-technical-code text-secondary-fixed-dim">დღგ-ს გარეშე // საბოლოო ფასი ზუსტდება TZ-ით</span>
+              </div>
+
+              <!-- Timeline Block with Mode Badge -->
+              <div class="flex items-center justify-between p-space-md rounded-xl bg-surface-container-low border border-outline-variant/30 relative z-10">
+                <div class="flex flex-col">
+                  <span class="font-label-caps text-label-caps text-outline uppercase">საორიენტაციო ვადა</span>
+                  <span class="font-headline-sm text-headline-sm text-primary font-medium transition-all duration-300" id="calc-timeline-result">4–6 კვირა</span>
+                </div>
+                <div class="flex flex-col items-end gap-1">
+                  <span class="material-symbols-outlined text-secondary text-[26px] animate-pulse">schedule</span>
+                  <span class="font-technical-code text-[10px] text-secondary uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-container" id="calc-timeline-mode-label">STANDARD REPO</span>
+                </div>
+              </div>
+
+              <!-- Itemized Engineering Cost Breakdown -->
+              <div class="p-space-md rounded-xl bg-surface-container-low/80 border border-outline-variant/30 flex flex-col gap-2 relative z-10 font-technical-code text-technical-code">
+                <div class="flex items-center justify-between pb-1 border-b border-outline-variant/20 font-label-caps text-[10px] text-outline uppercase tracking-wider">
+                  <span>კომპონენტი</span>
+                  <span>შეფასება</span>
+                </div>
+                <div class="flex items-center justify-between text-on-surface-variant">
+                  <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-primary/70"></span> საბაზისო მოდელირება (ARCH/STRUCT/MEP)</span>
+                  <span class="text-primary" id="calc-breakdown-base">11,000 ₾</span>
+                </div>
+                <div class="flex items-center justify-between text-on-surface-variant">
+                  <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> კოორდინაცია &amp; Clash Detection</span>
+                  <span class="text-secondary" id="calc-breakdown-clash">+1,650 ₾</span>
+                </div>
+                <div class="flex items-center justify-between text-on-surface-variant" id="calc-discount-row">
+                  <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> მასშტაბის ფასდაკლება (>10k მ²)</span>
+                  <span class="text-emerald-400 font-semibold" id="calc-breakdown-discount">0 ₾ (0%)</span>
+                </div>
+                <div class="flex items-center justify-between text-on-surface-variant" id="calc-express-row" style="display: none;">
+                  <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Express დაჩქარებული ტემპი</span>
+                  <span class="text-amber-400" id="calc-breakdown-express">+3,162 ₾</span>
+                </div>
+              </div>
+
+              <!-- Format Pills -->
+              <div class="flex flex-col gap-2 relative z-10">
+                <span class="font-label-caps text-label-caps text-outline uppercase">მისაღები ფორმატები</span>
+                <div class="flex flex-wrap gap-1.5 font-technical-code text-technical-code text-secondary-fixed-dim">
+                  <span class="px-2 py-1 rounded bg-surface-container-low border border-outline-variant/30 hover:border-secondary/40 transition-colors cursor-default">.RVT</span>
+                  <span class="px-2 py-1 rounded bg-surface-container-low border border-outline-variant/30 hover:border-secondary/40 transition-colors cursor-default">.IFC 4</span>
+                  <span class="px-2 py-1 rounded bg-surface-container-low border border-outline-variant/30 hover:border-secondary/40 transition-colors cursor-default">.NWD</span>
+                  <span class="px-2 py-1 rounded bg-surface-container-low border border-outline-variant/30 hover:border-secondary/40 transition-colors cursor-default">.DWG</span>
+                  <span class="px-2 py-1 rounded bg-surface-container-low border border-outline-variant/30 hover:border-secondary/40 transition-colors cursor-default">PDF Sheets</span>
+                </div>
+              </div>
+
+              <!-- Action CTA: Scrolls & pre-fills contact form -->
+              <a class="relative group overflow-hidden w-full h-12 inline-flex items-center justify-center rounded-xl bg-primary text-on-primary font-body-md text-body-md font-semibold hover:bg-secondary-fixed hover:shadow-[0_0_24px_rgba(168,199,229,0.4)] active:scale-95 transition-all duration-200" href="#contact" id="calc-cta-btn">
+                <span class="relative z-10 flex items-center">
+                  შეთავაზების მიღება ამ მონაცემებით
+                  <span class="material-symbols-outlined ml-2 text-[18px] group-hover:translate-x-1 transition-transform">send</span>
+                </span>
+                <span class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out"></span>
+              </a>
+            </div>
           </div>
-          <div>
-            <input type="tel" class="input-styled-field" id="contactPhone" required data-i18n-ph="contact_form_phone" placeholder="ტელეფონის ნომერი">
+        </div>
+      </section>
+
+      <!-- ==================== CONTACT & INTAKE SECTION ==================== -->
+      <section class="w-full px-gutter py-space-xl reveal-on-scroll is-visible" id="contact">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-space-xl">
+          <!-- Contact Details Column -->
+          <div class="lg:col-span-5 flex flex-col justify-between gap-space-lg">
+            <div class="flex flex-col gap-space-md">
+              <span class="font-label-caps text-label-caps text-secondary uppercase tracking-widest">კონტაქტი</span>
+              <h2 class="font-headline-lg text-headline-lg text-primary font-semibold">დაიწყეთ თქვენი პროექტი</h2>
+              <p class="font-body-md text-body-md text-on-surface-variant max-w-md leading-relaxed">
+                მოგვწერეთ პროექტის მოკლე აღწერა ან დაგვიკავშირდით პირდაპირ. ჩვენი საინჟინრო გუნდი გაგიწევთ ამომწურავ წინასწარ ანალიზს.
+              </p>
+
+              <div class="flex flex-col gap-space-md pt-space-sm">
+                <!-- Phone -->
+                <div class="flex items-center gap-space-sm group">
+                  <div class="w-10 h-10 rounded-xl bg-surface-container group-hover:bg-secondary-container flex items-center justify-center text-secondary group-hover:text-secondary-fixed transition-colors">
+                    <span class="material-symbols-outlined text-[20px]">call</span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="font-label-caps text-label-caps text-outline uppercase">ტელეფონი</span>
+                    <a class="font-technical-code text-technical-code text-primary hover:text-secondary transition-colors" href="tel:+995599000000">+995 (599) 00-00-00</a>
+                  </div>
+                </div>
+
+                <!-- Email -->
+                <div class="flex items-center gap-space-sm group">
+                  <div class="w-10 h-10 rounded-xl bg-surface-container group-hover:bg-secondary-container flex items-center justify-center text-secondary group-hover:text-secondary-fixed transition-colors">
+                    <span class="material-symbols-outlined text-[20px]">mail</span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="font-label-caps text-label-caps text-outline uppercase">ელ-ფოსტა</span>
+                    <a class="font-technical-code text-technical-code text-primary hover:text-secondary transition-colors" href="mailto:info@bimx.ge">info@bimx.ge</a>
+                  </div>
+                </div>
+
+                <!-- Social Links -->
+                <div class="flex items-center gap-space-sm group">
+                  <div class="w-10 h-10 rounded-xl bg-surface-container group-hover:bg-secondary-container flex items-center justify-center text-secondary group-hover:text-secondary-fixed transition-colors">
+                    <span class="material-symbols-outlined text-[20px]">share</span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="font-label-caps text-label-caps text-outline uppercase">სოციალური ქსელები</span>
+                    <div class="flex items-center gap-2 pt-0.5 text-on-surface-variant font-technical-code text-technical-code">
+                      <a class="hover:text-primary transition-colors" href="https://www.instagram.com/_bim_x_/" target="_blank">Instagram</a>
+                      <span>·</span>
+                      <a class="hover:text-primary transition-colors" href="https://wa.me/995599000000" target="_blank">WhatsApp</a>
+                      <span>·</span>
+                      <a class="hover:text-primary transition-colors" href="https://www.linkedin.com" target="_blank">LinkedIn</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mini Brand Node Badge -->
+            <div class="p-space-md rounded-xl bg-surface-container-low border border-outline-variant/30 flex items-center gap-space-sm hover:border-secondary/40 transition-colors">
+              <span class="material-symbols-outlined text-secondary text-[24px]">verified_user</span>
+              <div class="flex flex-col">
+                <span class="font-body-sm text-body-sm text-primary font-medium">BIMX Confidentiality Guarantee</span>
+                <span class="font-technical-code text-technical-code text-outline">ყველა დოკუმენტაცია დაცულია NDA-ით</span>
+              </div>
+            </div>
           </div>
-          <div>
-            <select class="select-input-styled" id="contactService">
-              <option value="" disabled selected data-i18n="contact_form_service">სასურველი მიმართულება</option>
-              <option value="arch" data-i18n="mod_1_title">არქიტექტურული BIM</option>
-              <option value="struct" data-i18n="mod_2_title">სამშენებლო კონსტრუქციები</option>
-              <option value="mep" data-i18n="mod_3_title">MEP საინჟინრო ქსელები</option>
-              <option value="clash" data-i18n="mod_4_title">Clash Detection & კოორდინაცია</option>
-              <option value="scan" data-i18n="mod_5_title">Scan to BIM & ციფრული ტყუპი</option>
-            </select>
+
+          <!-- Intake Form Column -->
+          <div class="lg:col-span-7 p-space-xl rounded-2xl bg-surface-container-low border border-outline-variant/40 shadow-xl">
+            <form class="flex flex-col gap-space-md" id="contact-form" onsubmit="event.preventDefault(); alert('თქვენი მოთხოვნა წარმატებით გაიგზავნა!');">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
+                <div class="flex flex-col gap-1.5">
+                  <label class="font-body-sm text-body-sm text-on-surface-variant">თქვენი სახელი / კომპანია</label>
+                  <input class="w-full h-11 px-3.5 rounded-lg bg-surface-container text-on-surface border border-outline-variant/30 placeholder-outline-variant focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-all" placeholder="მაგ: გიორგი ბერიძე" required type="text">
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <label class="font-body-sm text-body-sm text-on-surface-variant">ელ-ფოსტა</label>
+                  <input class="w-full h-11 px-3.5 rounded-lg bg-surface-container text-on-surface border border-outline-variant/30 placeholder-outline-variant focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-all" placeholder="name@company.ge" required type="email">
+                </div>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
+                <div class="flex flex-col gap-1.5">
+                  <label class="font-body-sm text-body-sm text-on-surface-variant">ტელეფონის ნომერი</label>
+                  <input class="w-full h-11 px-3.5 rounded-lg bg-surface-container text-on-surface border border-outline-variant/30 placeholder-outline-variant focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-all" placeholder="+995 5__ __ __ __" type="tel">
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <label class="font-body-sm text-body-sm text-on-surface-variant">სასურველი მიმართულება</label>
+                  <div class="relative">
+                    <select class="w-full h-11 px-3.5 rounded-lg bg-surface-container text-on-surface border border-outline-variant/30 font-body-md text-body-md appearance-none focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-all cursor-pointer" id="contact-direction-select">
+                      <option value="arch">არქიტექტურული BIM</option>
+                      <option value="struct">სამშენებლო კონსტრუქციები</option>
+                      <option value="mep">MEP საინჟინრო ქსელები</option>
+                      <option value="clash">Clash Detection &amp; კოორდინაცია</option>
+                      <option value="complex">კომპლექსური BIM &amp; კოორდინაცია</option>
+                      <option value="scan">Scan to BIM &amp; ციფრული ტყუპი</option>
+                    </select>
+                    <span class="material-symbols-outlined absolute right-3 top-3 text-outline pointer-events-none text-[20px]">expand_more</span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <label class="font-body-sm text-body-sm text-on-surface-variant">პროექტის მოკლე აღწერა</label>
+                <textarea class="w-full p-3.5 rounded-lg bg-surface-container text-on-surface border border-outline-variant/30 font-body-md text-body-md placeholder-outline-variant focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary resize-none transition-all" id="contact-message" placeholder="გთხოვთ მიუთითოთ ობიექტის სავარაუდო ფართობი, ლოკაცია და მიზანი..." rows="4"></textarea>
+              </div>
+              <button class="relative group overflow-hidden w-full h-12 inline-flex items-center justify-center rounded-xl bg-primary text-on-primary font-body-md text-body-md font-semibold hover:bg-secondary-fixed hover:shadow-[0_0_24px_rgba(161,204,237,0.4)] active:scale-95 transition-all duration-200 mt-2" type="submit">
+                <span class="relative z-10 flex items-center">
+                  მოთხოვნის გაგზავნა
+                  <span class="material-symbols-outlined ml-2 text-[18px] group-hover:translate-x-1 transition-transform">send</span>
+                </span>
+                <span class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out"></span>
+              </button>
+            </form>
           </div>
-          <div>
-            <textarea class="textarea-styled-field" id="contactMsg" rows="4" required data-i18n-ph="contact_form_msg" placeholder="პროექტის მოკლე აღწერა"></textarea>
-          </div>
-          <button type="submit" class="btn-pill btn-pill-primary" style="width: 100%; padding: 15px; font-size: 1rem;" data-i18n="contact_form_submit">
-            მოთხოვნის გაგზავნა
-          </button>
-          <div class="form-alert-msg" id="formAlertMsg"></div>
-        </form>
-      </div>
+        </div>
+      </section>
+
     </div>
-  </section>
+  </main>
 
-  <!-- ==========================================================================
-       Footer
-       ========================================================================== -->
-  <footer class="footer-widescreen">
-    <div class="container-fluid">
-      <div class="footer-top-split">
-        <div>
-          <a href="index.html" class="brand-logo-link">
-            <img src="assets/images/logo.png" alt="BIMX Studio" class="brand-logo-img">
-          </a>
-          <p class="label-hud" style="margin-top: 14px; max-width: 400px;" data-i18n="footer_tagline">
-            Building Information Modeling & Digital Engineering Excellence.
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="w-full bg-surface-container-lowest py-space-xl mt-space-xl border-t border-outline-variant/30 shadow-[0_-1px_16px_rgba(0,0,0,0.5)]">
+    <div class="w-full px-gutter">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-space-xl pb-space-lg">
+        <div class="lg:col-span-2 flex flex-col gap-space-md">
+          <div class="flex items-center gap-space-sm group">
+            <img alt="BIMX Logo" class="h-7 w-auto object-contain transition-transform group-hover:scale-105" src="https://lh3.googleusercontent.com/aida/AEtjO1UlQpLmx3hxMLrFft0DZd9fgb_zM6MGcwAutdadGpF3vMTF4O9GXDKcqZFAVeWvxpupLDWhlmcsfzZ8xQ-LKZA1eWrX7BjUUmZ5P4TrA46ZJZL1ssPJOH6MwiSt9bTS-cIkJ4KM3Dr0Ud_lWy8u_MzNfOtA8cmvY3p-1AsglJo9lqy0tHHJ9FLTfRuVYVxllZV2iAOkS9Ssf4ZgqY6NcqnZt1FWKN8IPZE_lhjE5AVg8jkyrltPVLM-aLh_ElX224se7IL1ZAbLuqI">
+            <span class="font-headline-sm text-headline-sm text-primary font-semibold">BIMX Studio</span>
+          </div>
+          <p class="font-body-md text-body-md text-on-surface-variant max-w-md">
+            ავტონომიური BIM და GIS საინჟინრო ინფრასტრუქტურა. პარამეტრული პროექტირება, ციფრული ტყუპები და სივრცითი გამოთვლები ISO 19650 სტანდარტით.
           </p>
+          <div class="flex flex-wrap items-center gap-space-sm pt-space-xs">
+            <span class="px-2.5 py-1 rounded bg-surface-container-low border border-outline-variant/30 font-technical-code text-technical-code text-secondary-fixed-dim hover:border-secondary/40 transition-colors">ISO 19650 CERTIFIED</span>
+            <span class="px-2.5 py-1 rounded bg-surface-container-low border border-outline-variant/30 font-technical-code text-technical-code text-secondary-fixed-dim hover:border-secondary/40 transition-colors">OPENBIM ALLIANCE</span>
+            <span class="px-2.5 py-1 rounded bg-surface-container-low border border-outline-variant/30 font-technical-code text-technical-code text-secondary-fixed-dim hover:border-secondary/40 transition-colors">IFC4.3 / BCF</span>
+          </div>
         </div>
 
-        <div class="socials-round-list">
-          <a href="https://www.instagram.com/_bim_x_/" target="_blank" class="round-social-btn" aria-label="Instagram">
-            <i class="fa-brands fa-instagram"></i>
-          </a>
-          <a href="https://wa.me/995599000000" target="_blank" class="round-social-btn" aria-label="WhatsApp">
-            <i class="fa-brands fa-whatsapp"></i>
-          </a>
-          <a href="https://www.facebook.com" target="_blank" class="round-social-btn" aria-label="Facebook">
-            <i class="fa-brands fa-facebook-f"></i>
-          </a>
-          <a href="https://www.linkedin.com" target="_blank" class="round-social-btn" aria-label="LinkedIn">
-            <i class="fa-brands fa-linkedin-in"></i>
-          </a>
+        <div class="flex flex-col gap-space-sm">
+          <span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">პლატფორმა</span>
+          <a class="nav-link w-fit font-body-md text-body-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="services" href="#modules">სერვისები</a>
+          <a class="nav-link w-fit font-body-md text-body-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="bim-modules" href="#modules">BIM მოდულები</a>
+          <a class="nav-link w-fit font-body-md text-body-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="gis-analysis" href="land-intelligence.html">GIS ანალიტიკა</a>
+          <a class="nav-link w-fit font-body-md text-body-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="parcel-ai" href="parcel-ai.html">AI საკადასტრო პასპორტი</a>
+          <a class="nav-link w-fit font-body-md text-body-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="calculator" href="#calculator">ფასის კალკულატორი</a>
+        </div>
+
+        <div class="flex flex-col gap-space-sm">
+          <span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">კომპანია</span>
+          <a class="nav-link w-fit font-body-md text-body-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="projects" href="#projects">პროექტების პორტფოლიო</a>
+          <a class="nav-link w-fit font-body-md text-body-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="consultation" href="#contact">ექსპერტული კონსულტაცია</a>
+          <a class="nav-link w-fit font-body-md text-body-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="contact" href="#contact">საკონტაქტო ცენტრი</a>
+          <a class="nav-link w-fit font-body-md text-body-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="standards" href="#philosophy">OpenBIM &amp; ISO სტანდარტები</a>
+        </div>
+
+        <div class="flex flex-col gap-space-sm">
+          <span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">კონტაქტი &amp; ქსელი</span>
+          <div class="flex flex-col gap-space-xs font-technical-code text-technical-code text-on-surface-variant">
+            <span class="text-primary">Tbilisi, Georgia</span>
+            <span>portal@architect2.ge</span>
+            <span>+995 32 200 00 00</span>
+          </div>
+          <div class="flex items-center gap-space-sm pt-space-xs">
+            <a aria-label="BIMX Network Node" class="w-8 h-8 rounded-lg bg-surface-container-low border border-outline-variant/30 flex items-center justify-center text-on-surface-variant hover:text-primary hover:border-secondary hover:bg-surface-container-high transition-all active:scale-95" href="#">
+              <span class="material-symbols-outlined text-[16px]">hub</span>
+            </a>
+            <a aria-label="Code Repository" class="w-8 h-8 rounded-lg bg-surface-container-low border border-outline-variant/30 flex items-center justify-center text-on-surface-variant hover:text-primary hover:border-secondary hover:bg-surface-container-high transition-all active:scale-95" href="#">
+              <span class="material-symbols-outlined text-[16px]">terminal</span>
+            </a>
+            <a aria-label="Global Coordinates" class="w-8 h-8 rounded-lg bg-surface-container-low border border-outline-variant/30 flex items-center justify-center text-on-surface-variant hover:text-primary hover:border-secondary hover:bg-surface-container-high transition-all active:scale-95" href="#">
+              <span class="material-symbols-outlined text-[16px]">public</span>
+            </a>
+          </div>
         </div>
       </div>
 
-      <div class="footer-bottom-split">
-        <p>&copy; 2026 BIMX Studio. <span data-i18n="footer_rights">ყველა უფლება დაცულია.</span></p>
-        <p class="label-hud">Autonomous BIM Platform · Design by Nukri</p>
+      <div class="pt-space-lg mt-space-lg border-t border-outline-variant/20 flex flex-col md:flex-row items-center justify-between gap-space-sm text-center md:text-left">
+        <p class="font-technical-code text-technical-code text-outline">© 2026 BIMX Studio. Autonomous BIM Platform. All rights reserved.</p>
+        <div class="flex items-center gap-space-md font-technical-code text-technical-code text-outline-variant">
+          <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span> SYS_STATUS: ONLINE</span>
+          <span>LATENCY: 14ms</span>
+          <span>SEC_LEVEL: TIER-IV</span>
+        </div>
       </div>
     </div>
   </footer>
 
-  <!-- Scripts -->
-  <script src="translations.js"></script>
-  <script src="main.js"></script>
+  <!-- ==================== FLOATING LIVE EDITOR BAR ==================== -->
+  <aside id="floating-editor-bar" class="fixed bottom-6 inset-x-0 mx-auto w-fit z-50 transition-all duration-300 transform translate-y-24 opacity-0 pointer-events-none">
+    <div class="flex items-center gap-3 px-4 py-2.5 rounded-full bg-surface-dim/95 backdrop-blur-xl border border-secondary/50 shadow-[0_8px_32px_rgba(0,0,0,0.6)] font-technical-code text-technical-code text-primary">
+      <div class="flex items-center gap-2 pr-3 border-r border-outline-variant/40">
+        <span class="relative flex h-2.5 w-2.5">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400"></span>
+        </span>
+        <span class="font-medium text-emerald-400 text-xs">LIVE EDIT ON</span>
+      </div>
+      <span class="text-on-surface-variant text-xs hidden sm:inline">ტექსტები დაკლიკვადია</span>
+      <button id="float-save-btn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-on-primary hover:bg-secondary font-semibold text-xs transition-all active:scale-95 shadow">
+        <span class="material-symbols-outlined text-[16px]">save</span>
+        <span>შენახვა</span>
+      </button>
+      <button id="float-admin-open" type="button" class="p-1.5 rounded-full hover:bg-surface-container-high text-secondary hover:text-primary transition-all" title="ადმინ პანელის გახსნა">
+        <span class="material-symbols-outlined text-[18px]">settings</span>
+      </button>
+      <button id="float-close-edit" type="button" class="p-1.5 rounded-full hover:bg-surface-container-high text-outline hover:text-error transition-all" title="რედაქტირების გამორთვა">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ==================== ADMIN HUB MODAL ==================== -->
+  <div id="admin-hub-modal" class="fixed inset-0 z-50 hidden">
+    <div id="admin-hub-backdrop" class="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-300"></div>
+    <div class="fixed inset-y-0 right-0 w-full max-w-xl bg-surface-container-low border-l border-outline-variant/40 shadow-2xl flex flex-col z-10 transform transition-transform duration-300">
+      <div class="p-4 border-b border-outline-variant/30 flex items-center justify-between bg-surface-container">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-lg bg-secondary-container text-secondary flex items-center justify-center">
+            <span class="material-symbols-outlined text-[22px]">tune</span>
+          </div>
+          <div>
+            <h3 class="font-headline-sm text-headline-sm text-primary font-semibold">BIMX Admin Center</h3>
+            <span class="font-technical-code text-[11px] text-secondary">ინლაინ მართვა &amp; ტარიფები</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="px-2 py-0.5 rounded bg-surface-container-highest font-technical-code text-[10px] text-outline">v2.6.4</span>
+          <button id="admin-close-btn" type="button" class="w-8 h-8 rounded-lg hover:bg-surface-container-high text-outline hover:text-primary flex items-center justify-center transition-all">
+            <span class="material-symbols-outlined text-[20px]">close</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1 p-2 bg-surface-container-lowest border-b border-outline-variant/30 overflow-x-auto font-body-sm text-body-sm">
+        <button type="button" data-adm-tab="content" class="adm-tab-btn active px-3 py-1.5 rounded-lg bg-surface-container-high text-primary font-medium shadow-sm transition-all flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[16px]">edit_note</span>კონტენტი
+        </button>
+        <button type="button" data-adm-tab="rates" class="adm-tab-btn px-3 py-1.5 rounded-lg text-on-surface-variant hover:text-primary transition-all flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[16px]">calculate</span>ტარიფები
+        </button>
+        <button type="button" data-adm-tab="leads" class="adm-tab-btn px-3 py-1.5 rounded-lg text-on-surface-variant hover:text-primary transition-all flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[16px]">inbox</span>შემოსული მოთხოვნები <span class="px-1.5 py-0.2 rounded-full bg-secondary-container text-on-secondary-container text-[10px]">3</span>
+        </button>
+        <button type="button" data-adm-tab="system" class="adm-tab-btn px-3 py-1.5 rounded-lg text-on-surface-variant hover:text-primary transition-all flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[16px]">terminal</span>სისტემა
+        </button>
+      </div>
+
+      <div class="p-5 flex-1 overflow-y-auto space-y-5">
+        <!-- Tab: Content -->
+        <div id="adm-tab-content" class="adm-tab-pane space-y-4">
+          <div class="p-3.5 rounded-xl bg-surface-container border border-outline-variant/30 flex items-center justify-between">
+            <div class="flex flex-col">
+              <span class="font-body-md text-primary font-medium">ინლაინ ვიზუალური რედაქტირება</span>
+              <span class="font-technical-code text-[11px] text-outline">საშუალებას გაძლევთ პირდაპირ გვერდზე შეცვალოთ სათაურები</span>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input id="adm-inline-toggle" type="checkbox" class="sr-only peer">
+              <div class="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary"></div>
+            </label>
+          </div>
+
+          <div class="space-y-3">
+            <label class="font-label-caps text-label-caps text-secondary uppercase">Hero მთავარი სათაური</label>
+            <textarea id="adm-hero-title" rows="2" class="w-full p-2.5 rounded-lg bg-surface-container text-on-surface border border-outline-variant/30 text-body-md focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all"></textarea>
+          </div>
+          <div class="space-y-3">
+            <label class="font-label-caps text-label-caps text-secondary uppercase">საკონტაქტო ტელეფონი</label>
+            <input id="adm-contact-phone" type="text" value="+995 (599) 00-00-00" class="w-full h-10 px-3 rounded-lg bg-surface-container text-on-surface border border-outline-variant/30 font-technical-code text-technical-code focus:border-secondary outline-none transition-all">
+          </div>
+          <div class="space-y-3">
+            <label class="font-label-caps text-label-caps text-secondary uppercase">საკონტაქტო ელ-ფოსტა</label>
+            <input id="adm-contact-email" type="text" value="info@bimx.ge" class="w-full h-10 px-3 rounded-lg bg-surface-container text-on-surface border border-outline-variant/30 font-technical-code text-technical-code focus:border-secondary outline-none transition-all">
+          </div>
+        </div>
+
+        <!-- Tab: Rates -->
+        <div id="adm-tab-rates" class="adm-tab-pane hidden space-y-4">
+          <p class="font-body-sm text-on-surface-variant">კალკულატორის საპროექტო ტარიფები 1 მ²-ზე (₾):</p>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="p-3 rounded-xl bg-surface-container border border-outline-variant/30">
+              <label class="text-[11px] text-outline font-technical-code">კომერციული / მ²</label>
+              <input id="adm-rate-commercial" type="number" step="0.1" value="2.20" class="w-full h-9 mt-1 px-2 rounded bg-surface-container-low text-primary font-technical-code border border-outline-variant/40">
+            </div>
+            <div class="p-3 rounded-xl bg-surface-container border border-outline-variant/30">
+              <label class="text-[11px] text-outline font-technical-code">საცხოვრებელი / მ²</label>
+              <input id="adm-rate-residential" type="number" step="0.1" value="1.80" class="w-full h-9 mt-1 px-2 rounded bg-surface-container-low text-primary font-technical-code border border-outline-variant/40">
+            </div>
+            <div class="p-3 rounded-xl bg-surface-container border border-outline-variant/30">
+              <label class="text-[11px] text-outline font-technical-code">ინდუსტრიული / მ²</label>
+              <input id="adm-rate-industrial" type="number" step="0.1" value="1.20" class="w-full h-9 mt-1 px-2 rounded bg-surface-container-low text-primary font-technical-code border border-outline-variant/40">
+            </div>
+            <div class="p-3 rounded-xl bg-surface-container border border-outline-variant/30">
+              <label class="text-[11px] text-outline font-technical-code">საზოგადოებრივი / მ²</label>
+              <input id="adm-rate-public" type="number" step="0.1" value="2.60" class="w-full h-9 mt-1 px-2 rounded bg-surface-container-low text-primary font-technical-code border border-outline-variant/40">
+            </div>
+          </div>
+          <div class="pt-2 border-t border-outline-variant/30">
+            <button id="adm-apply-rates" type="button" class="w-full py-2 rounded-lg bg-secondary text-on-secondary font-technical-code text-technical-code font-semibold hover:bg-secondary-fixed transition-all">ტარიფების განახლება &amp; გადათვლა</button>
+          </div>
+        </div>
+
+        <!-- Tab: Leads -->
+        <div id="adm-tab-leads" class="adm-tab-pane hidden space-y-3">
+          <div class="p-3 rounded-xl bg-surface-container border border-outline-variant/30 flex items-center justify-between text-body-sm">
+            <div class="flex flex-col">
+              <span class="font-medium text-primary">შპს ალფა დეველოპმენტი</span>
+              <span class="text-[11px] text-outline font-technical-code">15,000 მ² · ARCH + MEP · 37,950 ₾</span>
+            </div>
+            <span class="px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 font-technical-code text-[10px]">ახალი</span>
+          </div>
+          <div class="p-3 rounded-xl bg-surface-container border border-outline-variant/30 flex items-center justify-between text-body-sm">
+            <div class="flex flex-col">
+              <span class="font-medium text-primary">სითი თაუერი II</span>
+              <span class="text-[11px] text-outline font-technical-code">30,000 მ² · Full BIM + Clash · 67,320 ₾</span>
+            </div>
+            <span class="px-2 py-0.5 rounded bg-secondary-container text-secondary text-[10px] font-technical-code">განხილვაში</span>
+          </div>
+          <div class="p-3 rounded-xl bg-surface-container border border-outline-variant/30 flex items-center justify-between text-body-sm">
+            <div class="flex flex-col">
+              <span class="font-medium text-primary">სასაწყობო პარკი ლილო</span>
+              <span class="text-[11px] text-outline font-technical-code">8,000 მ² · Scan-to-BIM · 9,600 ₾</span>
+            </div>
+            <span class="px-2 py-0.5 rounded bg-emerald-400/20 text-emerald-300 font-technical-code text-[10px]">დამტკიცებული</span>
+          </div>
+        </div>
+
+        <!-- Tab: System -->
+        <div id="adm-tab-system" class="adm-tab-pane hidden space-y-4">
+          <div class="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/30 font-technical-code text-technical-code space-y-2">
+            <div class="flex justify-between"><span class="text-outline">ENVIRONMENT:</span><span class="text-emerald-400">PRODUCTION // GEO-EAST</span></div>
+            <div class="flex justify-between"><span class="text-outline">ACTIVE USERS:</span><span class="text-primary">14 CONNECTED</span></div>
+            <div class="flex justify-between"><span class="text-outline">API LATENCY:</span><span class="text-secondary">12ms</span></div>
+            <div class="flex justify-between"><span class="text-outline">LOCAL_CACHE:</span><span class="text-primary">SYNCHRONIZED</span></div>
+          </div>
+          <button id="adm-reset-defaults" type="button" class="w-full py-2 rounded-lg bg-surface-container-high hover:bg-surface-bright text-error font-technical-code text-[11px] border border-outline-variant/30 transition-all">საწყის პარამეტრებზე დაბრუნება</button>
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-outline-variant/30 bg-surface-container flex items-center justify-between">
+        <span class="text-outline font-technical-code text-xs">BIMX Studio v2.6.4</span>
+        <button id="adm-save-all-btn" type="button" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-on-primary hover:bg-secondary font-semibold text-body-sm transition-all shadow">
+          <span class="material-symbols-outlined text-[18px]">check_circle</span>
+          <span>ცვლილებების შენახვა</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="admin-toast" class="fixed top-24 right-6 z-50 transform translate-y-[-20px] opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-surface-container border border-secondary/60 text-primary shadow-2xl font-technical-code text-technical-code">
+    <span class="material-symbols-outlined text-secondary text-[20px]">verified</span>
+    <span id="admin-toast-text">პარამეტრები წარმატებით შეინახა!</span>
+  </div>
+
+  <!-- ==================== SCRIPTS ==================== -->
+  <script>
+    (function () {
+      // Mobile menu drawer toggle
+      const mobileToggle = document.getElementById('mobile-menu-toggle');
+      const mobileDrawer = document.getElementById('mobile-nav-drawer');
+      if (mobileToggle && mobileDrawer) {
+        mobileToggle.addEventListener('click', () => {
+          mobileDrawer.classList.toggle('hidden');
+        });
+      }
+
+      // 1. High-Precision Engineering BIM Calculator Engine
+      const areaInput = document.getElementById('calc-area');
+      const areaNumInput = document.getElementById('calc-area-num');
+      const typeSelect = document.getElementById('calc-type');
+      const typeRateBadge = document.getElementById('calc-type-rate-badge');
+      const lodSelect = document.getElementById('calc-lod');
+      const lodFactorBadge = document.getElementById('calc-lod-factor-badge');
+      const disciplines = document.querySelectorAll('.calc-discipline');
+      const speedBtns = document.querySelectorAll('.calc-speed-btn');
+      const presetBtns = document.querySelectorAll('.area-preset-btn');
+      
+      const priceResult = document.getElementById('calc-price-result');
+      const timelineResult = document.getElementById('calc-timeline-result');
+      const timelineModeLabel = document.getElementById('calc-timeline-mode-label');
+      const unitRateResult = document.getElementById('calc-unit-rate');
+      
+      const breakdownBase = document.getElementById('calc-breakdown-base');
+      const breakdownClash = document.getElementById('calc-breakdown-clash');
+      const breakdownDiscount = document.getElementById('calc-breakdown-discount');
+      const breakdownExpress = document.getElementById('calc-breakdown-express');
+      const expressRow = document.getElementById('calc-express-row');
+      const discountRow = document.getElementById('calc-discount-row');
+
+      let currentSpeed = 'standard'; // 'standard' | 'express'
+
+      // Building Type Rates (GEL per m²)
+      const buildingTypeRates = {
+        commercial: 2.2,
+        residential: 1.8,
+        industrial: 1.2,
+        public: 2.6
+      };
+
+      // LOD Multipliers
+      const lodMultipliers = {
+        lod200: 0.7,
+        lod300: 1.0,
+        lod350: 1.35,
+        lod400: 1.65
+      };
+
+      function formatGEL(num) {
+        return Math.round(num).toLocaleString('en-US') + ' ₾';
+      }
+
+      function updateCalculation() {
+        if (!areaInput || !priceResult || !timelineResult) return;
+
+        const area = Math.max(200, parseFloat(areaInput.value) || 5000);
+        const typeKey = typeSelect ? typeSelect.value : 'commercial';
+        const baseRate = buildingTypeRates[typeKey] || 2.2;
+
+        if (typeRateBadge) {
+          typeRateBadge.textContent = 'ტარიფი: ' + baseRate.toFixed(2) + ' ₾/მ²';
+        }
+
+        const lodKey = lodSelect ? lodSelect.value : 'lod300';
+        const lodMult = lodMultipliers[lodKey] || 1.0;
+
+        if (lodFactorBadge) {
+          lodFactorBadge.textContent = 'კოეფიციენტი: ' + lodMult.toFixed(2) + 'x';
+        }
+
+        // Evaluate Selected Disciplines
+        let disciplineWeightSum = 0;
+        let hasArch = false;
+        let hasStruct = false;
+        let hasMep = false;
+        let hasClash = false;
+
+        disciplines.forEach(cb => {
+          const dType = cb.getAttribute('data-discipline');
+          if (cb.checked) {
+            if (dType === 'arch') { hasArch = true; disciplineWeightSum += 0.35; }
+            if (dType === 'struct') { hasStruct = true; disciplineWeightSum += 0.30; }
+            if (dType === 'mep') { hasMep = true; disciplineWeightSum += 0.35; }
+            if (dType === 'clash') { hasClash = true; }
+          }
+        });
+
+        // Default floor if no primary model disciplines checked
+        if (disciplineWeightSum === 0) {
+          disciplineWeightSum = 0.35;
+        }
+
+        // Base modeling cost = area * baseRate * disciplineWeightSum * lodMult
+        let baseModelingCost = area * baseRate * disciplineWeightSum * lodMult;
+
+        // Clash Detection coordination add-on (+15% of modeling scope)
+        let clashCost = 0;
+        if (hasClash) {
+          clashCost = Math.max(1200, baseModelingCost * 0.15);
+        }
+
+        let subtotal = baseModelingCost + clashCost;
+
+        // Scale Economy Discount: for area > 10,000 m², up to 15% reduction
+        let discountPercent = 0;
+        if (area > 10000) {
+          if (area >= 30000) {
+            discountPercent = 0.15; // 15% discount
+          } else if (area >= 20000) {
+            discountPercent = 0.10; // 10% discount
+          } else {
+            discountPercent = 0.05; // 5% discount
+          }
+        }
+
+        const discountAmount = subtotal * discountPercent;
+        let discountedTotal = subtotal - discountAmount;
+
+        // Speed Mode (Express: +25% cost, -30% time)
+        let expressSurcharge = 0;
+        if (currentSpeed === 'express') {
+          expressSurcharge = discountedTotal * 0.25;
+          if (expressRow) {
+            expressRow.style.display = 'flex';
+            breakdownExpress.textContent = '+' + formatGEL(expressSurcharge);
+          }
+        } else {
+          if (expressRow) expressRow.style.display = 'none';
+        }
+
+        const finalTotal = discountedTotal + expressSurcharge;
+        const unitRate = finalTotal / area;
+
+        // Timeline Calculation (weeks)
+        const activeCount = (hasArch ? 1 : 0) + (hasStruct ? 1 : 0) + (hasMep ? 1 : 0) + (hasClash ? 0.5 : 0);
+        let calculatedWeeks = 3.0 + (area / 3500) * (lodMult * 0.6) * (Math.max(1, activeCount) * 0.45);
+
+        if (currentSpeed === 'express') {
+          calculatedWeeks = Math.max(2, calculatedWeeks * 0.70);
+        }
+
+        const minWeeks = Math.max(2, Math.floor(calculatedWeeks));
+        const maxWeeks = Math.max(minWeeks + 1, Math.ceil(calculatedWeeks * 1.15));
+
+        // Update DOM displays
+        priceResult.textContent = formatGEL(finalTotal);
+        timelineResult.textContent = minWeeks + '–' + maxWeeks + ' კვირა';
+        if (unitRateResult) {
+          unitRateResult.textContent = '₾ ' + unitRate.toFixed(2) + ' / მ²';
+        }
+
+        if (timelineModeLabel) {
+          timelineModeLabel.textContent = currentSpeed === 'express' ? 'EXPRESS MODE (-30% დრო)' : 'STANDARD REPO';
+          timelineModeLabel.className = currentSpeed === 'express' 
+            ? 'font-technical-code text-[10px] text-amber-300 uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-950/60 border border-amber-500/30'
+            : 'font-technical-code text-[10px] text-secondary uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-container';
+        }
+
+        // Breakdown items
+        if (breakdownBase) breakdownBase.textContent = formatGEL(baseModelingCost);
+        if (breakdownClash) breakdownClash.textContent = hasClash ? '+' + formatGEL(clashCost) : '0 ₾ (გამორთულია)';
+        if (breakdownDiscount) {
+          if (discountPercent > 0) {
+            breakdownDiscount.textContent = '-' + formatGEL(discountAmount) + ' (' + (discountPercent * 100) + '%)';
+          } else {
+            breakdownDiscount.textContent = '0 ₾ (0%)';
+          }
+        }
+
+        // Sync preset button styles
+        presetBtns.forEach(btn => {
+          const bVal = parseFloat(btn.getAttribute('data-value'));
+          if (Math.abs(bVal - area) < 100) {
+            btn.classList.add('bg-surface-container-high', 'border-secondary/50', 'text-secondary');
+            btn.classList.remove('bg-surface-container', 'border-outline-variant/30', 'text-outline');
+          } else {
+            btn.classList.remove('bg-surface-container-high', 'border-secondary/50', 'text-secondary');
+            btn.classList.add('bg-surface-container', 'border-outline-variant/30', 'text-outline');
+          }
+        });
+      }
+
+      // Sync slider & direct number input
+      if (areaInput && areaNumInput) {
+        areaInput.addEventListener('input', () => {
+          areaNumInput.value = areaInput.value;
+          updateCalculation();
+        });
+
+        areaNumInput.addEventListener('input', () => {
+          let v = parseFloat(areaNumInput.value) || 500;
+          if (v > 50000) {
+            areaInput.value = 50000;
+          } else {
+            areaInput.value = v;
+          }
+          updateCalculation();
+        });
+      }
+
+      // Presets
+      presetBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const val = btn.getAttribute('data-value');
+          if (areaInput) areaInput.value = val;
+          if (areaNumInput) areaNumInput.value = val;
+          updateCalculation();
+        });
+      });
+
+      // Type & LOD selects
+      if (typeSelect) typeSelect.addEventListener('change', updateCalculation);
+      if (lodSelect) lodSelect.addEventListener('change', updateCalculation);
+
+      // Disciplines
+      disciplines.forEach(cb => cb.addEventListener('change', updateCalculation));
+
+      // Speed toggles
+      speedBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          speedBtns.forEach(b => {
+            b.classList.remove('bg-surface-container-high', 'text-primary', 'shadow-sm', 'text-amber-300');
+            b.classList.add('text-outline');
+          });
+          btn.classList.remove('text-outline');
+          btn.classList.add('bg-surface-container-high', 'shadow-sm');
+          
+          currentSpeed = btn.getAttribute('data-speed');
+          if (currentSpeed === 'express') {
+            btn.classList.add('text-amber-300');
+          } else {
+            btn.classList.add('text-primary');
+          }
+          updateCalculation();
+        });
+      });
+
+      // Pre-fill into Contact form on CTA click
+      const calcCtaBtn = document.getElementById('calc-cta-btn');
+      const contactMsg = document.getElementById('contact-message');
+      const contactDirection = document.getElementById('contact-direction-select');
+
+      if (calcCtaBtn && contactMsg) {
+        calcCtaBtn.addEventListener('click', () => {
+          const area = areaNumInput ? areaNumInput.value : areaInput.value;
+          const typeText = typeSelect ? typeSelect.options[typeSelect.selectedIndex].text.split('(')[0].trim() : 'კომერციული';
+          const lodText = lodSelect ? lodSelect.options[lodSelect.selectedIndex].text.split('(')[0].trim() : 'LOD 300';
+          const estimatedBudget = priceResult ? priceResult.textContent : '';
+          const estimatedWeeks = timelineResult ? timelineResult.textContent : '';
+          
+          let selectedDisc = [];
+          disciplines.forEach(cb => {
+            if (cb.checked) {
+              const label = cb.closest('label').querySelector('span').textContent.trim();
+              selectedDisc.push(label);
+            }
+          });
+
+          if (contactDirection) {
+            if (selectedDisc.length > 2) {
+              contactDirection.value = 'complex';
+            } else if (selectedDisc.some(d => d.includes('არქიტექტურა'))) {
+              contactDirection.value = 'arch';
+            } else if (selectedDisc.some(d => d.includes('კონსტრუქციები'))) {
+              contactDirection.value = 'struct';
+            } else if (selectedDisc.some(d => d.includes('საინჟინრო'))) {
+              contactDirection.value = 'mep';
+            }
+          }
+
+          const msgDraft = `გამარჯობა, მსურს შეთავაზების მიღება კალკულატორით დაანგარიშებული პარამეტრებით:
+- ობიექტი: ${typeText}
+- ფართობი: ${Number(area).toLocaleString('en-US')} მ²
+- დეტალიზაცია: ${lodText}
+- არჩეული დისციპლინები: ${selectedDisc.join(', ')}
+- ვადის რეჟიმი: ${currentSpeed === 'express' ? 'Express (დაჩქარებული)' : 'სტანდარტული'}
+- საორიენტაციო ბიუჯეტი: ${estimatedBudget} (${estimatedWeeks})`;
+
+          contactMsg.value = msgDraft;
+
+          setTimeout(() => {
+            contactMsg.focus();
+            contactMsg.classList.add('ring-2', 'ring-secondary');
+            setTimeout(() => contactMsg.classList.remove('ring-2', 'ring-secondary'), 1800);
+          }, 350);
+        });
+      }
+
+      updateCalculation();
+
+      // 2. Project Category Filtering
+      const filterBtns = document.querySelectorAll('.project-filter-btn');
+      const projectCards = document.querySelectorAll('.project-card');
+
+      filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          filterBtns.forEach(b => {
+            b.classList.remove('bg-surface-container-high', 'text-primary', 'shadow-sm');
+            b.classList.add('text-on-surface-variant');
+          });
+          btn.classList.add('bg-surface-container-high', 'text-primary', 'shadow-sm');
+          btn.classList.remove('text-on-surface-variant');
+
+          const filter = btn.getAttribute('data-filter');
+          projectCards.forEach(card => {
+            const cat = card.getAttribute('data-category');
+            if (filter === 'all' || cat === filter) {
+              card.style.display = 'flex';
+              setTimeout(() => { card.style.opacity = '1'; card.style.transform = 'translateY(0)'; }, 20);
+            } else {
+              card.style.opacity = '0';
+              card.style.transform = 'translateY(10px)';
+              setTimeout(() => { card.style.display = 'none'; }, 200);
+            }
+          });
+        });
+      });
+
+      // 3. Viewport HUD Telemetry micro-ticker & 3D Interactive Parallax
+      const azimuthElem = document.getElementById('hud-azimuth');
+      const heroSection = document.getElementById('hero-section');
+      const viewportCard = document.getElementById('hero-viewport-card');
+      const viewportImg = document.getElementById('hud-img-target');
+      const viewportGrid = document.getElementById('hud-grid-overlay');
+      const hudTagSection = document.getElementById('hud-tag-section');
+      const hudTagClash = document.getElementById('hud-tag-clash');
+      const hudHeader = document.getElementById('hud-header');
+      const hudBottomBar = document.getElementById('hud-bottom-bar');
+
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      let baseAzimuth = 142.4;
+      let targetRotX = 0;
+      let targetRotY = 0;
+      let curRotX = 0;
+      let curRotY = 0;
+      let isHovered = false;
+
+      function renderTilt() {
+        if (prefersReducedMotion) return;
+
+        curRotX += (targetRotX - curRotX) * 0.12;
+        curRotY += (targetRotY - curRotY) * 0.12;
+
+        if (viewportCard) {
+          const scale = isHovered ? 1.02 : 1.0;
+          viewportCard.style.transform = `perspective(1000px) rotateX(${curRotX.toFixed(2)}deg) rotateY(${curRotY.toFixed(2)}deg) scale3d(${scale}, ${scale}, ${scale})`;
+        }
+
+        const pX = (curRotY / 14);
+        const pY = (curRotX / 14);
+
+        if (viewportImg) viewportImg.style.transform = `translate3d(${(pX * 8).toFixed(1)}px, ${(pY * 6).toFixed(1)}px, 15px) scale(1.05)`;
+        if (viewportGrid) viewportGrid.style.transform = `translate3d(${(-pX * 6).toFixed(1)}px, ${(-pY * 4).toFixed(1)}px, -20px) scale(1.04)`;
+        if (hudTagSection) hudTagSection.style.transform = `translate3d(${(pX * 16).toFixed(1)}px, ${(pY * 12).toFixed(1)}px, 45px)`;
+        if (hudTagClash) hudTagClash.style.transform = `translate3d(${(pX * 18).toFixed(1)}px, ${(pY * 14).toFixed(1)}px, 48px)`;
+        if (hudHeader) hudHeader.style.transform = `translate3d(${(pX * 10).toFixed(1)}px, ${(pY * 8).toFixed(1)}px, 30px)`;
+        if (hudBottomBar) hudBottomBar.style.transform = `translate3d(${(pX * 12).toFixed(1)}px, ${(pY * 9).toFixed(1)}px, 32px)`;
+
+        requestAnimationFrame(renderTilt);
+      }
+
+      if (heroSection && viewportCard && !prefersReducedMotion) {
+        requestAnimationFrame(renderTilt);
+
+        heroSection.addEventListener('mousemove', (e) => {
+          isHovered = true;
+          viewportCard.classList.remove('is-resetting');
+
+          const rect = viewportCard.getBoundingClientRect();
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+
+          const normX = Math.max(-1.5, Math.min(1.5, (e.clientX - centerX) / (rect.width * 0.85)));
+          const normY = Math.max(-1.5, Math.min(1.5, (e.clientY - centerY) / (rect.height * 0.85)));
+
+          const maxTiltDeg = 12;
+          targetRotX = -normY * maxTiltDeg;
+          targetRotY = normX * maxTiltDeg;
+
+          if (azimuthElem) {
+            const dynamicAz = (baseAzimuth + normX * 8.4 - normY * 3.2).toFixed(1);
+            azimuthElem.textContent = 'AZ: ' + dynamicAz + '°';
+          }
+        });
+
+        heroSection.addEventListener('mouseleave', () => {
+          isHovered = false;
+          targetRotX = 0;
+          targetRotY = 0;
+          viewportCard.classList.add('is-resetting');
+          if (azimuthElem) {
+            azimuthElem.textContent = 'AZ: ' + baseAzimuth.toFixed(1) + '°';
+          }
+        });
+      } else if (azimuthElem) {
+        setInterval(() => {
+          const delta = (Math.random() * 0.4 - 0.2).toFixed(1);
+          azimuthElem.textContent = 'AZ: ' + (baseAzimuth + parseFloat(delta)).toFixed(1) + '°';
+        }, 3200);
+      }
+
+      // 4. Scroll entrance reveals with IntersectionObserver
+      if ('IntersectionObserver' in window) {
+        const revealElements = document.querySelectorAll('.reveal-on-scroll');
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-visible');
+              observer.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.1 });
+
+        revealElements.forEach(el => observer.observe(el));
+      } else {
+        document.querySelectorAll('.reveal-on-scroll').forEach(el => el.classList.add('is-visible'));
+      }
+
+      // 5. Admin Center & Live Edit functionality
+      let isEditActive = false;
+      const editToggleBtn = document.getElementById('header-edit-toggle');
+      const adminOpenBtn = document.getElementById('header-admin-btn');
+      const adminModal = document.getElementById('admin-hub-modal');
+      const adminCloseBtn = document.getElementById('admin-close-btn');
+      const adminBackdrop = document.getElementById('admin-hub-backdrop');
+      const floatBar = document.getElementById('floating-editor-bar');
+      const floatClose = document.getElementById('float-close-edit');
+      const floatSave = document.getElementById('float-save-btn');
+      const floatAdminOpen = document.getElementById('float-admin-open');
+      const inlineToggle = document.getElementById('adm-inline-toggle');
+      const heroTitleEl = document.querySelector('#hero-section h1');
+      const admHeroTitle = document.getElementById('adm-hero-title');
+      const toast = document.getElementById('admin-toast');
+      const toastText = document.getElementById('admin-toast-text');
+
+      function showToast(msg) {
+        if (!toast) return;
+        toastText.textContent = msg;
+        toast.classList.remove('opacity-0', 'translate-y-[-20px]', 'pointer-events-none');
+        setTimeout(() => {
+          toast.classList.add('opacity-0', 'translate-y-[-20px]', 'pointer-events-none');
+        }, 2500);
+      }
+
+      function setEditMode(state) {
+        isEditActive = state;
+        if (inlineToggle) inlineToggle.checked = isEditActive;
+        if (editToggleBtn) {
+          if (isEditActive) {
+            editToggleBtn.classList.add('bg-secondary-container', 'border-secondary', 'text-secondary-fixed');
+            editToggleBtn.classList.remove('bg-surface-container-low', 'text-secondary');
+          } else {
+            editToggleBtn.classList.remove('bg-secondary-container', 'border-secondary', 'text-secondary-fixed');
+            editToggleBtn.classList.add('bg-surface-container-low', 'text-secondary');
+          }
+        }
+        if (floatBar) {
+          if (isEditActive) {
+            floatBar.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+          } else {
+            floatBar.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
+          }
+        }
+        const editableTargets = document.querySelectorAll('#hero-section h1, #hero-section p, #philosophy h2, #modules h2, #projects h2, #calculator h2, #contact h2');
+        editableTargets.forEach(el => {
+          if (isEditActive) {
+            el.setAttribute('contenteditable', 'true');
+            el.classList.add('outline', 'outline-1', 'outline-dashed', 'outline-secondary/50', 'p-0.5', 'rounded');
+          } else {
+            el.removeAttribute('contenteditable');
+            el.classList.remove('outline', 'outline-1', 'outline-dashed', 'outline-secondary/50', 'p-0.5', 'rounded');
+          }
+        });
+        showToast(isEditActive ? 'ინლაინ რედაქტირება ჩაირთო' : 'რედაქტირება დასრულებულია');
+      }
+
+      if (editToggleBtn) editToggleBtn.addEventListener('click', () => setEditMode(!isEditActive));
+      if (inlineToggle) inlineToggle.addEventListener('change', () => setEditMode(inlineToggle.checked));
+      if (floatClose) floatClose.addEventListener('click', () => setEditMode(false));
+      if (floatSave) floatSave.addEventListener('click', () => {
+        setEditMode(false);
+        showToast('ცვლილებები შენახულია!');
+      });
+
+      function openAdminModal() {
+        if (!adminModal) return;
+        if (heroTitleEl && admHeroTitle) admHeroTitle.value = heroTitleEl.innerText.trim();
+        adminModal.classList.remove('hidden');
+      }
+
+      function closeAdminModal() {
+        if (!adminModal) return;
+        adminModal.classList.add('hidden');
+      }
+
+      if (adminOpenBtn) adminOpenBtn.addEventListener('click', openAdminModal);
+      if (floatAdminOpen) floatAdminOpen.addEventListener('click', openAdminModal);
+      if (adminCloseBtn) adminCloseBtn.addEventListener('click', closeAdminModal);
+      if (adminBackdrop) adminBackdrop.addEventListener('click', closeAdminModal);
+
+      const tabBtns = document.querySelectorAll('.adm-tab-btn');
+      const tabPanes = document.querySelectorAll('.adm-tab-pane');
+      tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          tabBtns.forEach(b => {
+            b.classList.remove('bg-surface-container-high', 'text-primary', 'shadow-sm', 'active');
+            b.classList.add('text-on-surface-variant');
+          });
+          btn.classList.add('bg-surface-container-high', 'text-primary', 'shadow-sm', 'active');
+          btn.classList.remove('text-on-surface-variant');
+          const target = btn.getAttribute('data-adm-tab');
+          tabPanes.forEach(pane => {
+            if (pane.id === 'adm-tab-' + target) {
+              pane.classList.remove('hidden');
+            } else {
+              pane.classList.add('hidden');
+            }
+          });
+        });
+      });
+
+      const admSaveAll = document.getElementById('adm-save-all-btn');
+      if (admSaveAll) {
+        admSaveAll.addEventListener('click', () => {
+          if (heroTitleEl && admHeroTitle && admHeroTitle.value.trim()) {
+            heroTitleEl.innerText = admHeroTitle.value.trim();
+          }
+          showToast('ადმინ მონაცემები შენახულია!');
+          closeAdminModal();
+        });
+      }
+
+      const admApplyRates = document.getElementById('adm-apply-rates');
+      if (admApplyRates) {
+        admApplyRates.addEventListener('click', () => {
+          const cRate = parseFloat(document.getElementById('adm-rate-commercial')?.value) || 2.2;
+          const typeOption = document.querySelector('#calc-type option[value="commercial"]');
+          if (typeOption) {
+            typeOption.setAttribute('data-rate', cRate);
+            typeOption.textContent = `კომერციული / საოფისე ცენტრი (${cRate.toFixed(2)} ₾/მ²)`;
+          }
+          const calcSelect = document.getElementById('calc-type');
+          if (calcSelect) calcSelect.dispatchEvent(new Event('change'));
+          showToast('ახალი ტარიფები გააქტიურდა!');
+        });
+      }
+    })();
+  </script>
 </body>
 </html>
