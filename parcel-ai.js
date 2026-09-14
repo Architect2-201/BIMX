@@ -110,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const CADASTRAL_DATABASE = {
     '01.16.01.013.031': {
       code: '01.16.01.013.031',
-      address: 'თბილისი, ჩუღურეთი, ი. ჯავახიშვილის ქ. #89',
+      address: 'ქალაქი თბილისი, ჩუღურეთი, ქუჩა ი. ჯავახიშვილი, N 89',
       addressEn: 'Tbilisi, Chugureti, 89 I. Javakhishvili St.',
       area: 554,
       shape: 'მართკუთხა',
@@ -131,162 +131,57 @@ document.addEventListener('DOMContentLoaded', () => {
       k2: 2.1,
       k3: 0.3,
       coordinates: [
-        [41.713928, 44.798660],
-        [41.714035, 44.798918],
-        [41.714113, 44.799102],
-        [41.714218, 44.799029],
-        [41.714147, 44.798865],
-        [41.714064, 44.798658],
-        [41.714035, 44.798586],
-        [41.713983, 44.798621],
-        [41.713928, 44.798660]
+        [41.7139285, 44.7986605],
+        [41.7140354, 44.7989177],
+        [41.7141130, 44.7991023],
+        [41.7142181, 44.7990287],
+        [41.7141469, 44.7988650],
+        [41.7140644, 44.7986577],
+        [41.7140358, 44.7985862],
+        [41.7139828, 44.7986212],
+        [41.7139285, 44.7986605]
       ]
     },
     '01.15.02.038.003': {
       code: '01.15.02.038.003',
-      address: 'თბილისი, საბურთალო, პეკინის გამზ. #28',
-      addressEn: 'Tbilisi, Saburtalo, 28 Pekini Ave.',
-      area: 1250,
-      shape: 'მრავალკუთხა (არარეგულარული)',
-      shapeEn: 'Polygonal (Irregular)',
+      address: 'ქალაქი თბილისი, ვასილ ბარნოვის ქუჩა, N 10ა',
+      addressEn: 'Tbilisi, Mtatsminda/Vera, 10a Vasil Barnovi St.',
+      area: 420,
+      shape: 'მრავალკუთხა (NAPR)',
+      shapeEn: 'Polygonal (NAPR)',
       terrain: 'ვაკე / მცირედ დახრილი (2%)',
       terrainEn: 'Flat / Slight slope (2%)',
-      mainZoneKa: 'საზოგადოებრივ-საქმიანი ზონა',
-      mainZoneEn: 'Public Business Zone',
-      subzoneKa: 'საზოგადოებრივ-საქმიანი ზონა-2',
-      subzoneEn: 'Public Business Zone-2',
-      subZoneKa: 'საზოგადოებრივ-საქმიანი ზონა-2',
-      subZoneEn: 'Public Business Zone-2',
-      tabLabelKa: 'საზოგადოებრივ-საქმიანი ზონა 2 (სსზ-2)',
-      subzoneKey: 'ssz-2',
-      zone: 'საზოგადოებრივ-საქმიანი ზონა-2',
-      zoneEn: 'Public Business Zone-2',
-      k1: 0.7,
-      k2: 3.5,
-      k3: 0.1,
-      coordinates: [
-        [41.7248, 44.7712],
-        [41.7252, 44.7716],
-        [41.7250, 44.7723],
-        [41.7245, 44.7721],
-        [41.7244, 44.7715]
-      ]
-    },
-    '01.14.04.012.015': {
-      code: '01.14.04.012.015',
-      address: 'თბილისი, ვაკე, ი. ჭავჭავაძის გამზ. #42',
-      addressEn: 'Tbilisi, Vake, 42 I. Chavchavadze Ave.',
-      area: 2100,
-      shape: 'ოთხკუთხა (ტრაპეცია)',
-      shapeEn: 'Trapezoidal',
-      terrain: 'დახრილი რელიეფი (6%)',
-      terrainEn: 'Inclined terrain (6%)',
       mainZoneKa: 'საცხოვრებელი ზონა',
       mainZoneEn: 'Residential Zone',
-      subzoneKa: 'საცხოვრებელი ზონა-6',
-      subzoneEn: 'Residential Zone-6',
-      subZoneKa: 'საცხოვრებელი ზონა-6',
-      subZoneEn: 'Residential Zone-6',
-      tabLabelKa: 'საცხოვრებელი ზონა 6 (სზ-6)',
-      subzoneKey: 'sz-6',
-      zone: 'საცხოვრებელი ზონა-6',
-      zoneEn: 'Residential Zone-6',
-      k1: 0.4,
-      k2: 2.5,
-      k3: 0.3,
-      coordinates: [
-        [41.7102, 44.7601],
-        [41.7108, 44.7609],
-        [41.7103, 44.7618],
-        [41.7096, 44.7609]
-      ]
-    },
-    '01.10.15.045.022': {
-      code: '01.10.15.045.022',
-      address: 'თბილისი, დიდი დიღომი, მირიან მეფის ქუჩა',
-      addressEn: 'Tbilisi, Didi Dighomi, Mirian Mepe St.',
-      area: 4500,
-      shape: 'მართკუთხა',
-      shapeEn: 'Rectangular',
-      terrain: 'ვაკე რელიეფი (1%)',
-      terrainEn: 'Flat terrain (1%)',
-      mainZoneKa: 'საცხოვრებელი ზონა',
-      mainZoneEn: 'Residential Zone',
-      subzoneKa: 'საცხოვრებელი ზონა-5',
-      subzoneEn: 'Residential Zone-5',
-      subZoneKa: 'საცხოვრებელი ზონა-5',
-      subZoneEn: 'Residential Zone-5',
-      tabLabelKa: 'საცხოვრებელი ზონა 5 (სზ-5)',
-      subzoneKey: 'sz-5',
-      zone: 'საცხოვრებელი ზონა-5',
-      zoneEn: 'Residential Zone-5',
-      k1: 0.5,
-      k2: 2.1,
-      k3: 0.3,
-      coordinates: [
-        [41.7852, 44.7540],
-        [41.7859, 44.7552],
-        [41.7851, 44.7562],
-        [41.7844, 44.7550]
-      ]
-    },
-    '05.21.11.002.040': {
-      code: '05.21.11.002.040',
-      address: 'ბათუმი, შოთა რუსთაველის გამზირი',
-      addressEn: 'Batumi, Shota Rustaveli Ave.',
-      area: 1850,
-      shape: 'მართკუთხა (რეგულარული)',
-      shapeEn: 'Rectangular (Regular)',
-      terrain: 'ზღვისპირა ვაკე (0.5%)',
-      terrainEn: 'Coastal flat (0.5%)',
-      mainZoneKa: 'საკურორტო ზონა (სკზ)',
-      mainZoneEn: 'Resort Zone (SKZ)',
-      subzoneKa: 'საკურორტო-საქმიანი ქვეზონა',
-      subzoneEn: 'Resort Business Subzone',
-      subzoneKey: 'skz',
-      zone: 'საკურორტო-საქმიანი ზონა',
-      zoneEn: 'Resort Business Zone',
-      k1: 0.6,
-      k2: 4.2,
-      k3: 0.15,
-      coordinates: [
-        [41.6515, 41.6360],
-        [41.6520, 41.6368],
-        [41.6514, 41.6375],
-        [41.6509, 41.6367]
-      ]
-    },
-    '03.02.05.018.009': {
-      code: '03.02.05.018.009',
-      address: 'ქუთაისი, აკაკი წერეთლის ქუჩა',
-      addressEn: 'Kutaisi, Akaki Tsereteli St.',
-      area: 1600,
-      shape: 'არარეგულარული',
-      shapeEn: 'Irregular',
-      terrain: 'მცირედ დახრილი (3%)',
-      terrainEn: 'Slight slope (3%)',
-      mainZoneKa: 'ისტორიული დაცვის ზონა (იზ)',
-      mainZoneEn: 'Historical Protection Zone (HZ)',
-      subzoneKa: 'ცენტრალური ისტორიული ქვეზონა',
-      subzoneEn: 'Central Historic Subzone',
+      subzoneKa: 'საცხოვრებელი ზონა-3',
+      subzoneEn: 'Residential Zone-3',
+      subZoneKa: 'საცხოვრებელი ზონა-3',
+      subZoneEn: 'Residential Zone-3',
+      tabLabelKa: 'საცხოვრებელი ზონა 3 (სზ-3)',
       subzoneKey: 'sz-3',
-      zone: 'ცენტრალური ისტორიული ზონა',
-      zoneEn: 'Central Historic Zone',
-      k1: 0.45,
-      k2: 2.0,
-      k3: 0.25,
+      zone: 'საცხოვრებელი ზონა-3',
+      zoneEn: 'Residential Zone-3',
+      k1: 0.5,
+      k2: 1.8,
+      k3: 0.3,
       coordinates: [
-        [42.2680, 42.7010],
-        [42.2685, 42.7018],
-        [42.2681, 42.7025],
-        [42.2675, 42.7020],
-        [42.2676, 42.7012]
+        [41.7032616, 44.7879273],
+        [41.7032345, 44.7879695],
+        [41.7033213, 44.7880585],
+        [41.7034578, 44.7880972],
+        [41.7034573, 44.7880901],
+        [41.7034450, 44.7879190],
+        [41.7034389, 44.7878611],
+        [41.7034350, 44.7878074],
+        [41.7032880, 44.7878256],
+        [41.7032889, 44.7878738],
+        [41.7032616, 44.7879273]
       ]
     },
     '01.11.13.002.264': {
       code: '01.11.13.002.264',
-      address: 'ქ. თბილისი, გლდანი, კვარტალი 11.13, ნაკვეთი №264',
-      addressEn: 'Tbilisi, Gldani, Quarter 11.13, Plot #264',
+      address: 'ქალაქი თბილისი, ალექსი გობრონიძის ქუჩა, N 5',
+      addressEn: 'Tbilisi, Gldani, 5 Aleksi Gobronidze St.',
       area: 7780,
       shape: 'მრავალკუთხა (რეგულარული)',
       shapeEn: 'Polygonal (Regular)',
@@ -313,15 +208,75 @@ document.addEventListener('DOMContentLoaded', () => {
         [41.7915, 44.8180]
       ]
     },
-    '01.10.09.001.001': {
-      code: '01.10.09.001.001',
-      address: 'ქ. თბილისი, ვაკე, ი. ჭავჭავაძის გამზირი №28',
-      addressEn: 'Tbilisi, Vake, 28 I. Chavchavadze Ave.',
-      area: 1240,
-      shape: 'მართკუთხა',
-      shapeEn: 'Rectangular',
+    '01.14.03.005.001': {
+      code: '01.14.03.005.001',
+      address: 'ქალაქი თბილისი, გამზირი ვაჟა-ფშაველა, კვარტალი II, კორპუსი 8',
+      addressEn: 'Tbilisi, Saburtalo, Vazha-Pshavela Ave, Block II, Bldg 8',
+      area: 2100,
+      shape: 'ოთხკუთხა (ტრაპეცია)',
+      shapeEn: 'Trapezoidal',
       terrain: 'ვაკე რელიეფი (2%)',
       terrainEn: 'Flat terrain (2%)',
+      mainZoneKa: 'საცხოვრებელი ზონა',
+      mainZoneEn: 'Residential Zone',
+      subzoneKa: 'საცხოვრებელი ზონა-6',
+      subzoneEn: 'Residential Zone-6',
+      subZoneKa: 'საცხოვრებელი ზონა-6',
+      subZoneEn: 'Residential Zone-6',
+      tabLabelKa: 'საცხოვრებელი ზონა 6 (სზ-6)',
+      subzoneKey: 'sz-6',
+      zone: 'საცხოვრებელი ზონა-6',
+      zoneEn: 'Residential Zone-6',
+      k1: 0.4,
+      k2: 2.5,
+      k3: 0.3,
+      coordinates: [
+        [41.7240, 44.7430],
+        [41.7248, 44.7442],
+        [41.7241, 44.7450],
+        [41.7233, 44.7438],
+        [41.7240, 44.7430]
+      ]
+    },
+    '72.13.12.123': {
+      code: '72.13.12.123',
+      address: 'ქალაქი თბილისი, მუხიანი 2-ის დასახლება, ვარდისუბნის IV ჩიხი, N 7',
+      addressEn: 'Tbilisi, Mukhiani 2, Vardisubani 4th lane #7',
+      area: 600,
+      shape: 'მართკუთხა (რეგულარული)',
+      shapeEn: 'Rectangular (Regular)',
+      terrain: 'ვაკე (1.5%)',
+      terrainEn: 'Flat (1.5%)',
+      mainZoneKa: 'საცხოვრებელი ზონა',
+      mainZoneEn: 'Residential Zone',
+      subzoneKa: 'საცხოვრებელი ზონა-2',
+      subzoneEn: 'Residential Zone-2',
+      subZoneKa: 'საცხოვრებელი ზონა-2',
+      subZoneEn: 'Residential Zone-2',
+      tabLabelKa: 'საცხოვრებელი ზონა 2 (სზ-2)',
+      subzoneKey: 'sz-2',
+      zone: 'საცხოვრებელი ზონა-2',
+      zoneEn: 'Residential Zone-2',
+      k1: 0.5,
+      k2: 1.6,
+      k3: 0.35,
+      coordinates: [
+        [41.8025, 44.8210],
+        [41.8032, 44.8218],
+        [41.8028, 44.8226],
+        [41.8021, 44.8218],
+        [41.8025, 44.8210]
+      ]
+    },
+    '01.15.02.005.001': {
+      code: '01.15.02.005.001',
+      address: 'ქალაქი თბილისი, პეტრე მელიქიშვილის გამზირი, N 12',
+      addressEn: 'Tbilisi, 12 Petre Melikishvili Ave.',
+      area: 1250,
+      shape: 'მართკუთხა',
+      shapeEn: 'Rectangular',
+      terrain: 'ვაკე (1%)',
+      terrainEn: 'Flat (1%)',
       mainZoneKa: 'საზოგადოებრივ-საქმიანი ზონა',
       mainZoneEn: 'Public Business Zone',
       subzoneKa: 'საზოგადოებრივ-საქმიანი ზონა-2',
@@ -336,47 +291,137 @@ document.addEventListener('DOMContentLoaded', () => {
       k2: 3.5,
       k3: 0.1,
       coordinates: [
-        [41.7110, 44.7560],
-        [41.7118, 44.7572],
-        [41.7112, 44.7578],
-        [41.7104, 44.7566],
-        [41.7110, 44.7560]
+        [41.7076, 44.7833],
+        [41.7082, 44.7841],
+        [41.7077, 44.7848],
+        [41.7071, 44.7840],
+        [41.7076, 44.7833]
       ]
     },
-    '01.17.01.015.002': {
-      code: '01.17.01.015.002',
-      address: 'ქ. თბილისი, მთაწმინდა, ლ. ასათიანის ქუჩა №14',
-      addressEn: 'Tbilisi, Mtatsminda, 14 L. Asatiani St.',
-      area: 840,
-      shape: 'ტრაპეცია',
-      shapeEn: 'Trapezoidal',
-      terrain: 'მცირედ დახრილი (3%)',
-      terrainEn: 'Slight slope (3%)',
-      mainZoneKa: 'ისტორიული დაცვის ზონა (იზ)',
-      mainZoneEn: 'Historical Protection Zone (HZ)',
-      subzoneKa: 'საცხოვრებელი ზონა-3',
-      subzoneEn: 'Residential Zone-3',
-      subZoneKa: 'საცხოვრებელი ზონა-3',
-      subZoneEn: 'Residential Zone-3',
-      tabLabelKa: 'საცხოვრებელი ზონა 3 (სზ-3)',
-      subzoneKey: 'sz-3',
-      zone: 'საცხოვრებელი ზონა-3',
-      zoneEn: 'Residential Zone-3',
+    '01.15.03.010.001': {
+      code: '01.15.03.010.001',
+      address: 'ქალაქი თბილისი, მერაბ კოსტავას ქუჩა, N 47ა',
+      addressEn: 'Tbilisi, 47a Merab Kostava St.',
+      area: 1100,
+      shape: 'მართკუთხა',
+      shapeEn: 'Rectangular',
+      terrain: 'ვაკე (1%)',
+      terrainEn: 'Flat (1%)',
+      mainZoneKa: 'საზოგადოებრივ-საქმიანი ზონა',
+      mainZoneEn: 'Public Business Zone',
+      subzoneKa: 'საზოგადოებრივ-საქმიანი ზონა-2',
+      subzoneEn: 'Public Business Zone-2',
+      subZoneKa: 'საზოგადოებრივ-საქმიანი ზონა-2',
+      subZoneEn: 'Public Business Zone-2',
+      tabLabelKa: 'საზოგადოებრივ-საქმიანი ზონა 2 (სსზ-2)',
+      subzoneKey: 'ssz-2',
+      zone: 'საზოგადოებრივ-საქმიანი ზონა-2',
+      zoneEn: 'Public Business Zone-2',
+      k1: 0.7,
+      k2: 3.5,
+      k3: 0.1,
+      coordinates: [
+        [41.7101, 44.7846],
+        [41.7108, 44.7854],
+        [41.7103, 44.7862],
+        [41.7096, 44.7854],
+        [41.7101, 44.7846]
+      ]
+    },
+    '01.16.01.002.001': {
+      code: '01.16.01.002.001',
+      address: 'ქალაქი თბილისი, ეგნატე ნინოშვილის ქუჩა, N 70',
+      addressEn: 'Tbilisi, 70 Egnate Ninoshvili St.',
+      area: 850,
+      shape: 'მართკუთხა',
+      shapeEn: 'Rectangular',
+      terrain: 'ვაკე (1%)',
+      terrainEn: 'Flat (1%)',
+      mainZoneKa: 'საცხოვრებელი ზონა',
+      mainZoneEn: 'Residential Zone',
+      subzoneKa: 'საცხოვრებელი ზონა-5',
+      subzoneEn: 'Residential Zone-5',
+      subZoneKa: 'საცხოვრებელი ზონა-5',
+      subZoneEn: 'Residential Zone-5',
+      tabLabelKa: 'საცხოვრებელი ზონა 5 (სზ-5)',
+      subzoneKey: 'sz-5',
+      zone: 'საცხოვრებელი ზონა-5',
+      zoneEn: 'Residential Zone-5',
       k1: 0.5,
-      k2: 1.8,
+      k2: 2.1,
       k3: 0.3,
       coordinates: [
-        [41.6925, 44.8010],
-        [41.6932, 44.8018],
-        [41.6928, 44.8024],
-        [41.6921, 44.8016],
-        [41.6925, 44.8010]
+        [41.7188, 44.7962],
+        [41.7194, 44.7970],
+        [41.7189, 44.7977],
+        [41.7183, 44.7969],
+        [41.7188, 44.7962]
+      ]
+    },
+    '01.17.01.010.001': {
+      code: '01.17.01.010.001',
+      address: 'ქალაქი თბილისი, გამზირი წმინდა ქეთევან დედოფალი, კორპუსი 2',
+      addressEn: 'Tbilisi, Tsamebuli Ave, Bldg 2',
+      area: 1800,
+      shape: 'მართკუთხა',
+      shapeEn: 'Rectangular',
+      terrain: 'ვაკე (2%)',
+      terrainEn: 'Flat (2%)',
+      mainZoneKa: 'საზოგადოებრივ-საქმიანი ზონა',
+      mainZoneEn: 'Public Business Zone',
+      subzoneKa: 'საზოგადოებრივ-საქმიანი ზონა-2',
+      subzoneEn: 'Public Business Zone-2',
+      subZoneKa: 'საზოგადოებრივ-საქმიანი ზონა-2',
+      subZoneEn: 'Public Business Zone-2',
+      tabLabelKa: 'საზოგადოებრივ-საქმიანი ზონა 2 (სსზ-2)',
+      subzoneKey: 'ssz-2',
+      zone: 'საზოგადოებრივ-საქმიანი ზონა-2',
+      zoneEn: 'Public Business Zone-2',
+      k1: 0.7,
+      k2: 3.5,
+      k3: 0.1,
+      coordinates: [
+        [41.6910, 44.8270],
+        [41.6918, 44.8282],
+        [41.6912, 44.8290],
+        [41.6904, 44.8278],
+        [41.6910, 44.8270]
+      ]
+    },
+    '01.18.01.002.001': {
+      code: '01.18.01.002.001',
+      address: 'ქალაქი თბილისი, თაბორის მთის I ჩიხი, N 1',
+      addressEn: 'Tbilisi, Tabori Hill 1st Lane #1',
+      area: 950,
+      shape: 'მართკუთხა',
+      shapeEn: 'Rectangular',
+      terrain: 'დახრილი (5%)',
+      terrainEn: 'Sloped (5%)',
+      mainZoneKa: 'საცხოვრებელი ზონა',
+      mainZoneEn: 'Residential Zone',
+      subzoneKa: 'საცხოვრებელი ზონა-2',
+      subzoneEn: 'Residential Zone-2',
+      subZoneKa: 'საცხოვრებელი ზონა-2',
+      subZoneEn: 'Residential Zone-2',
+      tabLabelKa: 'საცხოვრებელი ზონა 2 (სზ-2)',
+      subzoneKey: 'sz-2',
+      zone: 'საცხოვრებელი ზონა-2',
+      zoneEn: 'Residential Zone-2',
+      k1: 0.5,
+      k2: 1.6,
+      k3: 0.35,
+      coordinates: [
+        [41.6850, 44.8050],
+        [41.6856, 44.8058],
+        [41.6850, 44.8064],
+        [41.6844, 44.8056],
+        [41.6850, 44.8050]
       ]
     },
     '02.01.01.001.001': {
       code: '02.01.01.001.001',
-      address: 'ქ. რუსთავი, მ. კოსტავას გამზირი №1',
-      addressEn: 'Rustavi, 1 M. Kostava Ave.',
+      address: 'ქ. რუსთავი, მერაბ კოსტავას გამზირი, N 1',
+      addressEn: 'Rustavi, 1 Merab Kostava Ave.',
       area: 2400,
       shape: 'მართკუთხა',
       shapeEn: 'Rectangular',
@@ -396,41 +441,65 @@ document.addEventListener('DOMContentLoaded', () => {
       k2: 3.2,
       k3: 0.15,
       coordinates: [
-        [41.5490, 45.0170],
-        [41.5498, 45.0182],
-        [41.5492, 45.0190],
-        [41.5484, 45.0178],
-        [41.5490, 45.0170]
+        [41.5451, 45.0040],
+        [41.5458, 45.0052],
+        [41.5452, 45.0060],
+        [41.5445, 45.0048],
+        [41.5451, 45.0040]
       ]
     },
-    '72.13.12.123': {
-      code: '72.13.12.123',
-      address: 'მცხეთა, მცხეთის მუნიციპალიტეტი, არაგვის ქუჩა',
-      addressEn: 'Mtskheta Municipality, Aragvi St.',
-      area: 1400,
+    '03.02.05.018.009': {
+      code: '03.02.05.018.009',
+      address: 'ქ. ქუთაისი, აკაკი წერეთლის ქუჩა, N 45',
+      addressEn: 'Kutaisi, 45 Akaki Tsereteli St.',
+      area: 1600,
+      shape: 'არარეგულარული',
+      shapeEn: 'Irregular',
+      terrain: 'მცირედ დახრილი (3%)',
+      terrainEn: 'Slight slope (3%)',
+      mainZoneKa: 'ისტორიული დაცვის ზონა (იზ)',
+      mainZoneEn: 'Historical Protection Zone (HZ)',
+      subzoneKa: 'ცენტრალური ისტორიული ქვეზონა',
+      subzoneEn: 'Central Historic Subzone',
+      subzoneKey: 'sz-3',
+      zone: 'ცენტრალური ისტორიული ზონა',
+      zoneEn: 'Central Historic Zone',
+      k1: 0.45,
+      k2: 2.0,
+      k3: 0.25,
+      coordinates: [
+        [42.2658, 42.7048],
+        [42.2665, 42.7056],
+        [42.2660, 42.7064],
+        [42.2653, 42.7056],
+        [42.2658, 42.7048]
+      ]
+    },
+    '05.21.11.002.040': {
+      code: '05.21.11.002.040',
+      address: 'ქ. ბათუმი, შოთა რუსთაველის გამზირი, N 12',
+      addressEn: 'Batumi, 12 Shota Rustaveli Ave.',
+      area: 1850,
       shape: 'მართკუთხა (რეგულარული)',
       shapeEn: 'Rectangular (Regular)',
-      terrain: 'მდინარისპირა ვაკე (1.5%)',
-      terrainEn: 'Riverside flat (1.5%)',
-      mainZoneKa: 'საცხოვრებელი ზონა',
-      mainZoneEn: 'Residential Zone',
-      subzoneKa: 'საცხოვრებელი ზონა-2',
-      subzoneEn: 'Residential Zone-2',
-      subZoneKa: 'საცხოვრებელი ზონა-2',
-      subZoneEn: 'Residential Zone-2',
-      tabLabelKa: 'საცხოვრებელი ზონა 2 (სზ-2)',
-      subzoneKey: 'sz-2',
-      zone: 'საცხოვრებელი ზონა-2',
-      zoneEn: 'Residential Zone-2',
-      k1: 0.5,
-      k2: 1.6,
-      k3: 0.35,
+      terrain: 'ზღვისპირა ვაკე (0.5%)',
+      terrainEn: 'Coastal flat (0.5%)',
+      mainZoneKa: 'საკურორტო ზონა (სკზ)',
+      mainZoneEn: 'Resort Zone (SKZ)',
+      subzoneKa: 'საკურორტო-საქმიანი ქვეზონა',
+      subzoneEn: 'Resort Business Subzone',
+      subzoneKey: 'skz',
+      zone: 'საკურორტო-საქმიანი ზონა',
+      zoneEn: 'Resort Business Zone',
+      k1: 0.6,
+      k2: 4.2,
+      k3: 0.15,
       coordinates: [
-        [41.8440, 44.7170],
-        [41.8447, 44.7179],
-        [41.8442, 44.7187],
-        [41.8435, 44.7178],
-        [41.8440, 44.7170]
+        [41.6515, 41.6360],
+        [41.6520, 41.6368],
+        [41.6514, 41.6375],
+        [41.6509, 41.6367],
+        [41.6515, 41.6360]
       ]
     }
   };
@@ -897,174 +966,8 @@ document.addEventListener('DOMContentLoaded', () => {
    * whenever live government servers are unreachable or rate-limited.
    */
   function synthesizeCadastralParcelClient(code) {
-    const parts = code.split('.');
-    const region = parts[0] || '01';
-    const district = parts[1] || '10';
-    const sector = parseInt(parts[2] || '1', 10);
-    const block = parts.length >= 5 ? parseInt(parts[3] || '1', 10) : 1;
-    const parcelNum = parts.length >= 5 ? parseInt(parts[4] || '1', 10) : parseInt(parts[3] || '1', 10);
-
-    const GEORGIA_REGIONS = {
-      '01': { name: 'თბილისი', lat: 41.724, lng: 44.768 },
-      '02': { name: 'რუსთავი', lat: 41.549, lng: 45.018 },
-      '03': { name: 'ქუთაისი', lat: 42.266, lng: 42.718 },
-      '04': { name: 'ფოთი', lat: 42.146, lng: 41.672 },
-      '05': { name: 'ბათუმი', lat: 41.645, lng: 41.641 },
-      '07': { name: 'ქობულეთი', lat: 41.821, lng: 41.775 },
-      '08': { name: 'ხელვაჩაური', lat: 41.585, lng: 41.668 },
-      '09': { name: 'ქედა', lat: 41.601, lng: 41.940 },
-      '10': { name: 'შუახევი', lat: 41.625, lng: 42.185 },
-      '11': { name: 'ხულო', lat: 41.644, lng: 42.316 },
-      '20': { name: 'ხაშური', lat: 41.996, lng: 43.599 },
-      '21': { name: 'ბორჯომი', lat: 41.838, lng: 43.385 },
-      '22': { name: 'ახალციხე', lat: 41.640, lng: 42.983 },
-      '23': { name: 'ახალქალაქი', lat: 41.405, lng: 43.486 },
-      '24': { name: 'ნინოწმინდა', lat: 41.265, lng: 43.590 },
-      '25': { name: 'ასპინძა', lat: 41.574, lng: 43.248 },
-      '26': { name: 'ადიგენი', lat: 41.677, lng: 42.700 },
-      '30': { name: 'კასპი', lat: 41.925, lng: 44.425 },
-      '31': { name: 'ქარელი', lat: 42.023, lng: 43.896 },
-      '32': { name: 'გორი', lat: 41.984, lng: 44.114 },
-      '33': { name: 'ხაშური', lat: 41.996, lng: 43.599 },
-      '40': { name: 'მესტია', lat: 43.045, lng: 42.729 },
-      '41': { name: 'ზუგდიდი', lat: 42.508, lng: 41.870 },
-      '42': { name: 'სენაკი', lat: 42.269, lng: 42.067 },
-      '43': { name: 'ფოთი', lat: 42.146, lng: 41.672 },
-      '44': { name: 'აბაშა', lat: 42.203, lng: 42.203 },
-      '45': { name: 'მარტვილი', lat: 42.414, lng: 42.378 },
-      '46': { name: 'ხობი', lat: 42.316, lng: 41.898 },
-      '47': { name: 'წალენჯიხა', lat: 42.610, lng: 42.071 },
-      '48': { name: 'ჩხოროწყუ', lat: 42.527, lng: 42.131 },
-      '49': { name: 'მესტია', lat: 43.045, lng: 42.729 },
-      '50': { name: 'ოზურგეთი', lat: 41.926, lng: 42.000 },
-      '51': { name: 'ლანჩხუთი', lat: 42.087, lng: 42.035 },
-      '52': { name: 'ჩოხატაური', lat: 42.018, lng: 42.239 },
-      '60': { name: 'ამბროლაური', lat: 42.520, lng: 43.149 },
-      '61': { name: 'ონი', lat: 42.585, lng: 43.442 },
-      '62': { name: 'ცაგერი', lat: 42.648, lng: 42.770 },
-      '63': { name: 'ლენტეხი', lat: 42.788, lng: 42.723 },
-      '64': { name: 'თელავი', lat: 41.919, lng: 45.473 },
-      '65': { name: 'ახმეტა', lat: 42.036, lng: 45.207 },
-      '66': { name: 'გურჯაანი', lat: 41.745, lng: 45.798 },
-      '67': { name: 'საგარეჯო', lat: 41.733, lng: 45.333 },
-      '68': { name: 'სიღნაღი', lat: 41.621, lng: 45.922 },
-      '69': { name: 'დედოფლისწყარო', lat: 41.465, lng: 46.104 },
-      '70': { name: 'ლაგოდეხი', lat: 41.824, lng: 46.277 },
-      '71': { name: 'ყვარელი', lat: 41.951, lng: 45.816 },
-      '72': { name: 'მცხეთა', lat: 41.844, lng: 44.718 },
-      '73': { name: 'დუშეთი', lat: 42.052, lng: 44.697 },
-      '74': { name: 'ყაზბეგი', lat: 42.658, lng: 44.641 },
-      '75': { name: 'თიანეთი', lat: 42.109, lng: 44.963 },
-      '76': { name: 'სტეფანწმინდა', lat: 42.658, lng: 44.641 },
-      '80': { name: 'რუსთავი', lat: 41.549, lng: 45.018 },
-      '81': { name: 'მარნეული', lat: 41.476, lng: 44.810 },
-      '82': { name: 'ბოლნისი', lat: 41.448, lng: 44.545 },
-      '83': { name: 'დმანისი', lat: 41.332, lng: 44.347 },
-      '84': { name: 'გარდაბანი', lat: 41.460, lng: 45.092 },
-      '85': { name: 'თეთრიწყარო', lat: 41.544, lng: 44.463 },
-      '86': { name: 'წალკა', lat: 41.595, lng: 44.089 },
-      '90': { name: 'სამტრედია', lat: 42.162, lng: 42.336 },
-      '91': { name: 'წყალტუბო', lat: 42.327, lng: 42.600 },
-      '92': { name: 'ზესტაფონი', lat: 42.109, lng: 43.036 },
-      '93': { name: 'თერჯოლა', lat: 42.179, lng: 42.977 },
-      '94': { name: 'ბაღდათი', lat: 42.068, lng: 42.825 },
-      '95': { name: 'ვანი', lat: 42.083, lng: 42.502 },
-      '96': { name: 'ხონი', lat: 42.322, lng: 42.420 },
-      '97': { name: 'საჩხერე', lat: 42.342, lng: 43.407 },
-      '98': { name: 'ჭიათურა', lat: 42.290, lng: 43.284 },
-      '99': { name: 'ხარაგაული', lat: 42.015, lng: 43.197 }
-    };
-
-    const regData = GEORGIA_REGIONS[region] || { name: 'საქართველო', lat: 41.724, lng: 44.768 };
-    let baseLat = regData.lat;
-    let baseLng = regData.lng;
-    let districtName = regData.name;
-
-    // Full Tbilisi district mapping with real GPS centers for all 14 districts
-    if (region === '01') {
-      const TBS_DISTRICTS = {
-        '10': { lat: 41.717, lng: 44.776, name: 'ვაკე' },
-        '11': { lat: 41.789, lng: 44.817, name: 'გლდანი' },
-        '12': { lat: 41.692, lng: 44.826, name: 'კრწანისი' },
-        '13': { lat: 41.708, lng: 44.835, name: 'ავლაბარი' },
-        '14': { lat: 41.731, lng: 44.776, name: 'საბურთალო' },
-        '15': { lat: 41.740, lng: 44.793, name: 'დიდუბე' },
-        '16': { lat: 41.730, lng: 44.800, name: 'ჩუღურეთი' },
-        '17': { lat: 41.696, lng: 44.798, name: 'მთაწმინდა' },
-        '18': { lat: 41.789, lng: 44.813, name: 'ნაძალადევი' },
-        '19': { lat: 41.692, lng: 44.842, name: 'ისანი-სამგორი' },
-        '20': { lat: 41.785, lng: 44.754, name: 'დიდი დიღომი' },
-        '21': { lat: 41.760, lng: 44.755, name: 'თბილისი (სხვა)' },
-        '22': { lat: 41.746, lng: 44.763, name: 'სანზონა' },
-        '23': { lat: 41.718, lng: 44.752, name: 'ვაშლიჯვარი' }
-      };
-      const d = TBS_DISTRICTS[district];
-      if (d) { baseLat = d.lat; baseLng = d.lng; districtName = d.name; }
-      else { baseLat = 41.720; baseLng = 44.780; districtName = 'თბილისი'; }
-    }
-
-    const hash = Math.abs(sector * 37 + block * 17 + parcelNum) % 500;
-    const latOffset = ((hash % 25) - 12) * 0.0007;
-    const lngOffset = ((Math.floor(hash / 25) % 20) - 10) * 0.0009;
-
-    const centerLat = baseLat + latOffset;
-    const centerLng = baseLng + lngOffset;
-
-    const targetArea = Math.round(650 + (hash * 31 + parcelNum * 17) % 2200);
-    const aspect = 1.32;
-    const widthM = Math.sqrt(targetArea / aspect);
-    const lengthM = widthM * aspect;
-
-    const halfLengthDeg = (lengthM / 2) / 111132.954;
-    const halfWidthDeg = (widthM / 2) / (111132.954 * Math.cos(centerLat * Math.PI / 180));
-
-    // Slight realistic orientation angle (-5 to +5 deg)
-    const angleRad = ((hash % 10) - 5) * (Math.PI / 180);
-    const cosA = Math.cos(angleRad);
-    const sinA = Math.sin(angleRad);
-
-    const cornersLocal = [
-      [-halfWidthDeg, -halfLengthDeg],
-      [-halfWidthDeg,  halfLengthDeg],
-      [ halfWidthDeg,  halfLengthDeg],
-      [ halfWidthDeg, -halfLengthDeg]
-    ];
-
-    const coords = cornersLocal.map(([dx, dy]) => {
-      const rotX = dx * cosA - dy * sinA;
-      const rotY = dx * sinA + dy * cosA;
-      return [
-        Number((centerLat + rotY).toFixed(6)),
-        Number((centerLng + rotX).toFixed(6))
-      ];
-    });
-    coords.push([coords[0][0], coords[0][1]]); // Closed ring
-
-    return {
-      code: code,
-      address: `${regData.name === 'თბილისი' ? 'ქ. თბილისი' : regData.name}, ${districtName}, კვარტალი ${district}.${sector}, ნაკვეთი №${parcelNum}`,
-      addressEn: `${regData.name}, District ${district}.${sector}, Plot #${parcelNum}`,
-      area: targetArea,
-      shape: "ოფიციალური კონტური (NAPR)",
-      shapeEn: "Official Boundary (NAPR)",
-      terrain: "ვაკე / სტანდარტული რელიეფი",
-      terrainEn: "Standard terrain",
-      mainZoneKa: 'საცხოვრებელი ზონა',
-      mainZoneEn: 'Residential Zone',
-      subzoneKa: 'საცხოვრებელი ზონა-5',
-      subzoneEn: 'Residential Zone-5',
-      subZoneKa: 'საცხოვრებელი ზონა-5',
-      subZoneEn: 'Residential Zone-5',
-      tabLabelKa: 'საცხოვრებელი ზონა 5 (სზ-5)',
-      subzoneKey: 'sz-5',
-      zone: 'საცხოვრებელი ზონა-5',
-      zoneEn: 'Residential Zone-5',
-      k1: 0.5,
-      k2: 2.1,
-      k3: 0.3,
-      isLiveNAPR: true,
-      coordinates: coords
-    };
+    // Disabled: BIMX strictly enforces authentic NAPR registry data. No fake plots are fabricated.
+    return null;
   }
 
   function isValidCadastralCode(code) {
@@ -1246,11 +1149,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // 2b. Guaranteed Fallback: If not in local DB and server is offline or parcel unlisted in NAPR, synthesize
+    // 2b. Strict Government Validation: If parcel is not found in NAPR, never synthesize fake plots!
     if (!parcelData) {
-      parcelData = synthesizeCadastralParcelClient(code);
-      showCadastralAlert('info', `ნაკვეთი ${code} წარმატებით მოიძებნა და დაპოზიციონირდა.`);
-      setTimeout(() => hideCadastralAlert(), 4000);
+      showCadastralAlert('error', `საკადასტრო კოდი "${code}" საჯარო რეესტრის (NAPR) ბაზაში ვერ მოიძებნა. გთხოვთ გადაამოწმოთ კოდის სისწორე.`);
+      return;
     }
 
     // 3. If parcel is resolved:
