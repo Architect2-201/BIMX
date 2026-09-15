@@ -1399,14 +1399,6 @@
               <i class="fa-solid fa-binoculars" style="color: #10b981;"></i>
               <span data-i18n="mode_viewshed">ხედები</span>
             </button>
-            <button type="button" class="mode-tab-btn" data-mode="tas-precedents" id="btnModeTasPrecedents" role="tab" aria-selected="false" title="მერიის პრეცედენტები და ხარვეზების AI ანალიზი (500მ რადიუსი)">
-              <i class="fa-solid fa-landmark-flag" style="color: #f59e0b;"></i>
-              <span data-i18n="mode_tas_precedents">TAS პრეცედენტები</span>
-            </button>
-            <button type="button" class="mode-tab-btn" data-mode="circulation" id="btnModeCirculation" role="tab" aria-selected="false" title="რელიეფზე მორგებული საგზაო და სახანძრო ქსელის გენერატორი">
-              <i class="fa-solid fa-truck-fire" style="color: #ef4444;"></i>
-              <span data-i18n="mode_circulation">საგზაო &amp; სახანძრო</span>
-            </button>
             <!-- Engineering & Computational Dropdown Menu -->
             <div class="mode-dropdown-wrap" id="analysisDropdownWrap">
               <button type="button" class="mode-tab-btn mode-dropdown-btn" id="btnAnalysisDropdown" aria-expanded="false" title="საინჟინრო & გამოთვლითი ანალიზი">
@@ -2631,6 +2623,9 @@
                   <i class="fa-solid fa-triangle-exclamation"></i>
                   <span id="tasRiskScoreText">რისკი: 48%</span>
                 </div>
+                <button type="button" class="solar-close-btn" id="btnCloseTasPrecedentsPanel" title="დახურვა" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #94a3b8; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; margin-left: 8px;">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
               </div>
             </div>
 
@@ -2729,6 +2724,9 @@
                   <i class="fa-solid fa-check-double"></i>
                   <span id="circulationComplianceText">№41 დაცულია</span>
                 </div>
+                <button type="button" class="solar-close-btn" id="btnCloseCirculationPanel" title="დახურვა" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #94a3b8; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; margin-left: 8px;">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
               </div>
             </div>
 
