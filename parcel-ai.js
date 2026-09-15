@@ -1082,70 +1082,69 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (cadastralInput) cadastralInput.value = code;
 
-    // 1. Check local high-detail sample database
-    let parcelData = CADASTRAL_DATABASE[code];
+    // ALWAYS fetch live from maps.gov.ge NAPR Proxy — no local DB intercept.
+    // Local CADASTRAL_DATABASE was removed because it stored inaccurate fake coordinates
+    // that caused the wrong parcel to appear on the map.
+    let parcelData = null;
 
-    // 2. If not in local samples, fetch live from maps.gov.ge NAPR Proxy
-    if (!parcelData) {
-      if (cadastralSearchBtn) {
-        cadastralSearchBtn.disabled = true;
-        cadastralSearchBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>NAPR-დან მოძიება...</span>`;
+    if (cadastralSearchBtn) {
+      cadastralSearchBtn.disabled = true;
+      cadastralSearchBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>NAPR-დან მოძიება...</span>`;
+    }
+
+    try {
+      let proxyRes = null;
+      try {
+        proxyRes = await fetch(`/api/parcel?code=${encodeURIComponent(code)}`);
+      } catch (netErr) {
+        // If running on a static server (e.g. port 5500 or 8080), try connecting to local BIMX server
+        if (window.location.port !== '3000') {
+          try {
+            proxyRes = await fetch(`http://localhost:3000/api/parcel?code=${encodeURIComponent(code)}`);
+          } catch (p3Err) {}
+        }
       }
 
-      try {
-        let proxyRes = null;
-        try {
-          proxyRes = await fetch(`/api/parcel?code=${encodeURIComponent(code)}`);
-        } catch (netErr) {
-          // If running on a static server (e.g. port 5500 or 8080), try connecting to local BIMX server
-          if (window.location.port !== '3000') {
-            try {
-              proxyRes = await fetch(`http://localhost:3000/api/parcel?code=${encodeURIComponent(code)}`);
-            } catch (p3Err) {}
-          }
+      if (proxyRes && proxyRes.ok) {
+        const proxyData = await proxyRes.json();
+        if (proxyData.status && proxyData.coordinates && proxyData.coordinates.length > 2) {
+          const z = proxyData.zoning || resolveZoningForParcel(proxyData.cadastralCode, proxyData.address, proxyData.coordinates);
+          parcelData = {
+            code: proxyData.cadastralCode,
+            address: proxyData.address || "მისამართი დაზუსტებული არ არის",
+            addressEn: proxyData.address || "Address not specified",
+            area: proxyData.areaSqm || 1200,
+            shape: "ოფიციალური კონტური (NAPR)",
+            shapeEn: "Official Boundary (NAPR)",
+            terrain: "ვაკე / სტანდარტული რელიეფი",
+            terrainEn: "Standard terrain",
+            mainZoneKa: z ? z.mainZoneKa : 'საცხოვრებელი ზონა',
+            mainZoneEn: z ? (z.mainZoneEn || z.mainZoneKa) : 'Residential Zone',
+            subzoneKa: z ? (z.subZoneKa || z.subzoneKa) : 'საცხოვრებელი ზონა-5',
+            subzoneEn: z ? (z.subZoneEn || z.subzoneEn) : 'Residential Zone-5',
+            subZoneKa: z ? (z.subZoneKa || z.subzoneKa) : 'საცხოვრებელი ზონა-5',
+            subZoneEn: z ? (z.subZoneEn || z.subzoneEn) : 'Residential Zone-5',
+            tabLabelKa: z ? (z.tabLabelKa || z.zoneNameKa) : 'საცხოვრებელი ზონა 5 (სზ-5)',
+            subzoneKey: z ? (z.zoneCode || z.subzoneKey || '').toLowerCase() : 'sz-5',
+            zone: z ? (z.subZoneKa || z.subzoneKa) : 'საცხოვრებელი ზონა-5',
+            zoneEn: z ? (z.zoneNameEn || z.subZoneEn) : 'Residential Zone-5',
+            k1: z && z.k1 != null ? z.k1 : 0.5,
+            k2: z && z.k2 != null ? z.k2 : 2.1,
+            k3: z && z.k3 != null ? z.k3 : 0.3,
+            isLiveNAPR: true,
+            coordinates: proxyData.coordinates,
+            tasProjects: proxyData.tasProjects || null,
+            approvedProjects: proxyData.approvedProjects || (proxyData.tasProjects ? proxyData.tasProjects.projects : []),
+            remainingCapacity: proxyData.remainingCapacity || null
+          };
         }
-
-        if (proxyRes && proxyRes.ok) {
-          const proxyData = await proxyRes.json();
-          if (proxyData.status && proxyData.coordinates && proxyData.coordinates.length > 2) {
-            const z = proxyData.zoning || resolveZoningForParcel(proxyData.cadastralCode, proxyData.address, proxyData.coordinates);
-            parcelData = {
-              code: proxyData.cadastralCode,
-              address: proxyData.address || "მისამართი დაზუსტებული არ არის",
-              addressEn: proxyData.address || "Address not specified",
-              area: proxyData.areaSqm || 1200,
-              shape: "ოფიციალური კონტური (NAPR)",
-              shapeEn: "Official Boundary (NAPR)",
-              terrain: "ვაკე / სტანდარტული რელიეფი",
-              terrainEn: "Standard terrain",
-              mainZoneKa: z ? z.mainZoneKa : 'საცხოვრებელი ზონა',
-              mainZoneEn: z ? (z.mainZoneEn || z.mainZoneKa) : 'Residential Zone',
-              subzoneKa: z ? (z.subZoneKa || z.subzoneKa) : 'საცხოვრებელი ზონა-5',
-              subzoneEn: z ? (z.subZoneEn || z.subzoneEn) : 'Residential Zone-5',
-              subZoneKa: z ? (z.subZoneKa || z.subzoneKa) : 'საცხოვრებელი ზონა-5',
-              subZoneEn: z ? (z.subZoneEn || z.subzoneEn) : 'Residential Zone-5',
-              tabLabelKa: z ? (z.tabLabelKa || z.zoneNameKa) : 'საცხოვრებელი ზონა 5 (სზ-5)',
-              subzoneKey: z ? (z.zoneCode || z.subzoneKey || '').toLowerCase() : 'sz-5',
-              zone: z ? (z.subZoneKa || z.subzoneKa) : 'საცხოვრებელი ზონა-5',
-              zoneEn: z ? (z.zoneNameEn || z.subZoneEn) : 'Residential Zone-5',
-              k1: z && z.k1 != null ? z.k1 : 0.5,
-              k2: z && z.k2 != null ? z.k2 : 2.1,
-              k3: z && z.k3 != null ? z.k3 : 0.3,
-              isLiveNAPR: true,
-              coordinates: proxyData.coordinates,
-              tasProjects: proxyData.tasProjects || null,
-              approvedProjects: proxyData.approvedProjects || (proxyData.tasProjects ? proxyData.tasProjects.projects : []),
-              remainingCapacity: proxyData.remainingCapacity || null
-            };
-          }
-        }
-      } catch (err) {
-        console.warn('Live NAPR fetch warning:', err);
-      } finally {
-        if (cadastralSearchBtn) {
-          cadastralSearchBtn.disabled = false;
-          cadastralSearchBtn.innerHTML = `<i class="fa-solid fa-magnifying-glass-location"></i> <span>${translations[state.currentLang].parcel_btn_search || 'ნაკვეთის მოძიება'}</span>`;
-        }
+      }
+    } catch (err) {
+      console.warn('Live NAPR fetch warning:', err);
+    } finally {
+      if (cadastralSearchBtn) {
+        cadastralSearchBtn.disabled = false;
+        cadastralSearchBtn.innerHTML = `<i class="fa-solid fa-magnifying-glass-location"></i> <span>${translations[state.currentLang].parcel_btn_search || 'ნაკვეთის მოძიება'}</span>`;
       }
     }
 
