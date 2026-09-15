@@ -23,6 +23,12 @@ const MIME_TYPES = {
 const LandIntelligenceService = require('./lib/land-intelligence/land-intelligence-service');
 const landIntelligenceService = new LandIntelligenceService();
 
+const TasPrecedentsEngine = require('./lib/land-intelligence/tas-precedents-engine');
+const tasPrecedentsEngine = new TasPrecedentsEngine();
+
+const CirculationEngine = require('./lib/land-intelligence/circulation-engine');
+const circulationEngine = new CirculationEngine();
+
 let DxfWriter;
 try {
   DxfWriter = require('dxf-writer');
@@ -896,6 +902,99 @@ const requestHandler = async (req, res) => {
       res.end(JSON.stringify(fallbackResult));
     })();
     return;
+  }
+
+  // 1E. TAS.GE Municipal Defect & Precedent Intelligence Engine (500m radius analysis)
+  if (parsedUrl.pathname === '/api/tas-precedents') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    const handlePrecedents = async (lat, lng, code, concept) => {
+      try {
+        const result = await tasPrecedentsEngine.getPrecedentsAroundParcel(lat, lng, code, concept);
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify(result));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: err.message || 'Internal Server Error' }));
+      }
+    };
+
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const payload = body ? JSON.parse(body) : {};
+          handlePrecedents(payload.lat, payload.lng, payload.code, payload.concept || {});
+        } catch (e) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ error: 'Invalid JSON payload' }));
+        }
+      });
+      return;
+    } else {
+      const lat = parseFloat(parsedUrl.searchParams.get('lat') || '41.715');
+      const lng = parseFloat(parsedUrl.searchParams.get('lng') || '44.785');
+      const code = parsedUrl.searchParams.get('code') || '';
+      const floors = parseInt(parsedUrl.searchParams.get('floors') || '5', 10);
+      const heightM = parseFloat(parsedUrl.searchParams.get('height') || '16.5');
+      handlePrecedents(lat, lng, code, { floors, heightM });
+      return;
+    }
+  }
+
+  // 1F. Slope-Aware Road, Fire Access & Circulation Network Generator
+  if (parsedUrl.pathname === '/api/circulation-network') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    const handleCirculation = (options) => {
+      try {
+        const result = circulationEngine.generateCirculationNetwork(options);
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify(result));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: err.message || 'Internal Server Error' }));
+      }
+    };
+
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const payload = body ? JSON.parse(body) : {};
+          handleCirculation(payload);
+        } catch (e) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ error: 'Invalid JSON payload' }));
+        }
+      });
+      return;
+    } else {
+      const roadWidthM = parseFloat(parsedUrl.searchParams.get('roadWidth') || '4.5');
+      const maxAllowedGradePct = parseFloat(parsedUrl.searchParams.get('maxGrade') || '8.0');
+      const terrainSlopePct = parseFloat(parsedUrl.searchParams.get('slope') || '5.5');
+      const turnaroundType = parsedUrl.searchParams.get('turnaround') || 'LOOP';
+      handleCirculation({ roadWidthM, maxAllowedGradePct, terrainSlopePct, turnaroundType });
+      return;
+    }
   }
 
   // 1D. AutoCAD & Revit Compliant DXF Export API (dxf-writer)

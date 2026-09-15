@@ -875,7 +875,73 @@
         font-size: 0.74rem !important;
         padding: 8px 4px !important;
         gap: 4px !important;
-      }
+    /* TAS Precedents & Circulation Engines Styling */
+    .tas-taxonomy-badge {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      padding: 6px 8px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.72rem;
+    }
+    .tas-taxonomy-badge i {
+      font-size: 0.85rem;
+    }
+    .tas-case-card {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 8px 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .tas-case-card:hover {
+      border-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.1);
+    }
+    .tas-case-card.active {
+      border-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.15);
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+    }
+    .tas-act-pill {
+      font-size: 0.64rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .tas-act-pill.refusal { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); }
+    .tas-act-pill.defect { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+    .tas-act-pill.minutes { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
+    
+    .tas-checklist-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 0.72rem;
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      padding: 6px 8px;
+    }
+    .tas-checklist-item i {
+      margin-top: 2px;
+      font-size: 0.8rem;
+    }
+
+    .btn-ai-action-tile {
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    }
+    .btn-ai-action-tile:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+      filter: brightness(1.15);
     }
   </style>
 </head>
@@ -1333,6 +1399,14 @@
               <i class="fa-solid fa-binoculars" style="color: #10b981;"></i>
               <span data-i18n="mode_viewshed">ხედები</span>
             </button>
+            <button type="button" class="mode-tab-btn" data-mode="tas-precedents" id="btnModeTasPrecedents" role="tab" aria-selected="false" title="მერიის პრეცედენტები და ხარვეზების AI ანალიზი (500მ რადიუსი)">
+              <i class="fa-solid fa-landmark-flag" style="color: #f59e0b;"></i>
+              <span data-i18n="mode_tas_precedents">TAS პრეცედენტები</span>
+            </button>
+            <button type="button" class="mode-tab-btn" data-mode="circulation" id="btnModeCirculation" role="tab" aria-selected="false" title="რელიეფზე მორგებული საგზაო და სახანძრო ქსელის გენერატორი">
+              <i class="fa-solid fa-truck-fire" style="color: #ef4444;"></i>
+              <span data-i18n="mode_circulation">საგზაო &amp; სახანძრო</span>
+            </button>
             <!-- Engineering & Computational Dropdown Menu -->
             <div class="mode-dropdown-wrap" id="analysisDropdownWrap">
               <button type="button" class="mode-tab-btn mode-dropdown-btn" id="btnAnalysisDropdown" aria-expanded="false" title="საინჟინრო & გამოთვლითი ანალიზი">
@@ -1360,6 +1434,21 @@
                   <div class="dropdown-item-info">
                     <span class="dropdown-item-name">ქარის სიმულაცია (CFD)</span>
                     <span class="dropdown-item-desc">Lawson კომფორტი, აეროდინამიკა & ნაკადები</span>
+                  </div>
+                </button>
+                <div class="tools-dropdown-divider" style="margin: 4px 0; height: 1px; background: rgba(255,255,255,0.08);"></div>
+                <button type="button" class="mode-dropdown-item" data-mode="tas-precedents">
+                  <span class="dropdown-item-badge" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b;"><i class="fa-solid fa-landmark-flag"></i></span>
+                  <div class="dropdown-item-info">
+                    <span class="dropdown-item-name">მერიის პრეცედენტები &amp; TAS AI</span>
+                    <span class="dropdown-item-desc">მუნიციპალური ხარვეზები, უარები და რისკები</span>
+                  </div>
+                </button>
+                <button type="button" class="mode-dropdown-item" data-mode="circulation">
+                  <span class="dropdown-item-badge" style="background: rgba(239, 68, 68, 0.2); color: #ef4444;"><i class="fa-solid fa-truck-fire"></i></span>
+                  <div class="dropdown-item-info">
+                    <span class="dropdown-item-name">საგზაო &amp; სახანძრო ქსელი (რელიეფზე)</span>
+                    <span class="dropdown-item-desc">№41 რეგლამენტი, დაქანება &amp; სახანძრო სიმულაცია</span>
                   </div>
                 </button>
               </div>
@@ -2527,6 +2616,230 @@
             </div>
           </div>
 
+          <!-- Floating TAS Precedents & Municipal Defect AI Panel (Module 1) -->
+          <div class="solar-control-panel engineering-panel" id="tasPrecedentsControlPanel" style="display: none;">
+            <div class="solar-header">
+              <div class="solar-title-wrap">
+                <i class="fa-solid fa-landmark-flag solar-header-sun-icon" style="color: #f59e0b;"></i>
+                <div>
+                  <span class="solar-header-title">მერიის პრეცედენტები &amp; TAS AI</span>
+                  <span class="solar-header-sub">მუნიციპალური ხარვეზები, უარები და რისკების ანალიზატორი (500მ რადიუსი)</span>
+                </div>
+              </div>
+              <div class="solar-header-actions">
+                <div class="solar-status-pill" id="tasRiskScoreBadge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);" title="Municipal Risk Score">
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                  <span id="tasRiskScoreText">რისკი: 48%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- KPI Grid: Cases, Radius, Risk Level, Failure Precedents -->
+            <div class="unitmix-kpi-grid">
+              <div class="unitmix-kpi-card">
+                <span class="unitmix-kpi-title">რადიუსი (TAS.GE)</span>
+                <span class="unitmix-kpi-val" style="color: #38bdf8;">500 მ</span>
+              </div>
+              <div class="unitmix-kpi-card">
+                <span class="unitmix-kpi-title">ნაპოვნი საქმეები</span>
+                <span class="unitmix-kpi-val" id="tasPrecedentsCountVal" style="color: #fbbf24;">6 საქმე</span>
+              </div>
+              <div class="unitmix-kpi-card">
+                <span class="unitmix-kpi-title">მუნიციპალური რისკი</span>
+                <span class="unitmix-kpi-val" id="tasRiskLevelVal" style="color: #f59e0b;">ზომიერი</span>
+              </div>
+              <div class="unitmix-kpi-card">
+                <span class="unitmix-kpi-title">უარების / ხარვეზების წილი</span>
+                <span class="unitmix-kpi-val" id="tasFailureRateVal" style="color: #ef4444;">83%</span>
+              </div>
+            </div>
+
+            <!-- Stage & Act Type Filter Chips -->
+            <div class="solar-section-row">
+              <div class="solar-label-row">
+                <span class="solar-section-label"><i class="fa-solid fa-filter" style="color: #f59e0b;"></i> ეტაპი &amp; აქტის ტიპი:</span>
+              </div>
+              <div class="viewshed-cat-chips-wrap" style="display: flex; flex-wrap: wrap; gap: 4px;">
+                <button type="button" class="v-cat-chip active" data-tas-stage="all">ყველა</button>
+                <button type="button" class="v-cat-chip" data-tas-stage="STAGE_1_GAP">I ეტაპი (გპპ)</button>
+                <button type="button" class="v-cat-chip" data-tas-stage="STAGE_2_ARCH">II ეტაპი (არქიტექტურა)</button>
+                <button type="button" class="v-cat-chip" data-tas-stage="STAGE_3_PERMIT">III ეტაპი (ნებართვა)</button>
+              </div>
+            </div>
+
+            <!-- 6-Category Defect Taxonomy Breakdown -->
+            <div class="solar-section-row">
+              <span class="solar-section-label"><i class="fa-solid fa-chart-pie" style="color: #fbbf24;"></i> ხარვეზების კატეგორიები (ნორმატიული ტაქსონომია):</span>
+              <div class="tas-taxonomy-grid" id="tasTaxonomyGrid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 6px;">
+                <!-- Dynamically filled taxonomy badges -->
+              </div>
+            </div>
+
+            <!-- Precedent Case Cards List (Scrollable) -->
+            <div class="solar-section-row">
+              <span class="solar-section-label"><i class="fa-solid fa-list-check" style="color: #38bdf8;"></i> მიმდებარე საქმეები და მერიის უარის მოტივები (500მ):</span>
+              <div class="tas-precedents-list" id="tasPrecedentsList" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-top: 6px;">
+                <!-- Dynamically populated case cards with click to view/focus on 3D pin -->
+              </div>
+            </div>
+
+            <!-- Predictive 3D Warning Box -->
+            <div class="solar-section-row" style="background: rgba(30, 41, 59, 0.7); border-radius: 8px; padding: 10px; border-left: 3px solid #f59e0b;">
+              <div style="font-size: 0.75rem; font-weight: 700; color: #fbbf24; margin-bottom: 4px;">
+                <i class="fa-solid fa-eye"></i> პროგნოზული გაფრთხილება (3D ფასადების რისკი):
+              </div>
+              <div id="tasPredictiveWarningText" style="font-size: 0.73rem; color: #cbd5e1; line-height: 1.4;">
+                სიმაღლისა და გარემოცვის გამო ჩრდილო-აღმოსავლეთის ფასადი დაჩრდილვის რისკის ქვეშაა.
+              </div>
+            </div>
+
+            <!-- Preventative Checklist for Stage 1 (გპპ) -->
+            <div class="solar-section-row">
+              <span class="solar-section-label"><i class="fa-solid fa-clipboard-check" style="color: #10b981;"></i> სავალდებულო პრევენციული კვლევები (გპპ I ეტაპი):</span>
+              <div class="tas-checklist-wrap" id="tasChecklistWrap" style="display: flex; flex-direction: column; gap: 5px; margin-top: 6px;">
+                <!-- Dynamically populated checklist -->
+              </div>
+            </div>
+
+            <!-- Toggles -->
+            <div class="solar-toggles-grid" style="margin-top: 4px;">
+              <label class="solar-toggle-item">
+                <input type="checkbox" id="chkTasShowPins3D" checked>
+                <span>3D პრეცედენტების პინები (500მ)</span>
+              </label>
+              <label class="solar-toggle-item">
+                <input type="checkbox" id="chkTasHighlightRiskyFacades" checked>
+                <span>რისკიანი ფასადების შეფერვა (3D)</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Floating Slope-Aware Circulation & Fire Access Panel (Module 2) -->
+          <div class="solar-control-panel engineering-panel" id="circulationControlPanel" style="display: none;">
+            <div class="solar-header">
+              <div class="solar-title-wrap">
+                <i class="fa-solid fa-truck-fire solar-header-sun-icon" style="color: #ef4444;"></i>
+                <div>
+                  <span class="solar-header-title">საგზაო &amp; სახანძრო ქსელი (რელიეფზე)</span>
+                  <span class="solar-header-sub">ტექ. რეგლამენტი №41 · დაქანების მართვა · სახანძრო კორიდორი &amp; Swept-Path</span>
+                </div>
+              </div>
+              <div class="solar-header-actions">
+                <div class="solar-status-pill" id="circulationComplianceBadge" style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4);" title="Regulatory Compliance">
+                  <i class="fa-solid fa-check-double"></i>
+                  <span id="circulationComplianceText">№41 დაცულია</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- KPI Grid: Road Width, Max Grade, Fire Clearance, Turnaround -->
+            <div class="unitmix-kpi-grid">
+              <div class="unitmix-kpi-card">
+                <span class="unitmix-kpi-title">გზის სიგანე</span>
+                <span class="unitmix-kpi-val" id="circKpiWidthVal" style="color: #38bdf8;">4.5 მ</span>
+              </div>
+              <div class="unitmix-kpi-card">
+                <span class="unitmix-kpi-title">მაქს. დაქანება (S)</span>
+                <span class="unitmix-kpi-val" id="circKpiGradeVal" style="color: #10b981;">6.4%</span>
+              </div>
+              <div class="unitmix-kpi-card">
+                <span class="unitmix-kpi-title">ვერტიკალური გაბარიტი</span>
+                <span class="unitmix-kpi-val" style="color: #00f0ff;">≥ 4.5 მ</span>
+              </div>
+              <div class="unitmix-kpi-card">
+                <span class="unitmix-kpi-title">მობრუნების რგოლი</span>
+                <span class="unitmix-kpi-val" id="circKpiTurnVal" style="color: #ef4444;">R ≥ 12 მ</span>
+              </div>
+            </div>
+
+            <!-- Primary Generation Button -->
+            <div class="solar-section-row">
+              <button type="button" class="btn-solar-chip active" id="btnRegenerateCirculation" style="width: 100%; padding: 8px 12px; font-weight: 700; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff;">
+                <i class="fa-solid fa-route"></i> ოპტიმალური ქსელის გენერაცია (Contour A*)
+              </button>
+            </div>
+
+            <!-- Sliders: Road Width & Max Allowed Grade -->
+            <div class="solar-section-row">
+              <div class="solar-time-header">
+                <span class="solar-section-label"><i class="fa-solid fa-ruler-horizontal"></i> საგზაო ზოლის სიგანე (მეტრი):</span>
+                <div class="solar-time-badge" id="badgeRoadWidth">4.5 მ</div>
+              </div>
+              <div class="solar-slider-wrap">
+                <input type="range" class="solar-time-slider" id="sliderRoadWidth" min="3.5" max="6.0" step="0.25" value="4.5">
+                <div class="solar-slider-ticks">
+                  <span>3.5 მ (ცალმხრივი)</span>
+                  <span>4.5 მ (სტანდარტული)</span>
+                  <span>6.0 მ (ორმხრივი)</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="solar-section-row">
+              <div class="solar-time-header">
+                <span class="solar-section-label"><i class="fa-solid fa-chart-line"></i> მაქს. დასაშვები დაქანება (გრადიენტი %):</span>
+                <div class="solar-time-badge" id="badgeMaxGrade">8.0%</div>
+              </div>
+              <div class="solar-slider-wrap">
+                <input type="range" class="solar-time-slider" id="sliderMaxGrade" min="6.0" max="12.0" step="0.5" value="8.0">
+                <div class="solar-slider-ticks">
+                  <span>6.0% (სახანძრო)</span>
+                  <span>8.0% (რეკომენდებული)</span>
+                  <span>12.0% (ზღვრული)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Turnaround Type Selector -->
+            <div class="solar-section-row">
+              <div class="solar-label-row">
+                <span class="solar-section-label"><i class="fa-solid fa-arrows-spin"></i> ჩიხის მობრუნების ტიპი (>15 მ ჩიხისთვის):</span>
+              </div>
+              <div class="viewshed-radius-pills-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                <button type="button" class="viewshed-filter-pill active" id="btnTurnTypeLoop" data-turn-type="LOOP">წრიული რგოლი (R ≥ 12 მ)</button>
+                <button type="button" class="viewshed-filter-pill" id="btnTurnTypeT" data-turn-type="HAMMERHEAD">T-ფორმა (12x12 მ)</button>
+              </div>
+            </div>
+
+            <!-- Interactive Fire Truck Swept Path Simulation Box -->
+            <div class="solar-section-row" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 10px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                <div style="font-size: 0.78rem; font-weight: 700; color: #fca5a5;">
+                  <i class="fa-solid fa-truck-fire"></i> 10მ სახანძრო ავტომობილის Swept-Path სიმულაცია
+                </div>
+                <button type="button" class="btn-solar-play active" id="btnToggleFireTruckSim" title="სიმულაციის გაშვება / გაჩერება">
+                  <i class="fa-solid fa-play" id="iconFireTruckPlay"></i>
+                </button>
+              </div>
+              <p style="font-size: 0.7rem; color: #cbd5e1; margin-bottom: 8px;">
+                ამოწმებს 10-მეტრიანი სახანძრო მანქანის მოსახვევში შეუფერხებელ მანევრირებას რელიეფისა და შენობის გაბარიტებთან.
+              </p>
+              <div class="solar-slider-wrap">
+                <input type="range" class="solar-time-slider" id="sliderFireTruckPos" min="0" max="100" step="1" value="0">
+              </div>
+            </div>
+
+            <!-- Visual Layer Toggles -->
+            <div class="solar-toggles-grid" style="margin-top: 4px;">
+              <label class="solar-toggle-item">
+                <input type="checkbox" id="chkShowVehicleAxis" checked>
+                <span style="color: #38bdf8;">ავტომობილის ღერძი (#3b82f6)</span>
+              </label>
+              <label class="solar-toggle-item">
+                <input type="checkbox" id="chkShowFireCorridor" checked>
+                <span style="color: #f87171;">სახანძრო კორიდორი (#ef4444)</span>
+              </label>
+              <label class="solar-toggle-item">
+                <input type="checkbox" id="chkShowPedestrianAda" checked>
+                <span style="color: #34d399;">საფეხმავლო &amp; ADA (#10b981)</span>
+              </label>
+              <label class="solar-toggle-item">
+                <input type="checkbox" id="chkShowSlopeBadges" checked>
+                <span>დაქანების ნიშნულები (S %)</span>
+              </label>
+            </div>
+          </div>
+
           <!-- HUD Floating Overlays -->
           <div class="viewport-hud-overlay">
             <div class="hud-pill-badge">
@@ -3186,6 +3499,24 @@
                 <span id="gapAdviceText">
                   ნაკვეთზე რეკომენდებულია მშენებლობის ნებართვის I ეტაპის (გპპ) განაცხადის შეტანა. საჭიროა საინჟინრო-გეოლოგიური დასკვნა და სატრანსპორტო სქემის თანდართვა.
                 </span>
+              </div>
+
+              <!-- Dedicated Action Buttons in the AI Analysis Column (Requirement: "ცალკე ღილაკად AI ანალიზის გრაფაში") -->
+              <div class="ai-analysis-action-buttons-group" style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+                <button type="button" class="btn-ai-action-tile" id="btnOpenTasPrecedentsPanel" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(217, 119, 6, 0.28) 100%); border: 1.5px solid #f59e0b; color: #fbbf24; text-align: left; padding: 10px 12px; display: flex; align-items: center; gap: 10px; width: 100%;">
+                  <i class="fa-solid fa-landmark-flag" style="font-size: 1.25rem; color: #f59e0b;"></i>
+                  <div>
+                    <strong style="display: block; font-size: 0.82rem; color: #fef08a;">მერიის პრეცედენტები &amp; TAS AI</strong>
+                    <span style="display: block; font-size: 0.7rem; color: #cbd5e1;">500მ რადიუსის ხარვეზები, უარები და რისკების მატრიცა</span>
+                  </div>
+                </button>
+                <button type="button" class="btn-ai-action-tile" id="btnOpenCirculationPanel" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.16) 0%, rgba(220, 38, 38, 0.26) 100%); border: 1.5px solid #ef4444; color: #fca5a5; text-align: left; padding: 10px 12px; display: flex; align-items: center; gap: 10px; width: 100%;">
+                  <i class="fa-solid fa-truck-fire" style="font-size: 1.25rem; color: #ef4444;"></i>
+                  <div>
+                    <strong style="display: block; font-size: 0.82rem; color: #fee2e2;">საგზაო &amp; სახანძრო ქსელი (რელიეფზე)</strong>
+                    <span style="display: block; font-size: 0.7rem; color: #cbd5e1;">№41 რეგლამენტი, დაქანება &amp; სახანძრო სიმულაცია</span>
+                  </div>
+                </button>
               </div>
             </div>
           </div>
