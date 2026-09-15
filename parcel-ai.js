@@ -6224,6 +6224,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const passportSub  = document.getElementById('passportSubZoneDisplay');
     if (passportMain) passportMain.textContent = hasZone ? (isEn ? parcel.mainZoneEn : parcel.mainZoneKa) : unknownZone;
     if (passportSub)  passportSub.textContent  = hasZone ? (isEn ? (parcel.subZoneEn || parcel.subzoneEn) : (parcel.subZoneKa || parcel.subzoneKa)) : unknownZone;
+    // Update municipal registry portal & permit status (TAS.GE for Tbilisi, MS.GOV.GE for regions)
+    const isTbilisi = (parcel.code || '').startsWith('01.');
+    const portalName = (parcel.tasProjects && parcel.tasProjects.portalName) || (isTbilisi ? 'TAS.GE' : 'MS.GOV.GE');
+    const portalUrl = (parcel.tasProjects && parcel.tasProjects.portalUrl) || (isTbilisi ? 'https://tas.ge/' : 'https://ms.gov.ge/');
+    const portalLinkEl = document.getElementById('infoParcelPortalLink');
+    if (portalLinkEl) {
+      portalLinkEl.href = portalUrl;
+      portalLinkEl.textContent = `${portalName} ↗`;
+    }
+
+    const permitEl = document.getElementById('infoParcelPermitStatus');
+    if (permitEl) {
+      const projList = parcel.approvedProjects || (parcel.tasProjects && parcel.tasProjects.projects) || [];
+      if (projList.length > 0) {
+        const p0 = projList[0];
+        permitEl.innerHTML = `<span style="color:#0284c7; font-weight:700;">${p0.caseNumber}</span> · ${p0.statusKa || 'შეთანხმებულია'} (K1: ${p0.approvedFootprintSqm || 0} მ² / K2: ${p0.approvedGrossAreaSqm || 0} მ²)`;
+      } else {
+        permitEl.innerHTML = `<span style="color:#10b981; font-weight:600;"><i class="fa-solid fa-circle-check"></i> 100% თავისუფალი (ნებართვების გარეშე)</span>`;
+      }
+    }
 
     // Render Information Modal matching Photo 3
     if (typeof window.renderParcelAiInfoModal === 'function') {

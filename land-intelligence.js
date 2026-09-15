@@ -314,6 +314,11 @@ function renderInfoModalDetails(data) {
   const rem = tas.remaining || {};
   const app = tas.approved || {};
 
+  const isTbilisi = (p.cadastralCode || '').startsWith('01.');
+  const portalName = isTbilisi ? 'TAS.GE' : 'MS.GOV.GE';
+  const portalUrl = isTbilisi ? 'https://tas.ge/' : 'https://ms.gov.ge/';
+  const portalFullTitle = isTbilisi ? 'ქ. თბილისის არქიტექტურის სამსახური (TAS.GE)' : 'მუნიციპალური სერვისების ერთიანი პორტალი (MS.GOV.GE)';
+
   if (tabParcel) {
     tabParcel.textContent = 'რეგისტრირებული მიწის ნაკვეთი';
   }
@@ -321,7 +326,7 @@ function renderInfoModalDetails(data) {
     tabZone.textContent = primaryZone.tabLabelKa || primaryZone.zoneNameKa || 'საცხოვრებელი ზონა 5 (სზ-5)';
   }
   if (tabTas) {
-    tabTas.textContent = tas.hasApprovedProjects ? `შეთანხმებული პროექტები (${tas.projectsCount})` : 'შეთანხმებული პროექტები (TAS)';
+    tabTas.textContent = tas.hasApprovedProjects ? `შეთანხმებული პროექტები (${portalName}: ${tas.projectsCount})` : `შეთანხმებული პროექტები (${portalName})`;
   }
 
   if (currentInfoTab === 'zone') {
@@ -353,7 +358,7 @@ function renderInfoModalDetails(data) {
       </table>
     `;
   } else if (currentInfoTab === 'tas') {
-    // TAS Approved Projects & Remaining Capacity Tab
+    // TAS.GE / MS.GOV.GE Approved Projects & Remaining Capacity Tab
     if (tas.hasApprovedProjects && tas.projects && tas.projects.length > 0) {
       const proj = tas.projects[0];
       container.innerHTML = `
@@ -396,8 +401,8 @@ function renderInfoModalDetails(data) {
               <td class="tas-val">${proj.approvedFloors ? `${proj.approvedFloors} სართ.` : '—'} (${rem.remainingFloorsReserve})</td>
             </tr>
             <tr>
-              <td class="tas-key">TAS ოფიციალური:</td>
-              <td class="tas-val"><a href="${proj.tasUrl || 'https://tas.ge/'}" target="_blank" rel="noopener" style="color: #0284c7; font-weight: 600; text-decoration: underline;">tas.ge დოკუმენტი ↗</a></td>
+              <td class="tas-key">${portalName} პორტალი:</td>
+              <td class="tas-val"><a href="${proj.tasUrl || portalUrl}" target="_blank" rel="noopener noreferrer" style="color: #0284c7; font-weight: 600; text-decoration: underline;">${portalFullTitle} ↗</a></td>
             </tr>
           </tbody>
         </table>
@@ -406,11 +411,16 @@ function renderInfoModalDetails(data) {
       container.innerHTML = `
         <div style="padding: 12px 0; color: #475569; font-size: 0.86rem; line-height: 1.5;">
           <div style="font-weight: 700; color: #10b981; margin-bottom: 6px; font-size: 0.92rem;">
-            <i class="fa-solid fa-circle-check"></i> 100% თავისუფალი სამშენებლო რესურსი
+            <i class="fa-solid fa-circle-check"></i> 100% თავისუფალი სამშენებლო რესურსი (${portalName})
           </div>
           <div>ნაკვეთზე არ ფიქსირდება შეთანხმებული არქიტექტურული პროექტი ან სამშენებლო ნებართვა.</div>
           <div style="margin-top: 10px; padding: 10px; background: #f0fdf4; border-radius: 6px; border: 1px solid #bbf7d0; color: #166534; font-size: 0.84rem;">
             <strong>დარჩენილი პოტენციალი:</strong> სრული K-1 (${(data.coefficients?.k1?.maxFootprintSqm || 0).toLocaleString()} მ²) და K-2 (${(data.coefficients?.k2?.maxGrossFloorAreaSqm || 0).toLocaleString()} მ²).
+          </div>
+          <div style="margin-top: 10px; font-size: 0.8rem;">
+            <span style="color: #64748b;">ოფიციალური მონაცემთა გადამოწმება: </span>
+            <a href="${portalUrl}" target="_blank" rel="noopener noreferrer" style="color: #0284c7; font-weight: 600; text-decoration: underline;">${portalName} ↗</a> · 
+            <a href="https://maps.gov.ge/map/portal" target="_blank" rel="noopener noreferrer" style="color: #0284c7; font-weight: 600; text-decoration: underline;">maps.gov.ge ↗</a>
           </div>
         </div>
       `;
