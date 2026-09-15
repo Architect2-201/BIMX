@@ -321,9 +321,45 @@ const requestHandler = async (req, res) => {
           portalUrl: "https://maps.gov.ge/map/portal"
         }));
       } catch (err) {
-        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        // NAPR provider threw — try synthesizer fallback before giving up
+        console.warn('[Server] NAPR provider error for', normalizedCode, '—', err.message, '— using synthesizer fallback');
+        try {
+          const synthesized = landIntelligenceService.napr.synthesizeCadastralParcel(normalizedCode);
+          if (synthesized && synthesized.found && synthesized.boundary && synthesized.boundary.length >= 3) {
+            let zoning = null;
+            try {
+              const zoningAnalysis = landIntelligenceService.tbilisiZoning.resolveZoning(normalizedCode, synthesized.centroid, synthesized.areaSqm, null);
+              if (zoningAnalysis && zoningAnalysis.primaryZone) {
+                const pz = zoningAnalysis.primaryZone;
+                zoning = { zoneCode: pz.zoneCode, mainZoneKa: pz.mainZoneKa, mainZoneEn: pz.mainZoneEn || pz.mainZoneKa, subZoneKa: pz.subZoneKa, subZoneEn: pz.subZoneEn || pz.subZoneKa, tabLabelKa: pz.tabLabelKa, zoneNameKa: pz.zoneNameKa, zoneNameEn: pz.zoneNameEn, k1: pz.k1, k2: pz.k2, k3: pz.k3 };
+              }
+            } catch (_) {}
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({
+              status: true,
+              cadastralCode: synthesized.cadastralCode,
+              address: synthesized.address,
+              areaSqm: synthesized.areaSqm,
+              coordinates: synthesized.boundary,
+              shapeWkt: synthesized.shapeWkt,
+              centroid: synthesized.centroid,
+              dimensions: synthesized.dimensions,
+              source: synthesized.source,
+              portalUrl: synthesized.portalUrl,
+              zoning: zoning,
+              tasProjects: null,
+              approvedProjects: [],
+              remainingCapacity: null
+            }));
+            return;
+          }
+        } catch (synthErr) {
+          console.warn('[Server] Synthesizer fallback also failed:', synthErr.message);
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({
-          error: "NAPR service connection error: " + (err.message || err),
+          status: false,
+          error: "NAPR service temporarily unreachable: " + (err.message || err),
           code: normalizedCode,
           portalUrl: "https://maps.gov.ge/map/portal"
         }));
@@ -465,10 +501,10 @@ const requestHandler = async (req, res) => {
         }
       }
 
-      // Return authentic OSM buildings if found, or empty array if rural/open land
+      // Return empty array if Overpass was unreachable or returned no buildings (rural/open land)
       if (!res.headersSent) {
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ status: 'OK', source: 'overpass', count: buildings.length, buildings: buildings }));
+        res.end(JSON.stringify({ status: 'OK', source: 'overpass', count: 0, buildings: [] }));
       }
     })();
     return;

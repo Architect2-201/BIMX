@@ -1383,6 +1383,10 @@ document.addEventListener('DOMContentLoaded', () => {
         initCirculationMode();
       } else if (state.currentMode === 'map') {
         setMode('combined');
+      } else {
+        // For combined / 3d / 2d modes: explicitly re-apply the mode so 3D and 2D
+        // panels are refreshed and building groups become visible for the new parcel.
+        setMode(state.currentMode);
       }
       return;
     }
@@ -3868,15 +3872,28 @@ document.addEventListener('DOMContentLoaded', () => {
       if (inParcel.length === 0 && state.activeParcel.approvedProjects && state.activeParcel.approvedProjects.length > 0) {
         state.activeParcel.approvedProjects.forEach((proj, idx) => {
           if (proj.footprintContour && proj.footprintContour.length >= 3) {
-            inParcel.push({
-              id: `tas-approved-${idx + 1}`,
-              name: proj.projectTitle || `შეთანხმებული შენობა (TAS)`,
-              useType: 'residential',
-              height: proj.approvedHeightM || 10.2,
-              levels: proj.approvedFloors || 3,
-              coordinates: proj.footprintContour,
-              isProcedural: false
-            });
+            // Normalize footprintContour: may arrive as ["lat lng", ...] strings or [[lat,lng], ...] arrays
+            let contourCoords = proj.footprintContour.map(pt => {
+              if (Array.isArray(pt)) return pt;
+              if (typeof pt === 'string') {
+                const parts = pt.trim().split(/\s+/);
+                const a = parseFloat(parts[0]);
+                const b = parseFloat(parts[1]);
+                if (!isNaN(a) && !isNaN(b)) return [a, b];
+              }
+              return null;
+            }).filter(Boolean);
+            if (contourCoords.length >= 3) {
+              inParcel.push({
+                id: `tas-approved-${idx + 1}`,
+                name: proj.projectTitle || `შეთანხმებული შენობა (TAS)`,
+                useType: 'residential',
+                height: proj.approvedHeightM || 10.2,
+                levels: proj.approvedFloors || 3,
+                coordinates: contourCoords,
+                isProcedural: false
+              });
+            }
           }
         });
       }
