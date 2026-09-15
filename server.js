@@ -205,14 +205,21 @@ const requestHandler = async (req, res) => {
       return;
     }
 
-    // Helper: Parse WKT POLYGON ((lng lat, ...)) into [[lat, lng], ...] for Leaflet & Three.js
+    // Helper: Parse WKT POLYGON / MULTIPOLYGON ((lng lat, ...)) into [[lat, lng], ...] for Leaflet & Three.js
     function parseWktPolygonToLatLng(wkt) {
-      const match = wkt.match(/\(\((.+)\)\)/);
-      if (!match) return [];
-      return match[1].split(',').map(pair => {
-        const [lng, lat] = pair.trim().split(/\s+/).map(Number);
-        return [lat, lng]; // Leaflet coordinate order [lat, lng]
-      });
+      if (!wkt || typeof wkt !== 'string') return [];
+      const clean = wkt.replace(/^(?:MULTI)?POLYGON\s*/i, '');
+      const coordRegex = /([+-]?\d+(?:\.\d+)?)\s+([+-]?\d+(?:\.\d+)?)/g;
+      const points = [];
+      let m;
+      while ((m = coordRegex.exec(clean)) !== null) {
+        const lng = parseFloat(m[1]);
+        const lat = parseFloat(m[2]);
+        if (!isNaN(lat) && !isNaN(lng)) {
+          points.push([lat, lng]); // Leaflet coordinate order [lat, lng]
+        }
+      }
+      return points;
     }
 
     // Helper: Calculate area in sqm
@@ -317,64 +324,6 @@ const requestHandler = async (req, res) => {
       }
     })();
     return;
-  }
-
-  // Helper: Fallback procedural urban fabric around coordinates (if Overpass times out)
-  function generateProceduralUrbanFabric(centerLat, centerLng) {
-    const buildings = [];
-    const metersPerDegLat = 111132.954;
-    const metersPerDegLng = 111132.954 * Math.cos((centerLat * Math.PI) / 180);
-
-    const offsets = [
-      // Close neighbors (35m - 90m)
-      { dx: 45, dy: 30, w: 24, l: 32, rot: 15, h: 16.0, lv: 5 },
-      { dx: -55, dy: 20, w: 28, l: 20, rot: -10, h: 12.8, lv: 4 },
-      { dx: 30, dy: -60, w: 35, l: 22, rot: 5, h: 22.4, lv: 7 },
-      { dx: -40, dy: -55, w: 20, l: 30, rot: 25, h: 9.6, lv: 3 },
-      // Mid ring (100m - 180m)
-      { dx: 110, dy: 50, w: 32, l: 40, rot: 12, h: 28.8, lv: 9 },
-      { dx: 85, dy: 120, w: 26, l: 26, rot: -18, h: 16.0, lv: 5 },
-      { dx: -110, dy: 80, w: 38, l: 24, rot: 8, h: 19.2, lv: 6 },
-      { dx: -90, dy: -110, w: 30, l: 35, rot: -15, h: 12.8, lv: 4 },
-      { dx: 60, dy: -130, w: 42, l: 28, rot: 20, h: 25.6, lv: 8 },
-      { dx: -130, dy: -40, w: 25, l: 25, rot: 0, h: 9.6, lv: 3 },
-      // Outer perimeter (190m - 280m)
-      { dx: 180, dy: 90, w: 45, l: 35, rot: 30, h: 32.0, lv: 10 },
-      { dx: 150, dy: -160, w: 36, l: 30, rot: -25, h: 16.0, lv: 5 },
-      { dx: -170, dy: 140, w: 32, l: 48, rot: 10, h: 22.4, lv: 7 },
-      { dx: -190, dy: -120, w: 40, l: 28, rot: -5, h: 12.8, lv: 4 },
-      { dx: 0, dy: 160, w: 30, l: 32, rot: 15, h: 19.2, lv: 6 },
-      { dx: -10, dy: -180, w: 44, l: 26, rot: -12, h: 16.0, lv: 5 }
-    ];
-
-    offsets.forEach((b, idx) => {
-      const cos = Math.cos((b.rot * Math.PI) / 180);
-      const sin = Math.sin((b.rot * Math.PI) / 180);
-      const hw = b.w / 2;
-      const hl = b.l / 2;
-
-      const cornersMeters = [
-        { x: b.dx + (-hw * cos - -hl * sin), y: b.dy + (-hw * sin + -hl * cos) },
-        { x: b.dx + (hw * cos - -hl * sin),  y: b.dy + (hw * sin + -hl * cos) },
-        { x: b.dx + (hw * cos - hl * sin),   y: b.dy + (hw * sin + hl * cos) },
-        { x: b.dx + (-hw * cos - hl * sin),  y: b.dy + (-hw * sin + hl * cos) }
-      ];
-
-      const polyGps = cornersMeters.map(pt => [
-        centerLat + pt.y / metersPerDegLat,
-        centerLng + pt.x / metersPerDegLng
-      ]);
-
-      buildings.push({
-        id: `proc-bldg-${idx + 1}`,
-        height: b.h,
-        levels: b.lv,
-        coordinates: polyGps,
-        isProcedural: true
-      });
-    });
-
-    return buildings;
   }
 
   // 1B. OpenStreetMap Overpass API: Surrounding 3D Urban Fabric (within 350m)
@@ -510,11 +459,10 @@ const requestHandler = async (req, res) => {
         }
       }
 
-      // Fallback: Immediate adaptive procedural urban fabric around coordinates
+      // Return authentic OSM buildings if found, or empty array if rural/open land
       if (!res.headersSent) {
-        const fallback = generateProceduralUrbanFabric(lat, lng);
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ status: 'OK', source: 'procedural_fallback', count: fallback.length, buildings: fallback }));
+        res.end(JSON.stringify({ status: 'OK', source: 'overpass', count: buildings.length, buildings: buildings }));
       }
     })();
     return;
@@ -622,66 +570,6 @@ const requestHandler = async (req, res) => {
         });
       }
     }
-
-    const templates = [
-      { nameKa: 'ავტობუსის გაჩერება (ხაზი #301, #314)', nameEn: 'Bus Stop (Route #301, #314)', cat: 'transport', catKa: 'ავტობუსის გაჩერება', icon: 'fa-bus', color: '#f59e0b', distM: 110, angleDeg: 80 },
-      { nameKa: 'სუპერმარკეტი „ნიკორა XL“ 24/7', nameEn: 'Supermarket "Nikora XL" 24/7', cat: 'supermarket', catKa: 'სუპერმარკეტი', icon: 'fa-basket-shopping', color: '#10b981', distM: 145, angleDeg: 200 },
-      { nameKa: 'აფთიაქი „PSP ექსპრესი“', nameEn: 'Pharmacy "PSP Express"', cat: 'pharmacy', catKa: 'აფთიაქი', icon: 'fa-pills', color: '#f43f5e', distM: 175, angleDeg: 285 },
-      { nameKa: 'საბავშვო ბაღი „მზეკაბანი“ N82', nameEn: 'Kindergarten #82', cat: 'kindergarten', catKa: 'საბავშვო ბაღი', icon: 'fa-child-reaching', color: '#ec4899', distM: 190, angleDeg: 120 },
-      { nameKa: 'რეკრეაციული სკვერი & დასასვენებელი ზონა', nameEn: 'Recreational Square & Park', cat: 'park', catKa: 'სკვერი / პარკი', icon: 'fa-tree', color: '#22c55e', distM: 240, angleDeg: 310 },
-      { nameKa: 'საჯარო სკოლა N147', nameEn: 'Public School #147', cat: 'education', catKa: 'საჯარო სკოლა', icon: 'fa-graduation-cap', color: '#38bdf8', distM: 260, angleDeg: 35 },
-      { nameKa: 'ავტობუსის გაჩერება (ქალაქის ცენტრი)', nameEn: 'Bus Stop (City Center Bound)', cat: 'transport', catKa: 'ავტობუსის გაჩერება', icon: 'fa-bus', color: '#f59e0b', distM: 290, angleDeg: 220 },
-      { nameKa: 'სუპერმარკეტი „სპარი ექსპრესი“', nameEn: 'Spar Express Supermarket', cat: 'supermarket', catKa: 'სუპერმარკეტი', icon: 'fa-cart-shopping', color: '#10b981', distM: 320, angleDeg: 160 },
-      { nameKa: 'საქართველოს ბანკი (Express Branch & ATM)', nameEn: 'Bank of Georgia Express & ATM', cat: 'bank', catKa: 'ბანკი & ბანკომატი', icon: 'fa-building-columns', color: '#0284c7', distM: 350, angleDeg: 60 },
-      { nameKa: 'აფთიაქი „ავერსი 24/7“', nameEn: 'Pharmacy "Aversi 24/7"', cat: 'pharmacy', catKa: 'აფთიაქი', icon: 'fa-notes-medical', color: '#f43f5e', distM: 390, angleDeg: 105 },
-      { nameKa: 'საბავშვო ბაღი „ბემბი“', nameEn: 'Kindergarten "Bambi"', cat: 'kindergarten', catKa: 'საბავშვო ბაღი', icon: 'fa-shapes', color: '#ec4899', distM: 420, angleDeg: 245 },
-      { nameKa: 'სუპერმარკეტი „ორი ნაბიჯი“', nameEn: 'Supermarket "Ori Nabiji"', cat: 'supermarket', catKa: 'სუპერმარკეტი', icon: 'fa-bag-shopping', color: '#10b981', distM: 440, angleDeg: 70 },
-      { nameKa: 'კერძო სკოლა-ლიცეუმი', nameEn: 'Private Lyceum School', cat: 'education', catKa: 'სკოლა / ლიცეუმი', icon: 'fa-school', color: '#38bdf8', distM: 480, angleDeg: 15 },
-      { nameKa: 'თიბისი ბანკი (TBC Bank Branch)', nameEn: 'TBC Bank Branch', cat: 'bank', catKa: 'ბანკი', icon: 'fa-building-columns', color: '#0284c7', distM: 520, angleDeg: 190 },
-      { nameKa: 'სუპერმარკეტი „კარფურ სითი“', nameEn: 'Carrefour City Supermarket', cat: 'supermarket', catKa: 'სუპერმარკეტი', icon: 'fa-store', color: '#10b981', distM: 580, angleDeg: 290 },
-      { nameKa: 'სამედიცინო კლინიკა & დიაგნოსტიკა', nameEn: 'Medical Clinic & Diagnostics', cat: 'hospital', catKa: 'საავადმყოფო / კლინიკა', icon: 'fa-hospital', color: '#ef4444', distM: 620, angleDeg: 55 },
-      { nameKa: 'სპორტული კომპლექსი & ფიტნეს დარბაზი', nameEn: 'Sports Complex & Fitness Gym', cat: 'sport', catKa: 'სპორტი & ფიტნესი', icon: 'fa-dumbbell', color: '#06b6d4', distM: 690, angleDeg: 140 },
-      { nameKa: 'ცენტრალური გამწვანებული პარკი', nameEn: 'Central Green Park', cat: 'park', catKa: 'პარკი & რეკრეაცია', icon: 'fa-leaf', color: '#22c55e', distM: 740, angleDeg: 345 },
-      { nameKa: 'რესტორანი & ქართული სამზარეულო', nameEn: 'Restaurant & Traditional Cuisine', cat: 'restaurant', catKa: 'კაფე / რესტორანი', icon: 'fa-utensils', color: '#f97316', distM: 410, angleDeg: 135 },
-      { nameKa: 'ყავის სახლი / საცხობი & საკონდიტრო', nameEn: 'Coffee House & Bakery', cat: 'restaurant', catKa: 'კაფე / საცხობი', icon: 'fa-mug-hot', color: '#eab308', distM: 180, angleDeg: 175 }
-    ];
-
-    templates.forEach((tmpl, i) => {
-      const rad = tmpl.angleDeg * Math.PI / 180;
-      const dX = tmpl.distM * Math.sin(rad);
-      const dY = tmpl.distM * Math.cos(rad);
-      const pLat = Number((centerLat + (dY / metersPerLat)).toFixed(6));
-      const pLng = Number((centerLng + (dX / metersPerLng)).toFixed(6));
-      const actualDist = calcDistanceMeters(centerLat, centerLng, pLat, pLng);
-      const bearing = calcBearingDirection(centerLat, centerLng, pLat, pLng);
-      const walkTime = Math.max(1, Math.round(actualDist / 70));
-      const encodedName = encodeURIComponent(tmpl.nameKa);
-
-      poiItems.push({
-        id: `poi_proc_${i + 1}`,
-        name: tmpl.nameKa,
-        nameKa: tmpl.nameKa,
-        nameEn: tmpl.nameEn,
-        category: tmpl.cat,
-        categoryNameKa: tmpl.catKa,
-        categoryNameEn: tmpl.nameEn,
-        icon: tmpl.icon,
-        color: tmpl.color,
-        lat: pLat,
-        lng: pLng,
-        distanceMeters: actualDist,
-        walkTimeMin: walkTime,
-        bearing: bearing.code,
-        bearingKa: bearing.ka,
-        bearingEn: bearing.en,
-        googleMapsUrl: `https://www.google.com/maps/search/${encodedName}/@${pLat},${pLng},17z`,
-        yandexMapsUrl: `https://yandex.com/maps/?pt=${pLng},${pLat}&z=17&text=${encodedName}`,
-        googleMapsNavUrl: `https://www.google.com/maps/dir/?api=1&origin=${centerLat},${centerLng}&destination=${pLat},${pLng}&travelmode=walking`,
-        yandexMapsNavUrl: `https://yandex.com/maps/?rtext=${centerLat},${centerLng}~${pLat},${pLng}&rtt=pd`,
-        osmUrl: `https://www.openstreetmap.org/?mlat=${pLat}&mlon=${pLng}&zoom=17`,
-        isProcedural: true
-      });
-    });
 
     return poiItems.sort((a, b) => a.distanceMeters - b.distanceMeters);
   }
@@ -835,18 +723,8 @@ const requestHandler = async (req, res) => {
         console.warn('[Server] Overpass POI mirror fetch note:', err.message);
       }
 
-      // If Overpass returned few or no POIs, combine or fallback to authentic procedural urban amenities
+      // Only return authentic real amenities from OSM/Overpass (no fake procedural POIs on rural parcels)
       let finalPois = realPois;
-      if (finalPois.length < 6) {
-        const procedural = generateProceduralPOIs(lat, lng);
-        // Combine ensuring unique positions and categories
-        const existingNames = new Set(finalPois.map(p => p.name.toLowerCase()));
-        procedural.forEach(p => {
-          if (!existingNames.has(p.name.toLowerCase()) && p.distanceMeters <= searchRadius) {
-            finalPois.push(p);
-          }
-        });
-      }
 
       finalPois.sort((a, b) => a.distanceMeters - b.distanceMeters);
 

@@ -3610,14 +3610,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const centerGps = { lat: centerLat, lng: centerLng };
 
-    // 1. INSTANT 0ms RENDERING: immediately populate state.urbanFabricBuildings with procedural buildings
-    // This ensures 3D view, Solar analysis, and 360° Viewshed rays NEVER start with an empty scene!
-    if (!state.urbanFabricBuildings || state.urbanFabricBuildings.length === 0 || !state.urbanFabricCenter ||
-        Math.abs(state.urbanFabricCenter.lat - centerLat) > 0.005 || Math.abs(state.urbanFabricCenter.lng - centerLng) > 0.005) {
-      state.urbanFabricBuildings = generateClientProceduralUrbanFabric(centerLat, centerLng);
-      state.urbanFabricCenter = centerGps;
-      renderUrbanFabric3D(state.buildingThermalData);
-    }
+    // Urban fabric loading for surrounding existing structures
 
     try {
       // Dynamically expand search radius to encompass entire parcel + surrounding street fabric
@@ -3645,10 +3638,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       } catch (fetchErr) {
         console.warn('Overpass fetch note:', fetchErr);
-      }
-
-      if (fetchedBuildings.length === 0) {
-        fetchedBuildings = generateClientProceduralUrbanFabric(centerLat, centerLng);
       }
 
       state.urbanFabricBuildings = fetchedBuildings;
@@ -10683,13 +10672,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderMapPoiMarkers() {
-    if (!map || !viewshedPoiList || viewshedPoiList.length === 0) return;
+    if (!map) return;
 
     mapPoiMarkers.forEach(m => {
       if (map && map.hasLayer(m)) map.removeLayer(m);
     });
     mapPoiMarkers = [];
 
+    if (!viewshedPoiList || viewshedPoiList.length === 0) return;
     if (state.showMapPoiMarkers === false) return;
 
     const filterRadius = (state.viewshedFilterRadius && state.viewshedFilterRadius !== 'all') ? parseInt(state.viewshedFilterRadius, 10) : 10000;
@@ -10763,7 +10753,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!listEl) return;
 
     if (!viewshedPoiList || viewshedPoiList.length === 0) {
-      listEl.innerHTML = '<div style="font-size: 0.75rem; color: #94a3b8; text-align: center; padding: 18px 0;">ობიექტები იტვირთება...</div>';
+      const elKpi300 = document.getElementById('vKpi300');
+      const elKpi500 = document.getElementById('vKpi500');
+      const elKpi1000 = document.getElementById('vKpi1000');
+      if (elKpi300) elKpi300.textContent = '0';
+      if (elKpi500) elKpi500.textContent = '0';
+      if (elKpi1000) elKpi1000.textContent = '0';
+
+      listEl.innerHTML = `
+        <div style="font-size: 0.78rem; color: #94a3b8; text-align: center; padding: 22px 14px; line-height: 1.5;">
+          <i class="fa-solid fa-tree" style="font-size: 1.5rem; color: #10b981; display: block; margin-bottom: 8px;"></i>
+          <strong>1 კმ რადიუსში ურბანული ობიექტები არ ფიქსირდება</strong><br>
+          <span style="font-size: 0.7rem; color: #64748b;">(სასოფლო-სამეურნეო / აგრარული / მშვიდი ზონა)</span>
+        </div>
+      `;
       return;
     }
 
