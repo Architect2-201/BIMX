@@ -326,7 +326,128 @@ export async function fetchParcelByCadastralCode(
     throw new Error('საკადასტრო კოდი არ არის მითითებული');
   }
 
-  // 1. გადამოწმებული ოფიციალური ნაკვეთები (0ms პასუხი)
+  // 1. Live search directly on NAPR (maps.gov.ge)
+  try {
+    const clean = cadastralCode.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, ' ').trim();
+    const allParts = clean.split(/[^\d]+/).filter(Boolean);
+
+    const variants: string[] = [];
+    if (!variants.includes(normalizedCode)) variants.push(normalizedCode);
+
+    if (allParts.length >= 5) {
+      const p5 = [
+        allParts[0].padStart(2, '0'),
+        allParts[1].padStart(2, '0'),
+        allParts[2].padStart(2, '0'),
+        allParts[3].padStart(3, '0'),
+        allParts[4].padStart(3, '0')
+      ].join('.');
+      if (!variants.includes(p5)) variants.push(p5);
+    }
+    if (allParts.length >= 4) {
+      const p4 = [
+        allParts[0].padStart(2, '0'),
+        allParts[1].padStart(2, '0'),
+        allParts[2].padStart(2, '0'),
+        allParts[3].padStart(3, '0')
+      ].join('.');
+      if (!variants.includes(p4)) variants.push(p4);
+    }
+
+    const queryNums = allParts.map(x => parseInt(x, 10)).join('.');
+    const p5Nums = allParts.length >= 5 ? allParts.slice(0, 5).map(x => parseInt(x, 10)).join('.') : null;
+    const p4Nums = allParts.length >= 4 ? allParts.slice(0, 4).map(x => parseInt(x, 10)).join('.') : null;
+
+    let matchedItem: any = null;
+
+    for (const searchKw of variants) {
+      try {
+        const searchRes = await fetch(NAPR_SEARCH_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Referer": "https://maps.gov.ge/map/portal/",
+            "Origin": "https://maps.gov.ge",
+            "X-Requested-With": "XMLHttpRequest",
+          },
+          body: new URLSearchParams({ keyword: searchKw, keyword_description: "" }),
+          signal: AbortSignal.timeout(6000)
+        });
+
+        if (searchRes.ok) {
+          const searchData = await searchRes.json();
+          if (searchData.status && searchData.result && searchData.result.length > 0) {
+            let m = searchData.result.find((r: any) => {
+              const rNums = (r.name || '').split(/[^\d]+/).filter(Boolean).map((x: string) => parseInt(x, 10)).join('.');
+              return rNums === queryNums || (p5Nums && rNums === p5Nums) || (p4Nums && rNums === p4Nums);
+            });
+
+            if (!m) {
+              m = searchData.result.find((r: any) => {
+                const n = (r.name || '').trim();
+                return variants.includes(n);
+              });
+            }
+
+            if (!m && searchData.result.length === 1) {
+              const single = searchData.result[0];
+              const sNums = (single.name || '').split(/[^\d]+/).filter(Boolean).map((x: string) => parseInt(x, 10)).join('.');
+              if (sNums && (queryNums.startsWith(sNums) || (p4Nums && sNums === p4Nums))) {
+                m = single;
+              }
+            }
+
+            if (m) {
+              matchedItem = m;
+              break;
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (matchedItem) {
+      const officialAddress = matchedItem.descript || matchedItem.resulttext || matchedItem.name || "მისამართი დაუზუსტებელია";
+      const geomLink = matchedItem.details?.geometry_link;
+
+      if (geomLink) {
+        const baseGeomUrl = geomLink.startsWith("http") ? geomLink : `${NAPR_BASE_URL}${geomLink}`;
+        const gRes = await fetch(baseGeomUrl, {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Referer": "https://maps.gov.ge/map/portal/",
+            "Origin": "https://maps.gov.ge",
+            "X-Requested-With": "XMLHttpRequest"
+          },
+          signal: AbortSignal.timeout(6000)
+        });
+        const txt = await gRes.text();
+        if (!txt.includes("Access Denied") && txt.startsWith("{")) {
+          const geomData = JSON.parse(txt);
+          if (geomData?.data?.[0]?.shape) {
+            const shapeWkt: string = geomData.data[0].shape;
+            const boundary = parseWktPolygon(shapeWkt);
+            if (boundary.length >= 3) {
+              const areaSqm = calculatePolygonAreaSqm(boundary);
+              return {
+                cadastralCode: matchedItem.name || normalizedCode,
+                address: officialAddress,
+                areaSqm: areaSqm,
+                boundary,
+                shapeWkt,
+                raw: { search: matchedItem, geometry: geomData }
+              };
+            }
+          }
+        }
+      }
+    }
+  } catch (liveErr: any) {
+    console.warn(`[napr-client] Live fetch note for ${normalizedCode}:`, liveErr?.message);
+  }
+
+  // 2. Verified official samples fallback
   if (VERIFIED_PARCELS[normalizedCode]) {
     const s = VERIFIED_PARCELS[normalizedCode];
     return {
@@ -338,85 +459,6 @@ export async function fetchParcelByCadastralCode(
     };
   }
 
-  // 2. პირდაპირი ძიება NAPR-ის საძიებო რეესტრში (maps.gov.ge)
-  try {
-    const searchRes = await fetch(NAPR_SEARCH_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Referer": "https://maps.gov.ge/map/portal/",
-        "Origin": "https://maps.gov.ge",
-        "X-Requested-With": "XMLHttpRequest",
-      },
-      body: new URLSearchParams({ keyword: normalizedCode, keyword_description: "" }),
-      signal: AbortSignal.timeout(6000)
-    });
-
-    if (searchRes.ok) {
-      const searchData = await searchRes.json();
-      if (searchData.status && searchData.result && searchData.result.length > 0) {
-        const item = searchData.result[0];
-        const officialAddress = item.descript || item.resulttext || item.name || "თბილისი, საქართველო";
-        const geomLink = item.details?.geometry_link;
-
-        // ა) ვცადოთ ოფიციალური WKT გეომეტრიის ამოღება
-        if (geomLink) {
-          try {
-            const baseGeomUrl = geomLink.startsWith("http") ? geomLink : `${NAPR_BASE_URL}${geomLink}&lang=ka&bbox=4000000,4500000,5500000,5500000`;
-            const gRes = await fetch(baseGeomUrl, {
-              headers: {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                "Referer": "https://maps.gov.ge/map/portal/",
-                "Origin": "https://maps.gov.ge",
-                "X-Requested-With": "XMLHttpRequest"
-              },
-              signal: AbortSignal.timeout(5000)
-            });
-            const txt = await gRes.text();
-            if (!txt.includes("Access Denied") && txt.startsWith("{")) {
-              const geomData = JSON.parse(txt);
-              if (geomData?.data?.[0]?.shape) {
-                const shapeWkt: string = geomData.data[0].shape;
-                const boundary = parseWktPolygon(shapeWkt);
-                if (boundary.length >= 3) {
-                  const areaSqm = calculatePolygonAreaSqm(boundary);
-                  return {
-                    cadastralCode: normalizedCode,
-                    address: officialAddress,
-                    areaSqm: areaSqm || 1200,
-                    boundary,
-                    shapeWkt,
-                    raw: { search: item, geometry: geomData }
-                  };
-                }
-              }
-            }
-          } catch (geomErr) {
-            // WAF ან ტაიმაუტი - გადავალთ ოფიციალური მისამართის გეოკოდირებაზე
-          }
-        }
-
-        // ბ) თუ geometry_link დაბლოკილია, ოფიციალური NAPR მისამართის ზუსტი გეოკოდირება
-        const geocoded = await geocodeOfficialAddress(officialAddress);
-        if (geocoded) {
-          const boundary = createBoundaryAroundLocation(geocoded.lat, geocoded.lng, 1200);
-          const wktPoints = boundary.map(([lng, lat]) => `${lng} ${lat}`).join(', ');
-          return {
-            cadastralCode: normalizedCode,
-            address: officialAddress,
-            areaSqm: 1200,
-            boundary,
-            shapeWkt: `POLYGON ((${wktPoints}))`,
-            raw: { search: item, geocoded }
-          };
-        }
-      }
-    }
-  } catch (liveErr: any) {
-    console.warn(`[napr-client] Live fetch note for ${normalizedCode}:`, liveErr?.message);
-  }
-
-  // 3. თუ NAPR-ში კოდი არ არსებობს: არ ვქმნით ყალბ ნაკვეთს, ვაბრუნებთ ზუსტ შეტყობინებას
+  // 3. Honest 404 when parcel does not exist in NAPR registry
   throw new Error(`საკადასტრო კოდი "${normalizedCode}" საჯარო რეესტრის (NAPR) ბაზაში ვერ მოიძებნა.`);
 }
