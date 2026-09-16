@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const state = {
     currentLang: localStorage.getItem('bimx_lang') || 'ka',
     currentTheme: localStorage.getItem('bimx_theme') || 'dark',
-    currentMode: '3d', // 'map', '2d', '3d', 'combined'
+    currentMode: 'map', // 'map', '2d', '3d', 'combined'
     activeParcel: null,
     activeConcept: null,
     variants: {
@@ -925,6 +925,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function normalizeCode(raw) {
     if (!raw || typeof raw !== 'string') return '';
     let clean = raw.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, ' ').trim();
+    // Strip common prefixes like 'საკადასტრო:', '№', 'N', 'code:' etc.
+    clean = clean.replace(/^(?:საკადასტრო(?: კოდი)?:?|№|N|code:?)\s*/i, '');
     
     // Extract segments by any non-digit separator
     let parts = clean.split(/[^\d]+/).filter(Boolean);
@@ -4124,6 +4126,57 @@ document.addEventListener('DOMContentLoaded', () => {
         line.position.y = groundY - 0.5;
         urbanGroup.add(line);
       });
+
+      // Also render existing structures on the parcel itself (if present and user is in concept/standard mode)
+      if (state.existingParcelBuildings && state.existingParcelBuildings.length > 0 && state.buildingDisplayMode !== 'existing') {
+        const existingMat = new THREE.MeshStandardMaterial({
+          color: 0x94a3b8,
+          roughness: 0.7,
+          metalness: 0.15,
+          transparent: true,
+          opacity: 0.8
+        });
+        const existingEdgeMat = new THREE.LineBasicMaterial({
+          color: 0xf59e0b,
+          transparent: true,
+          opacity: 0.85
+        });
+
+        state.existingParcelBuildings.forEach(bldg => {
+          if (!bldg.coordinates || bldg.coordinates.length < 3) return;
+          const localPts = gpsToLocalMeters(bldg.coordinates, centerGps);
+          if (localPts.length < 3) return;
+
+          const bX = localPts.reduce((s, p) => s + p.x, 0) / localPts.length;
+          const bY = localPts.reduce((s, p) => s + p.y, 0) / localPts.length;
+          const groundY = (typeof state.getTerrainHeightAt === 'function')
+            ? state.getTerrainHeightAt(bX, -bY)
+            : 0;
+
+          const shape = new THREE.Shape();
+          localPts.forEach((pt, idx) => {
+            if (idx === 0) shape.moveTo(pt.x, pt.y);
+            else shape.lineTo(pt.x, pt.y);
+          });
+          shape.closePath();
+
+          const height = Math.max(3.2, bldg.height || ((bldg.levels || 1) * 3.2));
+          const extrudeGeom = new THREE.ExtrudeGeometry(shape, { depth: height + 0.5, bevelEnabled: false });
+
+          const mesh = new THREE.Mesh(extrudeGeom, existingMat);
+          mesh.rotation.x = -Math.PI / 2;
+          mesh.position.y = groundY;
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          urbanGroup.add(mesh);
+
+          const edges = new THREE.EdgesGeometry(extrudeGeom, 25);
+          const line = new THREE.LineSegments(edges, existingEdgeMat);
+          line.rotation.x = -Math.PI / 2;
+          line.position.y = groundY;
+          urbanGroup.add(line);
+        });
+      }
 
     } else {
       // 2. Solar Mode: ALL surrounding buildings get dynamic thermal facade & roof exposure!
@@ -12878,6 +12931,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function initAiExtraModulesDropdown() {
+    const wrap = document.getElementById('aiExtraModulesDropdownWrap');
+    const trigger = document.getElementById('btnToggleAiExtraDropdown');
+    const menu = document.getElementById('aiExtraModulesDropdownMenu');
+    const arrow = document.getElementById('iconAiExtraDropdownArrow');
+    if (!wrap || !trigger || !menu) return;
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = (menu.style.display === 'flex');
+      menu.style.display = isOpen ? 'none' : 'flex';
+      if (arrow) arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+    });
+
+    const closeDropdown = () => {
+      menu.style.display = 'none';
+      if (arrow) arrow.style.transform = 'rotate(0deg)';
+    };
+
+    document.addEventListener('click', (e) => {
+      if (!wrap.contains(e.target)) closeDropdown();
+    });
+
+    const btnOpenTas = document.getElementById('btnOpenTasPrecedentsPanel');
+    if (btnOpenTas) {
+      btnOpenTas.addEventListener('click', closeDropdown);
+    }
+    const btnOpenCirc = document.getElementById('btnOpenCirculationPanel');
+    if (btnOpenCirc) {
+      btnOpenCirc.addEventListener('click', closeDropdown);
+    }
+  }
+
   /* ==========================================================================
      14. CAD & BIM Export Engine (IFC, DXF, GLTF, OBJ, GAP PDF, GeoJSON, PNG)
      ========================================================================== */
@@ -14052,10 +14138,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof initViewshedModuleControls === 'function') initViewshedModuleControls();
     if (typeof initTasPrecedentsModuleControls === 'function') initTasPrecedentsModuleControls();
     if (typeof initCirculationModuleControls === 'function') initCirculationModuleControls();
+    if (typeof initAiExtraModulesDropdown === 'function') initAiExtraModulesDropdown();
     initMobileSystem();
-    // Default initial parcel: load verified sample parcel in Combined mode so platform is immediately live
-    if (typeof searchParcel === 'function') {
-      searchParcel('01.15.02.038.003');
+
+    // Initial display: full overview map of Georgia, awaiting user cadastral search
+    setMode('map');
+    if (map) {
+      map.setView([42.15, 43.85], 7.5);
+      setTimeout(() => {
+        if (map) map.invalidateSize();
+      }, 150);
     }
   }, 120);
 });
