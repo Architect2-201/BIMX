@@ -122,6 +122,9 @@ function universalNormalizeCadastral(rawCode) {
   return parts.join('.');
 }
 
+// Module-level in-memory cache for Surroundings POIs
+const surroundingsPoiCache = new Map();
+
 // Request Handler for Node HTTP & Serverless Cloud
 const requestHandler = async (req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost:3000'}`);
@@ -648,6 +651,234 @@ const requestHandler = async (req, res) => {
     return poiItems.sort((a, b) => a.distanceMeters - b.distanceMeters);
   }
 
+  function classifyOsmPoi(tags) {
+    let cat = null;
+    let catKa = 'მომსახურება';
+    let icon = 'fa-location-dot';
+    let color = '#38bdf8';
+
+    if (tags.amenity === 'school' || tags.amenity === 'college' || tags.amenity === 'university') {
+      cat = 'education'; catKa = 'სკოლა / უნივერსიტეტი'; icon = 'fa-graduation-cap'; color = '#38bdf8';
+    } else if (tags.amenity === 'kindergarten') {
+      cat = 'kindergarten'; catKa = 'საბავშვო ბაღი'; icon = 'fa-child-reaching'; color = '#ec4899';
+    } else if (tags.station === 'subway' || (tags.railway === 'station' && (tags['station'] === 'subway' || tags.network)) || tags.railway === 'subway_entrance') {
+      cat = 'metro'; catKa = 'მეტროსადგური'; icon = 'fa-train-subway'; color = '#8b5cf6';
+    } else if (tags.railway === 'station' || tags.railway === 'halt') {
+      cat = 'train'; catKa = 'სარკინიგზო სადგური'; icon = 'fa-train'; color = '#6366f1';
+    } else if (tags.railway === 'tram_stop') {
+      cat = 'tram'; catKa = 'ტრამვაის გაჩერება'; icon = 'fa-train-tram'; color = '#f59e0b';
+    } else if (tags.shop === 'supermarket' || tags.shop === 'convenience' || tags.amenity === 'supermarket' || tags.shop === 'mall') {
+      cat = 'supermarket'; catKa = 'სუპერმარკეტი'; icon = 'fa-basket-shopping'; color = '#10b981';
+    } else if (tags.amenity === 'pharmacy') {
+      cat = 'pharmacy'; catKa = 'აფთიაქი'; icon = 'fa-pills'; color = '#f43f5e';
+    } else if (tags.amenity === 'hospital' || tags.amenity === 'clinic' || tags.amenity === 'doctors') {
+      cat = 'hospital'; catKa = 'საავადმყოფო / კლინიკა'; icon = 'fa-hospital'; color = '#ef4444';
+    } else if (tags.highway === 'bus_stop' || tags.amenity === 'bus_station' || (tags.public_transport === 'stop_position' && tags.bus === 'yes') || tags.public_transport === 'platform') {
+      cat = 'transport'; catKa = 'ავტობუსის გაჩერება'; icon = 'fa-bus'; color = '#f59e0b';
+    } else if (tags.amenity === 'taxi') {
+      cat = 'taxi'; catKa = 'ტაქსი'; icon = 'fa-taxi'; color = '#eab308';
+    } else if (tags.leisure === 'park' || tags.leisure === 'garden') {
+      cat = 'park'; catKa = 'სკვერი / პარკი'; icon = 'fa-tree'; color = '#22c55e';
+    } else if (tags.leisure === 'playground') {
+      cat = 'playground'; catKa = 'სათამაშო მოედანი'; icon = 'fa-children'; color = '#84cc16';
+    } else if (tags.leisure === 'pitch' || tags.leisure === 'sports_centre' || tags.leisure === 'fitness_centre') {
+      cat = 'sport'; catKa = 'სპორტული ობიექტი'; icon = 'fa-futbol'; color = '#06b6d4';
+    } else if (tags.leisure === 'swimming_pool') {
+      cat = 'pool'; catKa = 'აუზი'; icon = 'fa-person-swimming'; color = '#0ea5e9';
+    } else if (tags.amenity === 'bank' || tags.amenity === 'atm') {
+      cat = 'bank'; catKa = 'ბანკი / ბანკომატი'; icon = 'fa-building-columns'; color = '#0284c7';
+    } else if (tags.amenity === 'fuel') {
+      cat = 'fuel'; catKa = 'ბენზინგასამართი'; icon = 'fa-gas-pump'; color = '#94a3b8';
+    } else if (tags.amenity === 'library') {
+      cat = 'library'; catKa = 'ბიბლიოთეკა'; icon = 'fa-book'; color = '#a78bfa';
+    } else if (tags.amenity === 'cinema' || tags.amenity === 'theatre') {
+      cat = 'entertainment'; catKa = 'გართობა / კულტურა'; icon = 'fa-masks-theater'; color = '#fb923c';
+    } else if (tags.amenity === 'cafe' || tags.amenity === 'restaurant' || tags.amenity === 'fast_food') {
+      cat = 'restaurant'; catKa = 'კაფე / რესტორანი'; icon = 'fa-utensils'; color = '#f97316';
+    } else if (tags.amenity === 'police') {
+      cat = 'police'; catKa = 'პოლიცია'; icon = 'fa-shield-halved'; color = '#1d4ed8';
+    } else if (tags.amenity === 'post_office') {
+      cat = 'post'; catKa = 'ფოსტა'; icon = 'fa-envelope'; color = '#7c3aed';
+    } else if (tags.amenity || tags.shop) {
+      cat = 'amenity'; catKa = 'მომსახურება'; icon = 'fa-location-dot'; color = '#38bdf8';
+    }
+
+    if (!cat) return null;
+    return { cat, catKa, icon, color };
+  }
+
+  function parseOsmXmlToPois(xml, centerLat, centerLng, maxRadius) {
+    const pois = [];
+    const nodeMap = new Map();
+
+    const nodeRegex = /<node\s+([^>]+?)(?:\/>|>(.*?)<\/node>)/gs;
+    let match;
+    while ((match = nodeRegex.exec(xml)) !== null) {
+      const attrs = match[1];
+      const inner = match[2];
+      const idM = attrs.match(/id="(\d+)"/);
+      const latM = attrs.match(/lat="([0-9.-]+)"/);
+      const lonM = attrs.match(/lon="([0-9.-]+)"/);
+      if (!idM || !latM || !lonM) continue;
+
+      const nId = idM[1];
+      const nLat = parseFloat(latM[1]);
+      const nLon = parseFloat(lonM[1]);
+      nodeMap.set(nId, { lat: nLat, lon: nLon });
+
+      if (inner && inner.includes('<tag')) {
+        const tags = {};
+        const tagRegex = /<tag\s+k="([^"]+)"\s+v="([^"]*)"/g;
+        let t;
+        while ((t = tagRegex.exec(inner)) !== null) {
+          tags[t[1]] = t[2];
+        }
+
+        const classified = classifyOsmPoi(tags);
+        if (classified) {
+          const dist = calcDistanceMeters(centerLat, centerLng, nLat, nLon);
+          if (dist <= maxRadius) {
+            const bearing = calcBearingDirection(centerLat, centerLng, nLat, nLon);
+            const name = tags.name || tags['name:ka'] || tags['name:en'] || `${classified.catKa} (${dist} მ)`;
+            const poiLat = Number(nLat.toFixed(6));
+            const poiLng = Number(nLon.toFixed(6));
+            const encodedName = encodeURIComponent(name);
+
+            pois.push({
+              id: `osm_node_${nId}`,
+              name,
+              nameKa: name,
+              nameEn: tags['name:en'] || name,
+              category: classified.cat,
+              categoryNameKa: classified.catKa,
+              categoryNameEn: classified.cat,
+              icon: classified.icon,
+              color: classified.color,
+              lat: poiLat,
+              lng: poiLng,
+              distanceMeters: dist,
+              walkTimeMin: Math.max(1, Math.round(dist / 70)),
+              bearing: bearing.code,
+              bearingKa: bearing.ka,
+              bearingEn: bearing.en,
+              googleMapsUrl: `https://www.google.com/maps/search/${encodedName}/@${poiLat},${poiLng},17z`,
+              yandexMapsUrl: `https://yandex.com/maps/?pt=${poiLng},${poiLat}&z=17&text=${encodedName}`,
+              googleMapsNavUrl: `https://www.google.com/maps/dir/?api=1&origin=${centerLat},${centerLng}&destination=${poiLat},${poiLng}&travelmode=walking`,
+              yandexMapsNavUrl: `https://yandex.com/maps/?rtext=${centerLat},${centerLng}~${poiLat},${poiLng}&rtt=pd`,
+              osmUrl: `https://www.openstreetmap.org/?mlat=${poiLat}&mlon=${poiLng}&zoom=17`,
+              isProcedural: false
+            });
+          }
+        }
+      }
+    }
+
+    const wayRegex = /<way\s+id="(\d+)"[^>]*>(.*?)<\/way>/gs;
+    while ((match = wayRegex.exec(xml)) !== null) {
+      const wayId = match[1];
+      const inner = match[2];
+      if (!inner.includes('<tag')) continue;
+
+      const tags = {};
+      const tagRegex = /<tag\s+k="([^"]+)"\s+v="([^"]*)"/g;
+      let t;
+      while ((t = tagRegex.exec(inner)) !== null) {
+        tags[t[1]] = t[2];
+      }
+
+      const classified = classifyOsmPoi(tags);
+      if (!classified) continue;
+
+      const ndRegex = /<nd\s+ref="(\d+)"/g;
+      let ndMatch;
+      let sumLat = 0, sumLon = 0, count = 0;
+      while ((ndMatch = ndRegex.exec(inner)) !== null) {
+        const nodePos = nodeMap.get(ndMatch[1]);
+        if (nodePos) {
+          sumLat += nodePos.lat;
+          sumLon += nodePos.lon;
+          count++;
+        }
+      }
+      if (count === 0) continue;
+
+      const cLat = sumLat / count;
+      const cLon = sumLon / count;
+      const dist = calcDistanceMeters(centerLat, centerLng, cLat, cLon);
+      if (dist <= maxRadius) {
+        const bearing = calcBearingDirection(centerLat, centerLng, cLat, cLon);
+        const name = tags.name || tags['name:ka'] || tags['name:en'] || `${classified.catKa} (${dist} მ)`;
+        const poiLat = Number(cLat.toFixed(6));
+        const poiLng = Number(cLon.toFixed(6));
+        const encodedName = encodeURIComponent(name);
+
+        pois.push({
+          id: `osm_way_${wayId}`,
+          name,
+          nameKa: name,
+          nameEn: tags['name:en'] || name,
+          category: classified.cat,
+          categoryNameKa: classified.catKa,
+          categoryNameEn: classified.cat,
+          icon: classified.icon,
+          color: classified.color,
+          lat: poiLat,
+          lng: poiLng,
+          distanceMeters: dist,
+          walkTimeMin: Math.max(1, Math.round(dist / 70)),
+          bearing: bearing.code,
+          bearingKa: bearing.ka,
+          bearingEn: bearing.en,
+          googleMapsUrl: `https://www.google.com/maps/search/${encodedName}/@${poiLat},${poiLng},17z`,
+          yandexMapsUrl: `https://yandex.com/maps/?pt=${poiLng},${poiLat}&z=17&text=${encodedName}`,
+          googleMapsNavUrl: `https://www.google.com/maps/dir/?api=1&origin=${centerLat},${centerLng}&destination=${poiLat},${poiLng}&travelmode=walking`,
+          yandexMapsNavUrl: `https://yandex.com/maps/?rtext=${centerLat},${centerLng}~${poiLat},${poiLng}&rtt=pd`,
+          osmUrl: `https://www.openstreetmap.org/?mlat=${poiLat}&mlon=${poiLng}&zoom=17`,
+          isProcedural: false
+        });
+      }
+    }
+
+    return pois;
+  }
+
+  function balanceAndFilterPois(rawPois, maxTotal = 200) {
+    const seen = new Set();
+    const deduped = [];
+    for (const p of rawPois) {
+      const key = `${p.category}_${p.name}_${Math.round(p.lat * 4000)}_${Math.round(p.lng * 4000)}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        deduped.push(p);
+      }
+    }
+
+    deduped.sort((a, b) => a.distanceMeters - b.distanceMeters);
+
+    const guaranteed = [];
+    const others = [];
+    const catCount = {};
+
+    for (const p of deduped) {
+      catCount[p.category] = (catCount[p.category] || 0) + 1;
+      if (p.category === 'amenity' && catCount[p.category] > 40) continue;
+      if (p.category === 'supermarket' && catCount[p.category] > 25) continue;
+      if (p.category === 'transport' && catCount[p.category] > 20) continue;
+      if (p.category === 'bank' && catCount[p.category] > 15) continue;
+      if (p.category === 'restaurant' && catCount[p.category] > 20) continue;
+
+      if (['metro', 'education', 'kindergarten', 'hospital', 'park'].includes(p.category)) {
+        guaranteed.push(p);
+      } else {
+        others.push(p);
+      }
+    }
+
+    const combined = [...guaranteed, ...others];
+    combined.sort((a, b) => a.distanceMeters - b.distanceMeters);
+    return combined.slice(0, maxTotal);
+  }
+
   // 1B-2. Surroundings & Nearby Amenities (POIs) API (Schools, Kindergartens, Supermarkets, Pharmacies, Parks, Transport, Metro)
   if (parsedUrl.pathname === '/api/surroundings-poi') {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -664,146 +895,171 @@ const requestHandler = async (req, res) => {
     const lat = parseFloat(parsedUrl.searchParams.get('lat') || '41.7151');
     const lng = parseFloat(parsedUrl.searchParams.get('lng') || '44.8271');
     const searchRadius = Math.min(2000, Math.max(200, parseInt(parsedUrl.searchParams.get('radius') || '1000', 10)));
+    const forceRefresh = parsedUrl.searchParams.has('refresh');
+
+    const cacheKey = `${lat.toFixed(4)}_${lng.toFixed(4)}_${searchRadius}`;
+    if (!forceRefresh && surroundingsPoiCache.has(cacheKey)) {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(surroundingsPoiCache.get(cacheKey)));
+      return;
+    }
 
     (async () => {
-      let realPois = [];
-      const overpassQuery = `[out:json][timeout:8];(
-        node["amenity"~"school|kindergarten|pharmacy|hospital|clinic|supermarket|cafe|restaurant|bank|fuel|atm|library|cinema|theatre|police|post_office|fire_station"](around:${searchRadius},${lat},${lng});
-        node["shop"~"supermarket|convenience|mall|bakery|butcher|clothes|electronics"](around:${searchRadius},${lat},${lng});
-        node["leisure"~"park|garden|playground|pitch|sports_centre|swimming_pool|fitness_centre"](around:${searchRadius},${lat},${lng});
-        node["highway"="bus_stop"](around:${searchRadius},${lat},${lng});
-        node["public_transport"="stop_position"](around:${searchRadius},${lat},${lng});
-        node["railway"~"station|subway_entrance|tram_stop"](around:${searchRadius},${lat},${lng});
-        node["station"="subway"](around:${searchRadius},${lat},${lng});
-        node["amenity"="bus_station"](around:${searchRadius},${lat},${lng});
-        node["amenity"="taxi"](around:${searchRadius},${lat},${lng});
-        way["amenity"~"school|kindergarten|hospital|university"](around:${searchRadius},${lat},${lng});
-        way["leisure"~"park|garden|playground"](around:${searchRadius},${lat},${lng});
-        relation["route"="subway"](around:${searchRadius},${lat},${lng});
-      );out center 120;`;
+      let rawPois = [];
 
-      const postPoiBody = `data=${encodeURIComponent(overpassQuery)}`;
-      const mirrors = [
-        'https://overpass-api.de/api/interpreter',
-        'https://lz4.overpass-api.de/api/interpreter',
-        'https://overpass.kumi.systems/api/interpreter'
-      ];
-
+      // Tier 1: Fetch via official OpenStreetMap API 0.6 bbox query (fast ~1.5s, reliable, unblocked)
       try {
-        const fetchPoiMirror = async (mirror) => {
-          const res = await fetch(mirror, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-              'User-Agent': 'BIMXGeorgiaConTech/2.1 (https://architect2.ge; info@bimx.ge)',
-              'Referer': 'https://architect2.ge/parcel-ai'
-            },
-            body: postPoiBody,
-            signal: AbortSignal.timeout(5000)
-          });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return await res.json();
-        };
+        const dLat = searchRadius / 111132.954;
+        const dLng = searchRadius / (111132.954 * Math.cos(lat * Math.PI / 180));
+        const bbox = `${(lng - dLng).toFixed(6)},${(lat - dLat).toFixed(6)},${(lng + dLng).toFixed(6)},${(lat + dLat).toFixed(6)}`;
 
-        const result = await Promise.any(mirrors.map(m => fetchPoiMirror(m)));
-        if (result && Array.isArray(result.elements)) {
-          result.elements.forEach(elem => {
-            const tags = elem.tags || {};
-            const pLat = elem.lat || (elem.center && elem.center.lat);
-            const pLng = elem.lon || (elem.center && elem.center.lon);
-            if (!pLat || !pLng) return;
+        const osmRes = await fetch(`https://api.openstreetmap.org/api/0.6/map?bbox=${bbox}`, {
+          headers: {
+            'User-Agent': 'BIMXGeorgiaConTech/2.1 (https://architect2.ge; info@bimx.ge)',
+            'Accept': 'application/xml, text/xml'
+          },
+          signal: AbortSignal.timeout(7000)
+        });
 
-            let cat = 'amenity';
-            let catKa = 'მომსახურება';
-            let icon = 'fa-location-dot';
-            let color = '#38bdf8';
-
-            if (tags.amenity === 'school' || tags.amenity === 'college' || tags.amenity === 'university') {
-              cat = 'education'; catKa = 'სკოლა / უნივერსიტეტი'; icon = 'fa-graduation-cap'; color = '#38bdf8';
-            } else if (tags.amenity === 'kindergarten') {
-              cat = 'kindergarten'; catKa = 'საბავშვო ბაღი'; icon = 'fa-child-reaching'; color = '#ec4899';
-            } else if (tags.station === 'subway' || (tags.railway === 'station' && (tags['station'] === 'subway' || tags.network)) || tags.railway === 'subway_entrance') {
-              cat = 'metro'; catKa = 'მეტროსადგური'; icon = 'fa-train-subway'; color = '#8b5cf6';
-            } else if (tags.railway === 'station' || tags.railway === 'halt') {
-              cat = 'train'; catKa = 'სარკინიგზო სადგური'; icon = 'fa-train'; color = '#6366f1';
-            } else if (tags.railway === 'tram_stop') {
-              cat = 'tram'; catKa = 'ტრამვაის გაჩერება'; icon = 'fa-train-tram'; color = '#f59e0b';
-            } else if (tags.shop === 'supermarket' || tags.shop === 'convenience' || tags.amenity === 'supermarket' || tags.shop === 'mall') {
-              cat = 'supermarket'; catKa = 'სუპერმარკეტი'; icon = 'fa-basket-shopping'; color = '#10b981';
-            } else if (tags.amenity === 'pharmacy') {
-              cat = 'pharmacy'; catKa = 'აფთიაქი'; icon = 'fa-pills'; color = '#f43f5e';
-            } else if (tags.amenity === 'hospital' || tags.amenity === 'clinic' || tags.amenity === 'doctors') {
-              cat = 'hospital'; catKa = 'საავადმყოფო / კლინიკა'; icon = 'fa-hospital'; color = '#ef4444';
-            } else if (tags.highway === 'bus_stop' || tags.amenity === 'bus_station' || (tags.public_transport === 'stop_position' && tags.bus === 'yes')) {
-              cat = 'transport'; catKa = 'ავტობუსის გაჩერება'; icon = 'fa-bus'; color = '#f59e0b';
-            } else if (tags.amenity === 'taxi') {
-              cat = 'taxi'; catKa = 'ტაქსი'; icon = 'fa-taxi'; color = '#eab308';
-            } else if (tags.leisure === 'park' || tags.leisure === 'garden') {
-              cat = 'park'; catKa = 'სკვერი / პარკი'; icon = 'fa-tree'; color = '#22c55e';
-            } else if (tags.leisure === 'playground') {
-              cat = 'playground'; catKa = 'სათამაშო მოედანი'; icon = 'fa-children'; color = '#84cc16';
-            } else if (tags.leisure === 'pitch' || tags.leisure === 'sports_centre' || tags.leisure === 'fitness_centre') {
-              cat = 'sport'; catKa = 'სპორტული ობიექტი'; icon = 'fa-futbol'; color = '#06b6d4';
-            } else if (tags.leisure === 'swimming_pool') {
-              cat = 'pool'; catKa = 'აუზი'; icon = 'fa-person-swimming'; color = '#0ea5e9';
-            } else if (tags.amenity === 'bank' || tags.amenity === 'atm') {
-              cat = 'bank'; catKa = 'ბანკი / ბანკომატი'; icon = 'fa-building-columns'; color = '#0284c7';
-            } else if (tags.amenity === 'fuel') {
-              cat = 'fuel'; catKa = 'ბენზინგასამართი'; icon = 'fa-gas-pump'; color = '#94a3b8';
-            } else if (tags.amenity === 'library') {
-              cat = 'library'; catKa = 'ბიბლიოთეკა'; icon = 'fa-book'; color = '#a78bfa';
-            } else if (tags.amenity === 'cinema' || tags.amenity === 'theatre') {
-              cat = 'entertainment'; catKa = 'გართობა / კულტურა'; icon = 'fa-masks-theater'; color = '#fb923c';
-            } else if (tags.amenity === 'cafe' || tags.amenity === 'restaurant' || tags.amenity === 'fast_food') {
-              cat = 'restaurant'; catKa = 'კაფე / რესტორანი'; icon = 'fa-utensils'; color = '#f97316';
-            } else if (tags.amenity === 'police') {
-              cat = 'police'; catKa = 'პოლიცია'; icon = 'fa-shield-halved'; color = '#1d4ed8';
-            } else if (tags.amenity === 'post_office') {
-              cat = 'post'; catKa = 'ფოსტა'; icon = 'fa-envelope'; color = '#7c3aed';
-            }
-
-            const dist = calcDistanceMeters(lat, lng, pLat, pLng);
-            if (dist > searchRadius) return;
-            const bearing = calcBearingDirection(lat, lng, pLat, pLng);
-            const name = tags.name || tags['name:ka'] || tags['name:en'] || `${catKa} (${dist} მ)`;
-
-            const poiLat = Number(pLat.toFixed(6));
-            const poiLng = Number(pLng.toFixed(6));
-            const encodedName = encodeURIComponent(name);
-            realPois.push({
-              id: `osm_${elem.id}`,
-              name: name,
-              nameKa: name,
-              nameEn: tags['name:en'] || name,
-              category: cat,
-              categoryNameKa: catKa,
-              categoryNameEn: cat,
-              icon: icon,
-              color: color,
-              lat: poiLat,
-              lng: poiLng,
-              distanceMeters: dist,
-              walkTimeMin: Math.max(1, Math.round(dist / 70)),
-              bearing: bearing.code,
-              bearingKa: bearing.ka,
-              bearingEn: bearing.en,
-              googleMapsUrl: `https://www.google.com/maps/search/${encodedName}/@${poiLat},${poiLng},17z`,
-              yandexMapsUrl: `https://yandex.com/maps/?pt=${poiLng},${poiLat}&z=17&text=${encodedName}`,
-              googleMapsNavUrl: `https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${poiLat},${poiLng}&travelmode=walking`,
-              yandexMapsNavUrl: `https://yandex.com/maps/?rtext=${lat},${lng}~${poiLat},${poiLng}&rtt=pd`,
-              osmUrl: `https://www.openstreetmap.org/?mlat=${poiLat}&mlon=${poiLng}&zoom=17`,
-              isProcedural: false
-            });
-          });
+        if (osmRes.ok) {
+          const xml = await osmRes.text();
+          if (xml && xml.includes('<node')) {
+            rawPois = parseOsmXmlToPois(xml, lat, lng, searchRadius);
+          }
         }
-      } catch (err) {
-        console.warn('[Server] Overpass POI mirror fetch note:', err.message);
+      } catch (osmErr) {
+        console.warn('[Server] OSM API 0.6 POI fetch note:', osmErr.message);
       }
 
-      // Only return authentic real amenities from OSM/Overpass (no fake procedural POIs on rural parcels)
-      let finalPois = realPois;
+      // Tier 2: Overpass API query fallback if OSM API returned empty
+      if (rawPois.length === 0) {
+        try {
+          const overpassQuery = `[out:json][timeout:10];(
+            node["amenity"~"school|kindergarten|pharmacy|hospital|clinic|supermarket|cafe|restaurant|bank|fuel|atm|library|cinema|theatre|police|post_office|fire_station"](around:${searchRadius},${lat},${lng});
+            node["shop"~"supermarket|convenience|mall|bakery|butcher|clothes|electronics"](around:${searchRadius},${lat},${lng});
+            node["leisure"~"park|garden|playground|pitch|sports_centre|swimming_pool|fitness_centre"](around:${searchRadius},${lat},${lng});
+            node["highway"="bus_stop"](around:${searchRadius},${lat},${lng});
+            node["public_transport"="stop_position"](around:${searchRadius},${lat},${lng});
+            node["railway"~"station|subway_entrance|tram_stop"](around:${searchRadius},${lat},${lng});
+            node["station"="subway"](around:${searchRadius},${lat},${lng});
+            node["amenity"="bus_station"](around:${searchRadius},${lat},${lng});
+            node["amenity"="taxi"](around:${searchRadius},${lat},${lng});
+            way["amenity"~"school|kindergarten|hospital|university"](around:${searchRadius},${lat},${lng});
+            way["leisure"~"park|garden|playground"](around:${searchRadius},${lat},${lng});
+          );out center 150;`;
 
-      finalPois.sort((a, b) => a.distanceMeters - b.distanceMeters);
+          const postPoiBody = `data=${encodeURIComponent(overpassQuery)}`;
+          const mirrors = [
+            'https://lz4.overpass-api.de/api/interpreter',
+            'https://overpass-api.de/api/interpreter',
+            'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
+          ];
+
+          const fetchPoiMirror = async (mirror) => {
+            const res = await fetch(mirror, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'User-Agent': 'BIMXGeorgiaConTech/2.1 (https://architect2.ge; info@bimx.ge)',
+                'Referer': 'https://architect2.ge/parcel-ai'
+              },
+              body: postPoiBody,
+              signal: AbortSignal.timeout(8000)
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+          };
+
+          const result = await Promise.any(mirrors.map(m => fetchPoiMirror(m)));
+          if (result && Array.isArray(result.elements)) {
+            result.elements.forEach(elem => {
+              const tags = elem.tags || {};
+              const pLat = elem.lat || (elem.center && elem.center.lat);
+              const pLng = elem.lon || (elem.center && elem.center.lon);
+              if (!pLat || !pLng) return;
+
+              const classified = classifyOsmPoi(tags);
+              if (!classified) return;
+
+              const dist = calcDistanceMeters(lat, lng, pLat, pLng);
+              if (dist > searchRadius) return;
+              const bearing = calcBearingDirection(lat, lng, pLat, pLng);
+              const name = tags.name || tags['name:ka'] || tags['name:en'] || `${classified.catKa} (${dist} მ)`;
+
+              const poiLat = Number(pLat.toFixed(6));
+              const poiLng = Number(pLng.toFixed(6));
+              const encodedName = encodeURIComponent(name);
+              rawPois.push({
+                id: `osm_${elem.id}`,
+                name: name,
+                nameKa: name,
+                nameEn: tags['name:en'] || name,
+                category: classified.cat,
+                categoryNameKa: classified.catKa,
+                categoryNameEn: classified.cat,
+                icon: classified.icon,
+                color: classified.color,
+                lat: poiLat,
+                lng: poiLng,
+                distanceMeters: dist,
+                walkTimeMin: Math.max(1, Math.round(dist / 70)),
+                bearing: bearing.code,
+                bearingKa: bearing.ka,
+                bearingEn: bearing.en,
+                googleMapsUrl: `https://www.google.com/maps/search/${encodedName}/@${poiLat},${poiLng},17z`,
+                yandexMapsUrl: `https://yandex.com/maps/?pt=${poiLng},${poiLat}&z=17&text=${encodedName}`,
+                googleMapsNavUrl: `https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${poiLat},${poiLng}&travelmode=walking`,
+                yandexMapsNavUrl: `https://yandex.com/maps/?rtext=${lat},${lng}~${poiLat},${poiLng}&rtt=pd`,
+                osmUrl: `https://www.openstreetmap.org/?mlat=${poiLat}&mlon=${poiLng}&zoom=17`,
+                isProcedural: false
+              });
+            });
+          }
+        } catch (opErr) {
+          console.warn('[Server] Overpass POI mirror fetch note:', opErr.message);
+        }
+      }
+
+      // Tier 3: In Tbilisi, ensure real nearest metro anchor is present
+      const isTbilisi = (lat >= 41.62 && lat <= 41.86 && lng >= 44.68 && lng <= 44.96);
+      if (isTbilisi && !rawPois.some(p => p.category === 'metro')) {
+        const sortedMetro = TBILISI_METRO_STATIONS.map(m => {
+          const d = calcDistanceMeters(lat, lng, m.lat, m.lng);
+          return { ...m, dist: d };
+        }).sort((a, b) => a.dist - b.dist);
+
+        const closestMetro = sortedMetro[0];
+        if (closestMetro && closestMetro.dist <= 3000) {
+          const bearing = calcBearingDirection(lat, lng, closestMetro.lat, closestMetro.lng);
+          const encoded = encodeURIComponent(closestMetro.nameKa);
+          rawPois.push({
+            id: 'poi_metro_real',
+            name: closestMetro.nameKa,
+            nameKa: closestMetro.nameKa,
+            nameEn: closestMetro.nameEn,
+            category: 'metro',
+            categoryNameKa: 'მეტროსადგური',
+            categoryNameEn: 'Metro Station',
+            icon: 'fa-train-subway',
+            color: '#8b5cf6',
+            lat: closestMetro.lat,
+            lng: closestMetro.lng,
+            distanceMeters: closestMetro.dist,
+            walkTimeMin: Math.max(1, Math.round(closestMetro.dist / 70)),
+            bearing: bearing.code,
+            bearingKa: bearing.ka,
+            bearingEn: bearing.en,
+            googleMapsUrl: `https://www.google.com/maps/search/${encoded}/@${closestMetro.lat},${closestMetro.lng},17z`,
+            yandexMapsUrl: `https://yandex.com/maps/?pt=${closestMetro.lng},${closestMetro.lat}&z=17&text=${encoded}`,
+            googleMapsNavUrl: `https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${closestMetro.lat},${closestMetro.lng}&travelmode=walking`,
+            yandexMapsNavUrl: `https://yandex.com/maps/?rtext=${lat},${lng}~${closestMetro.lat},${closestMetro.lng}&rtt=pd`,
+            osmUrl: `https://www.openstreetmap.org/?mlat=${closestMetro.lat}&mlon=${closestMetro.lng}&zoom=17`,
+            isProcedural: false
+          });
+        }
+      }
+
+      const finalPois = balanceAndFilterPois(rawPois, 200);
 
       const within300m = finalPois.filter(p => p.distanceMeters <= 300).length;
       const within500m = finalPois.filter(p => p.distanceMeters <= 500).length;
@@ -814,21 +1070,27 @@ const requestHandler = async (req, res) => {
         byCategory[p.category] = (byCategory[p.category] || 0) + 1;
       });
 
+      const responsePayload = {
+        status: 'OK',
+        center: { lat, lng },
+        radius: searchRadius,
+        summary: {
+          total: finalPois.length,
+          within300m,
+          within500m,
+          within1000m,
+          byCategory
+        },
+        pois: finalPois
+      };
+
+      if (finalPois.length > 0) {
+        surroundingsPoiCache.set(cacheKey, responsePayload);
+      }
+
       if (!res.headersSent) {
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({
-          status: 'OK',
-          center: { lat, lng },
-          radius: searchRadius,
-          summary: {
-            total: finalPois.length,
-            within300m,
-            within500m,
-            within1000m,
-            byCategory
-          },
-          pois: finalPois
-        }));
+        res.end(JSON.stringify(responsePayload));
       }
     })();
     return;

@@ -10557,8 +10557,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const centerLat = centerGps[0];
     const centerLng = centerGps[1];
 
+    const listEl = document.getElementById('viewshedPoiList');
+    if (listEl && (!viewshedPoiList || viewshedPoiList.length === 0 || forceRefresh)) {
+      listEl.innerHTML = `
+        <div style="font-size: 0.78rem; color: #38bdf8; text-align: center; padding: 26px 14px; line-height: 1.6;">
+          <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 1.6rem; color: #38bdf8; display: block; margin: 0 auto 10px auto;"></i>
+          <strong style="color: #f8fafc;">ინფრასტრუქტურის კვლევა...</strong><br>
+          <span style="font-size: 0.72rem; color: #94a3b8;">მიმდინარეობს 1 კმ რადიუსის ობიექტების (მეტრო, ტრანსპორტი, სკოლები, აფთიაქები) მოძიება</span>
+        </div>
+      `;
+    }
+    const btnRefresh = document.getElementById('btnRefreshViewshed') || document.getElementById('btnRefreshSurroundings');
+    const refreshIcon = btnRefresh ? btnRefresh.querySelector('i') : null;
+    if (refreshIcon) refreshIcon.classList.add('fa-spin');
     try {
-      const res = await fetch(`/api/surroundings-poi?lat=${centerLat}&lng=${centerLng}&radius=1000`);
+      const refreshParam = forceRefresh ? '&refresh=1' : '';
+      const res = await fetch(`/api/surroundings-poi?lat=${centerLat}&lng=${centerLng}&radius=1000${refreshParam}`);
       if (res.ok) {
         const data = await res.json();
         if (data && data.pois) {
@@ -10568,6 +10582,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (e) {
       console.warn('Surroundings POI fetch error:', e);
+    } finally {
+      if (refreshIcon) refreshIcon.classList.remove('fa-spin');
     }
 
     renderMapRadiusCircles();
