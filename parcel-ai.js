@@ -630,6 +630,8 @@ document.addEventListener('DOMContentLoaded', () => {
         handleMapClick(e);
       } else if (state.isDrawingRoad) {
         handleRoadMapClick(e);
+      } else if (typeof isDrawingFireRoute !== 'undefined' && isDrawingFireRoute) {
+        handleFireRouteMapClick(e);
       }
     });
 
@@ -1290,13 +1292,8 @@ document.addEventListener('DOMContentLoaded', () => {
       parcelData = JSON.parse(JSON.stringify(CADASTRAL_DATABASE[code]));
     }
 
-    // If still unresolved, compute authentic municipal sector geometry
     if (!parcelData) {
-      parcelData = synthesizeCadastralParcelClient(code);
-    }
-
-    if (!parcelData) {
-      showCadastralAlert('error', `საკადასტრო კოდი "${code}" საჯარო რეესტრის (NAPR) ბაზაში ვერ მოიძებნა. გთხოვთ გადაამოწმოთ კოდის სისწორე.`);
+      showCadastralAlert('error', `საკადასტრო კოდი "${code}" საჯარო რეესტრის (NAPR) ოფიციალურ ბაზაში ვერ მოიძებნა. გთხოვთ გადაამოწმოთ კოდის სისწორე.`);
       return;
     }
 
@@ -8447,8 +8444,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       onWindowResize();
     } else if (mode === 'circulation') {
-      if (mapViewport) mapViewport.style.display = 'none';
-      if (threeViewport) threeViewport.style.display = 'block';
       if (circulationControlPanel) circulationControlPanel.style.display = 'flex';
       if (buildingGroup) buildingGroup.visible = true;
       if (urbanGroup) urbanGroup.visible = true;
@@ -8457,6 +8452,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (mapTelemetry) mapTelemetry.style.display = 'none';
       renderAllBuildings3D();
       renderUrbanFabric3D();
+      if (typeof applyCirculationSubview === 'function') {
+        applyCirculationSubview(state.circulationSubview || 'combined');
+      } else {
+        if (mapViewport) mapViewport.style.display = 'block';
+        if (threeViewport) threeViewport.style.display = 'block';
+        if (map) setTimeout(() => map.invalidateSize(), 50);
+      }
       if (typeof initCirculationMode === 'function') {
         initCirculationMode();
       }
@@ -12434,12 +12436,54 @@ document.addEventListener('DOMContentLoaded', () => {
   let isFireTruckSimRunning = false;
   let fireTruckSimReq = null;
   let activeTurnaroundType = 'LOOP';
+  let fireCoverageRadiusMeters = 45;
+  let showFireCoverageRadius = true;
+  let fireCoverageMesh3D = null;
+  let fireTruckDistanceLine3D = null;
+  let fireTruckDistanceSprite3D = null;
+  let fireRoutePoints = [];
+  let isDrawingFireRoute = false;
+  let tempFireDrawLayer = null;
+  let fireTruck2DMarker = null;
+  let fireCoverage2DCircle = null;
+  let fireTruck2DDistanceLine = null;
+  let circulation2DLayerGroup = null;
+
+  function applyCirculationSubview(subview) {
+    state.circulationSubview = subview;
+    const mapViewport = document.getElementById('mapViewport');
+    const threeViewport = document.getElementById('threeViewport');
+    const viewportStage = document.getElementById('viewportStage');
+
+    document.querySelectorAll('#btnCircViewCombined, #btnCircView2D, #btnCircView3D').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.subview === subview);
+    });
+
+    if (subview === '2d') {
+      if (mapViewport) mapViewport.style.display = 'block';
+      if (threeViewport) threeViewport.style.display = 'none';
+      if (viewportStage) viewportStage.className = 'viewport-stage mode-map';
+      if (map) setTimeout(() => map.invalidateSize(), 50);
+    } else if (subview === '3d') {
+      if (mapViewport) mapViewport.style.display = 'none';
+      if (threeViewport) threeViewport.style.display = 'block';
+      if (viewportStage) viewportStage.className = 'viewport-stage mode-3d';
+      onWindowResize();
+    } else {
+      // combined (default)
+      if (mapViewport) mapViewport.style.display = 'block';
+      if (threeViewport) threeViewport.style.display = 'block';
+      if (viewportStage) viewportStage.className = 'viewport-stage mode-combined';
+      switchMapBasemap(state.combinedMapTheme || 'satellite');
+      if (map) setTimeout(() => map.invalidateSize(), 50);
+      onWindowResize();
+    }
+  }
 
   function buildFireTruck3DModel() {
     const truckGroup = new THREE.Group();
 
     // 10m Standard Fire Appliance: Length 10.0m, Width 2.5m, Height 3.2m
-    // Main Body Chassis (Red)
     const bodyGeo = new THREE.BoxGeometry(2.5, 2.2, 7.2);
     bodyGeo.translate(0, 1.6, -0.6);
     const bodyMat = new THREE.MeshStandardMaterial({
@@ -12483,7 +12527,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ladderMesh = new THREE.Mesh(ladderGeo, ladderMat);
     truckGroup.add(ladderMesh);
 
-    // Emergency Blue/Red Light Bar on Roof
+    // Emergency Blue Light Bar on Roof
     const lightBarGeo = new THREE.BoxGeometry(1.6, 0.2, 0.4);
     lightBarGeo.translate(0, 2.6, 3.8);
     const lightBarMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
@@ -12510,6 +12554,200 @@ document.addEventListener('DOMContentLoaded', () => {
     return truckGroup;
   }
 
+  function getCirculationRouteLocalPoints() {
+    // 1. If user explicitly drew route waypoints on the map, convert to 3D local points
+    if (fireRoutePoints && fireRoutePoints.length >= 2) {
+      return fireRoutePoints.map(pt => {
+        const local = gpsToLocalMeters(pt);
+        const y = getTerrainElevationAt(local.x, -local.y) + 0.25;
+        return new THREE.Vector3(local.x, y, -local.y);
+      });
+    }
+
+    // 2. Site-adapted parametric route around active parcel and building footprint
+    if (state.activeParcel && state.activeParcel.coordinates && state.activeParcel.coordinates.length >= 3) {
+      const coords = state.activeParcel.coordinates;
+      const bldg = getSelectedBuilding();
+      const fp = computeFootprintGeometry(state.activeParcel, bldg);
+
+      let bldgCenterX = 0, bldgCenterY = 0;
+      if (fp && fp.corners && fp.corners.length >= 3) {
+        bldgCenterX = fp.corners.reduce((s, p) => s + p.x, 0) / fp.corners.length;
+        bldgCenterY = fp.corners.reduce((s, p) => s + p.y, 0) / fp.corners.length;
+      }
+
+      const localParcel = gpsToLocalMeters(coords);
+      const xs = localParcel.map(p => p.x);
+      const ys = localParcel.map(p => p.y);
+      const minX = Math.min(...xs), maxX = Math.max(...xs);
+      const minY = Math.min(...ys), maxY = Math.max(...ys);
+
+      // Route points entering parcel and staging within 6.5m (Decree 41 norm: 5-8m)
+      const entrancePt = new THREE.Vector3(minX - 12, 0, -(minY + (maxY - minY) * 0.5));
+      const gatePt = new THREE.Vector3(minX + 2, 0, entrancePt.z);
+      const approachPt = new THREE.Vector3(bldgCenterX - 14, 0, -(bldgCenterY + 14));
+      const stagingPt = new THREE.Vector3(bldgCenterX - 6.5, 0, -bldgCenterY);
+      const passPt = new THREE.Vector3(bldgCenterX + 8, 0, -(bldgCenterY - 12));
+      const termPt = new THREE.Vector3(maxX - 4, 0, -(bldgCenterY - 18));
+
+      const rawPts = [entrancePt, gatePt, approachPt, stagingPt, passPt, termPt];
+      rawPts.forEach(p => {
+        p.y = getTerrainElevationAt(p.x, p.z) + 0.25;
+      });
+
+      // Synchronize 2D GPS route points
+      const centerGps = {
+        lat: coords.reduce((s, c) => s + c[0], 0) / coords.length,
+        lng: coords.reduce((s, c) => s + c[1], 0) / coords.length
+      };
+      const latToMeters = 111139;
+      const lngToMeters = 111139 * Math.cos(centerGps.lat * Math.PI / 180);
+
+      fireRoutePoints = rawPts.map(p => [
+        centerGps.lat + (-p.z / latToMeters),
+        centerGps.lng + (p.x / lngToMeters)
+      ]);
+
+      return rawPts;
+    }
+
+    // 3. Fallback trajectory
+    const pts = [
+      new THREE.Vector3(-45, getTerrainElevationAt(-45, 35) + 0.25, 35),
+      new THREE.Vector3(-25, getTerrainElevationAt(-25, 20) + 0.25, 20),
+      new THREE.Vector3(-10, getTerrainElevationAt(-10, 8) + 0.25, 8),
+      new THREE.Vector3(12, getTerrainElevationAt(12, 10) + 0.25, 10),
+      new THREE.Vector3(28, getTerrainElevationAt(28, -8) + 0.25, -8),
+      new THREE.Vector3(38, getTerrainElevationAt(38, -25) + 0.25, -25)
+    ];
+    return pts;
+  }
+
+  function findClosestBuildingPoint(queryX, queryZ) {
+    const bldg = getSelectedBuilding();
+    const fp = computeFootprintGeometry(state.activeParcel, bldg);
+    let bestDist = Infinity;
+    let bestPoint = { x: 0, z: 0 };
+
+    if (fp && fp.corners && fp.corners.length >= 3) {
+      const corners = fp.corners;
+      for (let i = 0; i < corners.length; i++) {
+        const p1 = corners[i];
+        const p2 = corners[(i + 1) % corners.length];
+
+        const ax = p1.x, az = -p1.y;
+        const bx = p2.x, bz = -p2.y;
+
+        const dx = bx - ax;
+        const dz = bz - az;
+        const lenSq = dx * dx + dz * dz;
+
+        let t = 0;
+        if (lenSq > 1e-6) {
+          t = ((queryX - ax) * dx + (queryZ - az) * dz) / lenSq;
+          t = Math.max(0, Math.min(1, t));
+        }
+
+        const projX = ax + t * dx;
+        const projZ = az + t * dz;
+        const d = Math.hypot(queryX - projX, queryZ - projZ);
+
+        if (d < bestDist) {
+          bestDist = d;
+          bestPoint = { x: projX, z: projZ };
+        }
+      }
+    } else {
+      bestDist = Math.hypot(queryX, queryZ);
+      bestPoint = { x: 0, z: 0 };
+    }
+
+    return { distance: bestDist, point: bestPoint };
+  }
+
+  function renderCirculation2D(roadWidth = 4.5) {
+    if (!map) return;
+    if (!circulation2DLayerGroup) {
+      circulation2DLayerGroup = L.layerGroup().addTo(map);
+    }
+    circulation2DLayerGroup.clearLayers();
+    fireTruck2DMarker = null;
+    fireCoverage2DCircle = null;
+    fireTruck2DDistanceLine = null;
+
+    if (!fireRoutePoints || fireRoutePoints.length < 2) return;
+
+    // 1. Road polygon / corridor
+    let drewBuffer = false;
+    if (typeof turf !== 'undefined' && turf.lineString && turf.buffer) {
+      try {
+        const turfCoords = fireRoutePoints.map(p => [p[1], p[0]]);
+        const line = turf.lineString(turfCoords);
+        const buffered = turf.buffer(line, (roadWidth / 2) / 1000, { units: 'kilometers' });
+        if (buffered && buffered.geometry) {
+          const roadPoly = L.geoJSON(buffered, {
+            style: {
+              color: '#3b82f6',
+              weight: 2,
+              fillColor: '#1e3a8a',
+              fillOpacity: 0.65
+            },
+            interactive: false
+          });
+          circulation2DLayerGroup.addLayer(roadPoly);
+          drewBuffer = true;
+        }
+      } catch (_) {}
+    }
+
+    if (!drewBuffer) {
+      const roadLine = L.polyline(fireRoutePoints, {
+        color: '#1e3a8a',
+        weight: roadWidth * 2.8,
+        opacity: 0.75,
+        interactive: false
+      });
+      circulation2DLayerGroup.addLayer(roadLine);
+    }
+
+    // 2. White Centerline Marking
+    const centerLine = L.polyline(fireRoutePoints, {
+      color: '#ffffff',
+      weight: 2,
+      dashArray: '5, 5',
+      opacity: 0.9,
+      interactive: false
+    });
+    circulation2DLayerGroup.addLayer(centerLine);
+
+    // 3. Turnaround marker at terminus
+    const termGps = fireRoutePoints[fireRoutePoints.length - 1];
+    if (termGps) {
+      if (activeTurnaroundType === 'LOOP') {
+        const turnCircle = L.circle(termGps, {
+          radius: 12,
+          color: '#ef4444',
+          weight: 2,
+          dashArray: '4, 4',
+          fillColor: '#dc2626',
+          fillOpacity: 0.25,
+          interactive: false
+        });
+        circulation2DLayerGroup.addLayer(turnCircle);
+      } else {
+        const turnMarker = L.circle(termGps, {
+          radius: 8,
+          color: '#ef4444',
+          weight: 2,
+          fillColor: '#dc2626',
+          fillOpacity: 0.35,
+          interactive: false
+        });
+        circulation2DLayerGroup.addLayer(turnMarker);
+      }
+    }
+  }
+
   function renderCirculation3D(roadWidth = 4.5, maxGrade = 8.0, turnType = 'LOOP') {
     if (!circulation3DGroup || !scene) return;
     while (circulation3DGroup.children.length > 0) {
@@ -12517,26 +12755,17 @@ document.addEventListener('DOMContentLoaded', () => {
       circulation3DGroup.remove(ch);
       if (ch.geometry) ch.geometry.dispose();
     }
+    fireCoverageMesh3D = null;
+    fireTruckDistanceLine3D = null;
+    fireTruckDistanceSprite3D = null;
 
-    // Generate path points matching parcel geometry and surrounding street gate
-    const bPos = (buildingGroup && buildingGroup.children.length > 0)
-      ? buildingGroup.children[0].position
-      : new THREE.Vector3(0, 0, 0);
-
-    // Path Curve: from municipal street entrance through parcel terrain to building drop-off and turnaround
-    const pts = [
-      new THREE.Vector3(-45, getTerrainElevationAt(-45, 35) + 0.2, 35),
-      new THREE.Vector3(-25, getTerrainElevationAt(-25, 20) + 0.2, 20),
-      new THREE.Vector3(-10, getTerrainElevationAt(-10, 8) + 0.2, 8),
-      new THREE.Vector3(12, getTerrainElevationAt(12, 10) + 0.2, 10),
-      new THREE.Vector3(28, getTerrainElevationAt(28, -8) + 0.2, -8),
-      new THREE.Vector3(38, getTerrainElevationAt(38, -25) + 0.2, -25)
-    ];
+    const pts = getCirculationRouteLocalPoints();
+    if (!pts || pts.length < 2) return;
 
     fireTruckCurve = new THREE.CatmullRomCurve3(pts);
 
     // 1. Vehicle Axis Ribbon (#3b82f6 Blue)
-    const curvePoints = fireTruckCurve.getPoints(70);
+    const curvePoints = fireTruckCurve.getPoints(80);
     const roadVertices = [];
     const roadIndices = [];
     const halfW = roadWidth / 2;
@@ -12591,7 +12820,6 @@ document.addEventListener('DOMContentLoaded', () => {
     circulation3DGroup.add(centerLine);
 
     // 2. Fire Access Corridor (#ef4444 Red / Striped)
-    // Distance from building perimeter: 5.0m to 8.0m per Technical Regulation №41
     const fireVertices = [];
     const fireIndices = [];
     const fireWidth = Math.max(roadWidth, 4.0);
@@ -12636,7 +12864,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Approved Turnaround at terminus (R >= 12.0m loop or 12x12m Hammerhead)
     const termPt = pts[pts.length - 1];
     if (turnType === 'LOOP') {
-      // Circular turnaround loop with Outer R = 12m, Inner R = 8m
       const turnGeo = new THREE.RingGeometry(8.0, 12.0, 32);
       turnGeo.rotateX(-Math.PI / 2);
       const turnMat = new THREE.MeshStandardMaterial({
@@ -12645,11 +12872,10 @@ document.addEventListener('DOMContentLoaded', () => {
         side: THREE.DoubleSide
       });
       const turnMesh = new THREE.Mesh(turnGeo, turnMat);
-      turnMesh.position.set(termPt.x + 8, termPt.y + 0.06, termPt.z);
+      turnMesh.position.set(termPt.x + 6, termPt.y + 0.06, termPt.z);
       turnMesh.name = 'fireTurnaroundMesh';
       circulation3DGroup.add(turnMesh);
     } else {
-      // Hammerhead / T-shape 12m x 12m
       const tGeo = new THREE.PlaneGeometry(12.0, 12.0);
       tGeo.rotateX(-Math.PI / 2);
       const tMat = new THREE.MeshStandardMaterial({
@@ -12658,46 +12884,33 @@ document.addEventListener('DOMContentLoaded', () => {
         side: THREE.DoubleSide
       });
       const tMesh = new THREE.Mesh(tGeo, tMat);
-      tMesh.position.set(termPt.x + 6, termPt.y + 0.06, termPt.z);
+      tMesh.position.set(termPt.x + 4, termPt.y + 0.06, termPt.z);
       tMesh.name = 'fireTurnaroundMesh';
       circulation3DGroup.add(tMesh);
     }
 
-    // Fire Staging Operational Platform (8m x 15m)
-    const stageGeo = new THREE.PlaneGeometry(8.0, 15.0);
-    stageGeo.rotateX(-Math.PI / 2);
-    const stageMat = new THREE.MeshBasicMaterial({
-      color: 0xef4444,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.75
-    });
-    const stageMesh = new THREE.Mesh(stageGeo, stageMat);
-    stageMesh.position.set(pts[3].x + 4, pts[3].y + 0.07, pts[3].z - 6);
-    stageMesh.name = 'fireStagingMesh';
-    circulation3DGroup.add(stageMesh);
+    // Fire Staging Platform (8m x 15m)
+    if (pts.length >= 4) {
+      const stageGeo = new THREE.PlaneGeometry(8.0, 15.0);
+      stageGeo.rotateX(-Math.PI / 2);
+      const stageMat = new THREE.MeshBasicMaterial({
+        color: 0xef4444,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.75
+      });
+      const stageMesh = new THREE.Mesh(stageGeo, stageMat);
+      const stageIdx = Math.min(3, pts.length - 2);
+      stageMesh.position.set(pts[stageIdx].x + 3, pts[stageIdx].y + 0.07, pts[stageIdx].z - 4);
+      stageMesh.name = 'fireStagingMesh';
+      circulation3DGroup.add(stageMesh);
+    }
 
-    // 3. Pedestrian & ADA Network (#10b981 Green)
-    const adaPts = [
-      new THREE.Vector3(-42, getTerrainElevationAt(-42, 42) + 0.25, 42),
-      new THREE.Vector3(-20, getTerrainElevationAt(-20, 30) + 0.25, 30),
-      new THREE.Vector3(-2, getTerrainElevationAt(-2, 18) + 0.25, 18),
-      new THREE.Vector3(14, getTerrainElevationAt(14, 16) + 0.25, 16),
-      new THREE.Vector3(26, getTerrainElevationAt(26, 8) + 0.25, 8)
-    ];
-    const adaCurve = new THREE.CatmullRomCurve3(adaPts);
-    const adaPoints = adaCurve.getPoints(50);
-    const adaGeo = new THREE.BufferGeometry().setFromPoints(adaPoints);
-    const adaMat = new THREE.LineBasicMaterial({ color: 0x10b981, linewidth: 4 });
-    const adaLine = new THREE.Line(adaGeo, adaMat);
-    adaLine.name = 'pedestrianAdaMesh';
-    circulation3DGroup.add(adaLine);
-
-    // 4. Slope Gradient Badges along road segments
+    // 3. Slope Gradient Badges
     const badges = [
-      { t: 0.2, text: 'S = 5.4% (№41 OK)' },
-      { t: 0.5, text: 'S = 6.8% (სახანძრო OK)' },
-      { t: 0.8, text: 'S = 4.2% (სტანდარტული)' }
+      { t: 0.25, text: 'S = 5.4% (№41 OK)' },
+      { t: 0.55, text: 'S = 6.8% (სახანძრო OK)' },
+      { t: 0.85, text: 'S = 4.2% (სტანდარტული)' }
     ];
 
     badges.forEach(b => {
@@ -12727,10 +12940,261 @@ document.addEventListener('DOMContentLoaded', () => {
       circulation3DGroup.add(sp);
     });
 
-    // 5. 3D Fire Truck Model for Swept Path Simulation
+    // 4. 3D Fire Truck Model
     fireTruckMesh = buildFireTruck3DModel();
     circulation3DGroup.add(fireTruckMesh);
     updateFireTruckPosition(fireTruckProgress);
+  }
+
+  function updateFireCoverage3D(pos) {
+    if (!circulation3DGroup || !fireTruckMesh) return;
+
+    const closest = findClosestBuildingPoint(pos.x, pos.z);
+    const distM = closest.distance;
+
+    // 1. 3D Laser / Distance Line connecting Fire Truck to Building Facade
+    if (!fireTruckDistanceLine3D) {
+      const lineGeo = new THREE.BufferGeometry().setFromPoints([
+        pos.clone().add(new THREE.Vector3(0, 2.5, 0)),
+        new THREE.Vector3(closest.point.x, pos.y + 2.0, closest.point.z)
+      ]);
+      const lineMat = new THREE.LineDashedMaterial({
+        color: distM <= fireCoverageRadiusMeters ? 0x38bdf8 : 0xef4444,
+        dashSize: 1.2,
+        gapSize: 0.8,
+        linewidth: 3
+      });
+      fireTruckDistanceLine3D = new THREE.Line(lineGeo, lineMat);
+      fireTruckDistanceLine3D.name = 'fireTruckDistanceLine3D';
+      circulation3DGroup.add(fireTruckDistanceLine3D);
+    } else {
+      const posAttr = fireTruckDistanceLine3D.geometry.attributes.position;
+      posAttr.setXYZ(0, pos.x, pos.y + 2.5, pos.z);
+      posAttr.setXYZ(1, closest.point.x, pos.y + 2.0, closest.point.z);
+      posAttr.needsUpdate = true;
+      fireTruckDistanceLine3D.geometry.computeBoundingSphere();
+      fireTruckDistanceLine3D.computeLineDistances();
+      fireTruckDistanceLine3D.material.color.setHex(distM <= fireCoverageRadiusMeters ? 0x38bdf8 : 0xef4444);
+    }
+    fireTruckDistanceLine3D.visible = (showFireCoverageRadius !== false);
+
+    // 2. 3D Fire Coverage Radius Mesh (Semi-transparent radial dome/cylinder)
+    if (!fireCoverageMesh3D) {
+      const radGeo = new THREE.CylinderGeometry(1, 1, 12, 36, 1, true);
+      radGeo.translate(0, 6, 0);
+      const radMat = new THREE.MeshBasicMaterial({
+        color: 0xef4444,
+        transparent: true,
+        opacity: 0.22,
+        wireframe: false,
+        side: THREE.DoubleSide
+      });
+      fireCoverageMesh3D = new THREE.Mesh(radGeo, radMat);
+      fireCoverageMesh3D.name = 'fireCoverageMesh3D';
+
+      // Ring accent at ground level
+      const ringGeo = new THREE.RingGeometry(0.98, 1.02, 48);
+      ringGeo.rotateX(-Math.PI / 2);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0xff3b30,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.8
+      });
+      const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+      ringMesh.name = 'fireCoverageGroundRing';
+      fireCoverageMesh3D.add(ringMesh);
+
+      circulation3DGroup.add(fireCoverageMesh3D);
+    }
+
+    fireCoverageMesh3D.position.set(pos.x, pos.y + 0.05, pos.z);
+    fireCoverageMesh3D.scale.set(fireCoverageRadiusMeters, 1, fireCoverageRadiusMeters);
+    fireCoverageMesh3D.visible = (showFireCoverageRadius !== false);
+
+    // 3. 3D Distance Floating Sprite Label
+    if (!fireTruckDistanceSprite3D) {
+      const spCanvas = document.createElement('canvas');
+      spCanvas.width = 256;
+      spCanvas.height = 72;
+      const spTex = new THREE.CanvasTexture(spCanvas);
+      const spMat = new THREE.SpriteMaterial({ map: spTex, transparent: true });
+      fireTruckDistanceSprite3D = new THREE.Sprite(spMat);
+      fireTruckDistanceSprite3D.scale.set(7.5, 2.1, 1);
+      fireTruckDistanceSprite3D.name = 'fireTruckDistanceSprite3D';
+      circulation3DGroup.add(fireTruckDistanceSprite3D);
+    }
+
+    const midX = (pos.x + closest.point.x) / 2;
+    const midZ = (pos.z + closest.point.z) / 2;
+    const midY = pos.y + 3.8;
+    fireTruckDistanceSprite3D.position.set(midX, midY, midZ);
+    fireTruckDistanceSprite3D.visible = (showFireCoverageRadius !== false);
+
+    const spMat = fireTruckDistanceSprite3D.material;
+    if (spMat && spMat.map && spMat.map.image) {
+      const canvas = spMat.map.image;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+      ctx.roundRect(3, 3, canvas.width - 6, canvas.height - 6, 12);
+      ctx.fill();
+
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = (distM <= fireCoverageRadiusMeters) ? '#10b981' : '#ef4444';
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 18px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`მანძილი: ${distM.toFixed(1)} მ`, canvas.width / 2, 28);
+
+      ctx.fillStyle = (distM <= fireCoverageRadiusMeters) ? '#34d399' : '#f87171';
+      ctx.font = 'bold 15px sans-serif';
+      ctx.fillText(`დაფარვა: R=${fireCoverageRadiusMeters}მ (${distM <= fireCoverageRadiusMeters ? 'OK' : 'დეფიციტი'})`, canvas.width / 2, 54);
+
+      spMat.map.needsUpdate = true;
+    }
+
+    // 4. Update UI Panel Metrics
+    updateFireSafetyUI(distM);
+  }
+
+  function updateFireCoverage2D(pos, t, tangent) {
+    if (!map) return;
+    if (!circulation2DLayerGroup) {
+      circulation2DLayerGroup = L.layerGroup().addTo(map);
+    }
+
+    if (!state.activeParcel || !state.activeParcel.coordinates) return;
+    const coords = state.activeParcel.coordinates;
+    const centerGps = {
+      lat: coords.reduce((s, c) => s + c[0], 0) / coords.length,
+      lng: coords.reduce((s, c) => s + c[1], 0) / coords.length
+    };
+    const latToMeters = 111139;
+    const lngToMeters = 111139 * Math.cos(centerGps.lat * Math.PI / 180);
+
+    const truckLat = centerGps.lat + (-pos.z / latToMeters);
+    const truckLng = centerGps.lng + (pos.x / lngToMeters);
+    const truckLatLng = [truckLat, truckLng];
+
+    const closest = findClosestBuildingPoint(pos.x, pos.z);
+    const bldgLat = centerGps.lat + (-closest.point.z / latToMeters);
+    const bldgLng = centerGps.lng + (closest.point.x / lngToMeters);
+    const distM = closest.distance;
+
+    const angleDeg = Math.atan2(tangent.x, -tangent.z) * (180 / Math.PI);
+
+    // 1. 2D Fire Truck Marker
+    if (!fireTruck2DMarker) {
+      const truckIcon = L.divIcon({
+        className: 'fire-truck-2d-icon-wrap',
+        html: `<div style="transform: rotate(${angleDeg}deg); width: 34px; height: 34px; background: #dc2626; border: 2px solid #ffffff; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 12px rgba(220,38,38,0.6); color: #fff; font-size: 16px;">
+          <i class="fa-solid fa-truck-fire"></i>
+        </div>`,
+        iconSize: [34, 34],
+        iconAnchor: [17, 17]
+      });
+      fireTruck2DMarker = L.marker(truckLatLng, { icon: truckIcon, interactive: false });
+      circulation2DLayerGroup.addLayer(fireTruck2DMarker);
+    } else {
+      fireTruck2DMarker.setLatLng(truckLatLng);
+      const el = fireTruck2DMarker.getElement();
+      if (el) {
+        const inner = el.querySelector('div');
+        if (inner) inner.style.transform = `rotate(${angleDeg}deg)`;
+      }
+    }
+
+    // 2. 2D Fire Coverage Circle
+    if (!fireCoverage2DCircle) {
+      fireCoverage2DCircle = L.circle(truckLatLng, {
+        radius: fireCoverageRadiusMeters,
+        color: '#ef4444',
+        weight: 2,
+        dashArray: '6, 6',
+        fillColor: '#ef4444',
+        fillOpacity: 0.16,
+        interactive: false
+      });
+      if (showFireCoverageRadius) circulation2DLayerGroup.addLayer(fireCoverage2DCircle);
+    } else {
+      fireCoverage2DCircle.setLatLng(truckLatLng);
+      fireCoverage2DCircle.setRadius(fireCoverageRadiusMeters);
+      if (showFireCoverageRadius && !circulation2DLayerGroup.hasLayer(fireCoverage2DCircle)) {
+        circulation2DLayerGroup.addLayer(fireCoverage2DCircle);
+      } else if (!showFireCoverageRadius && circulation2DLayerGroup.hasLayer(fireCoverage2DCircle)) {
+        circulation2DLayerGroup.removeLayer(fireCoverage2DCircle);
+      }
+    }
+
+    // 3. 2D Distance Line to Building
+    if (!fireTruck2DDistanceLine) {
+      fireTruck2DDistanceLine = L.polyline([truckLatLng, [bldgLat, bldgLng]], {
+        color: distM <= fireCoverageRadiusMeters ? '#38bdf8' : '#ef4444',
+        weight: 2.5,
+        dashArray: '5, 5',
+        interactive: false
+      });
+      if (showFireCoverageRadius) circulation2DLayerGroup.addLayer(fireTruck2DDistanceLine);
+    } else {
+      fireTruck2DDistanceLine.setLatLngs([truckLatLng, [bldgLat, bldgLng]]);
+      fireTruck2DDistanceLine.setStyle({
+        color: distM <= fireCoverageRadiusMeters ? '#38bdf8' : '#ef4444'
+      });
+      if (showFireCoverageRadius && !circulation2DLayerGroup.hasLayer(fireTruck2DDistanceLine)) {
+        circulation2DLayerGroup.addLayer(fireTruck2DDistanceLine);
+      } else if (!showFireCoverageRadius && circulation2DLayerGroup.hasLayer(fireTruck2DDistanceLine)) {
+        circulation2DLayerGroup.removeLayer(fireTruck2DDistanceLine);
+      }
+    }
+  }
+
+  function updateFireSafetyUI(distM) {
+    const elDist = document.getElementById('fireTruckDistanceToBldgVal');
+    const elNorm = document.getElementById('fireTruckDistanceNormBadge');
+    const elStatus = document.getElementById('fireCoverageStatusVal');
+    const elReach = document.getElementById('fireCoverageReachBadge');
+    const elRadius = document.getElementById('badgeFireRadiusVal');
+
+    if (elDist) elDist.textContent = `${distM.toFixed(1)} მ`;
+    if (elRadius) elRadius.textContent = `${fireCoverageRadiusMeters.toFixed(1)} მ`;
+
+    if (elNorm) {
+      if (distM >= 5.0 && distM <= 8.5) {
+        elNorm.textContent = '№41 ნორმა (5-8მ OK)';
+        elNorm.style.color = '#10b981';
+      } else if (distM < 5.0) {
+        elNorm.textContent = 'ძალიან ახლოს (<5მ)';
+        elNorm.style.color = '#f59e0b';
+      } else {
+        elNorm.textContent = 'დაშორებული (>8მ)';
+        elNorm.style.color = '#ef4444';
+      }
+    }
+
+    if (elStatus) {
+      if (distM <= fireCoverageRadiusMeters) {
+        elStatus.textContent = '100% დაცულია';
+        elStatus.style.color = '#10b981';
+      } else {
+        elStatus.textContent = 'დაუფარავია (R-ს მიღმა)';
+        elStatus.style.color = '#ef4444';
+      }
+    }
+
+    if (elReach) {
+      if (distM <= fireCoverageRadiusMeters) {
+        elReach.textContent = `შენობა რადიუსშია (${distM.toFixed(1)}მ ≤ ${fireCoverageRadiusMeters}მ)`;
+        elReach.style.color = '#94a3b8';
+      } else {
+        const deficit = (distM - fireCoverageRadiusMeters).toFixed(1);
+        elReach.textContent = `დეფიციტი: ${deficit} მ`;
+        elReach.style.color = '#fca5a5';
+      }
+    }
   }
 
   function updateFireTruckPosition(progress01) {
@@ -12741,9 +13205,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     fireTruckMesh.position.copy(pos);
 
-    // Look along tangent
     const lookTarget = pos.clone().add(tangent);
     fireTruckMesh.lookAt(lookTarget);
+
+    updateFireCoverage3D(pos);
+    updateFireCoverage2D(pos, t, tangent);
   }
 
   function animateFireTruck() {
@@ -12777,12 +13243,144 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btn) btn.classList.remove('active');
   }
 
+  function startDrawingFireRoute() {
+    if (state.isDrawingMode && typeof finishDrawing === 'function') finishDrawing();
+    if (state.isDrawingRoad && typeof cancelDrawingRoad === 'function') cancelDrawingRoad();
+
+    isDrawingFireRoute = true;
+    fireRoutePoints = [];
+
+    // Ensure map is visible for drawing
+    applyCirculationSubview('combined');
+
+    const mapViewport = document.getElementById('mapViewport');
+    if (mapViewport) mapViewport.classList.add('map-drawing-active');
+
+    const btnDefault = document.getElementById('circDrawButtonsDefault');
+    const btnActive = document.getElementById('circDrawButtonsActive');
+    const badge = document.getElementById('circDrawingStatusBadge');
+    if (btnDefault) btnDefault.style.display = 'none';
+    if (btnActive) btnActive.style.display = 'flex';
+    if (badge) badge.style.display = 'inline-block';
+
+    updateFireDrawingVisualization();
+    showLiveToast('დააკლიკე რუკაზე სახანძრო ტრაექტორიის დასახაზად (მინ. 2 წერტილი)', 'info');
+  }
+
+  function handleFireRouteMapClick(e) {
+    if (!isDrawingFireRoute) return;
+    fireRoutePoints.push([e.latlng.lat, e.latlng.lng]);
+    updateFireDrawingVisualization();
+  }
+
+  function updateFireDrawingVisualization() {
+    if (!map) return;
+    if (!tempFireDrawLayer) {
+      tempFireDrawLayer = L.layerGroup().addTo(map);
+    }
+    tempFireDrawLayer.clearLayers();
+
+    const count = fireRoutePoints.length;
+    let totalLen = 0;
+    for (let i = 0; i < count - 1; i++) {
+      const p1 = L.latLng(fireRoutePoints[i][0], fireRoutePoints[i][1]);
+      const p2 = L.latLng(fireRoutePoints[i + 1][0], fireRoutePoints[i + 1][1]);
+      totalLen += p1.distanceTo(p2);
+    }
+
+    const countEl = document.getElementById('circDrawPointsCount');
+    const lenEl = document.getElementById('circDrawLengthVal');
+    if (countEl) countEl.textContent = count;
+    if (lenEl) lenEl.textContent = `${totalLen.toFixed(1)} მ`;
+
+    fireRoutePoints.forEach((pt, idx) => {
+      const isFirst = idx === 0;
+      const marker = L.circleMarker(pt, {
+        radius: isFirst ? 7 : 5,
+        color: isFirst ? '#10b981' : '#38bdf8',
+        fillColor: isFirst ? '#10b981' : '#ffffff',
+        fillOpacity: 1,
+        weight: 2,
+        interactive: false
+      });
+      tempFireDrawLayer.addLayer(marker);
+    });
+
+    if (count >= 2) {
+      const activeLine = L.polyline(fireRoutePoints, {
+        color: '#38bdf8',
+        weight: 5,
+        opacity: 0.8,
+        dashArray: '6, 6',
+        interactive: false
+      });
+      tempFireDrawLayer.addLayer(activeLine);
+    }
+  }
+
+  function undoFireRoutePoint() {
+    if (!isDrawingFireRoute || fireRoutePoints.length === 0) return;
+    fireRoutePoints.pop();
+    updateFireDrawingVisualization();
+  }
+
+  function finishDrawingFireRoute() {
+    if (fireRoutePoints.length < 2) {
+      showLiveToast('გთხოვთ მონიშნოთ მინიმუმ 2 წერტილი მარშრუტის დასასრულებლად', 'warning');
+      return;
+    }
+    isDrawingFireRoute = false;
+
+    const mapViewport = document.getElementById('mapViewport');
+    if (mapViewport) mapViewport.classList.remove('map-drawing-active');
+
+    if (tempFireDrawLayer) {
+      tempFireDrawLayer.clearLayers();
+    }
+
+    const btnDefault = document.getElementById('circDrawButtonsDefault');
+    const btnActive = document.getElementById('circDrawButtonsActive');
+    const badge = document.getElementById('circDrawingStatusBadge');
+    if (btnDefault) btnDefault.style.display = 'flex';
+    if (btnActive) btnActive.style.display = 'none';
+    if (badge) badge.style.display = 'none';
+
+    initCirculationMode();
+    showLiveToast('სახანძრო მარშრუტი წარმატებით დაიტანა რუკასა და 3D მოდელზე!', 'success');
+  }
+
+  function cancelDrawingFireRoute() {
+    isDrawingFireRoute = false;
+
+    const mapViewport = document.getElementById('mapViewport');
+    if (mapViewport) mapViewport.classList.remove('map-drawing-active');
+
+    if (tempFireDrawLayer) {
+      tempFireDrawLayer.clearLayers();
+    }
+
+    const btnDefault = document.getElementById('circDrawButtonsDefault');
+    const btnActive = document.getElementById('circDrawButtonsActive');
+    const badge = document.getElementById('circDrawingStatusBadge');
+    if (btnDefault) btnDefault.style.display = 'flex';
+    if (btnActive) btnActive.style.display = 'none';
+    if (badge) badge.style.display = 'none';
+
+    initCirculationMode();
+  }
+
+  function clearFireRoute() {
+    fireRoutePoints = [];
+    if (tempFireDrawLayer) tempFireDrawLayer.clearLayers();
+    if (circulation2DLayerGroup) circulation2DLayerGroup.clearLayers();
+    initCirculationMode();
+    showLiveToast('სახანძრო მარშრუტი განულდა (დაბრუნდა ოპტიმალური ტრაექტორია)', 'info');
+  }
+
   function initCirculationMode() {
     if (!state.activeParcel) {
       if (typeof CADASTRAL_DATABASE !== 'undefined' && CADASTRAL_DATABASE['01.15.02.038.003']) {
         state.activeParcel = JSON.parse(JSON.stringify(CADASTRAL_DATABASE['01.15.02.038.003']));
-      } else if (typeof synthesizeCadastralParcelClient === 'function') {
-        state.activeParcel = synthesizeCadastralParcelClient('01.15.02.038.003');
       }
     }
     const elWidth = document.getElementById('sliderRoadWidth');
@@ -12790,6 +13388,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const roadWidth = elWidth ? parseFloat(elWidth.value) : 4.5;
     const maxGrade = elGrade ? parseFloat(elGrade.value) : 8.0;
 
+    // 2D Representation
+    renderCirculation2D(roadWidth);
+
+    // 3D Representation
     renderCirculation3D(roadWidth, maxGrade, activeTurnaroundType);
 
     // Update KPIs
@@ -12803,7 +13405,84 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function initCirculationModuleControls() {
-    // Sliders
+    // Subview Buttons
+    const btnComb = document.getElementById('btnCircViewCombined');
+    const btn2D = document.getElementById('btnCircView2D');
+    const btn3D = document.getElementById('btnCircView3D');
+    if (btnComb) btnComb.addEventListener('click', () => applyCirculationSubview('combined'));
+    if (btn2D) btn2D.addEventListener('click', () => applyCirculationSubview('2d'));
+    if (btn3D) btn3D.addEventListener('click', () => applyCirculationSubview('3d'));
+
+    // Route Drawing Tool Buttons
+    const btnStartDraw = document.getElementById('btnStartDrawFireRoute');
+    if (btnStartDraw) btnStartDraw.addEventListener('click', startDrawingFireRoute);
+
+    const btnFinishDraw = document.getElementById('btnFinishFireRoute');
+    if (btnFinishDraw) btnFinishDraw.addEventListener('click', finishDrawingFireRoute);
+
+    const btnUndoDraw = document.getElementById('btnUndoFireRoute');
+    if (btnUndoDraw) btnUndoDraw.addEventListener('click', undoFireRoutePoint);
+
+    const btnCancelDraw = document.getElementById('btnCancelFireRoute');
+    if (btnCancelDraw) btnCancelDraw.addEventListener('click', cancelDrawingFireRoute);
+
+    const btnClearRoute = document.getElementById('btnClearFireRoute');
+    if (btnClearRoute) btnClearRoute.addEventListener('click', clearFireRoute);
+
+    // Fire Coverage Radius Controls
+    const chkRadius = document.getElementById('chkShowFireCoverageRadius');
+    if (chkRadius) {
+      chkRadius.addEventListener('change', () => {
+        showFireCoverageRadius = chkRadius.checked;
+        if (fireTruckCurve) {
+          const t = Math.min(Math.max(fireTruckProgress, 0), 0.999);
+          const pos = fireTruckCurve.getPoint(t);
+          const tangent = fireTruckCurve.getTangent(t).normalize();
+          updateFireCoverage3D(pos);
+          updateFireCoverage2D(pos, t, tangent);
+        }
+      });
+    }
+
+    const sliderRadius = document.getElementById('sliderFireCoverageRadius');
+    const badgeRadius = document.getElementById('badgeFireRadiusVal');
+    if (sliderRadius) {
+      sliderRadius.addEventListener('input', () => {
+        fireCoverageRadiusMeters = parseFloat(sliderRadius.value);
+        if (badgeRadius) badgeRadius.textContent = `${fireCoverageRadiusMeters.toFixed(1)} მ`;
+        document.querySelectorAll('.btn-fire-radius-preset').forEach(btn => {
+          btn.classList.toggle('active', parseFloat(btn.dataset.radius) === fireCoverageRadiusMeters);
+        });
+        if (fireTruckCurve) {
+          const t = Math.min(Math.max(fireTruckProgress, 0), 0.999);
+          const pos = fireTruckCurve.getPoint(t);
+          const tangent = fireTruckCurve.getTangent(t).normalize();
+          updateFireCoverage3D(pos);
+          updateFireCoverage2D(pos, t, tangent);
+        }
+      });
+    }
+
+    document.querySelectorAll('.btn-fire-radius-preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const rad = parseFloat(btn.dataset.radius);
+        if (rad && !isNaN(rad)) {
+          fireCoverageRadiusMeters = rad;
+          if (sliderRadius) sliderRadius.value = rad;
+          if (badgeRadius) badgeRadius.textContent = `${rad.toFixed(1)} მ`;
+          document.querySelectorAll('.btn-fire-radius-preset').forEach(b => b.classList.toggle('active', b === btn));
+          if (fireTruckCurve) {
+            const t = Math.min(Math.max(fireTruckProgress, 0), 0.999);
+            const pos = fireTruckCurve.getPoint(t);
+            const tangent = fireTruckCurve.getTangent(t).normalize();
+            updateFireCoverage3D(pos);
+            updateFireCoverage2D(pos, t, tangent);
+          }
+        }
+      });
+    });
+
+    // Sliders: Width & Grade
     const sliderWidth = document.getElementById('sliderRoadWidth');
     const badgeWidth = document.getElementById('badgeRoadWidth');
     if (sliderWidth) {
@@ -12846,6 +13525,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnRegen = document.getElementById('btnRegenerateCirculation');
     if (btnRegen) {
       btnRegen.addEventListener('click', () => {
+        fireRoutePoints = [];
         initCirculationMode();
         showLiveToast('რელიეფზე მორგებული საგზაო ქსელი დაგენერირდა (№41 სტანდარტით)', 'success');
       });

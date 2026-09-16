@@ -322,85 +322,20 @@ const requestHandler = async (req, res) => {
           }));
           return;
         }
-
-        // Guaranteed fallback synthesizer for any valid Georgian cadastral code when NAPR does not return exact match
-        const synthesized = landIntelligenceService.napr.synthesizeCadastralParcel(normalizedCode);
-        if (synthesized && synthesized.found && synthesized.boundary && synthesized.boundary.length >= 3) {
-          let zoning = null;
-          try {
-            const zoningAnalysis = landIntelligenceService.tbilisiZoning.resolveZoning(normalizedCode, synthesized.centroid, synthesized.areaSqm, null);
-            if (zoningAnalysis && zoningAnalysis.primaryZone) {
-              const pz = zoningAnalysis.primaryZone;
-              zoning = { zoneCode: pz.zoneCode, mainZoneKa: pz.mainZoneKa, mainZoneEn: pz.mainZoneEn || pz.mainZoneKa, subZoneKa: pz.subZoneKa, subZoneEn: pz.subZoneEn || pz.subZoneKa, tabLabelKa: pz.tabLabelKa, zoneNameKa: pz.zoneNameKa, zoneNameEn: pz.zoneNameEn, k1: pz.k1, k2: pz.k2, k3: pz.k3 };
-            }
-          } catch (_) {}
-          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-          res.end(JSON.stringify({
-            status: true,
-            cadastralCode: synthesized.cadastralCode,
-            address: synthesized.address,
-            areaSqm: synthesized.areaSqm,
-            coordinates: synthesized.boundary,
-            shapeWkt: synthesized.shapeWkt,
-            centroid: synthesized.centroid,
-            dimensions: synthesized.dimensions,
-            source: synthesized.source,
-            portalUrl: synthesized.portalUrl,
-            zoning: zoning,
-            tasProjects: null,
-            approvedProjects: [],
-            remainingCapacity: null
-          }));
-          return;
-        }
-
         res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({
           status: false,
-          error: "ნაკვეთი მითითებული საკადასტრო კოდით ვერ მოიძებნა",
+          notFound: true,
+          error: "საკადასტრო კოდი საჯარო რეესტრის (NAPR) ოფიციალურ ბაზაში ვერ მოიძებნა",
           code: normalizedCode,
           portalUrl: "https://maps.gov.ge/map/portal"
         }));
       } catch (err) {
-        // NAPR provider threw — try synthesizer fallback before giving up
-        console.warn('[Server] NAPR provider error for', normalizedCode, '—', err.message, '— using synthesizer fallback');
-        try {
-          const synthesized = landIntelligenceService.napr.synthesizeCadastralParcel(normalizedCode);
-          if (synthesized && synthesized.found && synthesized.boundary && synthesized.boundary.length >= 3) {
-            let zoning = null;
-            try {
-              const zoningAnalysis = landIntelligenceService.tbilisiZoning.resolveZoning(normalizedCode, synthesized.centroid, synthesized.areaSqm, null);
-              if (zoningAnalysis && zoningAnalysis.primaryZone) {
-                const pz = zoningAnalysis.primaryZone;
-                zoning = { zoneCode: pz.zoneCode, mainZoneKa: pz.mainZoneKa, mainZoneEn: pz.mainZoneEn || pz.mainZoneKa, subZoneKa: pz.subZoneKa, subZoneEn: pz.subZoneEn || pz.subZoneKa, tabLabelKa: pz.tabLabelKa, zoneNameKa: pz.zoneNameKa, zoneNameEn: pz.zoneNameEn, k1: pz.k1, k2: pz.k2, k3: pz.k3 };
-              }
-            } catch (_) {}
-            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-            res.end(JSON.stringify({
-              status: true,
-              cadastralCode: synthesized.cadastralCode,
-              address: synthesized.address,
-              areaSqm: synthesized.areaSqm,
-              coordinates: synthesized.boundary,
-              shapeWkt: synthesized.shapeWkt,
-              centroid: synthesized.centroid,
-              dimensions: synthesized.dimensions,
-              source: synthesized.source,
-              portalUrl: synthesized.portalUrl,
-              zoning: zoning,
-              tasProjects: null,
-              approvedProjects: [],
-              remainingCapacity: null
-            }));
-            return;
-          }
-        } catch (synthErr) {
-          console.warn('[Server] Synthesizer fallback also failed:', synthErr.message);
-        }
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        console.warn('[Server] NAPR provider error for', normalizedCode, '—', err.message);
+        res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({
           status: false,
-          error: "NAPR service temporarily unreachable: " + (err.message || err),
+          error: "საჯარო რეესტრის სერვისთან კავშირი დროებით შეფერხებულია: " + (err.message || err),
           code: normalizedCode,
           portalUrl: "https://maps.gov.ge/map/portal"
         }));
