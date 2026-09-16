@@ -3848,14 +3848,10 @@ document.addEventListener('DOMContentLoaded', () => {
           } catch(e) {}
         }
 
-        // Proximity tolerance: OSM buildings often deviate 2-8 meters from surveyed NAPR cadastre edges
-        if (!isOverlapping && state.activeParcel.coordinates && state.activeParcel.coordinates.length > 2) {
-          const minMetersToEdge = Math.min(...state.activeParcel.coordinates.map(pt => {
-            const dy = (pt[0] - cLat) * 111132;
-            const dx = (pt[1] - cLng) * 111132 * Math.cos(cLat * Math.PI / 180);
-            return Math.hypot(dx, dy);
-          }));
-          if (minMetersToEdge <= 10.0) {
+        // In-parcel classification: strictly check if centroid or majority of polygon vertices are inside the parcel boundary
+        if (!isOverlapping && cleanCoords && cleanCoords.length > 0) {
+          const insideCount = cleanCoords.filter(pt => isPointInPolygonGPS(pt, state.activeParcel.coordinates)).length;
+          if (insideCount >= Math.ceil(cleanCoords.length * 0.45)) {
             isOverlapping = true;
           }
         }
@@ -4127,16 +4123,18 @@ document.addEventListener('DOMContentLoaded', () => {
       // Also render existing structures on the parcel itself (if present and user is in concept/standard mode)
       if (state.existingParcelBuildings && state.existingParcelBuildings.length > 0 && state.buildingDisplayMode !== 'existing') {
         const existingMat = new THREE.MeshStandardMaterial({
-          color: 0x94a3b8,
-          roughness: 0.7,
-          metalness: 0.15,
+          color: 0x9a3412,
+          emissive: 0x431407,
+          emissiveIntensity: 0.25,
+          roughness: 0.65,
+          metalness: 0.2,
           transparent: true,
-          opacity: 0.8
+          opacity: 0.92
         });
         const existingEdgeMat = new THREE.LineBasicMaterial({
-          color: 0xf59e0b,
+          color: 0xfbbf24,
           transparent: true,
-          opacity: 0.85
+          opacity: 0.95
         });
 
         state.existingParcelBuildings.forEach(bldg => {

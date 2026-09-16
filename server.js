@@ -361,126 +361,182 @@ const requestHandler = async (req, res) => {
     const lng = parseFloat(parsedUrl.searchParams.get('lng') || '44.8271');
     const radius = Math.min(1200, Math.max(100, parseInt(parsedUrl.searchParams.get('radius') || '350', 10)));
 
-    const overpassQuery = `[out:json][timeout:10];way["building"](around:${radius},${lat},${lng});out body;>;out skel qt;`;
-    const postBody = `data=${encodeURIComponent(overpassQuery)}`;
-
-    const mirrors = [
-      'https://overpass-api.de/api/interpreter',
-      'https://lz4.overpass-api.de/api/interpreter',
-      'https://overpass.kumi.systems/api/interpreter'
-    ];
-
     (async () => {
-      let ways = [];
-      let nodeMap = {};
-      let fetchSuccess = false;
+      let buildings = [];
 
-      const fetchMirror = async (mirror) => {
-        const res = await fetch(mirror, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'User-Agent': 'BIMXGeorgiaConTech/2.1 (https://architect2.ge; info@bimx.ge)',
-            'Referer': 'https://architect2.ge/parcel-ai'
-          },
-          body: postBody,
-          signal: AbortSignal.timeout(7500)
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return await res.json();
-      };
-
+      // 1. Primary: Official OpenStreetMap API 0.6 bbox query (responds in ~900ms worldwide)
       try {
-        const fastestResult = await Promise.any(mirrors.map(m => fetchMirror(m)));
-        if (fastestResult && fastestResult.elements) {
-          fastestResult.elements.forEach(elem => {
-            if (elem.type === 'node') {
-              nodeMap[elem.id] = [elem.lat, elem.lon];
-            } else if (elem.type === 'way' && elem.tags && elem.tags.building) {
-              ways.push(elem);
+        const dDegLat = radius / 111139;
+        const dDegLng = radius / (111139 * Math.cos(lat * Math.PI / 180));
+        const minLng = (lng - dDegLng).toFixed(6);
+        const maxLng = (lng + dDegLng).toFixed(6);
+        const minLat = (lat - dDegLat).toFixed(6);
+        const maxLat = (lat + dDegLat).toFixed(6);
+
+        const osmUrl = `https://api.openstreetmap.org/api/0.6/map?bbox=${minLng},${minLat},${maxLng},${maxLat}`;
+        const osmRes = await fetch(osmUrl, {
+          headers: {
+            'User-Agent': 'BIMXCadastral/2.0 (admin@bimx.ge)',
+            'Accept': 'application/xml, text/xml, */*'
+          },
+          signal: AbortSignal.timeout(6000)
+        });
+
+        if (osmRes.ok) {
+          const xml = await osmRes.text();
+          const nodeMap = new Map();
+          const nodeRegex = /<node\s+[^>]*?id="(\d+)"[^>]*?lat="([\d.-]+)"[^>]*?lon="([\d.-]+)"/g;
+          let m;
+          while ((m = nodeRegex.exec(xml)) !== null) {
+            nodeMap.set(m[1], [parseFloat(m[2]), parseFloat(m[3])]);
+          }
+          const nodeRegex2 = /<node\s+[^>]*?id="(\d+)"[^>]*?lon="([\d.-]+)"[^>]*?lat="([\d.-]+)"/g;
+          while ((m = nodeRegex2.exec(xml)) !== null) {
+            nodeMap.set(m[1], [parseFloat(m[3]), parseFloat(m[2])]);
+          }
+
+          const wayRegex = /<way\s+[^>]*?id="(\d+)"[\s\S]*?<\/way>/g;
+          while ((m = wayRegex.exec(xml)) !== null) {
+            const wayBlock = m[0];
+            const wayId = m[1];
+            if (!wayBlock.includes('k="building"')) continue;
+
+            const ndRegex = /<nd\s+[^>]*?ref="(\d+)"/g;
+            let ndMatch;
+            const coords = [];
+            while ((ndMatch = ndRegex.exec(wayBlock)) !== null) {
+              const pt = nodeMap.get(ndMatch[1]);
+              if (pt) coords.push(pt);
             }
-          });
-          if (ways.length > 0) {
-            fetchSuccess = true;
-          }
-        }
-      } catch (err) {
-        console.warn('[Server] Overpass building fetch note:', err.message);
-      }
 
-      if (fetchSuccess && ways.length > 0) {
-        const buildings = [];
-        ways.forEach(way => {
-          if (!way.nodes || way.nodes.length < 3) return;
-          const coords = [];
-          for (const nid of way.nodes) {
-            if (nodeMap[nid]) coords.push(nodeMap[nid]);
-          }
-          if (coords.length >= 3) {
-            const bType = (way.tags.building || 'yes').toLowerCase();
+            if (coords.length < 3) continue;
+
+            const tagRegex = /<tag\s+[^>]*?k="([^"]+)"\s+v="([^"]*)"/g;
+            const tags = {};
+            let tMatch;
+            while ((tMatch = tagRegex.exec(wayBlock)) !== null) {
+              tags[tMatch[1]] = tMatch[2];
+            }
+
+            const bType = (tags.building || 'yes').toLowerCase();
             let useType = 'residential';
-            let levels = 3;
-            let height = 9.6;
+            let levels = tags['building:levels'] ? parseInt(tags['building:levels'], 10) : 3;
+            let height = tags.height ? parseFloat(tags.height) : (levels * 3.3);
 
-            if (bType === 'industrial' || way.tags.man_made === 'works' || way.tags.landuse === 'industrial') {
+            if (bType === 'commercial' || bType === 'retail' || bType === 'supermarket' || tags.shop) {
+              useType = 'commercial';
+              height = levels * 4.0;
+            } else if (bType === 'office') {
+              useType = 'office';
+              height = levels * 3.6;
+            } else if (bType === 'industrial' || tags.landuse === 'industrial') {
               useType = 'industrial';
-              levels = way.tags['building:levels'] ? parseInt(way.tags['building:levels'], 10) : 1;
-              height = way.tags.height ? parseFloat(way.tags.height) : (levels * 6.5);
-            } else if (bType === 'garages' || bType === 'garage') {
+              height = Math.max(6.0, levels * 5.5);
+            } else if (bType === 'garage' || bType === 'garages') {
               useType = 'garage';
               levels = 1;
               height = 3.2;
-            } else if (bType === 'church' || way.tags.amenity === 'place_of_worship') {
+            } else if (bType === 'church' || bType === 'cathedral' || tags.amenity === 'place_of_worship') {
               useType = 'worship';
-              levels = 1;
-              height = 9.5;
-            } else if (bType === 'apartments') {
-              useType = 'residential';
-              levels = way.tags['building:levels'] ? parseInt(way.tags['building:levels'], 10) : 5;
-              height = way.tags.height ? parseFloat(way.tags.height) : (levels * 3.2);
-            } else if (bType === 'commercial' || bType === 'retail' || bType === 'supermarket') {
-              useType = 'commercial';
-              levels = way.tags['building:levels'] ? parseInt(way.tags['building:levels'], 10) : 2;
-              height = way.tags.height ? parseFloat(way.tags.height) : (levels * 4.0);
-            } else if (bType === 'office') {
-              useType = 'office';
-              levels = way.tags['building:levels'] ? parseInt(way.tags['building:levels'], 10) : 4;
-              height = way.tags.height ? parseFloat(way.tags.height) : (levels * 3.6);
-            } else if (way.tags['building:levels']) {
-              levels = Math.max(1, parseInt(way.tags['building:levels'], 10) || 1);
-              height = way.tags.height ? parseFloat(way.tags.height) : (levels * 3.2);
-            } else if (way.tags.height) {
-              height = parseFloat(way.tags.height);
-              levels = Math.max(1, Math.round(height / 3.2));
+              height = 10.5;
             }
 
             buildings.push({
-              id: `osm-${way.id}`,
-              name: way.tags.name || way.tags['name:ka'] || way.tags['name:en'] || null,
-              housenumber: way.tags['addr:housenumber'] || null,
-              street: way.tags['addr:street'] || way.tags['addr:street:ka'] || null,
+              id: `osm-${wayId}`,
+              name: tags['name:ka'] || tags.name || null,
+              nameEn: tags['name:en'] || tags.name || null,
+              housenumber: tags['addr:housenumber'] || null,
+              street: tags['addr:street'] || tags['addr:street:ka'] || null,
               buildingType: bType,
               useType: useType,
-              roofShape: way.tags['roof:shape'] || 'flat',
+              roofShape: tags['roof:shape'] || 'flat',
               height: parseFloat(height.toFixed(1)),
               levels: levels,
               coordinates: coords,
               isProcedural: false
             });
           }
-        });
+        }
+      } catch (osmErr) {
+        console.warn('[Server] OSM official API fetch note:', osmErr.message);
+      }
 
-        if (buildings.length > 0 && !res.headersSent) {
-          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-          res.end(JSON.stringify({ status: 'OK', source: 'overpass', count: buildings.length, buildings: buildings }));
-          return;
+      // 2. Secondary fallback: Overpass mirrors if OSM official was throttled
+      if (buildings.length === 0) {
+        try {
+          const overpassQuery = `[out:json][timeout:8];way["building"](around:${radius},${lat},${lng});out body;>;out skel qt;`;
+          const postBody = `data=${encodeURIComponent(overpassQuery)}`;
+          const mirrors = [
+            'https://lz4.overpass-api.de/api/interpreter',
+            'https://overpass-api.de/api/interpreter'
+          ];
+          for (const m of mirrors) {
+            try {
+              const res = await fetch(m, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded',
+                  'User-Agent': 'BIMXCadastral/2.0 (admin@bimx.ge)',
+                  'Accept': 'application/json'
+                },
+                body: postBody,
+                signal: AbortSignal.timeout(6000)
+              });
+              if (res.ok) {
+                const fastestResult = await res.json();
+                if (fastestResult && fastestResult.elements) {
+                  const nodeMap = {};
+                  const ways = [];
+                  fastestResult.elements.forEach(elem => {
+                    if (elem.type === 'node') nodeMap[elem.id] = [elem.lat, elem.lon];
+                    else if (elem.type === 'way' && elem.tags && elem.tags.building) ways.push(elem);
+                  });
+                  ways.forEach(way => {
+                    if (!way.nodes || way.nodes.length < 3) return;
+                    const coords = [];
+                    for (const nid of way.nodes) {
+                      if (nodeMap[nid]) coords.push(nodeMap[nid]);
+                    }
+                    if (coords.length >= 3) {
+                      const bType = (way.tags.building || 'yes').toLowerCase();
+                      const levels = way.tags['building:levels'] ? parseInt(way.tags['building:levels'], 10) : 3;
+                      const height = way.tags.height ? parseFloat(way.tags.height) : (levels * 3.3);
+                      buildings.push({
+                        id: `osm-${way.id}`,
+                        name: way.tags.name || way.tags['name:ka'] || null,
+                        nameEn: way.tags['name:en'] || null,
+                        housenumber: way.tags['addr:housenumber'] || null,
+                        street: way.tags['addr:street'] || null,
+                        buildingType: bType,
+                        useType: 'residential',
+                        roofShape: way.tags['roof:shape'] || 'flat',
+                        height: parseFloat(height.toFixed(1)),
+                        levels: levels,
+                        coordinates: coords,
+                        isProcedural: false
+                      });
+                    }
+                  });
+                  if (buildings.length > 0) break;
+                }
+              }
+            } catch (_) {}
+          }
+        } catch (opErr) {
+          console.warn('[Server] Overpass fallback note:', opErr.message);
         }
       }
 
-      // Return empty array if Overpass was unreachable or returned no buildings (rural/open land)
+      if (buildings.length > 0 && !res.headersSent) {
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ status: 'OK', source: 'osm', count: buildings.length, buildings: buildings }));
+        return;
+      }
+
+      // Return empty array if no buildings found (open field/unmapped parcel)
       if (!res.headersSent) {
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ status: 'OK', source: 'overpass', count: 0, buildings: [] }));
+        res.end(JSON.stringify({ status: 'OK', source: 'osm', count: 0, buildings: [] }));
       }
     })();
     return;
