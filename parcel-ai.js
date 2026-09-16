@@ -3929,16 +3929,46 @@ document.addEventListener('DOMContentLoaded', () => {
       else if (roofIrradiance >= 650) roofTier = 'hot';
       else if (roofIrradiance >= 300) roofTier = 'warm';
 
-      outsideBuildings.forEach(bldg => {
+      // Gather all buildings for solar mode: surrounding neighborhood + existing structures on parcel
+      const allSolarBuildings = outsideBuildings.map(b => ({ ...b, isOnParcel: false }));
+
+      const existingOnParcel = (state.existingParcelBuildings && state.existingParcelBuildings.length > 0)
+        ? state.existingParcelBuildings
+        : (state.savedExistingBuildings || []);
+
+      const isExistingMode = (state.buildingDisplayMode === 'existing');
+
+      existingOnParcel.forEach(bldg => {
+        if (!bldg.coordinates || bldg.coordinates.length < 3) return;
+        const alreadyInHeatmap = isExistingMode && (state.buildings || []).some(sb => sb.isExisting && (sb.id === bldg.id || sb.footprintCoords === bldg.coordinates));
+        if (!alreadyInHeatmap && !allSolarBuildings.some(item => item.id && item.id === bldg.id)) {
+          allSolarBuildings.push({
+            ...bldg,
+            isOnParcel: true
+          });
+        }
+      });
+
+      const parcelEdgeLines = [];
+
+      allSolarBuildings.forEach(bldg => {
         const localPts = gpsToLocalMeters(bldg.coordinates, centerGps);
         if (localPts.length < 3) return;
 
         const n = localPts.length;
-        const height = Math.max(6.0, Math.min(65.0, bldg.height || 9.0));
+        const height = bldg.isOnParcel
+          ? Math.max(3.2, bldg.height || ((bldg.levels || 1) * 3.2))
+          : Math.max(6.0, Math.min(65.0, bldg.height || 9.0));
 
         let cx = 0, cz = 0;
         localPts.forEach(p => { cx += p.x; cz += -p.y; });
         cx /= n; cz /= n;
+
+        const groundY = (bldg.isOnParcel && typeof state.getTerrainHeightAt === 'function')
+          ? state.getTerrainHeightAt(cx, cz)
+          : 0;
+
+        const topY = groundY + height;
 
         // Wall segments
         for (let i = 0; i < n; i++) {
@@ -3974,19 +4004,28 @@ document.addEventListener('DOMContentLoaded', () => {
           else if (irradiance >= 300) tier = 'warm';
 
           wallBatches[tier].push(
-            x1, 0, z1,
-            x2, height, z2,
-            x2, 0, z2,
+            x1, groundY, z1,
+            x2, topY, z2,
+            x2, groundY, z2,
 
-            x1, 0, z1,
-            x1, height, z1,
-            x2, height, z2
+            x1, groundY, z1,
+            x1, topY, z1,
+            x2, topY, z2
           );
 
-          // Roof perimeter edge
-          edgeLines.push(x1, height, z1, x2, height, z2);
-          // Vertical corner edge
-          edgeLines.push(x1, 0, z1, x1, height, z1);
+          if (bldg.isOnParcel) {
+            // Roof perimeter edge for parcel building
+            parcelEdgeLines.push(x1, topY, z1, x2, topY, z2);
+            // Vertical corner edge
+            parcelEdgeLines.push(x1, groundY, z1, x1, topY, z1);
+            // Ground perimeter edge
+            parcelEdgeLines.push(x1, groundY, z1, x2, groundY, z2);
+          } else {
+            // Roof perimeter edge for neighborhood building
+            edgeLines.push(x1, topY, z1, x2, topY, z2);
+            // Vertical corner edge
+            edgeLines.push(x1, groundY, z1, x1, topY, z1);
+          }
         }
 
         // Roof surface triangulation
@@ -3996,9 +4035,9 @@ document.addEventListener('DOMContentLoaded', () => {
           triangles.forEach(tri => {
             const p0 = localPts[tri[0]], p1 = localPts[tri[1]], p2 = localPts[tri[2]];
             roofBatches[roofTier].push(
-              p0.x, height, -p0.y,
-              p1.x, height, -p1.y,
-              p2.x, height, -p2.y
+              p0.x, topY, -p0.y,
+              p1.x, topY, -p1.y,
+              p2.x, topY, -p2.y
             );
           });
         } catch (e) {}
@@ -4032,7 +4071,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
 
-      // Assemble edge lines
+      // Assemble neighborhood edge lines (cyan)
       if (edgeLines.length > 0) {
         const edgeGeom = new THREE.BufferGeometry();
         edgeGeom.setAttribute('position', new THREE.Float32BufferAttribute(edgeLines, 3));
@@ -4043,6 +4082,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         const line = new THREE.LineSegments(edgeGeom, edgeMat);
         urbanGroup.add(line);
+      }
+
+      // Assemble existing parcel building edge lines (gold / amber, high contrast)
+      if (parcelEdgeLines.length > 0) {
+        const parcelEdgeGeom = new THREE.BufferGeometry();
+        parcelEdgeGeom.setAttribute('position', new THREE.Float32BufferAttribute(parcelEdgeLines, 3));
+        const parcelEdgeMat = new THREE.LineBasicMaterial({
+          color: 0xfbbf24,
+          transparent: true,
+          opacity: 0.95
+        });
+        const parcelLine = new THREE.LineSegments(parcelEdgeGeom, parcelEdgeMat);
+        urbanGroup.add(parcelLine);
       }
     }
   }
@@ -11416,6 +11468,9 @@ document.addEventListener('DOMContentLoaded', () => {
     renderAllBuildingsOnMap();
     renderAllBuildings3D();
     updateComplianceUI();
+    if (state.currentMode === 'solar') {
+      updateSolarLighting();
+    }
   }
 
   window.switchBuildingMode = switchBuildingMode;
