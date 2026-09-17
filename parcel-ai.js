@@ -6913,6 +6913,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const fpVal = Math.round(bldg.footprintArea || 0);
     setVal('sliderFootprint', fpVal);
     setDisplay('displayFootprint', `${fpVal.toLocaleString()} მ²`);
+    setDisplay('displayFootprintNum', `${fpVal.toLocaleString()}`);
 
     setVal('sliderHeight', floorH);
     setDisplay('displayHeight', `${floorH} მ`);
@@ -6951,6 +6952,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setVal('selectGroundUse', bldg.groundFloorUse || 'commercial');
 
     if (typeof updateFloating3DMetricsHud === 'function') updateFloating3DMetricsHud();
+    if (typeof updateAllSliderTracks === 'function') updateAllSliderTracks();
   }
 
   /* Floating 3D Building Metrics Pill HUD Controller */
@@ -6959,19 +6961,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!hud) return;
 
     const is3DActive = (state.currentMode === '3d' || state.currentMode === 'combined' || state.currentMode === 'solar' || state.currentMode === 'utilities' || state.currentMode === 'unitmix' || state.currentMode === 'wind' || state.currentMode === 'tas-precedents' || state.currentMode === 'circulation');
-    if (!is3DActive || !state.activeParcel) {
+    if (!is3DActive) {
       hud.style.display = 'none';
       return;
     }
     hud.style.display = 'flex';
 
     const bldg = getSelectedBuilding() || (state.buildings && state.buildings[0]);
-    if (!bldg) return;
-
-    const floorsAbove = bldg.floorsAbove || 5;
-    const floorH = bldg.floorHeight || 3.3;
+    const floorsAbove = (bldg && bldg.floorsAbove) ? bldg.floorsAbove : (parseInt(document.getElementById('sliderFloors')?.value, 10) || 5);
+    const floorH = (bldg && bldg.floorHeight) ? bldg.floorHeight : (parseFloat(document.getElementById('sliderHeight')?.value) || 3.3);
     const totalH = (floorsAbove * floorH).toFixed(2);
-    const footprintArea = Math.round(bldg.footprintArea || 0);
+    const footprintArea = (bldg && bldg.footprintArea) ? Math.round(bldg.footprintArea) : (parseInt(document.getElementById('sliderFootprint')?.value, 10) || 160);
 
     const elH = document.getElementById('f3dValHeight');
     const elF = document.getElementById('f3dValFloors');
@@ -7002,6 +7002,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnFloorsInc = document.getElementById('btnFloorsInc');
   const btnBasementDec = document.getElementById('btnBasementDec');
   const btnBasementInc = document.getElementById('btnBasementInc');
+
+  function updateSliderTrackFill(slider, fillColor) {
+    if (!slider) return;
+    const min = parseFloat(slider.min) !== undefined && !isNaN(parseFloat(slider.min)) ? parseFloat(slider.min) : 0;
+    const max = parseFloat(slider.max) !== undefined && !isNaN(parseFloat(slider.max)) ? parseFloat(slider.max) : 100;
+    const val = parseFloat(slider.value) || 0;
+    const pct = Math.max(0, Math.min(100, ((val - min) / (max - min)) * 100));
+    slider.style.background = `linear-gradient(to right, ${fillColor} 0%, ${fillColor} ${pct}%, rgba(255, 255, 255, 0.15) ${pct}%, rgba(255, 255, 255, 0.15) 100%)`;
+  }
+
+  function updateAllSliderTracks() {
+    updateSliderTrackFill(document.getElementById('sliderFloors'), '#10b981');
+    updateSliderTrackFill(document.getElementById('sliderBasementFloors'), '#f59e0b');
+    updateSliderTrackFill(document.getElementById('sliderFootprint'), '#00f0ff');
+    updateSliderTrackFill(document.getElementById('sliderHeight'), '#ffffff');
+    updateSliderTrackFill(document.getElementById('sliderRotation'), '#ffffff');
+    updateSliderTrackFill(document.getElementById('sliderGlazingRatio'), '#00f0ff');
+  }
 
   const stepSlider = (slider, delta) => {
     if (!slider) return;
@@ -7055,6 +7073,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderAllBuildings3D();
       updateComplianceUI();
       updateFloating3DMetricsHud();
+      updateSliderTrackFill(sliderFloors, '#10b981');
     });
   }
 
@@ -7081,6 +7100,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderAllBuildings3D();
       updateComplianceUI();
       updateFloating3DMetricsHud();
+      updateSliderTrackFill(sliderBasementFloors, '#f59e0b');
     });
   }
 
@@ -7098,6 +7118,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (customBadge) customBadge.style.display = 'none';
       const dispFp = document.getElementById('displayFootprint');
       if (dispFp) dispFp.textContent = `${val.toLocaleString()} მ²`;
+      const dispFpNum = document.getElementById('displayFootprintNum');
+      if (dispFpNum) dispFpNum.textContent = `${val.toLocaleString()}`;
 
       syncCurrentBuildingToActiveConcept();
       renderFloorMatrixUI();
@@ -7105,6 +7127,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderAllBuildings3D();
       updateComplianceUI();
       updateFloating3DMetricsHud();
+      updateSliderTrackFill(sliderFootprint, '#00f0ff');
     });
   }
 
@@ -7124,6 +7147,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderAllBuildings3D();
       updateComplianceUI();
       updateFloating3DMetricsHud();
+      updateSliderTrackFill(sliderHeight, '#ffffff');
     });
   }
 
@@ -7136,6 +7160,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (dispR) dispR.textContent = `${sliderRotation.value}°`;
       renderAllBuildingsOnMap();
       renderAllBuildings3D();
+      updateSliderTrackFill(sliderRotation, '#ffffff');
     });
   }
 
