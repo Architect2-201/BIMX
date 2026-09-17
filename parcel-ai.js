@@ -6050,9 +6050,13 @@ document.addEventListener('DOMContentLoaded', () => {
         buildingGroup.add(crownMesh);
 
       } else {
-        // Standard Flat Roof Slab & Parapet
+        // Standard Flat Roof Slab & Parapet (supports flat terrace and green_roof)
+        const isGreenRoof = (bldg.roofType === 'green_roof');
+        const roofMat = isGreenRoof
+          ? new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.85, metalness: 0.1 })
+          : slabMat;
         const roofSlabGeom = new THREE.ExtrudeGeometry(shape, { depth: 0.4, bevelEnabled: false });
-        const roofMesh = new THREE.Mesh(roofSlabGeom, slabMat);
+        const roofMesh = new THREE.Mesh(roofSlabGeom, roofMat);
         roofMesh.rotation.x = -Math.PI / 2;
         roofMesh.position.set(0, totalAboveH, 0);
         roofMesh.castShadow = true;
@@ -6061,7 +6065,7 @@ document.addEventListener('DOMContentLoaded', () => {
         buildingGroup.add(roofMesh);
 
         const parapetGeom = new THREE.ExtrudeGeometry(shape, { depth: 0.75, bevelEnabled: false });
-        const parapetMat = new THREE.MeshStandardMaterial({ color: bColorHex, roughness: 0.4, metalness: 0.3 });
+        const parapetMat = new THREE.MeshStandardMaterial({ color: isGreenRoof ? 0x15803d : bColorHex, roughness: 0.4, metalness: 0.3 });
         const parapetMesh = new THREE.Mesh(parapetGeom, parapetMat);
         parapetMesh.rotation.x = -Math.PI / 2;
         parapetMesh.position.set(0, totalAboveH + 0.4, 0);
@@ -6131,6 +6135,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (controls) {
       controls.target.set(0, (maxOverallHeight || 15) / 2, 0);
+    }
+    if (typeof updateFloating3DMetricsHud === 'function') {
+      updateFloating3DMetricsHud();
     }
   }
 
@@ -6874,9 +6881,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!bldg) {
       setVal('sliderFloors', 0);
-      setDisplay('displayFloors', '0');
+      setDisplay('displayFloors', '0 სართული');
       setVal('sliderBasementFloors', 0);
       setDisplay('displayBasementFloors', '0');
+      setDisplay('displayBasementFloorsNum', '0');
       setVal('sliderFootprint', 0);
       setDisplay('displayFootprint', '0 მ²');
       setVal('sliderHeight', 3.3);
@@ -6887,6 +6895,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (customBadge) customBadge.style.display = 'none';
       setVal('sliderRotation', 0);
       setDisplay('displayRotation', '0°');
+      if (typeof updateFloating3DMetricsHud === 'function') updateFloating3DMetricsHud();
       return;
     }
 
@@ -6895,18 +6904,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const floorH = bldg.floorHeight || 3.3;
 
     setVal('sliderFloors', floorsAbove);
-    setDisplay('displayFloors', `+${floorsAbove}`);
+    setDisplay('displayFloors', `+${floorsAbove} სართული`);
 
     setVal('sliderBasementFloors', floorsBelow);
     setDisplay('displayBasementFloors', `-${floorsBelow}`);
+    setDisplay('displayBasementFloorsNum', `-${floorsBelow}`);
 
-    if (bldg.footprintCoords && bldg.footprintCoords.length >= 3 && bldg.footprintArea > 0) {
-      setVal('sliderFootprint', bldg.footprintArea);
-      setDisplay('displayFootprint', `${bldg.footprintArea.toLocaleString()} მ²`);
-    } else {
-      setVal('sliderFootprint', 0);
-      setDisplay('displayFootprint', state.currentLang === 'en' ? 'To Draw' : 'დასახაზია');
-    }
+    const fpVal = Math.round(bldg.footprintArea || 0);
+    setVal('sliderFootprint', fpVal);
+    setDisplay('displayFootprint', `${fpVal.toLocaleString()} მ²`);
 
     setVal('sliderHeight', floorH);
     setDisplay('displayHeight', `${floorH} მ`);
@@ -6925,6 +6931,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Roof architecture controls
     const roofType = bldg.roofType || 'flat';
     setVal('selectRoofType', roofType);
+    document.querySelectorAll('.bdim-roof-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.roof === roofType);
+    });
     setVal('selectRoofSlopeDir', bldg.roofSlopeDir || 'south');
     setVal('sliderRoofAngle', bldg.roofAngle || 15);
     setDisplay('displayRoofAngle', `${bldg.roofAngle || 15}°`);
@@ -6940,10 +6949,41 @@ document.addEventListener('DOMContentLoaded', () => {
     setDisplay('displayGlazingRatio', `${bldg.glazingRatio !== undefined ? bldg.glazingRatio : 65}%`);
     setVal('selectStyle', bldg.style || 'modern');
     setVal('selectGroundUse', bldg.groundFloorUse || 'commercial');
+
+    if (typeof updateFloating3DMetricsHud === 'function') updateFloating3DMetricsHud();
+  }
+
+  /* Floating 3D Building Metrics Pill HUD Controller */
+  function updateFloating3DMetricsHud() {
+    const hud = document.getElementById('floating3DMetricsHud');
+    if (!hud) return;
+
+    const is3DActive = (state.currentMode === '3d' || state.currentMode === 'combined' || state.currentMode === 'solar' || state.currentMode === 'utilities' || state.currentMode === 'unitmix' || state.currentMode === 'wind' || state.currentMode === 'tas-precedents' || state.currentMode === 'circulation');
+    if (!is3DActive || !state.activeParcel) {
+      hud.style.display = 'none';
+      return;
+    }
+    hud.style.display = 'flex';
+
+    const bldg = getSelectedBuilding() || (state.buildings && state.buildings[0]);
+    if (!bldg) return;
+
+    const floorsAbove = bldg.floorsAbove || 5;
+    const floorH = bldg.floorHeight || 3.3;
+    const totalH = (floorsAbove * floorH).toFixed(2);
+    const footprintArea = Math.round(bldg.footprintArea || 0);
+
+    const elH = document.getElementById('f3dValHeight');
+    const elF = document.getElementById('f3dValFloors');
+    const elFp = document.getElementById('f3dValFootprint');
+
+    if (elH) elH.textContent = totalH;
+    if (elF) elF.textContent = `+${floorsAbove}`;
+    if (elFp) elFp.textContent = `${footprintArea}მ²`;
   }
 
   /* ==========================================================================
-     9. Interactive Sliders & Override Event Handlers
+     9. Interactive Sliders, Steppers, Roof Selectors & Override Handlers
      ========================================================================== */
   const sliderFloors = document.getElementById('sliderFloors');
   const sliderBasementFloors = document.getElementById('sliderBasementFloors');
@@ -6958,6 +6998,40 @@ document.addEventListener('DOMContentLoaded', () => {
   const selectStyle = document.getElementById('selectStyle');
   const selectGroundUse = document.getElementById('selectGroundUse');
   const btnResetToAutoFootprint = document.getElementById('btnResetToAutoFootprint');
+  const btnFloorsDec = document.getElementById('btnFloorsDec');
+  const btnFloorsInc = document.getElementById('btnFloorsInc');
+  const btnBasementDec = document.getElementById('btnBasementDec');
+  const btnBasementInc = document.getElementById('btnBasementInc');
+
+  const stepSlider = (slider, delta) => {
+    if (!slider) return;
+    const min = parseFloat(slider.min) !== undefined && !isNaN(parseFloat(slider.min)) ? parseFloat(slider.min) : 0;
+    const max = parseFloat(slider.max) !== undefined && !isNaN(parseFloat(slider.max)) ? parseFloat(slider.max) : 100;
+    const step = parseFloat(slider.step) || 1;
+    let cur = parseFloat(slider.value) || 0;
+    let next = Math.min(max, Math.max(min, cur + delta * step));
+    slider.value = next;
+    slider.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+
+  if (btnFloorsDec) btnFloorsDec.addEventListener('click', () => stepSlider(sliderFloors, -1));
+  if (btnFloorsInc) btnFloorsInc.addEventListener('click', () => stepSlider(sliderFloors, 1));
+  if (btnBasementDec) btnBasementDec.addEventListener('click', () => stepSlider(sliderBasementFloors, -1));
+  if (btnBasementInc) btnBasementInc.addEventListener('click', () => stepSlider(sliderBasementFloors, 1));
+
+  document.querySelectorAll('.bdim-roof-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const bldg = getSelectedBuilding();
+      if (!bldg) return;
+      const rType = btn.dataset.roof;
+      bldg.roofType = rType;
+      document.querySelectorAll('.bdim-roof-btn').forEach(b => b.classList.toggle('active', b === btn));
+      if (selectRoofType) selectRoofType.value = rType;
+      syncCurrentBuildingToActiveConcept();
+      renderAllBuildings3D();
+      updateFloating3DMetricsHud();
+    });
+  });
 
   if (sliderFloors) {
     sliderFloors.addEventListener('input', () => {
@@ -6966,7 +7040,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const val = parseInt(sliderFloors.value, 10);
       bldg.floorsAbove = val;
       bldg.floors = val;
-      document.getElementById('displayFloors').textContent = `+${val}`;
+      const dispF = document.getElementById('displayFloors');
+      if (dispF) dispF.textContent = `+${val} სართული`;
+      const dispTH = document.getElementById('displayTotalHeight');
+      if (dispTH) dispTH.textContent = `${(val * (bldg.floorHeight || 3.3)).toFixed(1)} მ`;
       if (!bldg.floorFunctions) bldg.floorFunctions = {};
       for (let f = 0; f < val; f++) {
         if (!bldg.floorFunctions[`${f}`]) {
@@ -6977,6 +7054,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderFloorMatrixUI();
       renderAllBuildings3D();
       updateComplianceUI();
+      updateFloating3DMetricsHud();
     });
   }
 
@@ -6986,7 +7064,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!bldg) return;
       const val = parseInt(sliderBasementFloors.value, 10);
       bldg.floorsBelow = val;
-      document.getElementById('displayBasementFloors').textContent = `-${val}`;
+      const dispB = document.getElementById('displayBasementFloors');
+      if (dispB) dispB.textContent = `-${val}`;
+      const dispBNum = document.getElementById('displayBasementFloorsNum');
+      if (dispBNum) dispBNum.textContent = `-${val}`;
+      const dispBD = document.getElementById('displayBasementDepth');
+      if (dispBD) dispBD.textContent = `-${(val * (bldg.floorHeight || 3.3)).toFixed(1)} მ`;
       if (!bldg.floorFunctions) bldg.floorFunctions = {};
       for (let b = 1; b <= val; b++) {
         if (!bldg.floorFunctions[`-${b}`]) {
@@ -6997,6 +7080,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderFloorMatrixUI();
       renderAllBuildings3D();
       updateComplianceUI();
+      updateFloating3DMetricsHud();
     });
   }
 
@@ -7012,13 +7096,15 @@ document.addEventListener('DOMContentLoaded', () => {
       if (drawingLayerGroup) drawingLayerGroup.clearLayers();
       const customBadge = document.getElementById('customFootprintIndicator');
       if (customBadge) customBadge.style.display = 'none';
-      document.getElementById('displayFootprint').textContent = `${val.toLocaleString()} მ²`;
+      const dispFp = document.getElementById('displayFootprint');
+      if (dispFp) dispFp.textContent = `${val.toLocaleString()} მ²`;
 
       syncCurrentBuildingToActiveConcept();
       renderFloorMatrixUI();
       renderAllBuildingsOnMap();
       renderAllBuildings3D();
       updateComplianceUI();
+      updateFloating3DMetricsHud();
     });
   }
 
@@ -7028,10 +7114,16 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!bldg) return;
       const val = parseFloat(sliderHeight.value);
       bldg.floorHeight = val;
-      document.getElementById('displayHeight').textContent = `${val} მ`;
+      const dispH = document.getElementById('displayHeight');
+      if (dispH) dispH.textContent = `${val} მ`;
+      const dispTH = document.getElementById('displayTotalHeight');
+      if (dispTH) dispTH.textContent = `${((bldg.floorsAbove || 5) * val).toFixed(1)} მ`;
+      const dispBD = document.getElementById('displayBasementDepth');
+      if (dispBD) dispBD.textContent = `-${((bldg.floorsBelow || 1) * val).toFixed(1)} მ`;
       syncCurrentBuildingToActiveConcept();
       renderAllBuildings3D();
       updateComplianceUI();
+      updateFloating3DMetricsHud();
     });
   }
 
@@ -7040,7 +7132,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const bldg = getSelectedBuilding();
       if (!bldg) return;
       bldg.rotation = parseInt(sliderRotation.value, 10);
-      document.getElementById('displayRotation').textContent = `${sliderRotation.value}°`;
+      const dispR = document.getElementById('displayRotation');
+      if (dispR) dispR.textContent = `${sliderRotation.value}°`;
       renderAllBuildingsOnMap();
       renderAllBuildings3D();
     });
@@ -7051,12 +7144,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const bldg = getSelectedBuilding();
       if (!bldg) return;
       bldg.roofType = selectRoofType.value;
+      document.querySelectorAll('.bdim-roof-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.roof === bldg.roofType);
+      });
       const slopeGroup = document.getElementById('roofSlopeDirGroup');
       if (slopeGroup) slopeGroup.style.display = bldg.roofType === 'shed' ? 'block' : 'none';
       const angleGroup = document.getElementById('roofAngleGroup');
       if (angleGroup) angleGroup.style.display = (bldg.roofType === 'shed' || bldg.roofType === 'gable' || bldg.roofType === 'mansard') ? 'block' : 'none';
       syncCurrentBuildingToActiveConcept();
       renderAllBuildings3D();
+      updateFloating3DMetricsHud();
     });
   }
 
@@ -7130,7 +7227,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnResetToAutoFootprint) {
     btnResetToAutoFootprint.addEventListener('click', () => {
-      clearDrawing();
+      const bldg = getSelectedBuilding();
+      if (!bldg || !state.activeParcel) return;
+      if (typeof clearDrawing === 'function') clearDrawing();
+      const parcel = state.activeParcel;
+      const k1 = parcel.maxK1 || 0.5;
+      const autoFp = Math.round(Math.min(parcel.area * k1 * 0.85, 3000));
+      bldg.footprintArea = autoFp;
+      bldg.footprintCoords = null;
+      state.customFootprint = null;
+      if (sliderFootprint) {
+        sliderFootprint.value = autoFp;
+      }
+      const dispFp = document.getElementById('displayFootprint');
+      if (dispFp) dispFp.textContent = `${autoFp.toLocaleString()} მ²`;
+      syncCurrentBuildingToActiveConcept();
+      renderFloorMatrixUI();
+      renderAllBuildingsOnMap();
+      renderAllBuildings3D();
+      updateComplianceUI();
+      updateFloating3DMetricsHud();
     });
   }
 
@@ -8028,6 +8144,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const is3DActive = (mode === '3d' || mode === 'combined' || mode === 'solar' || mode === 'utilities' || mode === 'unitmix' || mode === 'wind' || mode === 'tas-precedents' || mode === 'circulation');
     if (dock3DBar) dock3DBar.style.display = is3DActive ? 'flex' : 'none';
     if (!is3DActive && typeof cancel3DMeasurement === 'function') cancel3DMeasurement();
+
+    if (typeof updateFloating3DMetricsHud === 'function') {
+      updateFloating3DMetricsHud();
+    }
 
     // 3D Groups visibility
     if (sunPathGroup) sunPathGroup.visible = false;

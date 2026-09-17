@@ -63,7 +63,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 
   <!-- Site Stylesheet (Cache-busted) -->
-  <link rel="stylesheet" href="styles.css?v=20260917_09">
+  <link rel="stylesheet" href="styles.css?v=20260917_10">
 
   <script>
     (function() {
@@ -1248,133 +1248,163 @@
             </div>
           </div>
 
-          <!-- 3. Parametric Adjustments (User Overrides) -->
-          <div class="parametric-section">
-            <h3 style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); margin-bottom: 14px;" data-i18n="params_heading">
-              პარამეტრების კორექტირება
-            </h3>
-
-            <!-- Floors Slider: Plus Floors (Above Ground) -->
-            <div class="control-field-row">
-              <label for="sliderFloors" data-i18n="param_floors_above">პლიუს სართულები (მიწისზედა)</label>
-              <span class="control-val badge-floors-plus" id="displayFloors">+5</span>
-            </div>
-            <input type="range" id="sliderFloors" class="slider-custom" min="1" max="30" value="5">
-
-            <!-- Floors Slider: Minus Floors (Underground / Basement) -->
-            <div class="control-field-row">
-              <label for="sliderBasementFloors" data-i18n="param_floors_below">მინუს სართულები (მიწისქვეშა)</label>
-              <span class="control-val badge-floors-minus" id="displayBasementFloors">-1</span>
-            </div>
-            <input type="range" id="sliderBasementFloors" class="slider-custom" min="0" max="5" value="1">
-
-            <!-- Footprint Slider & Custom Draw Badge -->
-            <div class="control-field-row">
-              <label for="sliderFootprint" data-i18n="param_footprint">საძირკვლის ფართობი (Footprint)</label>
-              <span class="control-val" id="displayFootprint">450 მ²</span>
-            </div>
-            <input type="range" id="sliderFootprint" class="slider-custom" min="50" max="3000" step="10" value="450">
-            <div id="customFootprintIndicator" class="custom-footprint-badge" style="display: none;">
-              <span style="display: flex; align-items: center; gap: 6px;">
-                <i class="fa-solid fa-draw-polygon" style="color: #10b981;"></i>
-                <span>დახაზულია ხელით</span>
+          <!-- 3. Building Dimensions and Floors Card (შენობის გაბარიტები და სართულები) -->
+          <div class="bdim-card" id="buildingDimensionsCard">
+            <div class="bdim-header">
+              <span class="bdim-title">შენობის გაბარიტები და სართულები</span>
+              <span class="bdim-icon" title="გაბარიტების მართვა">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round">
+                  <line x1="4" y1="21" x2="4" y2="14"></line>
+                  <line x1="4" y1="10" x2="4" y2="3"></line>
+                  <line x1="12" y1="21" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12" y2="3"></line>
+                  <line x1="20" y1="21" x2="20" y2="16"></line>
+                  <line x1="20" y1="12" x2="20" y2="3"></line>
+                  <line x1="1" y1="14" x2="7" y2="14"></line>
+                  <line x1="9" y1="8" x2="15" y2="8"></line>
+                  <line x1="17" y1="16" x2="23" y2="16"></line>
+                </svg>
               </span>
-              <div style="display: flex; align-items: center; gap: 4px;">
+            </div>
+
+            <!-- Row 1: Above Ground Floors -->
+            <div class="bdim-row">
+              <div class="bdim-row-header">
+                <span class="bdim-label">მიწისზედა სართულები</span>
+                <span class="bdim-val bdim-val-mint" id="displayFloors">+5 სართული</span>
+              </div>
+              <div class="bdim-stepper-wrap">
+                <button type="button" class="bdim-step-btn" id="btnFloorsDec" title="სართულის შემცირება">-</button>
+                <input type="range" id="sliderFloors" class="bdim-slider bdim-slider-mint" min="1" max="40" value="5">
+                <button type="button" class="bdim-step-btn" id="btnFloorsInc" title="სართულის მომატება">+</button>
+              </div>
+            </div>
+
+            <!-- Row 2: Underground Floors (Parking) -->
+            <div class="bdim-row">
+              <div class="bdim-row-header">
+                <div class="bdim-label-group">
+                  <span class="bdim-label">მიწისქვეშა სართულები</span>
+                  <span class="bdim-sublabel">(პარკინგი)</span>
+                </div>
+                <div class="bdim-val-stacked bdim-val-amber">
+                  <span id="displayBasementFloorsNum">-1</span>
+                  <span class="bdim-subtext">მიწისქვეშა</span>
+                </div>
+              </div>
+              <div class="bdim-stepper-wrap">
+                <button type="button" class="bdim-step-btn" id="btnBasementDec" title="მიწისქვეშა სართულის შემცირება">-</button>
+                <input type="range" id="sliderBasementFloors" class="bdim-slider bdim-slider-amber" min="0" max="6" value="1">
+                <button type="button" class="bdim-step-btn" id="btnBasementInc" title="მიწისქვეშა სართულის მომატება">+</button>
+              </div>
+            </div>
+
+            <!-- Row 3: Footprint Area -->
+            <div class="bdim-row">
+              <div class="bdim-row-header">
+                <div class="bdim-label-group">
+                  <span class="bdim-label">საძირკვლის ფართობი</span>
+                  <span class="bdim-sublabel">(Footprint)</span>
+                </div>
+                <div class="bdim-val-with-action">
+                  <button type="button" class="bdim-auto-badge" id="btnResetToAutoFootprint" title="ავტომატურ ფორმაზე დაბრუნება">ავტო ↺</button>
+                  <span class="bdim-val bdim-val-cyan" id="displayFootprint">160 მ²</span>
+                </div>
+              </div>
+              <div class="bdim-slider-wrap">
+                <input type="range" id="sliderFootprint" class="bdim-slider bdim-slider-cyan" min="30" max="3000" step="5" value="160">
+              </div>
+              <div id="customFootprintIndicator" class="custom-footprint-badge" style="display: none; margin-top: 6px;">
+                <span style="display: flex; align-items: center; gap: 6px;">
+                  <i class="fa-solid fa-draw-polygon" style="color: #10b981;"></i>
+                  <span>დახაზულია ხელით</span>
+                </span>
                 <button type="button" id="btnEditFootprintQuick" class="btn-reset-footprint" title="ნახაზის კორექტირება">
                   <i class="fa-solid fa-pen"></i> კორექტირება
                 </button>
-                <button type="button" id="btnResetToAutoFootprint" class="btn-reset-footprint" title="ავტომატურ ფორმაზე დაბრუნება">ავტო ↺</button>
               </div>
             </div>
 
-            <!-- Floor Height & Total Height Readout -->
-            <div class="control-field-row">
-              <label for="sliderHeight" data-i18n="param_height">სართულის სიმაღლე</label>
-              <span class="control-val" id="displayHeight">3.3 მ</span>
-            </div>
-            <input type="range" id="sliderHeight" class="slider-custom" min="2.8" max="4.5" step="0.1" value="3.3">
-
-            <div class="height-depth-readout">
-              <div class="readout-item">
-                <span class="readout-label" data-i18n="param_total_height">ჯამური სიმაღლე:</span>
-                <strong id="displayTotalHeight" style="color: var(--cyan-neon);">16.5 მ</strong>
+            <!-- Row 4: Floor Height -->
+            <div class="bdim-row">
+              <div class="bdim-row-header">
+                <span class="bdim-label">სართულის სიმაღლე</span>
+                <span class="bdim-val bdim-val-white" id="displayHeight">3.3 მ</span>
               </div>
-              <div class="readout-item">
-                <span class="readout-label" data-i18n="param_basement_depth">მიწისქვეშა სიღრმე:</span>
-                <strong id="displayBasementDepth" style="color: var(--text-secondary);">-3.3 მ</strong>
+              <div class="bdim-slider-wrap">
+                <input type="range" id="sliderHeight" class="bdim-slider bdim-slider-white" min="2.8" max="4.5" step="0.1" value="3.3">
               </div>
             </div>
 
-            <!-- Floor Function & Zoning Color Matrix -->
-            <div class="floor-matrix-block" id="floorMatrixBlock">
-              <div class="floor-matrix-header">
-                <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
-                  <i class="fa-solid fa-layer-group" style="color: var(--cyan-neon);"></i>
-                  <span data-i18n="bldg_floor_functions">სართულების ფუნქციები და ფერები</span>
-                </span>
-                <span id="floorCountBadge" class="floor-count-pill">5 სართული</span>
+            <!-- Row 5: Building Rotation on Parcel -->
+            <div class="bdim-row">
+              <div class="bdim-row-header">
+                <span class="bdim-label">შენობის როტაცია ნაკვეთზე</span>
+                <span class="bdim-val bdim-val-white" id="displayRotation">12°</span>
               </div>
-
-              <!-- Quick presets for functions -->
-              <div class="floor-presets-row">
-                <button type="button" class="btn-floor-preset" data-preset="comm_res" data-i18n="preset_comm_res">კომერციული + საცხოვრებელი</button>
-                <button type="button" class="btn-floor-preset" data-preset="all_res" data-i18n="preset_all_res">ყველა საცხოვრებელი</button>
-                <button type="button" class="btn-floor-preset" data-preset="all_off" data-i18n="preset_all_off">საოფისე</button>
-              </div>
-
-              <!-- Dynamic Vertical Floor Stack Matrix -->
-              <div class="floor-matrix-stack" id="floorMatrixStack">
-                <!-- Generated dynamically for selected building -->
+              <div class="bdim-slider-wrap">
+                <input type="range" id="sliderRotation" class="bdim-slider bdim-slider-white" min="0" max="360" step="1" value="12">
               </div>
             </div>
 
-            <!-- Building Rotation on Site -->
-            <div class="control-field-row">
-              <label for="sliderRotation" data-i18n="param_rotation">როტაცია ნაკვეთზე</label>
-              <span class="control-val" id="displayRotation">0°</span>
-            </div>
-            <input type="range" id="sliderRotation" class="slider-custom" min="0" max="360" step="5" value="0">
-
-            <!-- Roof Architecture & Geometry (გადახურვის ტიპი) -->
-            <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-line);">
-              <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
-                <i class="fa-solid fa-shapes" style="color: var(--cyan-neon);"></i>
-                <span data-i18n="param_roof_heading">გადახურვის არქიტექტურა</span>
+            <!-- Row 6: Roof Type -->
+            <div class="bdim-row" style="margin-bottom: 0;">
+              <div class="bdim-row-header" style="margin-bottom: 8px;">
+                <span class="bdim-label">გადახურვის ტიპი</span>
               </div>
-
-              <!-- Roof Design Type -->
-              <label for="selectRoofType" style="display: block; font-size: 0.76rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;" data-i18n="param_roof_type">
-                გადახურვის ტიპი
-              </label>
-              <select class="select-compact" id="selectRoofType">
-                <option value="flat" data-i18n="roof_type_flat">ბრტყელი სახურავი (ტერასა / პარაპეტი)</option>
-                <option value="shed" data-i18n="roof_type_shed">ცალქანობიანი (დახრილი)</option>
-                <option value="gable" data-i18n="roof_type_gable">ორქანობიანი (კლასიკური ქედით)</option>
-                <option value="mansard" data-i18n="roof_type_mansard">მანსარდა (ჰიპური გადახურვა)</option>
+              <div class="bdim-roof-segmented" role="radiogroup">
+                <button type="button" class="bdim-roof-btn active" data-roof="flat" id="bdimRoofFlat">
+                  ბრტყელი<br>ტერასა
+                </button>
+                <button type="button" class="bdim-roof-btn" data-roof="gable" id="bdimRoofGable">
+                  ორქანობიანი
+                </button>
+                <button type="button" class="bdim-roof-btn" data-roof="green_roof" id="bdimRoofGreen">
+                  მწვანე<br>ექსპლუატირებადი
+                </button>
+              </div>
+              <select class="select-compact" id="selectRoofType" style="display: none;">
+                <option value="flat" selected>ბრტყელი სახურავი (ტერასა / პარაპეტი)</option>
+                <option value="gable">ორქანობიანი (კლასიკური ქედით)</option>
+                <option value="green_roof">მწვანე ექსპლუატირებადი სახურავი</option>
               </select>
-
-              <!-- Roof Slope Direction (Conditional for shed) -->
-              <div id="roofSlopeDirGroup" style="display: none; margin-top: 8px;">
-                <label for="selectRoofSlopeDir" style="display: block; font-size: 0.76rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;" data-i18n="param_roof_slope_dir">
-                  დახრის მიმართულება
-                </label>
-                <select class="select-compact" id="selectRoofSlopeDir">
-                  <option value="south" data-i18n="roof_dir_south">სამხრეთი (მზისკენ)</option>
-                  <option value="north" data-i18n="roof_dir_north">ჩრდილოეთი</option>
-                  <option value="east" data-i18n="roof_dir_east">აღმოსავლეთი</option>
-                  <option value="west" data-i18n="roof_dir_west">დასავლეთი</option>
-                </select>
-              </div>
-
-              <!-- Roof Angle Slider -->
-              <div id="roofAngleGroup" style="display: none; margin-top: 8px;">
-                <div class="control-field-row">
-                  <label for="sliderRoofAngle" data-i18n="param_roof_angle">ქანობის კუთხე</label>
-                  <span class="control-val" id="displayRoofAngle">15°</span>
-                </div>
-                <input type="range" id="sliderRoofAngle" class="slider-custom" min="5" max="45" step="1" value="15">
-              </div>
             </div>
+          </div>
+
+          <!-- Total Height & Depth Summary Readout -->
+          <div class="height-depth-readout" style="margin-bottom: 14px;">
+            <div class="readout-item">
+              <span class="readout-label" data-i18n="param_total_height">ჯამური სიმაღლე:</span>
+              <strong id="displayTotalHeight" style="color: var(--cyan-neon);">16.5 მ</strong>
+            </div>
+            <div class="readout-item">
+              <span class="readout-label" data-i18n="param_basement_depth">მიწისქვეშა სიღრმე:</span>
+              <strong id="displayBasementDepth" style="color: var(--text-secondary);">-3.3 მ</strong>
+            </div>
+          </div>
+
+          <!-- Floor Function & Zoning Color Matrix -->
+          <div class="floor-matrix-block" id="floorMatrixBlock">
+            <div class="floor-matrix-header">
+              <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-layer-group" style="color: var(--cyan-neon);"></i>
+                <span data-i18n="bldg_floor_functions">სართულების ფუნქციები და ფერები</span>
+              </span>
+              <span id="floorCountBadge" class="floor-count-pill">5 სართული</span>
+            </div>
+
+            <!-- Quick presets for functions -->
+            <div class="floor-presets-row">
+              <button type="button" class="btn-floor-preset" data-preset="comm_res" data-i18n="preset_comm_res">კომერციული + საცხოვრებელი</button>
+              <button type="button" class="btn-floor-preset" data-preset="all_res" data-i18n="preset_all_res">ყველა საცხოვრებელი</button>
+              <button type="button" class="btn-floor-preset" data-preset="all_off" data-i18n="preset_all_off">საოფისე</button>
+            </div>
+
+            <!-- Dynamic Vertical Floor Stack Matrix -->
+            <div class="floor-matrix-stack" id="floorMatrixStack">
+              <!-- Generated dynamically for selected building -->
+            </div>
+          </div>
 
             <!-- Building Visual & Facade Customizer (ვიზუალური მხარე) -->
             <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-line);">
@@ -1821,6 +1851,24 @@
             <i class="fa-solid fa-ruler-combined"></i>
             <span id="dockMeasureHudText">დააკლიკეთ 3D მოდელზე პირველ წერტილს</span>
             <button type="button" id="dockBtnMeasureClear" class="dock-measure-hud-close" title="გაზომვის გაუქმება (Esc)">✕</button>
+          </div>
+
+          <!-- Floating 3D Building Metrics Pill HUD (Height, Floors, Footprint) -->
+          <div id="floating3DMetricsHud" class="floating-3d-metrics-hud" style="display: none;">
+            <div class="f3d-metric-col">
+              <span class="f3d-metric-label">H</span>
+              <span class="f3d-metric-val f3d-val-white" id="f3dValHeight">16.50</span>
+            </div>
+            <div class="f3d-divider"></div>
+            <div class="f3d-metric-col">
+              <span class="f3d-metric-label">სართ.</span>
+              <span class="f3d-metric-val f3d-val-cyan" id="f3dValFloors">+5</span>
+            </div>
+            <div class="f3d-divider"></div>
+            <div class="f3d-metric-col">
+              <span class="f3d-metric-label">საძირკვ.</span>
+              <span class="f3d-metric-val f3d-val-green" id="f3dValFootprint">190მ²</span>
+            </div>
           </div>
 
           <!-- 3D Three.js WebGL Canvas Container -->
@@ -3932,8 +3980,8 @@
   <script src="assets/fonts/georgian-font-data.js"></script>
 
   <!-- 6. Platform Scripts -->
-  <script src="translations.js?v=20260917_09"></script>
-  <script src="main.js?v=20260917_09"></script>
-  <script src="parcel-ai.js?v=20260917_09"></script>
+  <script src="translations.js?v=20260917_10"></script>
+  <script src="main.js?v=20260917_10"></script>
+  <script src="parcel-ai.js?v=20260917_10"></script>
 </body>
 </html>

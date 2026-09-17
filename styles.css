@@ -3707,6 +3707,469 @@ html.light .dock-measure-hud,
   }
 }
 
+/* ==========================================================================
+   Building Dimensions & Floors Card (Image 2 Replica)
+   ========================================================================== */
+.bdim-card {
+  background: rgba(14, 18, 26, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 16px 18px 18px;
+  margin-bottom: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  user-select: none;
+}
+
+html.light .bdim-card,
+[data-theme="light"] .bdim-card {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(15, 23, 42, 0.1);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+}
+
+.bdim-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+html.light .bdim-header,
+[data-theme="light"] .bdim-header {
+  border-bottom-color: rgba(15, 23, 42, 0.06);
+}
+
+.bdim-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+html.light .bdim-title,
+[data-theme="light"] .bdim-title {
+  color: #0f172a;
+}
+
+.bdim-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #38bdf8;
+}
+
+.bdim-row {
+  margin-bottom: 18px;
+}
+
+.bdim-row-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.bdim-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+html.light .bdim-label,
+[data-theme="light"] .bdim-label {
+  color: #334155;
+}
+
+.bdim-label-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.bdim-sublabel {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  margin-top: 1px;
+}
+
+html.light .bdim-sublabel,
+[data-theme="light"] .bdim-sublabel {
+  color: #64748b;
+}
+
+.bdim-val {
+  font-family: 'JetBrains Mono', monospace, sans-serif;
+  font-weight: 800;
+  font-size: 1.08rem;
+  line-height: 1;
+}
+
+.bdim-val-mint {
+  color: #10b981;
+}
+
+.bdim-val-stacked {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.1;
+}
+
+.bdim-val-amber {
+  color: #f59e0b;
+}
+
+.bdim-val-stacked span:first-child {
+  font-family: 'JetBrains Mono', monospace, sans-serif;
+  font-weight: 800;
+  font-size: 1.15rem;
+}
+
+.bdim-subtext {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #f59e0b;
+}
+
+.bdim-val-with-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bdim-auto-badge {
+  background: rgba(5, 150, 105, 0.2);
+  border: 1px solid #10b981;
+  color: #34d399;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.bdim-auto-badge:hover {
+  background: rgba(5, 150, 105, 0.35);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+}
+
+.bdim-val-cyan {
+  color: #00f0ff;
+}
+
+html.light .bdim-val-cyan,
+[data-theme="light"] .bdim-val-cyan {
+  color: #0284c7;
+}
+
+.bdim-val-white {
+  color: #ffffff;
+}
+
+html.light .bdim-val-white,
+[data-theme="light"] .bdim-val-white {
+  color: #0f172a;
+}
+
+/* Stepper & Sliders */
+.bdim-stepper-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bdim-step-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  font-size: 1.15rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  padding: 0;
+  line-height: 1;
+}
+
+.bdim-step-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.bdim-step-btn:active {
+  transform: scale(0.95);
+}
+
+html.light .bdim-step-btn,
+[data-theme="light"] .bdim-step-btn {
+  background: rgba(15, 23, 42, 0.05);
+  border-color: rgba(15, 23, 42, 0.15);
+  color: #0f172a;
+}
+
+html.light .bdim-step-btn:hover,
+[data-theme="light"] .bdim-step-btn:hover {
+  background: rgba(15, 23, 42, 0.1);
+}
+
+.bdim-slider-wrap {
+  width: 100%;
+}
+
+.bdim-slider {
+  width: 100%;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+  margin: 0;
+}
+
+html.light .bdim-slider,
+[data-theme="light"] .bdim-slider {
+  background: rgba(15, 23, 42, 0.15);
+}
+
+/* Thumbs */
+.bdim-slider-mint::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #10b981;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 10px #10b981;
+  cursor: pointer;
+}
+
+.bdim-slider-mint::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #10b981;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 10px #10b981;
+  cursor: pointer;
+}
+
+.bdim-slider-amber::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f59e0b;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 10px #f59e0b;
+  cursor: pointer;
+}
+
+.bdim-slider-amber::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f59e0b;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 10px #f59e0b;
+  cursor: pointer;
+}
+
+.bdim-slider-cyan::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #00f0ff;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 10px #00f0ff;
+  cursor: pointer;
+}
+
+.bdim-slider-cyan::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #00f0ff;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 10px #00f0ff;
+  cursor: pointer;
+}
+
+.bdim-slider-white::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #0f172a;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+}
+
+.bdim-slider-white::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #0f172a;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+}
+
+/* Roof Segmented Buttons */
+.bdim-roof-segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.bdim-roof-btn {
+  padding: 8px 4px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  line-height: 1.3;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+}
+
+.bdim-roof-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.bdim-roof-btn.active {
+  background: #ffffff !important;
+  color: #090e17 !important;
+  font-weight: 700 !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.3) !important;
+}
+
+html.light .bdim-roof-btn,
+[data-theme="light"] .bdim-roof-btn {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.1);
+  color: #475569;
+}
+
+html.light .bdim-roof-btn:hover,
+[data-theme="light"] .bdim-roof-btn:hover {
+  background: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+}
+
+html.light .bdim-roof-btn.active,
+[data-theme="light"] .bdim-roof-btn.active {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #0f172a !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25) !important;
+}
+
+/* Floating 3D Building Metrics Pill HUD */
+.floating-3d-metrics-hud {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  z-index: 42;
+  display: none;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 18px;
+  background: rgba(8, 12, 20, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  box-shadow: 0 10px 28px -4px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  pointer-events: auto;
+  user-select: none;
+}
+
+html.light .floating-3d-metrics-hud,
+[data-theme="light"] .floating-3d-metrics-hud {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.12);
+}
+
+.f3d-metric-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+}
+
+.f3d-metric-label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #94a3b8;
+  margin-bottom: 2px;
+  letter-spacing: -0.01em;
+}
+
+.f3d-metric-val {
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace, sans-serif;
+  line-height: 1.2;
+}
+
+.f3d-val-white {
+  color: #ffffff;
+}
+
+html.light .f3d-val-white,
+[data-theme="light"] .f3d-val-white {
+  color: #0f172a;
+}
+
+.f3d-val-cyan {
+  color: #00f0ff;
+}
+
+html.light .f3d-val-cyan,
+[data-theme="light"] .f3d-val-cyan {
+  color: #0284c7;
+}
+
+.f3d-val-green {
+  color: #10b981;
+}
+
+.f3d-divider {
+  width: 1px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+html.light .f3d-divider,
+[data-theme="light"] .f3d-divider {
+  background: rgba(15, 23, 42, 0.14);
+}
+
 /* Architectural Map Theme Switcher Bar */
 .map-theme-switcher-bar {
   position: absolute;
