@@ -354,22 +354,15 @@ img {
 }
 
 .brand-logo-img {
-  height: 34px;
+  height: 36px;
   width: auto;
   object-fit: contain;
   transition: transform 0.25s var(--ease-spring);
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.8));
 }
 
 .brand-logo-link:hover .brand-logo-img {
   transform: scale(1.05);
-}
-
-[data-theme="dark"] .brand-logo-img {
-  filter: brightness(0) invert(1) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.8));
-}
-
-[data-theme="light"] .brand-logo-img {
-  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.22));
 }
 
 /* Desktop Menu Links - Minimal Air Glass Pill Dock */
@@ -1544,6 +1537,191 @@ img {
 /* ==========================================================================
    Footer
    ========================================================================== */
+/* ==========================================================================
+   Mobile Drawer Menu Glass
+   ========================================================================== */
+.mobile-nav-drawer-glass {
+  position: fixed;
+  top: var(--nav-height, 80px);
+  left: 0;
+  width: 100%;
+  background: rgba(6, 8, 13, 0.96);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 999;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+  transition: all 0.25s ease;
+}
+
+.mobile-nav-drawer-glass.hidden {
+  display: none;
+}
+
+.mobile-nav-drawer-glass .drawer-link {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #c4c7cb;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.mobile-nav-drawer-glass .drawer-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.mobile-nav-drawer-glass .drawer-link.active {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Footer - Minimal Air Glass 5-Col System (Matching architect2.ge)
+   ========================================================================== */
+.footer-unified-glass {
+  width: 100%;
+  background: rgba(6, 8, 13, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
+  padding: 60px 0 30px;
+  margin-top: 60px;
+  color: #c4c7cb;
+}
+
+.footer-grid-5col {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 40px;
+  padding-bottom: 40px;
+}
+
+@media (max-width: 992px) {
+  .footer-grid-5col {
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+  }
+}
+
+@media (max-width: 640px) {
+  .footer-grid-5col {
+    grid-template-columns: 1fr;
+    gap: 25px;
+  }
+}
+
+.footer-brand-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.footer-brand-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer-brand-title img {
+  height: 28px;
+  width: auto;
+}
+
+.footer-desc-text {
+  font-size: 0.88rem;
+  color: #9ba3ae;
+  line-height: 1.6;
+  max-width: 400px;
+}
+
+.footer-badge-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.footer-cert-badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(16, 21, 32, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #a1cced;
+  letter-spacing: 0.04em;
+}
+
+.footer-nav-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.footer-col-header {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8e9195;
+  margin-bottom: 4px;
+}
+
+.footer-nav-link {
+  font-size: 0.88rem;
+  color: #9ba3ae;
+  text-decoration: none;
+  transition: color 0.2s ease, transform 0.2s ease;
+  display: inline-block;
+  width: fit-content;
+}
+
+.footer-nav-link:hover {
+  color: #ffffff;
+  transform: translateX(2px);
+}
+
+.footer-bottom-telemetry {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: #8e9195;
+}
+
+.telemetry-status-tag {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.telemetry-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #a1cced;
+  box-shadow: 0 0 8px #a1cced;
+  display: inline-block;
+  animation: hud-pulse 2s infinite ease-in-out;
+}
+
 .footer-widescreen {
   padding: 80px 0 40px;
   background: var(--bg-main);

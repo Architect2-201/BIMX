@@ -1108,7 +1108,7 @@
   <header class="header" id="mainHeader">
     <div class="container-fluid nav-layout">
       <a href="index.html" class="brand-logo-link" id="brandLogo" aria-label="BIMX Studio Home">
-        <img src="assets/images/logo.png" alt="BIMX Studio" class="brand-logo-img">
+        <img src="https://lh3.googleusercontent.com/aida/AEtjO1UlQpLmx3hxMLrFft0DZd9fgb_zM6MGcwAutdadGpF3vMTF4O9GXDKcqZFAVeWvxpupLDWhlmcsfzZ8xQ-LKZA1eWrX7BjUUmZ5P4TrA46ZJZL1ssPJOH6MwiSt9bTS-cIkJ4KM3Dr0Ud_lWy8u_MzNfOtA8cmvY3p-1AsglJo9lqy0tHHJ9FLTfRuVYVxllZV2iAOkS9Ssf4ZgqY6NcqnZt1FWKN8IPZE_lhjE5AVg8jkyrltPVLM-aLh_ElX224se7IL1ZAbLuqI" alt="BIMX Studio" class="brand-logo-img">
       </a>
 
       <!-- Desktop Nav Links -->
@@ -1128,9 +1128,18 @@
 
       <!-- Actions Group -->
       <div class="nav-actions-group">
-        <button type="button" class="btn-primary" onclick="window.print()" style="font-size: 0.8rem; padding: 8px 16px;">
-          <i class="fa-solid fa-print"></i> ბეჭდვა / PDF
+        <!-- Language Switcher -->
+        <div class="lang-switch-box">
+          <button type="button" class="lang-btn active" data-lang="ka">KA</button>
+          <span style="color: var(--text-muted); opacity: 0.4;">/</span>
+          <button type="button" class="lang-btn" data-lang="en">EN</button>
+        </div>
+
+        <button type="button" class="btn-pill btn-pill-outline" onclick="window.print()" style="font-size: 0.8rem; padding: 7px 14px;">
+          <i class="fa-solid fa-print"></i> PDF
         </button>
+
+        <a href="index.html#contact" class="btn-pill btn-pill-primary header-cta-btn" data-i18n="nav_cta">კონსულტაცია</a>
 
         <!-- Mobile Hamburger -->
         <button class="mobile-hamburger" id="mobileHamburger" aria-label="Toggle mobile menu">
@@ -1141,6 +1150,19 @@
       </div>
     </div>
   </header>
+
+  <!-- Mobile Drawer Menu -->
+  <div id="mobileNavDrawer" class="mobile-nav-drawer-glass hidden">
+    <a class="drawer-link" href="index.html">მთავარი</a>
+    <a class="drawer-link" href="index.html#services">სერვისები</a>
+    <a class="drawer-link" href="apps.html">აპლიკაციები</a>
+    <a class="drawer-link" href="plugins.html">პლაგინები</a>
+    <a class="drawer-link active" href="land-intelligence.html" style="color: var(--cyan-neon);">GIS ანალიზი</a>
+    <a class="drawer-link" href="parcel-ai.html" style="color: #60a5fa;">AI ანალიზი (საკადასტრო)</a>
+    <a class="drawer-link" href="index.html#projects">პროექტები</a>
+    <a class="drawer-link" href="index.html#calculator">კალკულატორი</a>
+    <a class="drawer-link" href="index.html#contact">კონტაქტი</a>
+  </div>
 
   <!-- ==========================================================================
        Main Land Intelligence Page

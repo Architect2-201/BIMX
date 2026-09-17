@@ -754,6 +754,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loadCustomItems();
 
+  // Mobile Hamburger Toggle
+  const mobileHamburger = document.getElementById('mobileHamburger');
+  const mobileNavDrawer = document.getElementById('mobileNavDrawer');
+  if (mobileHamburger && mobileNavDrawer) {
+    mobileHamburger.addEventListener('click', () => {
+      mobileNavDrawer.classList.toggle('hidden');
+      mobileHamburger.classList.toggle('active');
+    });
+  }
+
   // Initialize
   applyLanguage(currentLang);
   updateCalculator();
