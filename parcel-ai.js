@@ -389,7 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let buildingGroup, groundGroup, urbanGroup, terrainGroup, sunPathGroup, roadGroup, solarHeatmapGroup;
   let utility3DGroup, unitMix3DGroup, wind3DGroup, windParticles, windHeatmapMesh, windProbeMarker;
   let viewshed3DGroup, mapRadiusCircles = [], mapPoiMarkers = [];
-  let tasPrecedents3DGroup, circulation3DGroup;
+  let tasPrecedents3DGroup, circulation3DGroup, measureGroup;
   let sunLight, ambientLight, fillLight;
 
   function initThree() {
@@ -526,6 +526,8 @@ document.addEventListener('DOMContentLoaded', () => {
     scene.add(viewshed3DGroup);
     scene.add(tasPrecedents3DGroup);
     scene.add(circulation3DGroup);
+    measureGroup = new THREE.Group();
+    scene.add(measureGroup);
 
     // Initialize SunCalc position & controls
     updateSolarLighting();
@@ -8021,6 +8023,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tasControlPanel) tasControlPanel.style.display = 'none';
     if (circulationControlPanel) circulationControlPanel.style.display = 'none';
 
+    // Floating 3D Navigation & CAD Tools Dock Bar visibility
+    const dock3DBar = document.getElementById('dock3DViewportBar');
+    const is3DActive = (mode === '3d' || mode === 'combined' || mode === 'solar' || mode === 'utilities' || mode === 'unitmix' || mode === 'wind' || mode === 'tas-precedents' || mode === 'circulation');
+    if (dock3DBar) dock3DBar.style.display = is3DActive ? 'flex' : 'none';
+    if (!is3DActive && typeof cancel3DMeasurement === 'function') cancel3DMeasurement();
+
     // 3D Groups visibility
     if (sunPathGroup) sunPathGroup.visible = false;
     if (solarHeatmapGroup) solarHeatmapGroup.visible = false;
@@ -14572,11 +14580,484 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
+     14. Floating 3D Navigation & CAD Tools Dock Bar Controller
+     ========================================================================== */
+  let activeCameraTween = null;
+  let is3DMeasurementActive = false;
+  let measurePoints = [];
+  let measureLineMesh = null;
+  let measureMarkerMeshA = null;
+  let measureMarkerMeshB = null;
+  let measureLabelSprite = null;
+  let measureTempLineMesh = null;
+
+  function init3DDockBar() {
+    // 1. Left & Right Sidebar Toggles
+    const btnToggleLeft = document.getElementById('dockBtnToggleLeftPanel');
+    const btnToggleRight = document.getElementById('dockBtnToggleRightPanel');
+    const workspaceGrid = document.getElementById('gisWorkspaceGrid');
+
+    if (btnToggleLeft && workspaceGrid) {
+      btnToggleLeft.addEventListener('click', () => {
+        const isCollapsed = workspaceGrid.classList.toggle('left-collapsed');
+        btnToggleLeft.classList.toggle('active', isCollapsed);
+        btnToggleLeft.title = isCollapsed ? 'მარცხენა პანელის გამოჩენა' : 'მარცხენა პანელის დამალვა';
+        setTimeout(() => {
+          if (typeof onWindowResize === 'function') onWindowResize();
+        }, 320);
+      });
+    }
+
+    if (btnToggleRight && workspaceGrid) {
+      btnToggleRight.addEventListener('click', () => {
+        const isCollapsed = workspaceGrid.classList.toggle('right-collapsed');
+        btnToggleRight.classList.toggle('active', isCollapsed);
+        btnToggleRight.title = isCollapsed ? 'მარჯვენა პანელის გამოჩენა' : 'მარჯვენა პანელის დამალვა';
+        setTimeout(() => {
+          if (typeof onWindowResize === 'function') onWindowResize();
+        }, 320);
+      });
+    }
+
+    // 2. Camera View Selection Buttons
+    const viewButtons = document.querySelectorAll('.dock-tab-btn');
+    viewButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const view = btn.dataset.view;
+        viewButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        switch3DCameraView(view);
+      });
+    });
+
+    // 3. CAD Wireframe Toggle
+    const btnWireframe = document.getElementById('dockBtnWireframe');
+    if (btnWireframe) {
+      btnWireframe.addEventListener('click', () => {
+        state.isCadWireframe = !state.isCadWireframe;
+        btnWireframe.classList.toggle('active', state.isCadWireframe);
+        applyCadWireframe(state.isCadWireframe);
+      });
+    }
+
+    // 4. 3D Measurement Tool
+    const btnMeasure = document.getElementById('dockBtnMeasure');
+    const btnMeasureClear = document.getElementById('dockBtnMeasureClear');
+    if (btnMeasure) {
+      btnMeasure.addEventListener('click', () => {
+        toggle3DMeasurementTool();
+      });
+    }
+    if (btnMeasureClear) {
+      btnMeasureClear.addEventListener('click', () => {
+        cancel3DMeasurement();
+      });
+    }
+
+    // 5. Reset Camera Position
+    const btnResetCam = document.getElementById('dockBtnResetCam');
+    if (btnResetCam) {
+      btnResetCam.addEventListener('click', () => {
+        reset3DCamera();
+      });
+    }
+
+    // 6. Fullscreen Toggle
+    const btnFullscreen = document.getElementById('dockBtnFullscreen');
+    if (btnFullscreen) {
+      btnFullscreen.addEventListener('click', () => {
+        toggle3DFullscreen();
+      });
+    }
+
+    // Escape Key Listener: Cancels active measurement tool
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (is3DMeasurementActive) {
+          cancel3DMeasurement();
+        }
+      }
+    });
+
+    if (scene && !measureGroup) {
+      measureGroup = new THREE.Group();
+      scene.add(measureGroup);
+    }
+  }
+
+  // Camera Smooth Tween (Interpolates Camera Position and Controls Target)
+  function animateCameraTo(targetPos, targetLookAt, duration = 750) {
+    if (!camera || !controls) return;
+    if (activeCameraTween) {
+      cancelAnimationFrame(activeCameraTween);
+      activeCameraTween = null;
+    }
+
+    const startPos = camera.position.clone();
+    const startTarget = controls.target.clone();
+    const startTime = performance.now();
+
+    function step(now) {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // easeInOutCubic
+      const t = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+      camera.position.lerpVectors(startPos, targetPos, t);
+      controls.target.lerpVectors(startTarget, targetLookAt, t);
+      controls.update();
+
+      if (progress < 1) {
+        activeCameraTween = requestAnimationFrame(step);
+      } else {
+        activeCameraTween = null;
+      }
+    }
+    activeCameraTween = requestAnimationFrame(step);
+  }
+
+  // Camera View Presets
+  function switch3DCameraView(view) {
+    if (!camera || !controls) return;
+
+    let center = controls.target ? controls.target.clone() : new THREE.Vector3(0, 8, 0);
+    if (isNaN(center.y) || center.y < 0) center.y = 8;
+
+    let targetCam = new THREE.Vector3();
+    let targetLook = center.clone();
+
+    if (view === 'isometric') {
+      targetCam.set(center.x + 65, center.y + 55, center.z + 80);
+      targetLook.copy(center);
+    } else if (view === 'zenith') {
+      targetCam.set(center.x, center.y + 130, center.z + 0.001);
+      targetLook.copy(center);
+    } else if (view === 'facade') {
+      targetCam.set(center.x, center.y + 12, center.z + 85);
+      targetLook.set(center.x, center.y + 12, center.z);
+    } else if (view === 'human_eye') {
+      targetCam.set(center.x - 22, 1.75, center.z + 28);
+      targetLook.set(center.x, 7, center.z);
+    }
+
+    animateCameraTo(targetCam, targetLook, 750);
+  }
+
+  // Reset Camera to Initial Isometric View
+  function reset3DCamera() {
+    const defaultCenter = new THREE.Vector3(0, 8, 0);
+    const defaultPos = new THREE.Vector3(65, 55, 80);
+    animateCameraTo(defaultPos, defaultCenter, 800);
+
+    const viewButtons = document.querySelectorAll('.dock-tab-btn');
+    viewButtons.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.view === 'isometric');
+    });
+  }
+
+  // CAD Wireframe Mode
+  function applyCadWireframe(enabled) {
+    function setWireframeRecursive(obj) {
+      if (!obj) return;
+      obj.traverse(child => {
+        if (child.isMesh && child.material) {
+          if (Array.isArray(child.material)) {
+            child.material.forEach(m => {
+              if (m.userData.origWireframe === undefined) {
+                m.userData.origWireframe = !!m.wireframe;
+              }
+              m.wireframe = enabled ? true : (m.userData.origWireframe || false);
+            });
+          } else {
+            if (child.material.userData.origWireframe === undefined) {
+              child.material.userData.origWireframe = !!child.material.wireframe;
+            }
+            child.material.wireframe = enabled ? true : (child.material.userData.origWireframe || false);
+          }
+        }
+      });
+    }
+
+    if (buildingGroup) setWireframeRecursive(buildingGroup);
+    if (urbanGroup) setWireframeRecursive(urbanGroup);
+  }
+
+  // Fullscreen Viewport Mode
+  function toggle3DFullscreen() {
+    const stage = document.getElementById('viewportStage');
+    const btn = document.getElementById('dockBtnFullscreen');
+    if (!stage) return;
+
+    if (!document.fullscreenElement) {
+      if (stage.requestFullscreen) {
+        stage.requestFullscreen().catch(() => {
+          stage.classList.toggle('is-viewport-fullscreen');
+        });
+      } else {
+        stage.classList.toggle('is-viewport-fullscreen');
+      }
+      if (btn) {
+        btn.innerHTML = '<i class="fa-solid fa-compress"></i>';
+        btn.title = 'ეკრანის შემცირება';
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+      stage.classList.remove('is-viewport-fullscreen');
+      if (btn) {
+        btn.innerHTML = '<i class="fa-solid fa-up-right-and-down-left-from-center"></i>';
+        btn.title = 'მთელ ეკრანზე გაშლა';
+      }
+    }
+
+    setTimeout(() => {
+      if (typeof onWindowResize === 'function') onWindowResize();
+    }, 200);
+  }
+
+  document.addEventListener('fullscreenchange', () => {
+    const btn = document.getElementById('dockBtnFullscreen');
+    const isFull = !!document.fullscreenElement;
+    if (btn) {
+      btn.innerHTML = isFull ? '<i class="fa-solid fa-compress"></i>' : '<i class="fa-solid fa-up-right-and-down-left-from-center"></i>';
+      btn.title = isFull ? 'ეკრანის შემცირება' : 'მთელ ეკრანზე გაშლა';
+    }
+    setTimeout(() => {
+      if (typeof onWindowResize === 'function') onWindowResize();
+    }, 200);
+  });
+
+  // Interactive 3D Measurement Ruler Tool
+  function toggle3DMeasurementTool() {
+    is3DMeasurementActive = !is3DMeasurementActive;
+    const btnMeasure = document.getElementById('dockBtnMeasure');
+    const hud = document.getElementById('dockMeasureHud');
+    const hudText = document.getElementById('dockMeasureHudText');
+
+    if (btnMeasure) btnMeasure.classList.toggle('active', is3DMeasurementActive);
+    if (hud) hud.style.display = is3DMeasurementActive ? 'flex' : 'none';
+
+    if (renderer && renderer.domElement) {
+      renderer.domElement.style.cursor = is3DMeasurementActive ? 'crosshair' : 'default';
+    }
+
+    if (is3DMeasurementActive) {
+      measurePoints = [];
+      clearMeasurementGraphics();
+      if (hudText) hudText.textContent = 'დააკლიკეთ 3D მოდელზე პირველ წერტილს';
+      attachMeasurementEvents();
+    } else {
+      cancel3DMeasurement();
+    }
+  }
+
+  function cancel3DMeasurement() {
+    is3DMeasurementActive = false;
+    const btnMeasure = document.getElementById('dockBtnMeasure');
+    const hud = document.getElementById('dockMeasureHud');
+    if (btnMeasure) btnMeasure.classList.remove('active');
+    if (hud) hud.style.display = 'none';
+
+    if (renderer && renderer.domElement) {
+      renderer.domElement.style.cursor = 'default';
+    }
+
+    measurePoints = [];
+    clearMeasurementGraphics();
+    detachMeasurementEvents();
+  }
+
+  function clearMeasurementGraphics() {
+    if (!measureGroup) return;
+    while (measureGroup.children.length > 0) {
+      const obj = measureGroup.children[0];
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) {
+        if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+        else obj.material.dispose();
+      }
+      measureGroup.remove(obj);
+    }
+    measureLineMesh = null;
+    measureMarkerMeshA = null;
+    measureMarkerMeshB = null;
+    measureLabelSprite = null;
+    measureTempLineMesh = null;
+  }
+
+  // 3D Canvas Billboard Sprite for Dimension Label
+  function createMeasurementTextSprite(text) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 72;
+    const ctx = canvas.getContext('2d');
+
+    // Rounded pill background
+    ctx.fillStyle = 'rgba(6, 11, 20, 0.9)';
+    ctx.strokeStyle = '#10b981';
+    ctx.lineWidth = 4;
+    const r = 16, w = 248, h = 64, x = 4, y = 4;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Dimension Text
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 26px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 128, 36);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.minFilter = THREE.LinearFilter;
+    const spriteMat = new THREE.SpriteMaterial({ map: texture, depthTest: false });
+    const sprite = new THREE.Sprite(spriteMat);
+    sprite.scale.set(7, 2, 1);
+    return sprite;
+  }
+
+  let measurementPointerHandler = null;
+  let measurementMoveHandler = null;
+
+  function attachMeasurementEvents() {
+    if (!renderer || !renderer.domElement) return;
+    detachMeasurementEvents();
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    function getIntersect(e) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+
+      const targets = [];
+      if (buildingGroup) targets.push(buildingGroup);
+      if (groundGroup) targets.push(groundGroup);
+      if (urbanGroup) targets.push(urbanGroup);
+      if (terrainGroup) targets.push(terrainGroup);
+
+      const hits = raycaster.intersectObjects(targets, true);
+      for (let hit of hits) {
+        if (hit.point && (!measureGroup || !measureGroup.children.includes(hit.object))) {
+          return hit.point;
+        }
+      }
+      return null;
+    }
+
+    measurementPointerHandler = (e) => {
+      if (!is3DMeasurementActive) return;
+      const point = getIntersect(e);
+      if (!point) return;
+
+      const hudText = document.getElementById('dockMeasureHudText');
+
+      if (measurePoints.length === 0) {
+        // First Point
+        measurePoints.push(point.clone());
+        clearMeasurementGraphics();
+
+        const geom = new THREE.SphereGeometry(0.4, 16, 16);
+        const mat = new THREE.MeshBasicMaterial({ color: 0x10b981 });
+        measureMarkerMeshA = new THREE.Mesh(geom, mat);
+        measureMarkerMeshA.position.copy(point);
+        measureGroup.add(measureMarkerMeshA);
+
+        if (hudText) hudText.textContent = 'დააკლიკეთ მეორე წერტილს მანძილის გასაზომად';
+      } else if (measurePoints.length === 1) {
+        // Second Point
+        measurePoints.push(point.clone());
+
+        const geomB = new THREE.SphereGeometry(0.4, 16, 16);
+        const matB = new THREE.MeshBasicMaterial({ color: 0x10b981 });
+        measureMarkerMeshB = new THREE.Mesh(geomB, matB);
+        measureMarkerMeshB.position.copy(point);
+        measureGroup.add(measureMarkerMeshB);
+
+        if (measureTempLineMesh) {
+          measureGroup.remove(measureTempLineMesh);
+          measureTempLineMesh = null;
+        }
+
+        const p1 = measurePoints[0];
+        const p2 = measurePoints[1];
+        const lineGeom = new THREE.BufferGeometry().setFromPoints([p1, p2]);
+        const lineMat = new THREE.LineBasicMaterial({ color: 0x10b981, linewidth: 3, depthTest: false });
+        measureLineMesh = new THREE.Line(lineGeom, lineMat);
+        measureGroup.add(measureLineMesh);
+
+        const dist = p1.distanceTo(p2);
+        const deltaH = Math.abs(p2.y - p1.y);
+        const distStr = `${dist.toFixed(2)} მ`;
+
+        const midPoint = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
+        midPoint.y += 1.2;
+
+        measureLabelSprite = createMeasurementTextSprite(distStr);
+        measureLabelSprite.position.copy(midPoint);
+        measureGroup.add(measureLabelSprite);
+
+        if (hudText) {
+          hudText.innerHTML = `<strong>მანძილი: ${distStr}</strong> (Δh: ${deltaH.toFixed(2)} მ) — დააკლიკეთ ახალი გაზომვისთვის`;
+        }
+
+        measurePoints = [];
+      }
+    };
+
+    measurementMoveHandler = (e) => {
+      if (!is3DMeasurementActive || measurePoints.length !== 1) return;
+      const point = getIntersect(e);
+      if (!point) return;
+
+      const p1 = measurePoints[0];
+      if (measureTempLineMesh) {
+        measureGroup.remove(measureTempLineMesh);
+      }
+      const lineGeom = new THREE.BufferGeometry().setFromPoints([p1, point]);
+      const lineMat = new THREE.LineDashedMaterial({ color: 0x34d399, dashSize: 0.8, gapSize: 0.4, depthTest: false });
+      measureTempLineMesh = new THREE.Line(lineGeom, lineMat);
+      measureTempLineMesh.computeLineDistances();
+      measureGroup.add(measureTempLineMesh);
+    };
+
+    renderer.domElement.addEventListener('click', measurementPointerHandler);
+    renderer.domElement.addEventListener('pointermove', measurementMoveHandler);
+  }
+
+  function detachMeasurementEvents() {
+    if (renderer && renderer.domElement) {
+      if (measurementPointerHandler) {
+        renderer.domElement.removeEventListener('click', measurementPointerHandler);
+        measurementPointerHandler = null;
+      }
+      if (measurementMoveHandler) {
+        renderer.domElement.removeEventListener('pointermove', measurementMoveHandler);
+        measurementMoveHandler = null;
+      }
+    }
+  }
+
+  /* ==========================================================================
      15. Initialize Map, 3D Canvas, and Default Search
      ========================================================================== */
   setTimeout(() => {
     initMap();
     initThree();
+    if (typeof init3DDockBar === 'function') init3DDockBar();
     if (typeof initEngineeringDropdown === 'function') initEngineeringDropdown();
     if (typeof initToolsDropdown === 'function') initToolsDropdown();
     if (typeof initUtilitiesModuleControls === 'function') initUtilitiesModuleControls();

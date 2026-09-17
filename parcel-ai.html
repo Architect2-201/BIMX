@@ -63,7 +63,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 
   <!-- Site Stylesheet (Cache-busted) -->
-  <link rel="stylesheet" href="styles.css?v=20260917_08">
+  <link rel="stylesheet" href="styles.css?v=20260917_09">
 
   <script>
     (function() {
@@ -1126,7 +1126,7 @@
        Main Tri-Panel Workspace
        ========================================================================== -->
   <main class="gis-workspace-wrapper">
-    <div class="gis-workspace-grid">
+    <div class="gis-workspace-grid" id="gisWorkspaceGrid">
 
       <!-- ====================================================================
            LEFT PANEL: Cadastral Input, AI Concept Prompt & Parametric Controls
@@ -1755,9 +1755,73 @@
             </div>
           </div>
 
+          <!-- Floating 3D Navigation & CAD Tools Dock Bar -->
+          <div id="dock3DViewportBar" class="dock-3d-viewport-bar" style="display: none;">
+            <!-- Left Pill: Sidebar toggle + Camera Views -->
+            <div class="dock-pill dock-pill-left">
+              <button type="button" class="dock-btn-icon" id="dockBtnToggleLeftPanel" title="მარცხენა პანელის დამალვა / გამოჩენა" aria-label="Toggle Left Panel">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="18" height="18" x="3" y="3" rx="3"></rect>
+                  <path d="M9 3v18"></path>
+                  <path d="m14 9-3 3 3 3"></path>
+                </svg>
+              </button>
+              <div class="dock-divider"></div>
+              <div class="dock-views-group" role="tablist">
+                <button type="button" class="dock-tab-btn active" data-view="isometric" id="dockViewIso" data-i18n="dock_view_iso">იზომეტრია</button>
+                <button type="button" class="dock-tab-btn" data-view="zenith" id="dockViewZenith" data-i18n="dock_view_zenith">ზენიტი (ზემოდან)</button>
+                <button type="button" class="dock-tab-btn" data-view="facade" id="dockViewFacade" data-i18n="dock_view_facade">ფასადი</button>
+                <button type="button" class="dock-tab-btn" data-view="human_eye" id="dockViewHuman" data-i18n="dock_view_human">ადამიანის თვალი</button>
+              </div>
+            </div>
 
+            <!-- Right Pill: CAD Wireframe + Measurement + Camera Reset + Fullscreen + Right Sidebar Toggle -->
+            <div class="dock-pill dock-pill-right">
+              <button type="button" class="dock-wireframe-btn" id="dockBtnWireframe" title="CAD Wireframe ხედი (კარკასი)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                  <polyline points="2 17 12 22 22 17"></polyline>
+                  <polyline points="2 12 12 17 22 12"></polyline>
+                </svg>
+                <span data-i18n="dock_wireframe">CAD Wireframe</span>
+              </button>
 
+              <button type="button" class="dock-tool-measure" id="dockBtnMeasure" title="3D მანძილის გაზომვა (დააკლიკეთ ორ წერტილს)">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21.3 8.7 8.7 21.3c-1 1-2.6 1-3.6 0l-2.4-2.4c-1-1-1-2.6 0-3.6L15.3 2.7c1-1 2.6-1 3.6 0l2.4 2.4c1 1 1 2.6 0 3.6Z"></path>
+                  <path d="m7.5 10.5 2 2"></path>
+                  <path d="m10.5 7.5 2 2"></path>
+                  <path d="m13.5 4.5 2 2"></path>
+                  <path d="m4.5 13.5 2 2"></path>
+                </svg>
+              </button>
 
+              <button type="button" class="dock-btn-icon" id="dockBtnResetCam" title="კამერის საწყის პოზიციაზე დაბრუნება">
+                <i class="fa-solid fa-rotate-right"></i>
+              </button>
+
+              <button type="button" class="dock-btn-icon" id="dockBtnFullscreen" title="მთელ ეკრანზე გაშლა">
+                <i class="fa-solid fa-up-right-and-down-left-from-center"></i>
+              </button>
+
+              <div class="dock-divider"></div>
+
+              <button type="button" class="dock-btn-icon" id="dockBtnToggleRightPanel" title="მარჯვენა პანელის დამალვა / გამოჩენა" aria-label="Toggle Right Panel">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="18" height="18" x="3" y="3" rx="3"></rect>
+                  <path d="M15 3v18"></path>
+                  <path d="m10 9 3 3-3 3"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- 3D Interactive Measurement Guide HUD -->
+          <div id="dockMeasureHud" class="dock-measure-hud" style="display: none;">
+            <i class="fa-solid fa-ruler-combined"></i>
+            <span id="dockMeasureHudText">დააკლიკეთ 3D მოდელზე პირველ წერტილს</span>
+            <button type="button" id="dockBtnMeasureClear" class="dock-measure-hud-close" title="გაზომვის გაუქმება (Esc)">✕</button>
+          </div>
 
           <!-- 3D Three.js WebGL Canvas Container -->
           <div id="threeViewport" role="region" aria-label="3D WebGL Canvas View"></div>
@@ -3868,8 +3932,8 @@
   <script src="assets/fonts/georgian-font-data.js"></script>
 
   <!-- 6. Platform Scripts -->
-  <script src="translations.js?v=20260917_08"></script>
-  <script src="main.js?v=20260917_08"></script>
-  <script src="parcel-ai.js"></script>
+  <script src="translations.js?v=20260917_09"></script>
+  <script src="main.js?v=20260917_09"></script>
+  <script src="parcel-ai.js?v=20260917_09"></script>
 </body>
 </html>
