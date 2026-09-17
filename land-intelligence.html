@@ -57,18 +57,29 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 
   <!-- BIMX Core Stylesheet (Cache-busted) -->
-  <link rel="stylesheet" href="styles.css?v=20260917_05">
+  <link rel="stylesheet" href="styles.css?v=20260917_06">
+
+  <script>
+    (function() {
+      const t = localStorage.getItem('bimx_theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+      if (t === 'light') {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+      }
+    })();
+  </script>
 
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      background-color: #06080d !important;
+      background-color: #06080d;
       background-image: 
         radial-gradient(circle at 50% -12%, rgba(161, 204, 237, 0.09) 0%, transparent 48%),
         radial-gradient(circle at 95% 45%, rgba(127, 169, 201, 0.05) 0%, transparent 40%),
-        radial-gradient(circle at 5% 85%, rgba(143, 184, 154, 0.04) 0%, transparent 35%) !important;
-      background-attachment: fixed !important;
+        radial-gradient(circle at 5% 85%, rgba(143, 184, 154, 0.04) 0%, transparent 35%);
+      background-attachment: fixed;
       color: #e1e2e9;
     }
 
@@ -1227,12 +1238,17 @@
       </nav>
 
       <!-- Actions Group -->
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2.5 sm:gap-3">
         <!-- Language Switcher -->
         <div class="lang-switch-box flex items-center p-0.5 bg-black/40 backdrop-blur-md border border-white/10 rounded-lg">
           <button class="lang-btn active px-2.5 py-1 rounded text-xs font-mono bg-white/15 text-white font-semibold shadow-sm transition-all active:scale-95" type="button" data-lang="ka">KA</button>
           <button class="lang-btn px-2.5 py-1 rounded text-xs font-mono text-slate-400 hover:text-white transition-all active:scale-95" type="button" data-lang="en">EN</button>
         </div>
+
+        <!-- Air Glass White / Dark Theme Toggle Button -->
+        <button id="themeToggleBtn" type="button" class="theme-toggle-btn h-8 w-8 sm:h-9 sm:w-9 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-sm" aria-label="Toggle Theme" title="Air Glass White თემა">
+          <i class="fa-solid fa-sun text-[15px]"></i>
+        </button>
 
         <!-- Print PDF Button -->
         <button type="button" class="btn-air-glass-outline hidden md:inline-flex items-center gap-1.5 h-10 px-3.5 rounded-lg text-xs font-mono" onclick="window.print()">
@@ -2235,6 +2251,10 @@
 
   <!-- Leaflet GIS JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- Translations & Platform Core Controller -->
+  <script src="translations.js"></script>
+  <script src="main.js"></script>
 
   <!-- Client Application Script -->
   <script src="land-intelligence.js"></script>

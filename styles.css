@@ -7006,4 +7006,409 @@ img {
   color: #38bdf8;
 }
 
+/* ==========================================================================
+   BIMX Studio - Master "Air Glass White" Light Theme Architecture System
+   ========================================================================== */
 
+/* Theme Toggle Button Base (Dark & Light) */
+#themeToggleBtn, .theme-toggle-btn {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f1f5f9;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+#themeToggleBtn:hover, .theme-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.35);
+  transform: translateY(-1px);
+}
+#themeToggleBtn:active, .theme-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+/* Language Switcher Base (Dark & Light) */
+.lang-switch-box {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.lang-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-weight: 500;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  line-height: 1.2;
+}
+.lang-btn:hover {
+  color: #ffffff;
+}
+.lang-btn.active {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+/* ==========================================================================
+   Air Glass White Specifications
+   ========================================================================== */
+[data-theme="light"], html.light {
+  color-scheme: light;
+  --bg-main: #f6f8fb;
+  --bg-surface: rgba(255, 255, 255, 0.82);
+  --bg-card: rgba(255, 255, 255, 0.78);
+  --bg-card-hover: rgba(255, 255, 255, 0.94);
+  --bg-contrast: #0f172a;
+  --bg-subtle: rgba(241, 245, 249, 0.85);
+
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --text-contrast: #ffffff;
+
+  --border-line: rgba(0, 0, 0, 0.08);
+  --border-card: rgba(0, 0, 0, 0.08);
+  --border-active: #0284c7;
+
+  --cyan-neon: #0284c7;
+  --cyan-glow: rgba(2, 132, 199, 0.18);
+  --amber-neon: #d97706;
+  --grid-line: rgba(15, 23, 42, 0.035);
+
+  --header-bg: rgba(255, 255, 255, 0.82);
+  --glass-bg: rgba(255, 255, 255, 0.78);
+  --glass-bg-hover: rgba(255, 255, 255, 0.94);
+  --glass-border: 1px solid rgba(0, 0, 0, 0.08);
+  --glass-border-hover: 1px solid rgba(2, 132, 199, 0.35);
+  --glass-blur: blur(24px) saturate(180%);
+  --glass-specular: inset 0 1px 0 0 rgba(255, 255, 255, 0.95);
+  --card-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.05), inset 0 1px 0 0 rgba(255, 255, 255, 0.95);
+  --card-shadow-hover: 0 18px 40px -6px rgba(0, 0, 0, 0.08), 0 0 24px -2px rgba(2, 132, 199, 0.08);
+  --modal-overlay: rgba(15, 23, 42, 0.45);
+}
+
+[data-theme="light"] body,
+html.light body {
+  background-color: #f6f8fb !important;
+  background-image: 
+    radial-gradient(circle at 50% -12%, rgba(186, 218, 245, 0.35) 0%, transparent 50%),
+    radial-gradient(circle at 95% 45%, rgba(203, 213, 225, 0.25) 0%, transparent 40%),
+    radial-gradient(circle at 5% 85%, rgba(203, 213, 225, 0.2) 0%, transparent 35%),
+    linear-gradient(to right, rgba(15, 23, 42, 0.032) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 23, 42, 0.032) 1px, transparent 1px) !important;
+  background-size: 100% 100%, 100% 100%, 100% 100%, 36px 36px, 36px 36px !important;
+  background-attachment: fixed !important;
+  color: #0f172a !important;
+}
+
+/* Light Theme Header & Glass Elements */
+[data-theme="light"] .header-air-glass,
+html.light .header-air-glass {
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme="light"] .nav-dock-air-glass,
+html.light .nav-dock-air-glass {
+  background: rgba(241, 245, 249, 0.82) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+[data-theme="light"] .nav-dock-air-glass .nav-link,
+html.light .nav-dock-air-glass .nav-link {
+  color: #475569 !important;
+}
+[data-theme="light"] .nav-dock-air-glass .nav-link:hover,
+html.light .nav-dock-air-glass .nav-link:hover {
+  color: #0f172a !important;
+  background-color: rgba(255, 255, 255, 0.65) !important;
+}
+[data-theme="light"] .nav-dock-air-glass .nav-link.active,
+html.light .nav-dock-air-glass .nav-link.active {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Brand Logo adaptation */
+[data-theme="light"] .brand-logo-img,
+html.light .brand-logo-img {
+  filter: invert(1) brightness(0.15) contrast(1.1) drop-shadow(0 1px 2px rgba(0,0,0,0.06)) !important;
+}
+
+/* Language Switcher in Light Mode */
+[data-theme="light"] .lang-switch-box,
+html.light .lang-switch-box {
+  background: rgba(241, 245, 249, 0.85) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+}
+[data-theme="light"] .lang-btn,
+html.light .lang-btn {
+  color: #64748b !important;
+}
+[data-theme="light"] .lang-btn:hover,
+html.light .lang-btn:hover {
+  color: #0f172a !important;
+}
+[data-theme="light"] .lang-btn.active,
+html.light .lang-btn.active {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Theme Toggle Button in Light Mode */
+[data-theme="light"] #themeToggleBtn,
+html.light #themeToggleBtn,
+[data-theme="light"] .theme-toggle-btn,
+html.light .theme-toggle-btn {
+  background: rgba(241, 245, 249, 0.85) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  color: #0f172a !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+}
+[data-theme="light"] #themeToggleBtn:hover,
+html.light #themeToggleBtn:hover,
+[data-theme="light"] .theme-toggle-btn:hover,
+html.light .theme-toggle-btn:hover {
+  background: #ffffff !important;
+  color: #0284c7 !important;
+  border-color: rgba(2, 132, 199, 0.3) !important;
+  box-shadow: 0 4px 10px rgba(2, 132, 199, 0.12) !important;
+}
+
+/* CTA Buttons */
+[data-theme="light"] .btn-air-glass-primary,
+html.light .btn-air-glass-primary {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  border: 1px solid #0f172a !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.18) !important;
+}
+[data-theme="light"] .btn-air-glass-primary:hover,
+html.light .btn-air-glass-primary:hover {
+  background: #1e293b !important;
+  transform: translateY(-1px);
+}
+[data-theme="light"] .btn-air-glass-outline,
+html.light .btn-air-glass-outline {
+  background: rgba(255, 255, 255, 0.75) !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+}
+[data-theme="light"] .btn-air-glass-outline:hover,
+html.light .btn-air-glass-outline:hover {
+  background: #ffffff !important;
+  border-color: rgba(2, 132, 199, 0.35) !important;
+  color: #0284c7 !important;
+}
+
+/* Cards & Containers in Air Glass White */
+[data-theme="light"] .card-air-glass,
+html.light .card-air-glass,
+[data-theme="light"] .lie-search-card,
+html.light .lie-search-card,
+[data-theme="light"] .map-container-card,
+html.light .map-container-card,
+[data-theme="light"] .gis-info-modal,
+html.light .gis-info-modal,
+[data-theme="light"] .gis-layer-tree-panel,
+html.light .gis-layer-tree-panel,
+[data-theme="light"] .gis-viewport-card,
+html.light .gis-viewport-card,
+[data-theme="light"] .cadastral-hero-card,
+html.light .cadastral-hero-card,
+[data-theme="light"] .calculator-panel,
+html.light .calculator-panel,
+[data-theme="light"] .hud-panel-air,
+html.light .hud-panel-air,
+[data-theme="light"] .solar-control-panel,
+html.light .solar-control-panel,
+[data-theme="light"] .lie-result-card,
+html.light .lie-result-card {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.05), inset 0 1px 0 0 rgba(255, 255, 255, 0.95) !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .card-air-glass:hover,
+html.light .card-air-glass:hover {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-color: rgba(2, 132, 199, 0.35) !important;
+  box-shadow: 0 18px 40px -6px rgba(0, 0, 0, 0.08), 0 0 24px -2px rgba(2, 132, 199, 0.08) !important;
+}
+
+/* Headings & Text Colors in Air Glass White */
+[data-theme="light"] h1, [data-theme="light"] h2, [data-theme="light"] h3, [data-theme="light"] h4,
+html.light h1, html.light h2, html.light h3, html.light h4 {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .lie-title,
+html.light .lie-title {
+  background: linear-gradient(135deg, #0f172a 40%, #0369a1 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+[data-theme="light"] p,
+html.light p {
+  color: #334155 !important;
+}
+
+[data-theme="light"] .text-white,
+html.light .text-white {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .text-slate-200,
+[data-theme="light"] .text-slate-300,
+[data-theme="light"] .text-slate-400,
+[data-theme="light"] .text-on-surface-variant,
+html.light .text-slate-200,
+html.light .text-slate-300,
+html.light .text-slate-400,
+html.light .text-on-surface-variant {
+  color: #475569 !important;
+}
+
+[data-theme="light"] .text-slate-500,
+[data-theme="light"] .text-outline,
+html.light .text-slate-500,
+html.light .text-outline {
+  color: #64748b !important;
+}
+
+/* Inputs & Form Elements */
+[data-theme="light"] input,
+[data-theme="light"] select,
+[data-theme="light"] textarea,
+html.light input,
+html.light select,
+html.light textarea {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  color: #0f172a !important;
+}
+[data-theme="light"] input::placeholder,
+html.light input::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* GIS Layer Tree & Info Modal */
+[data-theme="light"] .tree-node-parent,
+html.light .tree-node-parent {
+  color: #1e293b !important;
+}
+[data-theme="light"] .tree-node-parent:hover,
+html.light .tree-node-parent:hover {
+  background: rgba(0, 0, 0, 0.04) !important;
+  color: #0284c7 !important;
+}
+[data-theme="light"] .tree-node-item,
+html.light .tree-node-item {
+  color: #334155 !important;
+}
+[data-theme="light"] .tree-node-item:hover,
+html.light .tree-node-item:hover {
+  background: rgba(0, 0, 0, 0.03) !important;
+  color: #0f172a !important;
+}
+[data-theme="light"] .gis-info-header,
+html.light .gis-info-header {
+  background: rgba(241, 245, 249, 0.9) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  color: #0f172a !important;
+}
+[data-theme="light"] .gis-info-tabs,
+html.light .gis-info-tabs {
+  background: rgba(248, 250, 252, 0.85) !important;
+  border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+[data-theme="light"] .gis-info-tab-item,
+html.light .gis-info-tab-item {
+  color: #475569 !important;
+}
+[data-theme="light"] .gis-info-tab-item:hover,
+html.light .gis-info-tab-item:hover {
+  color: #0f172a !important;
+  background: rgba(0, 0, 0, 0.04) !important;
+}
+[data-theme="light"] .gis-info-tab-item.active,
+html.light .gis-info-tab-item.active {
+  background: #ffffff !important;
+  color: #0284c7 !important;
+  font-weight: 600 !important;
+}
+
+/* Mobile Nav Drawer */
+[data-theme="light"] #mobileNavDrawer,
+[data-theme="light"] #mobile-nav-drawer,
+html.light #mobileNavDrawer,
+html.light #mobile-nav-drawer {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08) !important;
+}
+[data-theme="light"] #mobileNavDrawer a,
+[data-theme="light"] #mobile-nav-drawer a,
+html.light #mobileNavDrawer a,
+html.light #mobile-nav-drawer a {
+  color: #334155 !important;
+}
+[data-theme="light"] #mobileNavDrawer a:hover,
+[data-theme="light"] #mobile-nav-drawer a:hover,
+html.light #mobileNavDrawer a:hover,
+html.light #mobile-nav-drawer a:hover {
+  background: rgba(0, 0, 0, 0.04) !important;
+  color: #0f172a !important;
+}
+
+/* Footer in Air Glass White */
+[data-theme="light"] footer,
+html.light footer {
+  background: rgba(241, 245, 249, 0.85) !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+  color: #475569 !important;
+}
+[data-theme="light"] .footer-bottom-telemetry,
+html.light .footer-bottom-telemetry {
+  border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
+  color: #64748b !important;
+}
