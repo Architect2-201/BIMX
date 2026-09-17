@@ -20,14 +20,23 @@ window.applyTheme = function(theme) {
     htmlEl.classList.remove('light');
     htmlEl.classList.add('dark');
   }
-  localStorage.setItem('bimx_theme', theme);
+
+  if (document.body) {
+    document.body.setAttribute('data-theme', theme);
+    document.body.classList.toggle('light', theme === 'light');
+    document.body.classList.toggle('dark', theme === 'dark');
+  }
+
+  try {
+    localStorage.setItem('bimx_theme', theme);
+  } catch (e) { /* ignore */ }
 
   // Update all theme toggle buttons across pages
   document.querySelectorAll('#themeToggleBtn, .theme-toggle-btn').forEach(btn => {
     btn.classList.remove('hidden');
     const icon = btn.querySelector('i');
     if (icon) {
-      icon.className = theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+      icon.className = theme === 'dark' ? 'fa-solid fa-sun text-[15px]' : 'fa-solid fa-moon text-[15px] text-sky-400';
     }
     btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to Air Glass White' : 'Switch to Dark Mode');
     btn.setAttribute('title', theme === 'dark' ? (currentLang === 'en' ? 'Switch to Air Glass White' : 'ნათელი თემა (Air Glass White)') : (currentLang === 'en' ? 'Switch to Dark Mode' : 'მუქი თემა'));
@@ -45,8 +54,21 @@ window.applyTheme = function(theme) {
   window.dispatchEvent(new CustomEvent('bimx-theme-changed', { detail: { theme } }));
 };
 
-window.toggleBimxTheme = function() {
-  window.applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+let isThemeToggling = false;
+window.toggleBimxTheme = function(e) {
+  if (e) {
+    if (typeof e.preventDefault === 'function') e.preventDefault();
+    if (typeof e.stopPropagation === 'function') e.stopPropagation();
+  }
+  if (isThemeToggling) return;
+  isThemeToggling = true;
+  setTimeout(() => { isThemeToggling = false; }, 250);
+
+  const activeTheme = document.documentElement.getAttribute('data-theme') || 
+                      (document.documentElement.classList.contains('light') ? 'light' : 'dark') ||
+                      currentTheme || 'dark';
+  const newTheme = activeTheme === 'light' ? 'dark' : 'light';
+  window.applyTheme(newTheme);
 };
 
 /* ==========================================================================
@@ -152,8 +174,9 @@ document.addEventListener('click', (e) => {
   const themeBtn = e.target.closest('#themeToggleBtn, .theme-toggle-btn');
   if (themeBtn) {
     e.preventDefault();
+    e.stopPropagation();
     if (window.toggleBimxTheme) {
-      window.toggleBimxTheme();
+      window.toggleBimxTheme(e);
     }
     return;
   }

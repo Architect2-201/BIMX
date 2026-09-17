@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="styles.css?v=20260917_07">
+  <link rel="stylesheet" href="styles.css?v=20260917_08">
 
   <script>
     (function() {
@@ -43,7 +43,7 @@
     }
     ::-webkit-scrollbar { display: none; }
 
-    /* Minimal Air Glass Design Tokens */
+    /* Minimal Air Glass Design Tokens (Dark Default) */
     .header-air-glass {
       background: rgba(6, 8, 13, 0.75) !important;
       backdrop-filter: blur(24px) saturate(190%) !important;
@@ -100,6 +100,90 @@
       color: #ffffff !important;
       transform: translateY(-2px) !important;
       box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+    }
+
+    /* Air Glass White Light Theme Overrides in index.html */
+    html.light body,
+    [data-theme="light"] body {
+      background-color: #f6f8fb !important;
+      background-image: 
+        radial-gradient(circle at 50% -12%, rgba(186, 218, 245, 0.5) 0%, transparent 50%),
+        radial-gradient(circle at 95% 45%, rgba(203, 213, 225, 0.35) 0%, transparent 40%),
+        radial-gradient(circle at 5% 85%, rgba(203, 213, 225, 0.25) 0%, transparent 35%),
+        linear-gradient(to right, rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(15, 23, 42, 0.04) 1px, transparent 1px) !important;
+      background-size: 100% 100%, 100% 100%, 100% 100%, 36px 36px, 36px 36px !important;
+      background-attachment: fixed !important;
+      color: #0f172a !important;
+    }
+    html.light main,
+    [data-theme="light"] main {
+      background-color: transparent !important;
+    }
+    html.light .header-air-glass,
+    [data-theme="light"] .header-air-glass {
+      background: rgba(255, 255, 255, 0.85) !important;
+      backdrop-filter: blur(24px) saturate(180%) !important;
+      -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+      box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.06) !important;
+    }
+    html.light .nav-dock-air-glass,
+    [data-theme="light"] .nav-dock-air-glass {
+      background: rgba(241, 245, 249, 0.85) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      border: 1px solid rgba(0, 0, 0, 0.08) !important;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+    }
+    html.light .nav-dock-air-glass .nav-link,
+    [data-theme="light"] .nav-dock-air-glass .nav-link {
+      color: #475569 !important;
+    }
+    html.light .nav-dock-air-glass .nav-link:hover,
+    [data-theme="light"] .nav-dock-air-glass .nav-link:hover {
+      color: #0f172a !important;
+      background-color: rgba(255, 255, 255, 0.7) !important;
+    }
+    html.light .card-air-glass,
+    [data-theme="light"] .card-air-glass {
+      background: rgba(255, 255, 255, 0.82) !important;
+      backdrop-filter: blur(24px) saturate(180%) !important;
+      -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+      border: 1px solid rgba(0, 0, 0, 0.08) !important;
+      box-shadow: 0 10px 32px -4px rgba(0, 0, 0, 0.06), inset 0 1px 0 0 rgba(255, 255, 255, 0.95) !important;
+      color: #0f172a !important;
+    }
+    html.light .card-air-glass:hover,
+    [data-theme="light"] .card-air-glass:hover {
+      background: rgba(255, 255, 255, 0.95) !important;
+      border-color: rgba(2, 132, 199, 0.35) !important;
+      box-shadow: 0 20px 48px -6px rgba(0, 0, 0, 0.08), 0 0 24px -2px rgba(2, 132, 199, 0.1) !important;
+    }
+    html.light .btn-air-glass-primary,
+    [data-theme="light"] .btn-air-glass-primary {
+      background: #0f172a !important;
+      color: #ffffff !important;
+      border: 1px solid #0f172a !important;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.18) !important;
+    }
+    html.light .btn-air-glass-primary:hover,
+    [data-theme="light"] .btn-air-glass-primary:hover {
+      background: #1e293b !important;
+      color: #ffffff !important;
+    }
+    html.light .btn-air-glass-outline,
+    [data-theme="light"] .btn-air-glass-outline {
+      background: rgba(255, 255, 255, 0.75) !important;
+      border: 1px solid rgba(0, 0, 0, 0.12) !important;
+      color: #0f172a !important;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+    }
+    html.light .btn-air-glass-outline:hover,
+    [data-theme="light"] .btn-air-glass-outline:hover {
+      background: #ffffff !important;
+      border-color: rgba(2, 132, 199, 0.35) !important;
+      color: #0284c7 !important;
     }
 
     /* High-end architectural scanning & glow animations */
@@ -320,7 +404,7 @@
         </div>
 
         <!-- Air Glass White / Dark Theme Toggle Button -->
-        <button id="themeToggleBtn" type="button" class="theme-toggle-btn h-8 w-8 sm:h-9 sm:w-9 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-sm" aria-label="Toggle Theme" title="Air Glass White თემა" onclick="window.toggleBimxTheme && window.toggleBimxTheme()">
+        <button id="themeToggleBtn" type="button" class="theme-toggle-btn h-8 w-8 sm:h-9 sm:w-9 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-sm" aria-label="Toggle Theme" title="Air Glass White თემა" onclick="window.toggleBimxTheme && window.toggleBimxTheme(event)">
           <i class="fa-solid fa-sun text-[15px]"></i>
         </button>
 
@@ -1964,7 +2048,7 @@
   </script>
 
   <!-- Bilingual Translations & Theme/Platform Controller -->
-  <script src="translations.js?v=20260917_07"></script>
-  <script src="main.js?v=20260917_07"></script>
+  <script src="translations.js?v=20260917_08"></script>
+  <script src="main.js?v=20260917_08"></script>
 </body>
 </html>
