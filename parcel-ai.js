@@ -3,6 +3,25 @@
  * GIS + AI + 3D Concept Generation Engine
  */
 
+// Early safe stubs for architectural sections modal
+window.openArchSectionsModal = window.openArchSectionsModal || function() {
+  const o = document.getElementById('archSectionsModalOverlay');
+  if (o) {
+    o.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    if (typeof window.renderArchSectionsSvg === 'function') {
+      try { window.renderArchSectionsSvg(); } catch (e) { console.warn(e); }
+    }
+  }
+};
+window.closeArchSectionsModal = window.closeArchSectionsModal || function() {
+  const o = document.getElementById('archSectionsModalOverlay');
+  if (o) {
+    o.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
   /* ==========================================================================
      1. State & Authentic Cadastral Database for Georgia
@@ -15212,7 +15231,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!overlay) return;
     overlay.style.display = 'flex';
     document.body.style.overflow = 'hidden';
-    renderArchSectionsSvg();
+    try {
+      renderArchSectionsSvg();
+    } catch (err) {
+      console.error('Error rendering architectural sections SVG:', err);
+    }
   }
 
   function closeArchSectionsModal() {
@@ -15220,6 +15243,212 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!overlay) return;
     overlay.style.display = 'none';
     document.body.style.overflow = '';
+  }
+
+  function switchArchSectionTab(tab) {
+    if (!tab) return;
+    asmState.activeTab = tab;
+    document.querySelectorAll('.asm-tab-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.tab === tab);
+    });
+    renderArchSectionsSvg();
+  }
+
+  function toggleArchSectionLayer(layer) {
+    if (layer === 'dim') {
+      asmState.showDimensions = !asmState.showDimensions;
+      const el = document.getElementById('asmToggleDim');
+      if (el) el.classList.toggle('active', asmState.showDimensions);
+    } else if (layer === 'axes') {
+      asmState.showAxes = !asmState.showAxes;
+      const el = document.getElementById('asmToggleAxes');
+      if (el) el.classList.toggle('active', asmState.showAxes);
+    } else if (layer === 'levels') {
+      asmState.showLevels = !asmState.showLevels;
+      const el = document.getElementById('asmToggleLevels');
+      if (el) el.classList.toggle('active', asmState.showLevels);
+    } else if (layer === 'compass') {
+      asmState.showCompass = !asmState.showCompass;
+      const el = document.getElementById('asmToggleCompass');
+      if (el) el.classList.toggle('active', asmState.showCompass);
+    }
+    renderArchSectionsSvg();
+  }
+
+  function copyArchSectionSvg() {
+    const svgEl = document.querySelector('#asmDrawingStage svg');
+    if (!svgEl) return;
+    const svgData = new XMLSerializer().serializeToString(svgEl);
+    const btnCopy = document.getElementById('asmBtnCopy');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(svgData).then(() => {
+        if (btnCopy) {
+          const orig = btnCopy.innerHTML;
+          btnCopy.innerHTML = '<i class="fa-solid fa-check" style="color: #10b981;"></i> დაკოპირდა!';
+          setTimeout(() => { btnCopy.innerHTML = orig; }, 2000);
+        }
+      }).catch(err => console.warn('Copy failed:', err));
+    }
+  }
+
+  function exportArchSectionSvg() {
+    const svgEl = document.querySelector('#asmDrawingStage svg');
+    if (!svgEl) return;
+    const svgData = new XMLSerializer().serializeToString(svgEl);
+    const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const code = (typeof state !== 'undefined' && state.activeParcel?.code) || 'parcel';
+    a.href = url;
+    a.download = `${code}_${asmState.activeTab}.svg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function printArchSectionSvg() {
+    const svgEl = document.querySelector('#asmDrawingStage svg');
+    if (!svgEl) return;
+    const svgHtml = svgEl.outerHTML;
+    const printWin = window.open('', '_blank', 'width=1100,height=750');
+    if (!printWin) return;
+    printWin.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>საარქიტექტურო ნახაზი — ${asmState.activeTab}</title>
+        <style>
+          body { margin: 0; padding: 20px; background: #fff; display: flex; align-items: center; justify-content: center; font-family: sans-serif; }
+          svg { max-width: 100%; height: auto; }
+          @media print { body { padding: 0; } }
+        </style>
+      </head>
+      <body>
+        ${svgHtml}
+        <script>
+          window.onload = function() { window.print(); window.close(); };
+        <\/script>
+      </body>
+      </html>
+    `);
+    printWin.document.close();
+  }
+
+  window.openArchSectionsModal = openArchSectionsModal;
+  window.closeArchSectionsModal = closeArchSectionsModal;
+  window.renderArchSectionsSvg = renderArchSectionsSvg;
+  window.switchArchSectionTab = switchArchSectionTab;
+  window.toggleArchSectionLayer = toggleArchSectionLayer;
+  window.copyArchSectionSvg = copyArchSectionSvg;
+  window.exportArchSectionSvg = exportArchSectionSvg;
+  window.printArchSectionSvg = printArchSectionSvg;
+
+  function renderArchSectionsSvg() {
+    const stage = document.getElementById('asmDrawingStage');
+    if (!stage) return;
+
+    let bldg = {};
+    try {
+      if (typeof getSelectedBuilding === 'function') {
+        bldg = getSelectedBuilding() || {};
+      } else if (typeof state !== 'undefined' && state && state.buildings && state.buildings[0]) {
+        bldg = state.buildings[0] || {};
+      }
+    } catch (e) {
+      bldg = {};
+    }
+
+    let parcel = {};
+    try {
+      if (typeof state !== 'undefined' && state && state.activeParcel) {
+        parcel = state.activeParcel;
+      }
+    } catch (e) {
+      parcel = {};
+    }
+
+    const cadastralCode = parcel.code || document.getElementById('cadastralCodeInput')?.value || '01.15.02.038.003';
+    const address = parcel.address || parcel.municipality || 'თბილისი, მთაწმინდა, ვერა, ვასილ ბარნოვის ქ. #10ა';
+    const zoneCode = parcel.zone || 'სზ-6';
+    const zoneName = parcel.zoneName || 'საცხოვრებელი ზონა 6';
+    const k1 = parcel.maxK1 !== undefined ? parcel.maxK1 : (parcel.k1 !== undefined ? parcel.k1 : 0.5);
+    const k2 = parcel.maxK2 !== undefined ? parcel.maxK2 : (parcel.k2 !== undefined ? parcel.k2 : 2.5);
+    const k3 = parcel.maxK3 !== undefined ? parcel.maxK3 : (parcel.k3 !== undefined ? parcel.k3 : 0.2);
+
+    const floorsAbove = bldg.floorsAbove ? parseInt(bldg.floorsAbove, 10) : (parseInt(document.getElementById('sliderFloors')?.value, 10) || 5);
+    const floorsBelow = bldg.floorsBelow !== undefined ? parseInt(bldg.floorsBelow, 10) : (parseInt(document.getElementById('sliderBasementFloors')?.value, 10) || 1);
+    const floorH = bldg.floorHeight ? parseFloat(bldg.floorHeight) : (parseFloat(document.getElementById('sliderHeight')?.value) || 3.3);
+    const totalH = (floorsAbove * floorH);
+    const footprintArea = Math.round(bldg.footprintArea || parseInt(document.getElementById('sliderFootprint')?.value, 10) || 190);
+    const bldgLength = bldg.length ? parseFloat(bldg.length) : (Math.round(Math.sqrt(footprintArea * 1.325) * 10) / 10 || 15.90);
+    const bldgWidth = bldg.width ? parseFloat(bldg.width) : (Math.round((footprintArea / bldgLength) * 10) / 10 || 12.00);
+
+    // Update Header Badges & Footer
+    const elBadgeCad = document.getElementById('asmCadastralBadge');
+    if (elBadgeCad) elBadgeCad.textContent = cadastralCode;
+    const elBadgeScale = document.getElementById('asmScaleBadge');
+    if (elBadgeScale) elBadgeScale.textContent = (asmState.activeTab === 'masterplan' ? '1:500' : '1:100');
+    const elFpText = document.getElementById('asmFootprintText');
+    if (elFpText) elFpText.textContent = `${footprintArea} მ²`;
+    const elHText = document.getElementById('asmHeightText');
+    if (elHText) elHText.textContent = `${totalH.toFixed(1)} მ`;
+
+    // Common SVG Defs & Compass
+    const svgDefs = `
+      <defs>
+        <pattern id="asmGroundHatch" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+          <line x1="0" y1="0" x2="0" y2="8" stroke="rgba(255,255,255,0.14)" stroke-width="1.2" />
+        </pattern>
+        <pattern id="asmDotGrid" width="24" height="24" patternUnits="userSpaceOnUse">
+          <circle cx="2" cy="2" r="1" fill="rgba(255,255,255,0.06)" />
+        </pattern>
+        <marker id="asmArrowCyan" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#00f0ff" />
+        </marker>
+        <marker id="asmArrowYellow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#f59e0b" />
+        </marker>
+        <marker id="asmArrowDim" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M 0 2 L 8 5 L 0 8 z" fill="#ffffff" />
+        </marker>
+      </defs>
+    `;
+
+    const compassSvg = asmState.showCompass ? `
+      <g transform="translate(930, 68)">
+        <circle cx="0" cy="0" r="22" fill="#0b1320" stroke="#00b4d8" stroke-width="1.8" />
+        <polygon points="0,-18 5,0 -5,0" fill="#ef4444" />
+        <polygon points="0,18 5,0 -5,0" fill="#94a3b8" />
+        <circle cx="0" cy="0" r="3" fill="#ffffff" />
+        <text x="0" y="-8" fill="#ffffff" font-size="8" font-weight="800" text-anchor="middle" font-family="'Inter', sans-serif">N</text>
+      </g>
+    ` : '';
+
+    let drawingContent = '';
+    const d = { cadastralCode, address, zoneCode, zoneName, k1, k2, k3, floorsAbove, floorsBelow, floorH, totalH, footprintArea, bldgWidth, bldgLength, bldg };
+
+    if (asmState.activeTab === 'section_a') {
+      drawingContent = buildSectionASvg(d);
+    } else if (asmState.activeTab === 'section_b') {
+      drawingContent = buildSectionBSvg(d);
+    } else if (asmState.activeTab === 'facade_south') {
+      drawingContent = buildFacadeSouthSvg(d);
+    } else if (asmState.activeTab === 'facade_east') {
+      drawingContent = buildFacadeEastSvg(d);
+    } else if (asmState.activeTab === 'masterplan') {
+      drawingContent = buildMasterplanSvg(d);
+    }
+
+    stage.innerHTML = `
+      <svg viewBox="0 0 1020 620" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+        <rect width="1020" height="620" fill="#030509" />
+        <rect width="1020" height="620" fill="url(#asmDotGrid)" />
+        ${svgDefs}
+        ${drawingContent}
+        ${compassSvg}
+      </svg>
+    `;
   }
 
   function buildSectionASvg(d) {
