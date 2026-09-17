@@ -15197,6 +15197,593 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
+     14b. Architectural Sections, Elevations & Site Masterplan Engine (Images 1 & 2)
+     ========================================================================== */
+  const asmState = {
+    activeTab: 'section_a', // 'section_a', 'section_b', 'facade_south', 'facade_east', 'masterplan'
+    showDimensions: true,
+    showAxes: true,
+    showLevels: true,
+    showCompass: true
+  };
+
+  function openArchSectionsModal() {
+    const overlay = document.getElementById('archSectionsModalOverlay');
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    renderArchSectionsSvg();
+  }
+
+  function closeArchSectionsModal() {
+    const overlay = document.getElementById('archSectionsModalOverlay');
+    if (!overlay) return;
+    overlay.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  function buildSectionASvg(d) {
+    const groundY = 440;
+    const bldgW = 260;
+    const cx = 530;
+    const x1 = cx - bldgW / 2;
+    const x2 = cx + bldgW / 2;
+    const hFloor = Math.min(42, Math.max(28, 200 / Math.max(1, d.floorsAbove)));
+    const roofY = groundY - d.floorsAbove * hFloor;
+    const parapetY = roofY - 14;
+    const bHeight = d.floorsBelow > 0 ? d.floorsBelow * hFloor : 0;
+    const bBottom = groundY + bHeight;
+
+    let floorsMarkup = '';
+    for (let f = 0; f < d.floorsAbove; f++) {
+      const fTop = groundY - (f + 1) * hFloor;
+      const label = f === 0 
+        ? `სართული 1 • ჰოლი / კომერცია / ლობი (H = ${d.floorH.toFixed(2)}მ)`
+        : `სართული ${f + 1} • საცხოვრებელი / საოფისე სივრცე`;
+      floorsMarkup += `
+        <g class="asm-floor-group" data-floor="${f + 1}">
+          <rect x="${x1}" y="${fTop}" width="${bldgW}" height="${hFloor}" fill="rgba(14, 23, 38, 0.88)" stroke="rgba(0, 240, 255, 0.5)" stroke-width="1.4" />
+          <rect x="${x1}" y="${fTop + hFloor - 3}" width="${bldgW}" height="3" fill="#00f0ff" opacity="0.65" />
+          <text x="${cx}" y="${fTop + hFloor / 2 + 3.5}" fill="#cbd5e1" font-size="9" font-family="'Inter', sans-serif" font-weight="500" text-anchor="middle">${label}</text>
+        </g>
+      `;
+    }
+
+    let basementMarkup = '';
+    if (d.floorsBelow > 0) {
+      basementMarkup = `
+        <g class="asm-basement-group">
+          <rect x="${x1}" y="${groundY}" width="${bldgW}" height="${bHeight}" fill="rgba(10, 16, 26, 0.95)" stroke="#00f0ff" stroke-width="1.4" />
+          <rect x="${x1}" y="${bBottom - 3}" width="${bldgW}" height="3" fill="#00f0ff" opacity="0.8" />
+          <text x="${cx}" y="${groundY + bHeight / 2 + 3.5}" fill="#cbd5e1" font-size="9.5" font-family="'Inter', sans-serif" font-weight="600" text-anchor="middle">
+            სართული -${d.floorsBelow} • მიწისქვეშა ავტოსადგომი / პარკინგი (${d.bldgLength.toFixed(2)}მ)
+          </text>
+        </g>
+      `;
+    }
+
+    const setbackMarkup = asmState.showDimensions ? `
+      <g class="asm-setbacks">
+        <line x1="325" y1="120" x2="325" y2="465" stroke="#ef4444" stroke-width="1.6" stroke-dasharray="6 4" />
+        <line x1="735" y1="120" x2="735" y2="465" stroke="#ef4444" stroke-width="1.6" stroke-dasharray="6 4" />
+        <text x="319" y="240" fill="#ef4444" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="700" transform="rotate(-90 319 240)" text-anchor="middle">საკადასტრო მიჯნა (3მ)</text>
+        <text x="743" y="240" fill="#ef4444" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="700" transform="rotate(-90 743 240)" text-anchor="middle">საკადასტრო მიჯნა (3მ)</text>
+      </g>
+    ` : '';
+
+    const axesMarkup = asmState.showAxes ? `
+      <g class="asm-axes">
+        <!-- Axis A -->
+        <line x1="${x1}" y1="${parapetY - 14}" x2="${x1}" y2="${bBottom + 24}" stroke="#8b5cf6" stroke-width="1.2" stroke-dasharray="5 4" opacity="0.8" />
+        <circle cx="${x1}" cy="${parapetY - 26}" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
+        <text x="${x1}" y="${parapetY - 22}" fill="#ffffff" font-size="10.5" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">A</text>
+        <circle cx="${x1}" cy="${bBottom + 36}" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
+        <text x="${x1}" y="${bBottom + 40}" fill="#ffffff" font-size="10.5" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">A</text>
+
+        <!-- Axis B -->
+        <line x1="${cx}" y1="${parapetY - 14}" x2="${cx}" y2="${bBottom + 24}" stroke="#8b5cf6" stroke-width="1.2" stroke-dasharray="5 4" opacity="0.8" />
+        <circle cx="${cx}" cy="${parapetY - 26}" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
+        <text x="${cx}" y="${parapetY - 22}" fill="#ffffff" font-size="10.5" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">B</text>
+        <circle cx="${cx}" cy="${bBottom + 36}" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
+        <text x="${cx}" y="${bBottom + 40}" fill="#ffffff" font-size="10.5" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">B</text>
+
+        <!-- Axis C -->
+        <line x1="${x2}" y1="${parapetY - 14}" x2="${x2}" y2="${bBottom + 24}" stroke="#8b5cf6" stroke-width="1.2" stroke-dasharray="5 4" opacity="0.8" />
+        <circle cx="${x2}" cy="${parapetY - 26}" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
+        <text x="${x2}" y="${parapetY - 22}" fill="#ffffff" font-size="10.5" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">C</text>
+        <circle cx="${x2}" cy="${bBottom + 36}" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
+        <text x="${x2}" y="${bBottom + 40}" fill="#ffffff" font-size="10.5" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">C</text>
+      </g>
+    ` : '';
+
+    let levelsMarkup = '';
+    if (asmState.showLevels) {
+      levelsMarkup += `
+        <!-- Parapet Level (Yellow) -->
+        <g class="asm-level-parapet">
+          <line x1="${x2}" y1="${parapetY}" x2="710" y2="${parapetY}" stroke="#f59e0b" stroke-width="1.4" />
+          <polygon points="680,${parapetY} 690,${parapetY - 3.5} 690,${parapetY + 3.5}" fill="#f59e0b" />
+          <text x="716" y="${parapetY + 3.5}" fill="#f59e0b" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700">+${(d.totalH + 0.9).toFixed(2)} პარაპეტი</text>
+        </g>
+      `;
+      for (let f = d.floorsAbove; f >= 0; f--) {
+        const lvlY = groundY - f * hFloor;
+        const valStr = f === 0 ? '±0.00' : `+${(f * d.floorH).toFixed(2)}`;
+        levelsMarkup += `
+          <g class="asm-level-floor">
+            <line x1="${x2}" y1="${lvlY}" x2="710" y2="${lvlY}" stroke="#00f0ff" stroke-width="1.3" opacity="0.8" />
+            <polygon points="680,${lvlY} 690,${lvlY - 3} 690,${lvlY + 3}" fill="#00f0ff" />
+            <text x="716" y="${lvlY + 3.5}" fill="#00f0ff" font-size="9.5" font-family="'JetBrains Mono', monospace" font-weight="600">${valStr}</text>
+          </g>
+        `;
+      }
+      if (d.floorsBelow > 0) {
+        levelsMarkup += `
+          <g class="asm-level-basement">
+            <line x1="${x2}" y1="${bBottom}" x2="710" y2="${bBottom}" stroke="#94a3b8" stroke-width="1.3" opacity="0.8" />
+            <polygon points="680,${bBottom} 690,${bBottom - 3} 690,${bBottom + 3}" fill="#94a3b8" />
+            <text x="716" y="${bBottom + 3.5}" fill="#94a3b8" font-size="9.5" font-family="'JetBrains Mono', monospace" font-weight="600">-${(d.floorsBelow * d.floorH).toFixed(2)}</text>
+          </g>
+        `;
+      }
+    }
+
+    const dimMarkup = asmState.showDimensions ? `
+      <g class="asm-dimensions">
+        <!-- Height Dimension String -->
+        <line x1="360" y1="${roofY}" x2="360" y2="${groundY}" stroke="#ffffff" stroke-width="1.4" marker-start="url(#asmArrowDim)" marker-end="url(#asmArrowDim)" />
+        <line x1="348" y1="${roofY}" x2="${x1}" y2="${roofY}" stroke="rgba(255,255,255,0.25)" stroke-width="1" />
+        <line x1="348" y1="${groundY}" x2="${x1}" y2="${groundY}" stroke="rgba(255,255,255,0.25)" stroke-width="1" />
+        <text x="350" y="${(roofY + groundY) / 2}" fill="#ffffff" font-size="11" font-family="'JetBrains Mono', monospace" font-weight="700" transform="rotate(-90 350 ${(roofY + groundY) / 2})" text-anchor="middle">H = ${d.totalH.toFixed(1)} მ</text>
+
+        ${d.floorsBelow > 0 ? `
+          <line x1="360" y1="${groundY}" x2="360" y2="${bBottom}" stroke="#ef4444" stroke-width="1.4" marker-start="url(#asmArrowDim)" marker-end="url(#asmArrowDim)" />
+          <line x1="348" y1="${bBottom}" x2="${x1}" y2="${bBottom}" stroke="rgba(255,255,255,0.25)" stroke-width="1" />
+          <text x="350" y="${(groundY + bBottom) / 2}" fill="#ef4444" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700" transform="rotate(-90 350 ${(groundY + bBottom) / 2})" text-anchor="middle">-${(d.floorsBelow * d.floorH).toFixed(1)} მ</text>
+        ` : ''}
+      </g>
+    ` : '';
+
+    return `
+      <!-- Title Block -->
+      <g class="asm-title-block">
+        <text x="50" y="48" fill="#94a3b8" font-size="11" font-family="'JetBrains Mono', monospace" font-weight="600">${d.cadastralCode} • ${d.address}</text>
+        <text x="50" y="74" fill="#00f0ff" font-size="16" font-family="'Inter', sans-serif" font-weight="800" letter-spacing="0.5">განივი ჭრილი A-A (CROSS SECTION)</text>
+        <text x="50" y="94" fill="#64748b" font-size="10.5" font-family="'Inter', sans-serif">მასშტაბი: 1:100 | ზონა: ${d.zoneCode} (${d.zoneName}) | K1=${d.k1} K2=${d.k2} K3=${d.k3}</text>
+      </g>
+
+      <!-- Ground Layer & Hatching -->
+      <rect x="30" y="${groundY}" width="960" height="170" fill="url(#asmGroundHatch)" opacity="0.9" />
+      <line x1="30" y1="${groundY}" x2="990" y2="${groundY}" stroke="#cbd5e1" stroke-width="1.8" stroke-dasharray="6 4" />
+      <text x="45" y="${groundY - 8}" fill="#cbd5e1" font-size="10.5" font-family="'JetBrains Mono', monospace" font-weight="700">±0.00 ბუნებრივი რელიეფის ნიშნული (GROUND LEVEL)</text>
+
+      <!-- Roof Elevator Shaft Bulkhead -->
+      <rect x="${cx - 36}" y="${roofY - 28}" width="72" height="28" fill="rgba(0, 240, 255, 0.22)" stroke="#00f0ff" stroke-width="1.6" />
+      <text x="${cx}" y="${roofY - 10}" fill="#00f0ff" font-size="9" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">ლიფტის შახტა</text>
+
+      <!-- Parapet Walls -->
+      <rect x="${x1}" y="${parapetY}" width="6" height="${roofY - parapetY}" fill="#00f0ff" />
+      <rect x="${x2 - 6}" y="${parapetY}" width="6" height="${roofY - parapetY}" fill="#00f0ff" />
+
+      <!-- Floors & Basements -->
+      ${floorsMarkup}
+      ${basementMarkup}
+
+      <!-- Dimension, Setbacks, Axes & Level Annotations -->
+      ${setbackMarkup}
+      ${axesMarkup}
+      ${dimMarkup}
+      ${levelsMarkup}
+
+      <!-- Entourage Scale Tree -->
+      <g transform="translate(700, ${groundY})">
+        <rect x="-2" y="-55" width="4" height="55" fill="#52525b" />
+        <circle cx="0" cy="-60" r="18" fill="#059669" opacity="0.65" />
+        <circle cx="-6" cy="-70" r="14" fill="#10b981" opacity="0.75" />
+        <circle cx="6" cy="-68" r="15" fill="#047857" opacity="0.7" />
+      </g>
+    `;
+  }
+
+  function buildSectionBSvg(d) {
+    const groundY = 440;
+    const bldgW = 340;
+    const cx = 530;
+    const x1 = cx - bldgW / 2;
+    const x2 = cx + bldgW / 2;
+    const hFloor = Math.min(42, Math.max(28, 200 / Math.max(1, d.floorsAbove)));
+    const roofY = groundY - d.floorsAbove * hFloor;
+    const parapetY = roofY - 14;
+    const bHeight = d.floorsBelow > 0 ? d.floorsBelow * hFloor : 0;
+    const bBottom = groundY + bHeight;
+
+    let floorsMarkup = '';
+    for (let f = 0; f < d.floorsAbove; f++) {
+      const fTop = groundY - (f + 1) * hFloor;
+      floorsMarkup += `
+        <g class="asm-floor-group">
+          <rect x="${x1}" y="${fTop}" width="${bldgW}" height="${hFloor}" fill="rgba(14, 23, 38, 0.88)" stroke="rgba(0, 240, 255, 0.5)" stroke-width="1.4" />
+          <rect x="${x1}" y="${fTop + hFloor - 3}" width="${bldgW}" height="3" fill="#00f0ff" opacity="0.65" />
+          <!-- Stair Core / Elevator Shaft Slice -->
+          <rect x="${cx - 40}" y="${fTop}" width="80" height="${hFloor}" fill="rgba(56, 189, 248, 0.12)" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1" />
+          <text x="${cx}" y="${fTop + hFloor / 2 + 3.5}" fill="#38bdf8" font-size="8.5" font-weight="600" text-anchor="middle">კიბე / ლიფტის ჰოლი</text>
+          <text x="${x1 + 60}" y="${fTop + hFloor / 2 + 3.5}" fill="#cbd5e1" font-size="8.5" text-anchor="middle">საცხოვრებელი სექცია A</text>
+          <text x="${x2 - 60}" y="${fTop + hFloor / 2 + 3.5}" fill="#cbd5e1" font-size="8.5" text-anchor="middle">საცხოვრებელი სექცია B</text>
+        </g>
+      `;
+    }
+
+    let basementMarkup = '';
+    if (d.floorsBelow > 0) {
+      basementMarkup = `
+        <rect x="${x1}" y="${groundY}" width="${bldgW}" height="${bHeight}" fill="rgba(10, 16, 26, 0.95)" stroke="#00f0ff" stroke-width="1.4" />
+        <text x="${cx}" y="${groundY + bHeight / 2 + 3.5}" fill="#cbd5e1" font-size="9.5" font-weight="600" text-anchor="middle">მიწისქვეშა ავტოსადგომი / პარკინგი (${d.bldgLength.toFixed(2)}მ)</text>
+      `;
+    }
+
+    return `
+      <!-- Title Block -->
+      <g class="asm-title-block">
+        <text x="50" y="48" fill="#94a3b8" font-size="11" font-family="'JetBrains Mono', monospace" font-weight="600">${d.cadastralCode} • ${d.address}</text>
+        <text x="50" y="74" fill="#00f0ff" font-size="16" font-family="'Inter', sans-serif" font-weight="800" letter-spacing="0.5">გრძივი ჭრილი B-B (LONGITUDINAL SECTION)</text>
+        <text x="50" y="94" fill="#64748b" font-size="10.5" font-family="'Inter', sans-serif">მასშტაბი: 1:100 | სიგრძე: ${d.bldgLength.toFixed(2)}მ | K1=${d.k1} K2=${d.k2} K3=${d.k3}</text>
+      </g>
+
+      <!-- Ground Layer -->
+      <rect x="30" y="${groundY}" width="960" height="170" fill="url(#asmGroundHatch)" opacity="0.9" />
+      <line x1="30" y1="${groundY}" x2="990" y2="${groundY}" stroke="#cbd5e1" stroke-width="1.8" stroke-dasharray="6 4" />
+      <text x="45" y="${groundY - 8}" fill="#cbd5e1" font-size="10.5" font-family="'JetBrains Mono', monospace" font-weight="700">±0.00 ბუნებრივი რელიეფის ნიშნული (GROUND LEVEL)</text>
+
+      <!-- Roof Core -->
+      <rect x="${cx - 45}" y="${roofY - 28}" width="90" height="28" fill="rgba(0, 240, 255, 0.2)" stroke="#00f0ff" stroke-width="1.6" />
+      <text x="${cx}" y="${roofY - 10}" fill="#00f0ff" font-size="9" font-weight="700" text-anchor="middle">კიბის უჯრედი + ლიფტი</text>
+
+      <!-- Parapet Walls -->
+      <rect x="${x1}" y="${parapetY}" width="6" height="${roofY - parapetY}" fill="#00f0ff" />
+      <rect x="${x2 - 6}" y="${parapetY}" width="6" height="${roofY - parapetY}" fill="#00f0ff" />
+
+      ${floorsMarkup}
+      ${basementMarkup}
+
+      ${asmState.showAxes ? `
+        <!-- Axes 1, 2, 3, 4 -->
+        <g class="asm-axes-longitudinal">
+          ${[x1, cx - 60, cx + 60, x2].map((axX, idx) => `
+            <line x1="${axX}" y1="${parapetY - 14}" x2="${axX}" y2="${bBottom + 24}" stroke="#8b5cf6" stroke-width="1.2" stroke-dasharray="5 4" opacity="0.8" />
+            <circle cx="${axX}" cy="${parapetY - 26}" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
+            <text x="${axX}" y="${parapetY - 22}" fill="#ffffff" font-size="10" font-weight="700" text-anchor="middle">${idx + 1}</text>
+            <circle cx="${axX}" cy="${bBottom + 36}" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
+            <text x="${axX}" y="${bBottom + 40}" fill="#ffffff" font-size="10" font-weight="700" text-anchor="middle">${idx + 1}</text>
+          `).join('')}
+        </g>
+      ` : ''}
+
+      ${asmState.showDimensions ? `
+        <line x1="310" y1="${roofY}" x2="310" y2="${groundY}" stroke="#ffffff" stroke-width="1.4" marker-start="url(#asmArrowDim)" marker-end="url(#asmArrowDim)" />
+        <text x="300" y="${(roofY + groundY) / 2}" fill="#ffffff" font-size="11" font-family="'JetBrains Mono', monospace" font-weight="700" transform="rotate(-90 300 ${(roofY + groundY) / 2})" text-anchor="middle">H = ${d.totalH.toFixed(1)} მ</text>
+      ` : ''}
+    `;
+  }
+
+  function buildFacadeSouthSvg(d) {
+    const groundY = 440;
+    const bldgW = 280;
+    const cx = 530;
+    const x1 = cx - bldgW / 2;
+    const x2 = cx + bldgW / 2;
+    const hFloor = Math.min(42, Math.max(28, 200 / Math.max(1, d.floorsAbove)));
+    const roofY = groundY - d.floorsAbove * hFloor;
+    const parapetY = roofY - 14;
+
+    let windowsMarkup = '';
+    const numCols = 4;
+    const colW = (bldgW - 40) / numCols;
+    for (let f = 0; f < d.floorsAbove; f++) {
+      const fTop = groundY - (f + 1) * hFloor;
+      for (let c = 0; c < numCols; c++) {
+        const wx = x1 + 20 + c * colW;
+        if (f === 0 && (c === 1 || c === 2)) {
+          // Ground floor entrance canopy & lobby double door
+          windowsMarkup += `
+            <rect x="${wx + 4}" y="${fTop + 10}" width="${colW - 8}" height="${hFloor - 12}" fill="rgba(0, 240, 255, 0.35)" stroke="#00f0ff" stroke-width="1.4" />
+            <line x1="${wx + colW / 2}" y1="${fTop + 10}" x2="${wx + colW / 2}" y2="${fTop + hFloor - 2}" stroke="#00f0ff" stroke-width="1.2" />
+          `;
+        } else {
+          windowsMarkup += `
+            <rect x="${wx + 6}" y="${fTop + 8}" width="${colW - 12}" height="${hFloor - 16}" fill="rgba(2, 132, 199, 0.28)" stroke="#38bdf8" stroke-width="1.2" rx="2" />
+            <line x1="${wx + colW / 2}" y1="${fTop + 8}" x2="${wx + colW / 2}" y2="${fTop + hFloor - 8}" stroke="rgba(56, 189, 248, 0.4)" stroke-width="0.8" />
+          `;
+        }
+      }
+    }
+
+    return `
+      <g class="asm-title-block">
+        <text x="50" y="48" fill="#94a3b8" font-size="11" font-family="'JetBrains Mono', monospace" font-weight="600">${d.cadastralCode} • ${d.address}</text>
+        <text x="50" y="74" fill="#00f0ff" font-size="16" font-family="'Inter', sans-serif" font-weight="800" letter-spacing="0.5">სამხრეთის ფასადი (SOUTH ELEVATION)</text>
+        <text x="50" y="94" fill="#64748b" font-size="10.5" font-family="'Inter', sans-serif">მასშტაბი: 1:100 | მასალა: ${d.bldg.facadeMaterial || 'მინა / ტრავერტინი'} | სიმაღლე: ${d.totalH.toFixed(1)}მ</text>
+      </g>
+
+      <rect x="30" y="${groundY}" width="960" height="170" fill="url(#asmGroundHatch)" opacity="0.8" />
+      <line x1="30" y1="${groundY}" x2="990" y2="${groundY}" stroke="#cbd5e1" stroke-width="1.8" />
+      <text x="45" y="${groundY - 8}" fill="#cbd5e1" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700">±0.00 ბუნებრივი რელიეფის ნიშნული</text>
+
+      <!-- Building Shell -->
+      <rect x="${x1}" y="${parapetY}" width="${bldgW}" height="${groundY - parapetY}" fill="#111827" stroke="#38bdf8" stroke-width="1.8" />
+      <rect x="${x1}" y="${parapetY}" width="${bldgW}" height="14" fill="#1e293b" stroke="#38bdf8" stroke-width="1.2" />
+      <text x="${cx}" y="${parapetY + 10}" fill="#94a3b8" font-size="8.5" text-anchor="middle">პარაპეტი / ტერასა</text>
+
+      <!-- Entrance Canopy -->
+      <polygon points="${cx - 45},${groundY - hFloor + 6} ${cx + 45},${groundY - hFloor + 6} ${cx + 55},${groundY - hFloor + 12} ${cx - 55},${groundY - hFloor + 12}" fill="#0284c7" />
+
+      ${windowsMarkup}
+
+      ${asmState.showLevels ? `
+        <line x1="${x2}" y1="${parapetY}" x2="730" y2="${parapetY}" stroke="#f59e0b" stroke-width="1.4" />
+        <polygon points="700,${parapetY} 710,${parapetY - 3.5} 710,${parapetY + 3.5}" fill="#f59e0b" />
+        <text x="736" y="${parapetY + 3.5}" fill="#f59e0b" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700">+${(d.totalH + 0.9).toFixed(2)} პარაპეტი</text>
+        <line x1="${x2}" y1="${roofY}" x2="730" y2="${roofY}" stroke="#00f0ff" stroke-width="1.3" />
+        <polygon points="700,${roofY} 710,${roofY - 3} 710,${roofY + 3}" fill="#00f0ff" />
+        <text x="736" y="${roofY + 3.5}" fill="#00f0ff" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700">+${d.totalH.toFixed(2)} გადახურვა</text>
+      ` : ''}
+
+      <!-- Human Silhouette & Scale Tree -->
+      <g transform="translate(640, ${groundY})">
+        <!-- Stylized Person -->
+        <circle cx="0" cy="-28" r="3" fill="#cbd5e1" />
+        <line x1="0" y1="-25" x2="0" y2="-12" stroke="#cbd5e1" stroke-width="2" />
+        <line x1="0" y1="-12" x2="-4" y2="0" stroke="#cbd5e1" stroke-width="1.8" />
+        <line x1="0" y1="-12" x2="4" y2="0" stroke="#cbd5e1" stroke-width="1.8" />
+      </g>
+    `;
+  }
+
+  function buildFacadeEastSvg(d) {
+    const groundY = 440;
+    const bldgW = 220;
+    const cx = 530;
+    const x1 = cx - bldgW / 2;
+    const x2 = cx + bldgW / 2;
+    const hFloor = Math.min(42, Math.max(28, 200 / Math.max(1, d.floorsAbove)));
+    const roofY = groundY - d.floorsAbove * hFloor;
+    const parapetY = roofY - 14;
+
+    return `
+      <g class="asm-title-block">
+        <text x="50" y="48" fill="#94a3b8" font-size="11" font-family="'JetBrains Mono', monospace" font-weight="600">${d.cadastralCode} • ${d.address}</text>
+        <text x="50" y="74" fill="#00f0ff" font-size="16" font-family="'Inter', sans-serif" font-weight="800" letter-spacing="0.5">აღმოსავლეთის ფასადი (EAST ELEVATION)</text>
+        <text x="50" y="94" fill="#64748b" font-size="10.5" font-family="'Inter', sans-serif">მასშტაბი: 1:100 | სიგანე: ${d.bldgWidth.toFixed(2)}მ | სიმაღლე: ${d.totalH.toFixed(1)}მ</text>
+      </g>
+
+      <rect x="30" y="${groundY}" width="960" height="170" fill="url(#asmGroundHatch)" opacity="0.8" />
+      <line x1="30" y1="${groundY}" x2="990" y2="${groundY}" stroke="#cbd5e1" stroke-width="1.8" />
+      <text x="45" y="${groundY - 8}" fill="#cbd5e1" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700">±0.00 ბუნებრივი რელიეფის ნიშნული</text>
+
+      <!-- Building Shell -->
+      <rect x="${x1}" y="${parapetY}" width="${bldgW}" height="${groundY - parapetY}" fill="#111827" stroke="#38bdf8" stroke-width="1.8" />
+      <rect x="${x1}" y="${parapetY}" width="${bldgW}" height="14" fill="#1e293b" stroke="#38bdf8" stroke-width="1.2" />
+
+      <!-- Floor Lines & Windows -->
+      ${Array.from({ length: d.floorsAbove }).map((_, f) => {
+        const fTop = groundY - (f + 1) * hFloor;
+        return `
+          <line x1="${x1}" y1="${fTop}" x2="${x2}" y2="${fTop}" stroke="rgba(56, 189, 248, 0.3)" stroke-width="1" />
+          <rect x="${x1 + 35}" y="${fTop + 8}" width="60" height="${hFloor - 16}" fill="rgba(2, 132, 199, 0.28)" stroke="#38bdf8" stroke-width="1" rx="2" />
+          <rect x="${x2 - 95}" y="${fTop + 8}" width="60" height="${hFloor - 16}" fill="rgba(2, 132, 199, 0.28)" stroke="#38bdf8" stroke-width="1" rx="2" />
+        `;
+      }).join('')}
+    `;
+  }
+
+  function buildMasterplanSvg(d) {
+    const parcelPoly = `<polygon points="375,235 685,245 665,515 390,500" fill="rgba(16, 185, 129, 0.05)" stroke="#10b981" stroke-width="2" stroke-dasharray="8 5" />`;
+    const setbackPoly = `<polygon points="405,255 655,265 640,490 415,480" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="6 4" />`;
+
+    const fpX = 430;
+    const fpY = 265;
+    const fpW = 190;
+    const fpH = 150;
+
+    return `
+      <!-- Title Block -->
+      <g class="asm-title-block">
+        <text x="50" y="48" fill="#94a3b8" font-size="11" font-family="'JetBrains Mono', monospace" font-weight="600">${d.cadastralCode} • ${d.address}</text>
+        <text x="50" y="74" fill="#00f0ff" font-size="16" font-family="'Inter', sans-serif" font-weight="800" letter-spacing="0.5">გენერალური გეგმა (SITE MASTERPLAN M 1:500)</text>
+        <text x="50" y="94" fill="#64748b" font-size="10.5" font-family="'Inter', sans-serif">მასშტაბი: 1:500 | ზონა: ${d.zoneCode} (${d.zoneName}) | K1=${d.k1} K2=${d.k2} K3=${d.k3}</text>
+      </g>
+
+      <!-- Setback Boundaries & Parcel Poly -->
+      ${parcelPoly}
+      ${setbackPoly}
+      <text x="402" y="240" fill="#ef4444" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="700" transform="rotate(-90 402 240)" text-anchor="middle">საკადასტრო მიჯნა (3მ)</text>
+      <text x="658" y="240" fill="#ef4444" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="700" transform="rotate(-90 658 240)" text-anchor="middle">საკადასტრო მიჯნა (3მ)</text>
+
+      <!-- Ground Level Reference Datum -->
+      <line x1="60" y1="520" x2="960" y2="520" stroke="#64748b" stroke-width="1.6" stroke-dasharray="6 4" />
+      <text x="65" y="512" fill="#cbd5e1" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700">±0.00 ბუნებრივი რელიეფის ნიშნული (GROUND LEVEL)</text>
+
+      <!-- Building Footprint Shape -->
+      <rect x="${fpX}" y="${fpY}" width="${fpW}" height="${fpH}" fill="rgba(0, 240, 255, 0.16)" stroke="#00f0ff" stroke-width="2" />
+      <text x="${fpX + fpW / 2}" y="${fpY + fpH / 2 - 8}" fill="#ffffff" font-size="11" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">საპროექტო შენობის ლაქა (K1 = ${d.k1})</text>
+      <text x="${fpX + fpW / 2}" y="${fpY + fpH / 2 + 12}" fill="#00f0ff" font-size="10.5" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">S = ${d.footprintArea} მ² (${d.bldgLength.toFixed(2)} × ${d.bldgWidth.toFixed(2)})</text>
+
+      <!-- Grid Axes Across Footprint -->
+      ${asmState.showAxes ? `
+        <g class="asm-masterplan-axes">
+          <line x1="${fpX}" y1="210" x2="${fpX}" y2="475" stroke="#8b5cf6" stroke-width="1.2" stroke-dasharray="5 4" opacity="0.85" />
+          <circle cx="${fpX}" cy="235" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
+          <text x="${fpX}" y="239" fill="#ffffff" font-size="10" font-weight="700" text-anchor="middle">A</text>
+          <circle cx="${fpX}" cy="460" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
+          <text x="${fpX}" y="464" fill="#ffffff" font-size="10" font-weight="700" text-anchor="middle">A</text>
+
+          <line x1="${fpX + fpW / 2}" y1="210" x2="${fpX + fpW / 2}" y2="475" stroke="#8b5cf6" stroke-width="1.2" stroke-dasharray="5 4" opacity="0.85" />
+          <circle cx="${fpX + fpW / 2}" cy="235" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
+          <text x="${fpX + fpW / 2}" y="239" fill="#ffffff" font-size="10" font-weight="700" text-anchor="middle">B</text>
+          <circle cx="${fpX + fpW / 2}" cy="460" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
+          <text x="${fpX + fpW / 2}" y="464" fill="#ffffff" font-size="10" font-weight="700" text-anchor="middle">B</text>
+
+          <line x1="${fpX + fpW}" y1="210" x2="${fpX + fpW}" y2="475" stroke="#8b5cf6" stroke-width="1.2" stroke-dasharray="5 4" opacity="0.85" />
+          <circle cx="${fpX + fpW}" cy="235" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
+          <text x="${fpX + fpW}" y="239" fill="#ffffff" font-size="10" font-weight="700" text-anchor="middle">C</text>
+          <circle cx="${fpX + fpW}" cy="460" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
+          <text x="${fpX + fpW}" y="464" fill="#ffffff" font-size="10" font-weight="700" text-anchor="middle">C</text>
+        </g>
+      ` : ''}
+    `;
+  }
+
+  function initArchSectionsModal() {
+    const btnOpen = document.getElementById('btnOpenSectionsModal');
+    if (btnOpen) btnOpen.addEventListener('click', openArchSectionsModal);
+
+    const btnDropdown = document.getElementById('btnDropdownSections');
+    if (btnDropdown) {
+      btnDropdown.addEventListener('click', () => {
+        openArchSectionsModal();
+        const toolsMenu = document.getElementById('toolsDropdownMenu');
+        if (toolsMenu) toolsMenu.classList.remove('open');
+      });
+    }
+
+    const btnDock = document.getElementById('dockBtnSections');
+    if (btnDock) btnDock.addEventListener('click', openArchSectionsModal);
+
+    const btnClose = document.getElementById('asmBtnClose');
+    if (btnClose) btnClose.addEventListener('click', closeArchSectionsModal);
+
+    const overlay = document.getElementById('archSectionsModalOverlay');
+    if (overlay) {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeArchSectionsModal();
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && overlay && overlay.style.display === 'flex') {
+        closeArchSectionsModal();
+      }
+    });
+
+    // Tab buttons
+    document.querySelectorAll('.asm-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        if (!tab) return;
+        asmState.activeTab = tab;
+        document.querySelectorAll('.asm-tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+        renderArchSectionsSvg();
+      });
+    });
+
+    // Layer toggle buttons
+    const toggleDim = document.getElementById('asmToggleDim');
+    if (toggleDim) {
+      toggleDim.addEventListener('click', () => {
+        asmState.showDimensions = !asmState.showDimensions;
+        toggleDim.classList.toggle('active', asmState.showDimensions);
+        renderArchSectionsSvg();
+      });
+    }
+
+    const toggleAxes = document.getElementById('asmToggleAxes');
+    if (toggleAxes) {
+      toggleAxes.addEventListener('click', () => {
+        asmState.showAxes = !asmState.showAxes;
+        toggleAxes.classList.toggle('active', asmState.showAxes);
+        renderArchSectionsSvg();
+      });
+    }
+
+    const toggleLevels = document.getElementById('asmToggleLevels');
+    if (toggleLevels) {
+      toggleLevels.addEventListener('click', () => {
+        asmState.showLevels = !asmState.showLevels;
+        toggleLevels.classList.toggle('active', asmState.showLevels);
+        renderArchSectionsSvg();
+      });
+    }
+
+    const toggleCompass = document.getElementById('asmToggleCompass');
+    if (toggleCompass) {
+      toggleCompass.addEventListener('click', () => {
+        asmState.showCompass = !asmState.showCompass;
+        toggleCompass.classList.toggle('active', asmState.showCompass);
+        renderArchSectionsSvg();
+      });
+    }
+
+    // Export SVG Button
+    const btnExportSvg = document.getElementById('asmBtnExportSvg');
+    if (btnExportSvg) {
+      btnExportSvg.addEventListener('click', () => {
+        const svgEl = document.querySelector('#asmDrawingStage svg');
+        if (!svgEl) return;
+        const svgData = new XMLSerializer().serializeToString(svgEl);
+        const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const code = state.activeParcel?.code || 'parcel';
+        a.href = url;
+        a.download = `${code}_${asmState.activeTab}.svg`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+    }
+
+    // Copy Drawing Button
+    const btnCopy = document.getElementById('asmBtnCopy');
+    if (btnCopy) {
+      btnCopy.addEventListener('click', async () => {
+        const svgEl = document.querySelector('#asmDrawingStage svg');
+        if (!svgEl) return;
+        const svgData = new XMLSerializer().serializeToString(svgEl);
+        try {
+          await navigator.clipboard.writeText(svgData);
+          const origText = btnCopy.innerHTML;
+          btnCopy.innerHTML = '<i class="fa-solid fa-check" style="color: #10b981;"></i> დაკოპირდა!';
+          setTimeout(() => { btnCopy.innerHTML = origText; }, 2000);
+        } catch (err) {
+          console.warn('Clipboard copy failed:', err);
+        }
+      });
+    }
+
+    // Print Drawing Button
+    const btnPrint = document.getElementById('asmBtnPrint');
+    if (btnPrint) {
+      btnPrint.addEventListener('click', () => {
+        const svgEl = document.querySelector('#asmDrawingStage svg');
+        if (!svgEl) return;
+        const svgHtml = svgEl.outerHTML;
+        const printWin = window.open('', '_blank', 'width=1100,height=750');
+        if (!printWin) return;
+        printWin.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>საარქიტექტურო ნახაზი — ${asmState.activeTab}</title>
+            <style>
+              body { margin: 0; padding: 20px; background: #fff; display: flex; align-items: center; justify-content: center; font-family: sans-serif; }
+              svg { max-width: 100%; height: auto; }
+              @media print { body { padding: 0; } }
+            </style>
+          </head>
+          <body>
+            ${svgHtml}
+            <script>
+              window.onload = function() { window.print(); window.close(); };
+            <\/script>
+          </body>
+          </html>
+        `);
+        printWin.document.close();
+      });
+    }
+  }
+
+  /* ==========================================================================
      15. Initialize Map, 3D Canvas, and Default Search
      ========================================================================== */
   setTimeout(() => {
@@ -15205,6 +15792,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof init3DDockBar === 'function') init3DDockBar();
     if (typeof initEngineeringDropdown === 'function') initEngineeringDropdown();
     if (typeof initToolsDropdown === 'function') initToolsDropdown();
+    if (typeof initArchSectionsModal === 'function') initArchSectionsModal();
     if (typeof initUtilitiesModuleControls === 'function') initUtilitiesModuleControls();
     if (typeof initUnitMixModuleControls === 'function') initUnitMixModuleControls();
     if (typeof initViewshedModuleControls === 'function') initViewshedModuleControls();
