@@ -2590,12 +2590,14 @@ img {
   max-height: calc(100vh - var(--nav-height) - 78px);
 }
 
-/* Base Panel Styles */
+/* Base Panel Styles - Minimal Air Glass */
 .gis-panel {
   background: var(--bg-card);
-  border: 1px solid var(--border-card);
-  border-radius: var(--radius-sm);
+  border: var(--glass-border);
+  border-radius: var(--radius-card);
   box-shadow: var(--card-shadow);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -2605,14 +2607,16 @@ img {
 }
 
 .gis-panel-header {
-  padding: 10px 14px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border-line);
   background: var(--bg-surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
-  min-height: 42px;
+  min-height: 46px;
 }
 
 .gis-panel-title {
@@ -2626,11 +2630,11 @@ img {
 }
 
 .gis-panel-body {
-  padding: 12px 14px;
+  padding: 14px 16px;
   overflow-y: auto;
   flex: 1;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
 
 /* Left Panel Elements */
@@ -2641,56 +2645,68 @@ img {
 
 .cadastral-input {
   width: 100%;
-  padding: 8px 12px;
+  padding: 10px 14px;
   border-radius: var(--radius-sm);
-  background: var(--bg-main);
-  border: 1px solid var(--border-card);
+  background: rgba(8, 11, 18, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   color: var(--text-primary);
   font-family: var(--font-mono);
-  font-size: 0.84rem;
+  font-size: 0.85rem;
   letter-spacing: 0.05em;
   outline: none;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .cadastral-input:focus {
-  border-color: var(--cyan-neon);
-  box-shadow: 0 0 0 3px var(--cyan-glow);
+  border-color: rgba(161, 204, 237, 0.6);
+  box-shadow: 0 0 16px rgba(161, 204, 237, 0.25);
 }
 
 .btn-cadastral-search {
   width: 100%;
-  padding: 9px 12px;
-  background: var(--text-primary);
-  color: var(--bg-main);
+  padding: 10px 14px;
+  background: linear-gradient(135deg, rgba(220, 232, 245, 0.95), rgba(161, 204, 237, 0.88));
+  color: #06080d;
   border-radius: var(--radius-sm);
   font-weight: 700;
-  font-size: 0.82rem;
-  border: none;
+  font-size: 0.84rem;
+  border: 1px solid rgba(255, 255, 255, 0.4);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: all 0.2s;
+  box-shadow: 0 4px 16px rgba(161, 204, 237, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-cadastral-search:hover {
-  background: var(--cyan-neon);
-  color: #000;
+  background: #ffffff;
+  box-shadow: 0 6px 22px rgba(161, 204, 237, 0.35);
+  transform: translateY(-1px);
 }
 
 .sample-parcels-select {
   width: 100%;
   padding: 9px 12px;
   border-radius: var(--radius-sm);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-line);
+  background: rgba(10, 14, 22, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: var(--text-secondary);
   font-size: 0.82rem;
   margin-top: 10px;
   outline: none;
   cursor: pointer;
+  transition: border-color 0.2s;
+}
+.sample-parcels-select:focus {
+  border-color: rgba(161, 204, 237, 0.5);
 }
 
 /* Status / Alert Messages in Left Panel */
@@ -2701,20 +2717,21 @@ img {
   font-size: 0.82rem;
   margin-top: 12px;
   line-height: 1.5;
+  backdrop-filter: blur(10px);
 }
 
 .cadastral-alert-message.error {
   display: block;
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.35);
-  color: #ef4444;
+  background: rgba(201, 120, 120, 0.14);
+  border: 1px solid rgba(201, 120, 120, 0.35);
+  color: #C97878;
 }
 
 .cadastral-alert-message.info {
   display: block;
-  background: rgba(0, 240, 255, 0.08);
-  border: 1px solid var(--cyan-neon);
-  color: var(--text-primary);
+  background: rgba(127, 169, 201, 0.1);
+  border: 1px solid rgba(127, 169, 201, 0.35);
+  color: var(--primary-accent);
 }
 
 /* AI Prompt Textarea */
@@ -2726,10 +2743,12 @@ img {
 
 .ai-prompt-textarea {
   width: 100%;
-  padding: 12px;
+  padding: 12px 14px;
   border-radius: var(--radius-sm);
-  background: var(--bg-main);
-  border: 1px solid var(--border-card);
+  background: rgba(8, 11, 18, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   color: var(--text-primary);
   font-family: var(--font-main);
   font-size: 0.88rem;
@@ -2737,35 +2756,38 @@ img {
   resize: vertical;
   min-height: 110px;
   outline: none;
-  transition: border-color 0.2s;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .ai-prompt-textarea:focus {
-  border-color: var(--cyan-neon);
-  box-shadow: 0 0 0 3px var(--cyan-glow);
+  border-color: rgba(161, 204, 237, 0.6);
+  box-shadow: 0 0 16px rgba(161, 204, 237, 0.25);
 }
 
 .btn-generate-concept {
   width: 100%;
   margin-top: 12px;
-  padding: 12px;
-  background: linear-gradient(135deg, var(--cyan-neon), #0099ff);
-  color: #000;
-  font-weight: 800;
-  font-size: 0.92rem;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(220, 232, 245, 0.95), rgba(127, 169, 201, 0.88));
+  color: #06080d;
+  font-weight: 700;
+  font-size: 0.88rem;
   border-radius: var(--radius-sm);
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.4);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 4px 16px var(--cyan-glow);
-  transition: all 0.2s ease;
+  box-shadow: 0 4px 18px rgba(127, 169, 201, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-generate-concept:hover {
-  filter: brightness(1.1);
+  background: #ffffff;
+  box-shadow: 0 6px 24px rgba(127, 169, 201, 0.4);
   transform: translateY(-1px);
 }
 
@@ -2818,13 +2840,16 @@ img {
   outline: none;
 }
 
-/* Center Workspace (GIS Map & 3D WebGL Canvas) */
+/* Center Workspace (GIS Map & 3D WebGL Canvas) - Minimal Air Glass */
 .center-viewport-container {
   display: flex;
   flex-direction: column;
-  background: #05070b;
+  background: #06080d;
   position: relative;
   overflow: hidden;
+  border-radius: var(--radius-card);
+  border: var(--glass-border);
+  box-shadow: var(--card-shadow);
 }
 
 .mode-switcher-bar {
@@ -2833,6 +2858,8 @@ img {
   justify-content: space-between;
   padding: 8px 16px;
   background: var(--bg-surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border-line);
   z-index: 50;
   gap: 12px;
@@ -2844,16 +2871,16 @@ img {
 .mode-tabs-group {
   display: inline-flex;
   align-items: center;
-  background: var(--bg-main);
+  background: rgba(8, 11, 18, 0.7);
   padding: 3px;
   border-radius: var(--radius-full);
-  border: 1px solid var(--border-line);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 .mode-tab-btn {
-  padding: 5px 11px;
+  padding: 6px 13px;
   font-size: 0.76rem;
   font-weight: 600;
   border-radius: var(--radius-full);
@@ -2861,7 +2888,7 @@ img {
   background: none;
   border: none;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -2873,9 +2900,10 @@ img {
 }
 
 .mode-tab-btn.active {
-  background: var(--text-primary);
-  color: var(--bg-main);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(135deg, rgba(220, 232, 245, 0.95), rgba(161, 204, 237, 0.9));
+  color: #06080d;
+  font-weight: 700;
+  box-shadow: 0 2px 10px rgba(161, 204, 237, 0.35);
 }
 
 .viewport-tools-group {

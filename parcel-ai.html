@@ -143,84 +143,93 @@
     /* Solar Insolation & Shadow Control Floating HUD styles are centrally managed in styles.css */
 
     /* Terrain Topography Pill */
+    /* Terrain Topography Pill - Minimal Air Glass */
     .hud-terrain-pill {
-      background: rgba(15, 23, 42, 0.85);
-      border: 1px solid rgba(16, 185, 129, 0.4);
-      color: #10b981;
-      padding: 5px 10px;
-      border-radius: 20px;
+      background: rgba(14, 20, 30, 0.75);
+      border: 1px solid rgba(143, 184, 154, 0.35);
+      color: #8FB89A;
+      padding: 6px 12px;
+      border-radius: var(--radius-full);
       font-size: 0.74rem;
       font-weight: 600;
       display: flex;
       align-items: center;
       gap: 6px;
-      backdrop-filter: blur(8px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
     }
 
-    /* AI Risk Assessment Card Styles */
+    /* AI Risk Assessment Card Styles - Minimal Air Glass */
     .ai-risk-card-container {
-      background: rgba(15, 23, 42, 0.7);
-      border: 1px solid #1e293b;
-      border-radius: 8px;
-      padding: 12px;
-      margin-top: 10px;
+      background: rgba(14, 18, 27, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      margin-top: 12px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
     }
     .risk-score-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-bottom: 10px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid #1e293b;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
     .risk-score-pill {
-      padding: 3px 8px;
-      border-radius: 12px;
-      font-size: 0.75rem;
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+      font-size: 0.72rem;
       font-weight: 700;
       text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
     .risk-score-pill.low {
-      background: rgba(16, 185, 129, 0.15);
-      color: #10b981;
-      border: 1px solid rgba(16, 185, 129, 0.4);
+      background: rgba(143, 184, 154, 0.16);
+      color: #8FB89A;
+      border: 1px solid rgba(143, 184, 154, 0.35);
     }
     .risk-score-pill.medium {
-      background: rgba(245, 158, 11, 0.15);
-      color: #f59e0b;
-      border: 1px solid rgba(245, 158, 11, 0.4);
+      background: rgba(199, 168, 117, 0.16);
+      color: #C7A875;
+      border: 1px solid rgba(199, 168, 117, 0.35);
     }
     .risk-score-pill.high {
-      background: rgba(239, 68, 68, 0.15);
-      color: #ef4444;
-      border: 1px solid rgba(239, 68, 68, 0.4);
+      background: rgba(201, 120, 120, 0.16);
+      color: #C97878;
+      border: 1px solid rgba(201, 120, 120, 0.35);
     }
     .risk-check-item {
       display: flex;
       align-items: flex-start;
       gap: 8px;
       font-size: 0.74rem;
-      padding: 6px 0;
+      padding: 7px 0;
       border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: #cbd5e1;
     }
     .risk-check-item:last-child {
       border-bottom: none;
     }
-    .risk-icon-pass { color: #10b981; margin-top: 2px; }
-    .risk-icon-warn { color: #f59e0b; margin-top: 2px; }
-    .risk-icon-fail { color: #ef4444; margin-top: 2px; }
+    .risk-icon-pass { color: #8FB89A; margin-top: 2px; }
+    .risk-icon-warn { color: #C7A875; margin-top: 2px; }
+    .risk-icon-fail { color: #C97878; margin-top: 2px; }
 
-    /* Actionable GAP Advice Box */
+    /* Actionable GAP Advice Box - Minimal Air Glass */
     .gap-advice-box {
-      margin-top: 10px;
-      background: rgba(56, 189, 248, 0.08);
-      border: 1px solid rgba(56, 189, 248, 0.25);
-      border-radius: 6px;
-      padding: 9px 11px;
-      font-size: 0.72rem;
-      line-height: 1.45;
+      margin-top: 12px;
+      background: rgba(127, 169, 201, 0.07);
+      border: 1px solid rgba(127, 169, 201, 0.22);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font-size: 0.74rem;
+      line-height: 1.5;
       color: #cbd5e1;
+      backdrop-filter: blur(12px);
+      box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
     }
 
     /* Export Grid Extended */
@@ -228,27 +237,29 @@
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 8px;
-      margin-top: 10px;
+      margin-top: 12px;
     }
     .btn-export-tile-primary {
       grid-column: span 3;
-      background: linear-gradient(135deg, rgba(0, 242, 254, 0.2), rgba(79, 172, 254, 0.2));
-      border: 1.5px solid #00f2fe;
-      color: #ffffff;
-      padding: 10px;
-      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(220, 232, 245, 0.95), rgba(161, 204, 237, 0.88));
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      color: #06080d;
+      padding: 11px 16px;
+      border-radius: var(--radius-sm);
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
       font-weight: 700;
-      font-size: 0.85rem;
+      font-size: 0.86rem;
       cursor: pointer;
-      transition: all 0.2s;
+      box-shadow: 0 4px 18px rgba(161, 204, 237, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(8px);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .btn-export-tile-primary:hover {
-      background: linear-gradient(135deg, rgba(0, 242, 254, 0.35), rgba(79, 172, 254, 0.35));
-      box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+      background: #ffffff;
+      box-shadow: 0 6px 24px rgba(161, 204, 237, 0.35);
       transform: translateY(-1px);
     }
 
@@ -3716,39 +3727,75 @@
   </main>
 
   <!-- ==========================================================================
-       Footer
+       Footer (Minimal Air Glass System - Matching architect2.ge)
        ========================================================================== -->
-  <footer class="footer-widescreen">
+  <footer class="footer-unified-glass">
     <div class="container-fluid">
-      <div class="footer-top-split">
-        <div>
-          <a href="index.html" class="brand-logo-link">
-            <img src="assets/images/logo.png" alt="BIMX Studio" class="brand-logo-img">
-          </a>
-          <p class="label-hud" style="margin-top: 14px; max-width: 400px;" data-i18n="footer_tagline">
-            Building Information Modeling & Digital Engineering Excellence.
+      <div class="footer-grid-5col">
+        <div class="footer-brand-col">
+          <div class="footer-brand-title">
+            <img src="https://lh3.googleusercontent.com/aida/AEtjO1UlQpLmx3hxMLrFft0DZd9fgb_zM6MGcwAutdadGpF3vMTF4O9GXDKcqZFAVeWvxpupLDWhlmcsfzZ8xQ-LKZA1eWrX7BjUUmZ5P4TrA46ZJZL1ssPJOH6MwiSt9bTS-cIkJ4KM3Dr0Ud_lWy8u_MzNfOtA8cmvY3p-1AsglJo9lqy0tHHJ9FLTfRuVYVxllZV2iAOkS9Ssf4ZgqY6NcqnZt1FWKN8IPZE_lhjE5AVg8jkyrltPVLM-aLh_ElX224se7IL1ZAbLuqI" alt="BIMX Logo">
+            <span>BIMX Studio</span>
+          </div>
+          <p class="footer-desc-text">
+            ავტონომიური BIM და GIS საინჟინრო ინფრასტრუქტურა. პარამეტრული პროექტირება, ციფრული ტყუპები და სივრცითი გამოთვლები ISO 19650 სტანდარტით.
           </p>
+          <div class="footer-badge-strip">
+            <span class="footer-cert-badge">ISO 19650 CERTIFIED</span>
+            <span class="footer-cert-badge">OPENBIM ALLIANCE</span>
+            <span class="footer-cert-badge">IFC4.3 / BCF</span>
+          </div>
         </div>
 
-        <div class="socials-round-list">
-          <a href="https://www.instagram.com/_bim_x_/" target="_blank" class="round-social-btn" aria-label="Instagram">
-            <i class="fa-brands fa-instagram"></i>
-          </a>
-          <a href="https://wa.me/995599000000" target="_blank" class="round-social-btn" aria-label="WhatsApp">
-            <i class="fa-brands fa-whatsapp"></i>
-          </a>
-          <a href="https://www.facebook.com" target="_blank" class="round-social-btn" aria-label="Facebook">
-            <i class="fa-brands fa-facebook-f"></i>
-          </a>
-          <a href="https://www.linkedin.com" target="_blank" class="round-social-btn" aria-label="LinkedIn">
-            <i class="fa-brands fa-linkedin-in"></i>
-          </a>
+        <div class="footer-nav-col">
+          <span class="footer-col-header">პლატფორმა</span>
+          <a class="footer-nav-link" href="index.html#modules">სერვისები</a>
+          <a class="footer-nav-link" href="apps.html">BIM აპლიკაციები</a>
+          <a class="footer-nav-link" href="plugins.html">BIM პლაგინები</a>
+          <a class="footer-nav-link" href="land-intelligence.html">GIS ანალიტიკა</a>
+          <a class="footer-nav-link" href="parcel-ai.html" style="color: #ffffff; font-weight: 600;">AI საკადასტრო პასპორტი</a>
+          <a class="footer-nav-link" href="index.html#calculator">ფასის კალკულატორი</a>
+        </div>
+
+        <div class="footer-nav-col">
+          <span class="footer-col-header">კომპანია</span>
+          <a class="footer-nav-link" href="index.html#projects">პროექტების პორტფოლიო</a>
+          <a class="footer-nav-link" href="index.html#contact">ექსპერტული კონსულტაცია</a>
+          <a class="footer-nav-link" href="index.html#contact">საკონტაქტო ცენტრი</a>
+          <a class="footer-nav-link" href="index.html#philosophy">OpenBIM &amp; ISO სტანდარტები</a>
+        </div>
+
+        <div class="footer-nav-col">
+          <span class="footer-col-header">კონტაქტი &amp; ქსელი</span>
+          <div style="display: flex; flex-direction: column; gap: 4px; font-family: var(--font-mono); font-size: 12px; color: #9ba3ae;">
+            <span style="color: #ffffff;">Tbilisi, Georgia</span>
+            <span>portal@architect2.ge</span>
+            <span>+995 32 200 00 00</span>
+          </div>
+          <div class="socials-round-list" style="margin-top: 10px;">
+            <a href="https://www.instagram.com/_bim_x_/" target="_blank" class="round-social-btn" aria-label="Instagram">
+              <i class="fa-brands fa-instagram"></i>
+            </a>
+            <a href="https://wa.me/995599000000" target="_blank" class="round-social-btn" aria-label="WhatsApp">
+              <i class="fa-brands fa-whatsapp"></i>
+            </a>
+            <a href="https://www.facebook.com" target="_blank" class="round-social-btn" aria-label="Facebook">
+              <i class="fa-brands fa-facebook-f"></i>
+            </a>
+            <a href="https://www.linkedin.com" target="_blank" class="round-social-btn" aria-label="LinkedIn">
+              <i class="fa-brands fa-linkedin-in"></i>
+            </a>
+          </div>
         </div>
       </div>
 
-      <div class="footer-bottom-split">
-        <p>&copy; 2026 BIMX Studio. <span data-i18n="footer_rights">ყველა უფლება დაცულია.</span></p>
-        <p class="label-hud">Autonomous BIM Platform · Design by Nukri</p>
+      <div class="footer-bottom-telemetry">
+        <p>© 2026 BIMX Studio. Autonomous BIM Platform. All rights reserved.</p>
+        <div class="telemetry-status-tag">
+          <span><span class="telemetry-pulse-dot"></span> SYS_STATUS: ONLINE</span>
+          <span>LATENCY: 14ms</span>
+          <span>SEC_LEVEL: TIER-IV</span>
+        </div>
       </div>
     </div>
   </footer>
