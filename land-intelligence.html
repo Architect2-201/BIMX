@@ -105,7 +105,7 @@
     }
 
     .lie-title {
-      font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+      font-size: clamp(2rem, 3.8vw, 3.2rem);
       font-weight: 800;
       letter-spacing: -0.5px;
       margin-bottom: 12px;
@@ -115,10 +115,10 @@
     }
 
     .lie-subtitle {
-      max-width: 780px;
+      max-width: 960px;
       margin: 0 auto 24px;
       color: var(--text-secondary);
-      font-size: 1rem;
+      font-size: 1.05rem;
       line-height: 1.6;
     }
 
@@ -147,12 +147,13 @@
 
     /* Search Box - Minimal Air Glass */
     .lie-search-card {
-      max-width: 960px;
+      max-width: 1380px;
+      width: 100%;
       margin: 0 auto 40px;
       background: var(--bg-card);
       border: var(--glass-border);
       border-radius: var(--radius-lg);
-      padding: clamp(16px, 3vw, 28px);
+      padding: clamp(18px, 2.5vw, 32px);
       box-shadow: var(--card-shadow);
       backdrop-filter: var(--glass-blur);
       -webkit-backdrop-filter: var(--glass-blur);
@@ -161,8 +162,8 @@
 
     .lie-search-grid {
       display: grid;
-      grid-template-columns: 1.15fr 1fr 1.45fr auto;
-      gap: 14px;
+      grid-template-columns: 1.3fr 1.2fr 1.6fr auto;
+      gap: 16px;
       align-items: end;
     }
 
@@ -1212,7 +1213,7 @@
        ========================================================================== -->
   <!-- ==================== HEADER (Minimal Air Glass Floating System) ==================== -->
   <header class="fixed top-0 left-0 right-0 z-50 header-air-glass transition-all duration-300" id="mainHeader">
-    <div class="h-20 w-full px-4 sm:px-6 lg:px-8 max-w-[1600px] mx-auto flex items-center justify-between gap-4">
+    <div class="h-20 w-full px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
       <!-- Logo + Brand -->
       <a class="flex items-center focus:outline-none group brand-logo-link" id="brandLogo" data-path="home" href="index.html" aria-label="BIMX Studio Home">
         <img alt="BIMX Logo" class="h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-105 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] brand-logo-img" src="assets/images/logo-white.png">
@@ -1242,11 +1243,6 @@
         <!-- Consultation CTA -->
         <a class="hidden sm:inline-flex items-center justify-center h-10 px-5 rounded-lg text-sm font-semibold btn-air-glass-primary active:scale-95 transition-all duration-200" data-path="consultation" href="index.html#contact">კონსულტაცია</a>
 
-        <!-- User Profile Avatar -->
-        <div class="w-8 h-8 rounded-full bg-white/10 border border-white/15 flex items-center justify-center flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-secondary transition-all active:scale-95">
-          <span class="material-symbols-outlined text-white text-[18px]">person</span>
-        </div>
-
         <!-- Mobile Hamburger Button -->
         <button id="mobileHamburger" type="button" class="lg:hidden p-2 rounded-lg bg-white/5 text-slate-200 hover:text-white border border-white/10 flex items-center justify-center" aria-label="Toggle mobile menu">
           <span class="material-symbols-outlined text-[24px]">menu</span>
@@ -1266,7 +1262,7 @@
        Main Land Intelligence Page
        ========================================================================== -->
   <main class="lie-page">
-    <div class="container">
+    <div class="w-full px-4 sm:px-6 lg:px-8 xl:px-12">
 
       <!-- Hero Header -->
       <div class="lie-hero">

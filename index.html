@@ -285,10 +285,10 @@
 
   <!-- ==================== HEADER ==================== -->
   <header class="fixed top-0 left-0 right-0 z-50 header-air-glass transition-all duration-300">
-    <div class="h-20 w-full px-gutter flex items-center justify-between gap-space-md">
+    <div class="h-20 w-full px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
       <!-- Logo + Brand -->
-        <a class="flex items-center focus:outline-none group" data-path="home" href="index.html">
-          <img alt="BIMX Logo" class="h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-105 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" src="assets/images/logo-white.png">
+        <a class="flex items-center focus:outline-none group brand-logo-link" id="brandLogo" data-path="home" href="index.html" aria-label="BIMX Studio Home">
+          <img alt="BIMX Logo" class="h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-105 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] brand-logo-img" src="assets/images/logo-white.png">
         </a>
 
       <!-- Desktop Navigation -->
@@ -299,35 +299,18 @@
       </nav>
 
       <!-- Actions Group -->
-      <div class="flex items-center gap-space-md">
+      <div class="flex items-center gap-3">
         <!-- Language Switcher -->
         <div class="flex items-center p-0.5 bg-black/40 backdrop-blur-md border border-white/10 rounded-lg">
-          <button class="px-2 py-1 rounded font-technical-code text-technical-code bg-white/15 text-white font-medium shadow-sm transition-all active:scale-95" type="button">KA</button>
-          <button class="px-2 py-1 rounded font-technical-code text-technical-code text-outline hover:text-white transition-all active:scale-95" type="button">EN</button>
+          <button class="px-2.5 py-1 rounded font-technical-code text-xs bg-white/15 text-white font-medium shadow-sm transition-all active:scale-95" type="button">KA</button>
+          <button class="px-2.5 py-1 rounded font-technical-code text-xs text-outline hover:text-white transition-all active:scale-95" type="button">EN</button>
         </div>
-
-        <!-- Edit Toggle Button -->
-        <button id="header-edit-toggle" type="button" class="hidden md:inline-flex items-center gap-1.5 h-10 px-3 rounded-lg font-technical-code text-technical-code border border-white/10 bg-white/5 hover:bg-white/10 text-secondary hover:text-primary transition-all active:scale-95" title="ინლაინ რედაქტირების ჩართვა">
-          <span class="material-symbols-outlined text-[18px]">edit_note</span>
-          <span class="hidden xl:inline">ედითი</span>
-        </button>
-
-        <!-- Admin Hub Button -->
-        <button id="header-admin-btn" type="button" class="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-lg font-technical-code text-technical-code bg-white/5 hover:bg-white/10 text-primary border border-white/10 hover:border-secondary/50 shadow-sm transition-all active:scale-95">
-          <span class="material-symbols-outlined text-[18px] text-secondary">admin_panel_settings</span>
-          <span class="hidden sm:inline">ადმინ პანელი</span>
-        </button>
 
         <!-- Consultation CTA -->
-        <a class="hidden sm:inline-flex items-center justify-center h-10 px-space-md rounded-lg font-body-md text-body-md font-semibold btn-air-glass-primary active:scale-95 transition-all duration-200" data-path="consultation" href="#contact">კონსულტაცია</a>
-
-        <!-- User Profile Avatar -->
-        <div class="w-8 h-8 rounded-full bg-white/10 border border-white/15 flex items-center justify-center flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-secondary transition-all active:scale-95">
-          <span class="material-symbols-outlined text-white text-[18px]">person</span>
-        </div>
+        <a class="hidden sm:inline-flex items-center justify-center h-10 px-5 rounded-lg text-sm font-semibold btn-air-glass-primary active:scale-95 transition-all duration-200" data-path="consultation" href="#contact">კონსულტაცია</a>
 
         <!-- Mobile Hamburger Button -->
-        <button id="mobile-menu-toggle" type="button" class="lg:hidden p-2 rounded-lg bg-white/5 text-on-surface hover:text-primary border border-white/10">
+        <button id="mobile-menu-toggle" type="button" class="lg:hidden p-2 rounded-lg bg-white/5 text-on-surface hover:text-primary border border-white/10 flex items-center justify-center">
           <span class="material-symbols-outlined text-[24px]">menu</span>
         </button>
       </div>
