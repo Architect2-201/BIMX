@@ -16,11 +16,78 @@
   <style>
     @layer base {
       html, body { margin: 0; padding: 0; }
-      body { overscroll-behavior: none; }
+      body {
+        overscroll-behavior: none;
+        background-color: #06080d !important;
+        background-image: 
+          radial-gradient(circle at 50% -12%, rgba(161, 204, 237, 0.09) 0%, transparent 48%),
+          radial-gradient(circle at 95% 45%, rgba(127, 169, 201, 0.05) 0%, transparent 40%),
+          radial-gradient(circle at 5% 85%, rgba(143, 184, 154, 0.04) 0%, transparent 35%) !important;
+        background-attachment: fixed !important;
+      }
       main > :first-child { margin-top: 0 !important; }
       main > :last-child { margin-bottom: 0 !important; }
     }
     ::-webkit-scrollbar { display: none; }
+
+    /* Minimal Air Glass Design Tokens */
+    .header-air-glass {
+      background: rgba(6, 8, 13, 0.75) !important;
+      backdrop-filter: blur(24px) saturate(190%) !important;
+      -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.45) !important;
+    }
+    .nav-dock-air-glass {
+      background: rgba(10, 14, 22, 0.55) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+    }
+    .card-air-glass {
+      background: rgba(16, 21, 32, 0.6) !important;
+      backdrop-filter: blur(24px) saturate(190%) !important;
+      -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.09) !important;
+      box-shadow: 0 10px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.12) !important;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    .card-air-glass:hover {
+      background: rgba(22, 30, 45, 0.75) !important;
+      border-color: rgba(161, 204, 237, 0.35) !important;
+      box-shadow: 0 20px 48px -6px rgba(0, 0, 0, 0.65), 0 0 24px -2px rgba(161, 204, 237, 0.16), inset 0 1px 0 0 rgba(255, 255, 255, 0.2) !important;
+      transform: translateY(-3px) !important;
+    }
+    .btn-air-glass-primary {
+      background: linear-gradient(135deg, rgba(245, 247, 250, 0.95), rgba(161, 204, 237, 0.88)) !important;
+      color: #06080d !important;
+      border: 1px solid rgba(255, 255, 255, 0.5) !important;
+      box-shadow: 0 4px 20px rgba(161, 204, 237, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
+      backdrop-filter: blur(12px) !important;
+      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    .btn-air-glass-primary:hover {
+      background: #ffffff !important;
+      color: #06080d !important;
+      box-shadow: 0 8px 28px rgba(161, 204, 237, 0.4), inset 0 1px 0 #ffffff !important;
+      transform: translateY(-2px) !important;
+    }
+    .btn-air-glass-outline {
+      background: rgba(255, 255, 255, 0.05) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      color: #F5F7FA !important;
+      backdrop-filter: blur(12px) !important;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    .btn-air-glass-outline:hover {
+      background: rgba(255, 255, 255, 0.1) !important;
+      border-color: rgba(161, 204, 237, 0.4) !important;
+      color: #ffffff !important;
+      transform: translateY(-2px) !important;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+    }
 
     /* High-end architectural scanning & glow animations */
     @keyframes scanline {
@@ -217,70 +284,72 @@
 <body class="bg-background font-body-md text-on-surface antialiased min-h-screen selection:bg-secondary-container selection:text-on-secondary-container">
 
   <!-- ==================== HEADER ==================== -->
-  <header class="fixed top-0 left-0 right-0 z-50 bg-surface/85 backdrop-blur-xl border-b border-outline-variant/20 shadow-[0_1px_16px_rgba(0,0,0,0.5)] transition-all duration-300">
+  <header class="fixed top-0 left-0 right-0 z-50 header-air-glass transition-all duration-300">
     <div class="h-20 w-full px-gutter flex items-center justify-between gap-space-md">
       <!-- Logo + Brand -->
         <a class="flex items-center focus:outline-none group" data-path="home" href="index.html">
-          <img alt="BIMX Logo" class="h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida/AEtjO1UlQpLmx3hxMLrFft0DZd9fgb_zM6MGcwAutdadGpF3vMTF4O9GXDKcqZFAVeWvxpupLDWhlmcsfzZ8xQ-LKZA1eWrX7BjUUmZ5P4TrA46ZJZL1ssPJOH6MwiSt9bTS-cIkJ4KM3Dr0Ud_lWy8u_MzNfOtA8cmvY3p-1AsglJo9lqy0tHHJ9FLTfRuVYVxllZV2iAOkS9Ssf4ZgqY6NcqnZt1FWKN8IPZE_lhjE5AVg8jkyrltPVLM-aLh_ElX224se7IL1ZAbLuqI">
+          <img alt="BIMX Logo" class="h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-105 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" src="https://lh3.googleusercontent.com/aida/AEtjO1UlQpLmx3hxMLrFft0DZd9fgb_zM6MGcwAutdadGpF3vMTF4O9GXDKcqZFAVeWvxpupLDWhlmcsfzZ8xQ-LKZA1eWrX7BjUUmZ5P4TrA46ZJZL1ssPJOH6MwiSt9bTS-cIkJ4KM3Dr0Ud_lWy8u_MzNfOtA8cmvY3p-1AsglJo9lqy0tHHJ9FLTfRuVYVxllZV2iAOkS9Ssf4ZgqY6NcqnZt1FWKN8IPZE_lhjE5AVg8jkyrltPVLM-aLh_ElX224se7IL1ZAbLuqI">
         </a>
 
       <!-- Desktop Navigation -->
-      <nav class="hidden lg:flex items-center gap-1 p-1 bg-surface-container-lowest/80 border border-outline-variant/30 rounded-xl" data-active-classes="bg-surface-container-high text-primary font-medium rounded-lg shadow-inner">
-        <a aria-current="page" class="px-3 py-2 transition-all bg-surface-container-high text-primary font-medium rounded-lg shadow-inner" data-path="home" href="index.html">მთავარი</a>
-        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60 transition-all duration-200" data-path="services" href="#modules">სერვისები</a>
-        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60 transition-all duration-200" data-path="bim-modules" href="#modules">BIM მოდულები</a>
-        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-body-md text-secondary-fixed-dim hover:text-primary hover:bg-surface-container-high/60 transition-all duration-200" data-path="gis-analysis" href="land-intelligence.html">GIS ანალიზი</a>
-        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-body-md text-secondary hover:text-primary hover:bg-surface-container-high/60 transition-all duration-200" data-path="parcel-ai" href="parcel-ai.html">AI ანალიზი</a>
-        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60 transition-all duration-200" data-path="projects" href="#projects">პროექტები</a>
-        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60 transition-all duration-200" data-path="calculator" href="#calculator">კალკულატორი</a>
-        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60 transition-all duration-200" data-path="contact" href="#contact">კონტაქტი</a>
+      <nav class="hidden lg:flex items-center gap-1 p-1 nav-dock-air-glass rounded-xl" data-active-classes="bg-white/10 text-white font-medium rounded-lg shadow-inner border border-white/10">
+        <a aria-current="page" class="px-3 py-2 transition-all bg-white/10 text-white font-medium rounded-lg shadow-inner border border-white/10" data-path="home" href="index.html">მთავარი</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all duration-200" data-path="services" href="#modules">სერვისები</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all duration-200" data-path="apps" href="apps.html">აპლიკაციები</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all duration-200" data-path="plugins" href="plugins.html">პლაგინები</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-body-md text-secondary-fixed-dim hover:text-primary hover:bg-white/5 transition-all duration-200" data-path="gis-analysis" href="land-intelligence.html">GIS ანალიზი</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-body-md text-secondary hover:text-primary hover:bg-white/5 transition-all duration-200" data-path="parcel-ai" href="parcel-ai.html">AI ანალიზი</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all duration-200" data-path="projects" href="#projects">პროექტები</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all duration-200" data-path="calculator" href="#calculator">კალკულატორი</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all duration-200" data-path="contact" href="#contact">კონტაქტი</a>
       </nav>
 
       <!-- Actions Group -->
       <div class="flex items-center gap-space-md">
         <!-- Language Switcher -->
-        <div class="flex items-center p-0.5 bg-surface-container-lowest border border-outline-variant/30 rounded-lg">
-          <button class="px-2 py-1 rounded font-technical-code text-technical-code bg-surface-container-high text-primary font-medium shadow-sm transition-all active:scale-95" type="button">KA</button>
-          <button class="px-2 py-1 rounded font-technical-code text-technical-code text-outline hover:text-on-surface transition-all active:scale-95" type="button">EN</button>
+        <div class="flex items-center p-0.5 bg-black/40 backdrop-blur-md border border-white/10 rounded-lg">
+          <button class="px-2 py-1 rounded font-technical-code text-technical-code bg-white/15 text-white font-medium shadow-sm transition-all active:scale-95" type="button">KA</button>
+          <button class="px-2 py-1 rounded font-technical-code text-technical-code text-outline hover:text-white transition-all active:scale-95" type="button">EN</button>
         </div>
 
         <!-- Edit Toggle Button -->
-        <button id="header-edit-toggle" type="button" class="hidden md:inline-flex items-center gap-1.5 h-10 px-3 rounded-lg font-technical-code text-technical-code border border-secondary/30 bg-surface-container-low hover:bg-surface-container text-secondary hover:text-primary transition-all active:scale-95" title="ინლაინ რედაქტირების ჩართვა">
+        <button id="header-edit-toggle" type="button" class="hidden md:inline-flex items-center gap-1.5 h-10 px-3 rounded-lg font-technical-code text-technical-code border border-white/10 bg-white/5 hover:bg-white/10 text-secondary hover:text-primary transition-all active:scale-95" title="ინლაინ რედაქტირების ჩართვა">
           <span class="material-symbols-outlined text-[18px]">edit_note</span>
           <span class="hidden xl:inline">ედითი</span>
         </button>
 
         <!-- Admin Hub Button -->
-        <button id="header-admin-btn" type="button" class="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-lg font-technical-code text-technical-code bg-surface-container-high hover:bg-surface-bright text-primary border border-outline-variant/40 hover:border-secondary/50 shadow-sm transition-all active:scale-95">
+        <button id="header-admin-btn" type="button" class="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-lg font-technical-code text-technical-code bg-white/5 hover:bg-white/10 text-primary border border-white/10 hover:border-secondary/50 shadow-sm transition-all active:scale-95">
           <span class="material-symbols-outlined text-[18px] text-secondary">admin_panel_settings</span>
           <span class="hidden sm:inline">ადმინ პანელი</span>
         </button>
 
         <!-- Consultation CTA -->
-        <a class="hidden sm:inline-flex items-center justify-center h-10 px-space-md rounded-lg font-body-md text-body-md font-medium bg-primary-container text-on-primary-fixed hover:bg-primary hover:text-on-primary hover:shadow-[0_0_24px_rgba(216,228,241,0.35)] active:scale-95 transition-all duration-200" data-path="consultation" href="#contact">კონსულტაცია</a>
+        <a class="hidden sm:inline-flex items-center justify-center h-10 px-space-md rounded-lg font-body-md text-body-md font-semibold btn-air-glass-primary active:scale-95 transition-all duration-200" data-path="consultation" href="#contact">კონსულტაცია</a>
 
         <!-- User Profile Avatar -->
-        <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-secondary transition-all active:scale-95">
-          <span class="material-symbols-outlined text-on-primary text-[18px]">person</span>
+        <div class="w-8 h-8 rounded-full bg-white/10 border border-white/15 flex items-center justify-center flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-secondary transition-all active:scale-95">
+          <span class="material-symbols-outlined text-white text-[18px]">person</span>
         </div>
 
         <!-- Mobile Hamburger Button -->
-        <button id="mobile-menu-toggle" type="button" class="lg:hidden p-2 rounded-lg bg-surface-container text-on-surface hover:text-primary border border-outline-variant/30">
+        <button id="mobile-menu-toggle" type="button" class="lg:hidden p-2 rounded-lg bg-white/5 text-on-surface hover:text-primary border border-white/10">
           <span class="material-symbols-outlined text-[24px]">menu</span>
         </button>
       </div>
     </div>
 
     <!-- Mobile Drawer Menu -->
-    <div id="mobile-nav-drawer" class="lg:hidden hidden px-gutter py-4 bg-surface-container-low border-b border-outline-variant/30 flex flex-col gap-2">
-      <a class="px-3 py-2 rounded-lg bg-surface-container-high text-primary font-medium" href="index.html">მთავარი</a>
-      <a class="px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container" href="#modules">სერვისები</a>
-      <a class="px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container" href="#modules">BIM მოდულები</a>
-      <a class="px-3 py-2 rounded-lg text-secondary-fixed-dim hover:text-primary hover:bg-surface-container" href="land-intelligence.html">GIS ანალიზი</a>
-      <a class="px-3 py-2 rounded-lg text-secondary hover:text-primary hover:bg-surface-container" href="parcel-ai.html">AI ანალიზი (საკადასტრო)</a>
-      <a class="px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container" href="#projects">პროექტები</a>
-      <a class="px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container" href="#calculator">კალკულატორი</a>
-      <a class="px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container" href="#contact">კონტაქტი</a>
+    <div id="mobile-nav-drawer" class="lg:hidden hidden px-gutter py-4 bg-[#06080d]/95 backdrop-blur-xl border-b border-white/10 flex flex-col gap-2">
+      <a class="px-3 py-2 rounded-lg bg-white/10 text-white font-medium" href="index.html">მთავარი</a>
+      <a class="px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-white/5" href="#modules">სერვისები</a>
+      <a class="px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-white/5" href="apps.html">აპლიკაციები</a>
+      <a class="px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-white/5" href="plugins.html">პლაგინები</a>
+      <a class="px-3 py-2 rounded-lg text-secondary-fixed-dim hover:text-primary hover:bg-white/5" href="land-intelligence.html">GIS ანალიზი</a>
+      <a class="px-3 py-2 rounded-lg text-secondary hover:text-primary hover:bg-white/5" href="parcel-ai.html">AI ანალიზი (საკადასტრო)</a>
+      <a class="px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-white/5" href="#projects">პროექტები</a>
+      <a class="px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-white/5" href="#calculator">კალკულატორი</a>
+      <a class="px-3 py-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-white/5" href="#contact">კონტაქტი</a>
     </div>
   </header>
 
@@ -353,7 +422,7 @@
 
             <!-- Right Column: HUD Architectural Viewport Card (3D Tilt & Parallax Enabled) -->
             <div class="lg:col-span-5 relative group viewport-perspective-wrap" id="hero-viewport-wrap">
-              <div class="viewport-card-tilt relative w-full rounded-2xl bg-surface-container-low border border-outline-variant/40 p-space-md shadow-2xl overflow-hidden flex flex-col gap-space-sm transition-all duration-500 hover:border-secondary/50 hover:shadow-[0_16px_50px_rgba(0,0,0,0.7)] is-resetting" id="hero-viewport-card" style="transform: perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1);">
+              <div class="viewport-card-tilt card-air-glass relative w-full rounded-2xl p-space-md shadow-2xl overflow-hidden flex flex-col gap-space-sm transition-all duration-500 hover:border-secondary/50 hover:shadow-[0_16px_50px_rgba(0,0,0,0.7)] is-resetting" id="hero-viewport-card" style="transform: perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1);">
                 <!-- Subtle glowing scanline effect -->
                 <div class="pointer-events-none absolute inset-x-0 h-24 bg-gradient-to-b from-transparent via-secondary/10 to-transparent hud-scanline -z-0"></div>
 
@@ -407,22 +476,22 @@
 
           <!-- Hero Key Metrics Row (4 Metrics) -->
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-space-md pt-space-md">
-            <div class="p-space-md rounded-xl bg-surface-container-low border border-outline-variant/30 flex flex-col gap-1 shadow-sm hover:bg-surface-container hover:border-secondary/40 hover:-translate-y-1 transition-all duration-300 group cursor-default">
+            <div class="card-air-glass p-space-md rounded-xl flex flex-col gap-1 shadow-sm hover:border-secondary/40 hover:-translate-y-1 transition-all duration-300 group cursor-default">
               <span class="font-data-metric text-data-metric text-primary group-hover:text-secondary-fixed-dim transition-colors">50+</span>
               <span class="font-body-md text-body-md text-on-surface-variant">შესრულებული პროექტი</span>
             </div>
-            <div class="p-space-md rounded-xl bg-surface-container-low border border-outline-variant/30 flex flex-col gap-1 shadow-sm hover:bg-surface-container hover:border-secondary/40 hover:-translate-y-1 transition-all duration-300 group cursor-default">
+            <div class="card-air-glass p-space-md rounded-xl flex flex-col gap-1 shadow-sm hover:border-secondary/40 hover:-translate-y-1 transition-all duration-300 group cursor-default">
               <span class="font-data-metric text-data-metric text-primary group-hover:text-secondary-fixed-dim transition-colors">150,000+</span>
               <span class="font-body-md text-body-md text-on-surface-variant">დამუშავებული მ²</span>
             </div>
-            <div class="p-space-md rounded-xl bg-surface-container-low border border-outline-variant/30 flex flex-col gap-1 shadow-sm hover:bg-surface-container hover:border-secondary/40 hover:-translate-y-1 transition-all duration-300 group cursor-default">
+            <div class="card-air-glass p-space-md rounded-xl flex flex-col gap-1 shadow-sm hover:border-secondary/40 hover:-translate-y-1 transition-all duration-300 group cursor-default">
               <div class="flex items-center gap-2">
                 <span class="font-data-metric text-data-metric text-secondary">0%</span>
                 <span class="text-xs px-1.5 py-0.5 rounded bg-secondary-container text-on-secondary-container font-technical-code">ZERO RISK</span>
               </div>
               <span class="font-body-md text-body-md text-on-surface-variant">შეჯახება მშენებლობაზე</span>
             </div>
-            <div class="p-space-md rounded-xl bg-surface-container-low border border-outline-variant/30 flex flex-col gap-1 shadow-sm hover:bg-surface-container hover:border-secondary/40 hover:-translate-y-1 transition-all duration-300 group cursor-default">
+            <div class="card-air-glass p-space-md rounded-xl flex flex-col gap-1 shadow-sm hover:border-secondary/40 hover:-translate-y-1 transition-all duration-300 group cursor-default">
               <span class="font-data-metric text-data-metric text-primary group-hover:text-secondary-fixed-dim transition-colors">ISO 19650</span>
               <span class="font-body-md text-body-md text-on-surface-variant">ხარისხის სტანდარტი</span>
             </div>
@@ -434,7 +503,7 @@
       <section class="w-full px-gutter py-space-xl bg-surface-container-lowest border-y border-outline-variant/20 reveal-on-scroll is-visible">
         <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-space-lg">
           <!-- Col 1 -->
-          <div class="p-space-lg rounded-2xl bg-surface-container-low border border-outline-variant/30 flex flex-col justify-between gap-space-lg shadow-md hover:shadow-2xl hover:border-secondary/40 hover:-translate-y-1.5 transition-all duration-300 group relative overflow-hidden">
+          <div class="card-air-glass p-space-lg rounded-2xl flex flex-col justify-between gap-space-lg shadow-md hover:shadow-2xl hover:border-secondary/40 hover:-translate-y-1.5 transition-all duration-300 group relative overflow-hidden">
             <div class="absolute top-0 right-0 w-32 h-32 bg-secondary-container/10 rounded-full blur-2xl group-hover:bg-secondary-container/25 transition-all pointer-events-none"></div>
             <div class="flex flex-col gap-space-md relative z-10">
               <span class="font-label-caps text-label-caps text-secondary uppercase tracking-widest">01 — სერვისები</span>
@@ -454,7 +523,7 @@
           </div>
 
           <!-- Col 2 -->
-          <div class="p-space-lg rounded-2xl bg-surface-container border border-outline-variant/40 flex flex-col justify-between gap-space-lg shadow-md hover:shadow-2xl hover:border-secondary/50 hover:-translate-y-1.5 transition-all duration-300 group relative overflow-hidden">
+          <div class="card-air-glass p-space-lg rounded-2xl flex flex-col justify-between gap-space-lg shadow-md hover:shadow-2xl hover:border-secondary/50 hover:-translate-y-1.5 transition-all duration-300 group relative overflow-hidden">
             <div class="absolute top-0 right-0 w-32 h-32 bg-secondary/15 rounded-full blur-2xl group-hover:bg-secondary/25 transition-all pointer-events-none"></div>
             <div class="flex flex-col gap-space-md relative z-10">
               <span class="font-label-caps text-label-caps text-secondary uppercase tracking-widest">02 — უპირატესობა</span>
@@ -489,7 +558,7 @@
           </div>
 
           <!-- Col 3 -->
-          <div class="p-space-lg rounded-2xl bg-surface-container-low border border-outline-variant/30 flex flex-col justify-between gap-space-lg shadow-md hover:shadow-2xl hover:border-secondary/40 hover:-translate-y-1.5 transition-all duration-300 group relative overflow-hidden">
+          <div class="card-air-glass p-space-lg rounded-2xl flex flex-col justify-between gap-space-lg shadow-md hover:shadow-2xl hover:border-secondary/40 hover:-translate-y-1.5 transition-all duration-300 group relative overflow-hidden">
             <div class="absolute top-0 right-0 w-32 h-32 bg-secondary-container/10 rounded-full blur-2xl group-hover:bg-secondary-container/25 transition-all pointer-events-none"></div>
             <div class="flex flex-col gap-space-md relative z-10">
               <span class="font-label-caps text-label-caps text-secondary uppercase tracking-widest">03 — მხარდაჭერა</span>
@@ -567,10 +636,10 @@
           <!-- Modules Bento Grid -->
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-space-md">
             <!-- Module 01 -->
-            <div class="p-space-lg rounded-2xl bg-surface-container-low border border-outline-variant/30 flex flex-col justify-between gap-space-md shadow-md hover:bg-surface-container hover:border-secondary/60 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-300 group">
+            <div class="card-air-glass p-space-lg rounded-2xl flex flex-col justify-between gap-space-md shadow-md hover:border-secondary/60 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-300 group">
               <div class="flex flex-col gap-space-sm">
                 <div class="flex items-center justify-between">
-                  <div class="w-10 h-10 rounded-xl bg-surface-container group-hover:bg-secondary-container flex items-center justify-center text-secondary group-hover:text-secondary-fixed transition-colors">
+                  <div class="w-10 h-10 rounded-xl bg-surface-container/60 flex items-center justify-center text-secondary group-hover:text-secondary-fixed transition-colors">
                     <span class="material-symbols-outlined">domain</span>
                   </div>
                   <span class="font-label-caps text-label-caps text-outline group-hover:text-secondary transition-colors">მოდული 01</span>
@@ -587,10 +656,10 @@
             </div>
 
             <!-- Module 02 -->
-            <div class="p-space-lg rounded-2xl bg-surface-container-low border border-outline-variant/30 flex flex-col justify-between gap-space-md shadow-md hover:bg-surface-container hover:border-secondary/60 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-300 group">
+            <div class="card-air-glass p-space-lg rounded-2xl flex flex-col justify-between gap-space-md shadow-md hover:border-secondary/60 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-300 group">
               <div class="flex flex-col gap-space-sm">
                 <div class="flex items-center justify-between">
-                  <div class="w-10 h-10 rounded-xl bg-surface-container group-hover:bg-secondary-container flex items-center justify-center text-secondary group-hover:text-secondary-fixed transition-colors">
+                  <div class="w-10 h-10 rounded-xl bg-surface-container/60 flex items-center justify-center text-secondary group-hover:text-secondary-fixed transition-colors">
                     <span class="material-symbols-outlined">foundation</span>
                   </div>
                   <span class="font-label-caps text-label-caps text-outline group-hover:text-secondary transition-colors">მოდული 02</span>
@@ -607,10 +676,10 @@
             </div>
 
             <!-- Module 03 -->
-            <div class="p-space-lg rounded-2xl bg-surface-container-low border border-outline-variant/30 flex flex-col justify-between gap-space-md shadow-md hover:bg-surface-container hover:border-secondary/60 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-300 group">
+            <div class="card-air-glass p-space-lg rounded-2xl flex flex-col justify-between gap-space-md shadow-md hover:border-secondary/60 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-300 group">
               <div class="flex flex-col gap-space-sm">
                 <div class="flex items-center justify-between">
-                  <div class="w-10 h-10 rounded-xl bg-surface-container group-hover:bg-secondary-container flex items-center justify-center text-secondary group-hover:text-secondary-fixed transition-colors">
+                  <div class="w-10 h-10 rounded-xl bg-surface-container/60 flex items-center justify-center text-secondary group-hover:text-secondary-fixed transition-colors">
                     <span class="material-symbols-outlined">air</span>
                   </div>
                   <span class="font-label-caps text-label-caps text-outline group-hover:text-secondary transition-colors">მოდული 03</span>
@@ -627,10 +696,10 @@
             </div>
 
             <!-- Module 04 -->
-            <div class="p-space-lg rounded-2xl bg-surface-container-low border border-outline-variant/30 flex flex-col justify-between gap-space-md shadow-md hover:bg-surface-container hover:border-secondary/60 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-300 group">
+            <div class="card-air-glass p-space-lg rounded-2xl flex flex-col justify-between gap-space-md shadow-md hover:border-secondary/60 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-300 group">
               <div class="flex flex-col gap-space-sm">
                 <div class="flex items-center justify-between">
-                  <div class="w-10 h-10 rounded-xl bg-surface-container group-hover:bg-secondary-container flex items-center justify-center text-secondary group-hover:text-secondary-fixed transition-colors">
+                  <div class="w-10 h-10 rounded-xl bg-surface-container/60 flex items-center justify-center text-secondary group-hover:text-secondary-fixed transition-colors">
                     <span class="material-symbols-outlined">troubleshoot</span>
                   </div>
                   <span class="font-label-caps text-label-caps text-outline group-hover:text-secondary transition-colors">მოდული 04</span>
@@ -647,13 +716,13 @@
             </div>
 
             <!-- Flagship Module: Scan to BIM (Spans 2 cols on desktop) -->
-            <div class="lg:col-span-2 p-space-lg rounded-2xl bg-surface-container border border-outline-variant/40 flex flex-col justify-between gap-space-md shadow-lg hover:bg-surface-container-high hover:border-secondary/60 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] transition-all duration-300 group">
+            <div class="card-air-glass lg:col-span-2 p-space-lg rounded-2xl flex flex-col justify-between gap-space-md shadow-lg hover:border-secondary/60 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] transition-all duration-300 group">
               <div class="flex flex-col gap-space-sm">
                 <div class="flex items-center justify-between">
-                  <div class="w-10 h-10 rounded-xl bg-secondary-container flex items-center justify-center text-secondary-fixed group-hover:scale-105 transition-transform">
+                  <div class="w-10 h-10 rounded-xl bg-secondary-container/60 flex items-center justify-center text-secondary-fixed group-hover:scale-105 transition-transform">
                     <span class="material-symbols-outlined">radar</span>
                   </div>
-                  <span class="px-2 py-0.5 rounded bg-secondary-container text-on-secondary-container font-technical-code text-technical-code border border-secondary/30">ფლაგმანი</span>
+                  <span class="px-2 py-0.5 rounded bg-secondary-container/80 text-on-secondary-container font-technical-code text-technical-code border border-secondary/30">ფლაგმანი</span>
                 </div>
                 <h3 class="font-headline-sm text-headline-sm text-primary font-semibold group-hover:text-secondary-fixed-dim transition-colors">Scan to BIM &amp; ციფრული ტყუპი</h3>
                 <p class="font-body-md text-body-md text-on-surface-variant max-w-xl">
@@ -811,7 +880,7 @@
           <!-- Calculator Form & Output Container -->
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-space-xl items-start">
             <!-- Input Parameters Form -->
-            <div class="lg:col-span-7 p-space-xl rounded-2xl bg-surface-container-low border border-outline-variant/30 shadow-xl flex flex-col gap-space-lg">
+            <div class="card-air-glass lg:col-span-7 p-space-xl rounded-2xl flex flex-col gap-space-lg">
               <!-- Area Slider & Direct Manual Number Input -->
               <div class="flex flex-col gap-space-sm">
                 <div class="flex items-center justify-between flex-wrap gap-2">
@@ -924,7 +993,7 @@
             </div>
 
             <!-- Dynamic Summary & Itemized Breakdown Card -->
-            <div class="lg:col-span-5 p-space-xl rounded-2xl bg-surface-container border border-outline-variant/40 shadow-2xl flex flex-col gap-space-md relative overflow-hidden">
+            <div class="card-air-glass lg:col-span-5 p-space-xl rounded-2xl flex flex-col gap-space-md relative overflow-hidden">
               <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-secondary-container/20 rounded-full blur-2xl pointer-events-none"></div>
 
               <!-- Price Block -->
@@ -1053,7 +1122,7 @@
             </div>
 
             <!-- Mini Brand Node Badge -->
-            <div class="p-space-md rounded-xl bg-surface-container-low border border-outline-variant/30 flex items-center gap-space-sm hover:border-secondary/40 transition-colors">
+            <div class="card-air-glass p-space-md rounded-xl flex items-center gap-space-sm hover:border-secondary/40 transition-colors">
               <span class="material-symbols-outlined text-secondary text-[24px]">verified_user</span>
               <div class="flex flex-col">
                 <span class="font-body-sm text-body-sm text-primary font-medium">BIMX Confidentiality Guarantee</span>
@@ -1063,7 +1132,7 @@
           </div>
 
           <!-- Intake Form Column -->
-          <div class="lg:col-span-7 p-space-xl rounded-2xl bg-surface-container-low border border-outline-variant/40 shadow-xl">
+          <div class="card-air-glass lg:col-span-7 p-space-xl rounded-2xl shadow-xl">
             <form class="flex flex-col gap-space-md" id="contact-form" onsubmit="event.preventDefault(); alert('თქვენი მოთხოვნა წარმატებით გაიგზავნა!');">
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
                 <div class="flex flex-col gap-1.5">
