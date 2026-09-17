@@ -60,7 +60,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
   <!-- Stylesheet (Cache-busted) -->
-  <link rel="stylesheet" href="styles.css?v=20260917_06">
+  <link rel="stylesheet" href="styles.css?v=20260917_07">
 
   <script>
     (function() {
@@ -111,12 +111,12 @@
       <div class="flex items-center gap-2.5 sm:gap-3">
         <!-- Language Switcher -->
         <div class="lang-switch-box flex items-center p-0.5 bg-black/40 backdrop-blur-md border border-white/10 rounded-lg">
-          <button class="lang-btn active px-2.5 py-1 rounded text-xs font-mono bg-white/15 text-white font-semibold shadow-sm transition-all active:scale-95" type="button" data-lang="ka">KA</button>
-          <button class="lang-btn px-2.5 py-1 rounded text-xs font-mono text-slate-400 hover:text-white transition-all active:scale-95" type="button" data-lang="en">EN</button>
+          <button class="lang-btn active px-2.5 py-1 rounded text-xs font-mono bg-white/15 text-white font-semibold shadow-sm transition-all active:scale-95" type="button" data-lang="ka" onclick="window.applyLanguage && window.applyLanguage('ka')">KA</button>
+          <button class="lang-btn px-2.5 py-1 rounded text-xs font-mono text-slate-400 hover:text-white transition-all active:scale-95" type="button" data-lang="en" onclick="window.applyLanguage && window.applyLanguage('en')">EN</button>
         </div>
 
         <!-- Air Glass White / Dark Theme Toggle Button -->
-        <button id="themeToggleBtn" type="button" class="theme-toggle-btn h-8 w-8 sm:h-9 sm:w-9 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-sm" aria-label="Toggle Theme" title="Air Glass White თემა">
+        <button id="themeToggleBtn" type="button" class="theme-toggle-btn h-8 w-8 sm:h-9 sm:w-9 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-sm" aria-label="Toggle Theme" title="Air Glass White თემა" onclick="window.toggleBimxTheme && window.toggleBimxTheme()">
           <i class="fa-solid fa-sun text-[15px]"></i>
         </button>
 
@@ -474,7 +474,7 @@
   </footer>
 
   <!-- Scripts -->
-  <script src="translations.js"></script>
-  <script src="main.js"></script>
+  <script src="translations.js?v=20260917_07"></script>
+  <script src="main.js?v=20260917_07"></script>
 </body>
 </html>

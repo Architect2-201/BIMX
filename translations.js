@@ -1041,3 +1041,7 @@ const translations = {
     footer_rights: "All rights reserved."
   }
 };
+
+if (typeof window !== 'undefined') {
+  window.translations = translations;
+}

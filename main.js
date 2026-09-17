@@ -2,163 +2,169 @@
  * BIMX Studio - Comprehensive Architectural Platform Controller
  */
 
-document.addEventListener('DOMContentLoaded', () => {
-  // State initialization
-  let currentLang = localStorage.getItem('bimx_lang') || 'ka';
-  let currentTheme = localStorage.getItem('bimx_theme') || 'dark';
+// State initialization
+let currentLang = localStorage.getItem('bimx_lang') || 'ka';
+let currentTheme = localStorage.getItem('bimx_theme') || 'dark';
 
-  /* ==========================================================================
-     1. Theme Engine (Air Glass White & Dark Mode)
-     ========================================================================== */
+/* ==========================================================================
+   1. Global Theme Engine (Air Glass White & Dark Mode)
+   ========================================================================== */
+window.applyTheme = function(theme) {
+  currentTheme = theme;
   const htmlEl = document.documentElement;
-
-  function applyTheme(theme) {
-    currentTheme = theme;
-    htmlEl.setAttribute('data-theme', theme);
-    if (theme === 'light') {
-      htmlEl.classList.remove('dark');
-      htmlEl.classList.add('light');
-    } else {
-      htmlEl.classList.remove('light');
-      htmlEl.classList.add('dark');
-    }
-    localStorage.setItem('bimx_theme', theme);
-
-    // Update all theme toggle buttons across pages
-    document.querySelectorAll('#themeToggleBtn, .theme-toggle-btn').forEach(btn => {
-      btn.classList.remove('hidden');
-      const icon = btn.querySelector('i');
-      if (icon) {
-        icon.className = theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-      }
-      btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to Air Glass White' : 'Switch to Dark Mode');
-      btn.setAttribute('title', theme === 'dark' ? (currentLang === 'en' ? 'Switch to Air Glass White' : 'ნათელი თემა (Air Glass White)') : (currentLang === 'en' ? 'Switch to Dark Mode' : 'მუქი თემა'));
-    });
-
-    // Invert white logo in light mode so it appears deep architectural slate/charcoal
-    document.querySelectorAll('.brand-logo-img').forEach(img => {
-      if (theme === 'light') {
-        img.style.filter = 'invert(1) brightness(0.15) contrast(1.1)';
-      } else {
-        img.style.filter = '';
-      }
-    });
-
-    window.dispatchEvent(new CustomEvent('bimx-theme-changed', { detail: { theme } }));
+  htmlEl.setAttribute('data-theme', theme);
+  if (theme === 'light') {
+    htmlEl.classList.remove('dark');
+    htmlEl.classList.add('light');
+  } else {
+    htmlEl.classList.remove('light');
+    htmlEl.classList.add('dark');
   }
+  localStorage.setItem('bimx_theme', theme);
 
+  // Update all theme toggle buttons across pages
   document.querySelectorAll('#themeToggleBtn, .theme-toggle-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
-    });
+    btn.classList.remove('hidden');
+    const icon = btn.querySelector('i');
+    if (icon) {
+      icon.className = theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    }
+    btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to Air Glass White' : 'Switch to Dark Mode');
+    btn.setAttribute('title', theme === 'dark' ? (currentLang === 'en' ? 'Switch to Air Glass White' : 'ნათელი თემა (Air Glass White)') : (currentLang === 'en' ? 'Switch to Dark Mode' : 'მუქი თემა'));
   });
 
-  applyTheme(currentTheme);
-
-  /* ==========================================================================
-     2. Translation Engine (Georgian & English)
-     ========================================================================== */
-  function applyLanguage(lang) {
-    const dict = (typeof translations !== 'undefined' && translations[lang]) ? translations[lang] : (window.translations && window.translations[lang]);
-    if (!dict) return;
-    currentLang = lang;
-    localStorage.setItem('bimx_lang', lang);
-
-    document.querySelectorAll('.lang-btn').forEach(btn => {
-      const isTarget = btn.getAttribute('data-lang') === lang || btn.textContent.trim().toLowerCase() === lang.toLowerCase();
-      btn.classList.toggle('active', isTarget);
-      if (isTarget) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
-    });
-
-    // Update standard navigation items
-    document.querySelectorAll('[data-path="gis-analysis"]').forEach(el => {
-      el.textContent = lang === 'en' ? 'GIS Analysis' : 'GIS ანალიზი';
-    });
-    document.querySelectorAll('[data-path="parcel-ai"]').forEach(el => {
-      el.textContent = lang === 'en' ? 'AI Analysis' : 'AI ანალიზი';
-    });
-    document.querySelectorAll('[data-path="contact"]').forEach(el => {
-      el.textContent = lang === 'en' ? 'Contact' : 'კონტაქტი';
-    });
-    document.querySelectorAll('[data-path="consultation"]').forEach(el => {
-      el.textContent = lang === 'en' ? 'Consultation' : 'კონსულტაცია';
-    });
-
-    // Mobile nav drawer links
-    document.querySelectorAll('#mobileNavDrawer a, #mobile-nav-drawer a').forEach(link => {
-      const href = link.getAttribute('href') || '';
-      if (href.includes('land-intelligence')) link.textContent = lang === 'en' ? 'GIS Analysis' : 'GIS ანალიზი';
-      else if (href.includes('parcel-ai')) link.textContent = lang === 'en' ? 'AI Analysis' : 'AI ანალიზი';
-      else if (href.includes('contact')) link.textContent = lang === 'en' ? 'Contact' : 'კონტაქტი';
-    });
-
-    // Landing Page Hero updates
-    const heroH1 = document.querySelector('#hero-section h1');
-    if (heroH1) {
-      if (lang === 'en') {
-        heroH1.innerHTML = 'Digital Engineering & BIM Technology <span class="text-secondary-fixed-dim">From Practicing</span> Engineers';
-      } else {
-        heroH1.innerHTML = 'ციფრული ინჟინერია და BIM ტექნოლოგია <span class="text-secondary-fixed-dim">პრაქტიკოსი</span> ინჟინრებისგან';
-      }
+  // Invert white logo in light mode so it appears deep architectural slate/charcoal
+  document.querySelectorAll('.brand-logo-img').forEach(img => {
+    if (theme === 'light') {
+      img.style.filter = 'invert(1) brightness(0.15) contrast(1.1)';
+    } else {
+      img.style.filter = '';
     }
-    const heroP = document.querySelector('#hero-section p');
-    if (heroP && !heroP.hasAttribute('data-i18n')) {
-      if (lang === 'en') {
-        heroP.textContent = 'Architectural and engineering modeling, international standards (ISO 19650), Clash Detection, and digital twins for large-scale developments.';
-      } else {
-        heroP.textContent = 'არქიტექტურული და საინჟინრო მოდელირება, საერთაშორისო სტანდარტები (ISO 19650), Clash Detection და ციფრული ტყუპები მასშტაბური მშენებლობებისთვის.';
-      }
-    }
-    const heroCalcBtn = document.querySelector('#hero-section a[href="#calculator"] span.relative');
-    if (heroCalcBtn) {
-      heroCalcBtn.innerHTML = (lang === 'en' ? 'Calculator' : 'კალკულატორი') + '<span class="material-symbols-outlined ml-2 text-[18px] group-hover:rotate-12 transition-transform duration-200">calculate</span>';
-    }
-    const heroServBtn = document.querySelector('#hero-section a[href="#modules"]');
-    if (heroServBtn) {
-      heroServBtn.innerHTML = (lang === 'en' ? 'Explore Services' : 'სერვისების ნახვა') + '<span class="material-symbols-outlined ml-2 text-[18px] group-hover:translate-x-1.5 transition-transform duration-200">arrow_forward</span>';
-    }
+  });
 
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-      const key = el.getAttribute('data-i18n');
-      if (dict[key]) {
-        el.textContent = dict[key];
-      }
-    });
+  window.dispatchEvent(new CustomEvent('bimx-theme-changed', { detail: { theme } }));
+};
 
-    document.querySelectorAll('[data-i18n-ph]').forEach(el => {
-      const key = el.getAttribute('data-i18n-ph');
-      if (dict[key]) {
-        el.placeholder = dict[key];
-      }
-    });
+window.toggleBimxTheme = function() {
+  window.applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+};
 
-    if (dict.meta_title) document.title = dict.meta_title;
-    const metaDesc = document.querySelector('meta[name="description"]');
-    if (metaDesc && dict.meta_desc) {
-      metaDesc.setAttribute('content', dict.meta_desc);
-    }
-
-    if (typeof updateCalculator === 'function') {
-      try { updateCalculator(); } catch (err) { /* ignore */ }
-    }
-
-    window.dispatchEvent(new CustomEvent('bimx-lang-changed', { detail: { lang } }));
-  }
+/* ==========================================================================
+   2. Global Translation Engine (Georgian & English)
+   ========================================================================== */
+window.applyLanguage = function(lang) {
+  const dict = (typeof translations !== 'undefined' && translations[lang]) ? translations[lang] : (window.translations && window.translations[lang]);
+  if (!dict) return;
+  currentLang = lang;
+  localStorage.setItem('bimx_lang', lang);
 
   document.querySelectorAll('.lang-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      const lang = btn.dataset.lang || (btn.textContent.trim().toLowerCase() === 'en' ? 'en' : 'ka');
-      applyLanguage(lang);
-    });
+    const isTarget = btn.getAttribute('data-lang') === lang || btn.textContent.trim().toLowerCase() === lang.toLowerCase();
+    btn.classList.toggle('active', isTarget);
   });
 
-  applyLanguage(currentLang);
+  // Update standard navigation items
+  document.querySelectorAll('[data-path="gis-analysis"]').forEach(el => {
+    el.textContent = lang === 'en' ? 'GIS Analysis' : 'GIS ანალიზი';
+  });
+  document.querySelectorAll('[data-path="parcel-ai"]').forEach(el => {
+    el.textContent = lang === 'en' ? 'AI Analysis' : 'AI ანალიზი';
+  });
+  document.querySelectorAll('[data-path="contact"]').forEach(el => {
+    el.textContent = lang === 'en' ? 'Contact' : 'კონტაქტი';
+  });
+  document.querySelectorAll('[data-path="consultation"]').forEach(el => {
+    el.textContent = lang === 'en' ? 'Consultation' : 'კონსულტაცია';
+  });
+
+  // Mobile nav drawer links
+  document.querySelectorAll('#mobileNavDrawer a, #mobile-nav-drawer a').forEach(link => {
+    const href = link.getAttribute('href') || '';
+    if (href.includes('land-intelligence')) link.textContent = lang === 'en' ? 'GIS Analysis' : 'GIS ანალიზი';
+    else if (href.includes('parcel-ai')) link.textContent = lang === 'en' ? 'AI Analysis' : 'AI ანალიზი';
+    else if (href.includes('contact')) link.textContent = lang === 'en' ? 'Contact' : 'კონტაქტი';
+  });
+
+  // Landing Page Hero updates
+  const heroH1 = document.querySelector('#hero-section h1');
+  if (heroH1) {
+    if (lang === 'en') {
+      heroH1.innerHTML = 'Digital Engineering & BIM Technology <span class="text-secondary-fixed-dim">From Practicing</span> Engineers';
+    } else {
+      heroH1.innerHTML = 'ციფრული ინჟინერია და BIM ტექნოლოგია <span class="text-secondary-fixed-dim">პრაქტიკოსი</span> ინჟინრებისგან';
+    }
+  }
+  const heroP = document.querySelector('#hero-section p');
+  if (heroP && !heroP.hasAttribute('data-i18n')) {
+    if (lang === 'en') {
+      heroP.textContent = 'Architectural and engineering modeling, international standards (ISO 19650), Clash Detection, and digital twins for large-scale developments.';
+    } else {
+      heroP.textContent = 'არქიტექტურული და საინჟინრო მოდელირება, საერთაშორისო სტანდარტები (ISO 19650), Clash Detection და ციფრული ტყუპები მასშტაბური მშენებლობებისთვის.';
+    }
+  }
+  const heroCalcBtn = document.querySelector('#hero-section a[href="#calculator"] span.relative');
+  if (heroCalcBtn) {
+    heroCalcBtn.innerHTML = (lang === 'en' ? 'Calculator' : 'კალკულატორი') + '<span class="material-symbols-outlined ml-2 text-[18px] group-hover:rotate-12 transition-transform duration-200">calculate</span>';
+  }
+  const heroServBtn = document.querySelector('#hero-section a[href="#modules"]');
+  if (heroServBtn) {
+    heroServBtn.innerHTML = (lang === 'en' ? 'Explore Services' : 'სერვისების ნახვა') + '<span class="material-symbols-outlined ml-2 text-[18px] group-hover:translate-x-1.5 transition-transform duration-200">arrow_forward</span>';
+  }
+
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (dict[key]) {
+      el.textContent = dict[key];
+    }
+  });
+
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+    const key = el.getAttribute('data-i18n-ph');
+    if (dict[key]) {
+      el.placeholder = dict[key];
+    }
+  });
+
+  if (dict.meta_title) document.title = dict.meta_title;
+  const metaDesc = document.querySelector('meta[name="description"]');
+  if (metaDesc && dict.meta_desc) {
+    metaDesc.setAttribute('content', dict.meta_desc);
+  }
+
+  if (typeof updateCalculator === 'function') {
+    try { updateCalculator(); } catch (err) { /* ignore */ }
+  }
+
+  window.dispatchEvent(new CustomEvent('bimx-lang-changed', { detail: { lang } }));
+};
+
+// Document-level event delegation for theme and language toggles
+document.addEventListener('click', (e) => {
+  const langBtn = e.target.closest('.lang-btn');
+  if (langBtn) {
+    e.preventDefault();
+    const lang = langBtn.getAttribute('data-lang') || (langBtn.textContent.trim().toLowerCase() === 'en' ? 'en' : 'ka');
+    if (window.applyLanguage) {
+      window.applyLanguage(lang);
+    }
+    return;
+  }
+  const themeBtn = e.target.closest('#themeToggleBtn, .theme-toggle-btn');
+  if (themeBtn) {
+    e.preventDefault();
+    if (window.toggleBimxTheme) {
+      window.toggleBimxTheme();
+    }
+    return;
+  }
+});
+
+/* ==========================================================================
+   3. Main Platform Initializer
+   ========================================================================== */
+function initBimxPlatform() {
+  window.applyTheme(currentTheme);
+  window.applyLanguage(currentLang);
 
   /* ==========================================================================
      3. Architectural Viewport Switcher (3D Model / MEP / LiDAR Scan)
@@ -838,17 +844,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loadCustomItems();
 
-  // Mobile Hamburger Toggle
-  const mobileHamburger = document.getElementById('mobileHamburger');
-  const mobileNavDrawer = document.getElementById('mobileNavDrawer');
-  if (mobileHamburger && mobileNavDrawer) {
-    mobileHamburger.addEventListener('click', () => {
+  // Mobile Hamburger Toggle for secondary drawer
+  const drawerToggleBtn = document.getElementById('mobileHamburger');
+  const mobileNavDrawer = document.getElementById('mobileNavDrawer') || document.getElementById('mobile-nav-drawer');
+  if (drawerToggleBtn && mobileNavDrawer) {
+    drawerToggleBtn.addEventListener('click', () => {
       mobileNavDrawer.classList.toggle('hidden');
-      mobileHamburger.classList.toggle('active');
+      drawerToggleBtn.classList.toggle('active');
     });
   }
 
   // Initialize
-  applyLanguage(currentLang);
-  updateCalculator();
-});
+  if (window.applyLanguage) window.applyLanguage(currentLang);
+  if (typeof updateCalculator === 'function') updateCalculator();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initBimxPlatform);
+} else {
+  initBimxPlatform();
+}

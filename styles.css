@@ -7412,3 +7412,75 @@ html.light .footer-bottom-telemetry {
   border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
   color: #64748b !important;
 }
+
+/* ==========================================================================
+   Tailwind Palette Overrides for Air Glass White (index.html & subpages)
+   ========================================================================== */
+[data-theme="light"] body,
+html.light body,
+[data-theme="light"] main,
+html.light main,
+[data-theme="light"] .bg-background,
+html.light .bg-background {
+  background-color: transparent !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .text-primary,
+html.light .text-primary {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .text-on-surface,
+html.light .text-on-surface {
+  color: #1e293b !important;
+}
+
+[data-theme="light"] .text-on-surface-variant,
+html.light .text-on-surface-variant {
+  color: #475569 !important;
+}
+
+[data-theme="light"] .text-secondary-fixed-dim,
+html.light .text-secondary-fixed-dim {
+  color: #0284c7 !important;
+}
+
+[data-theme="light"] .text-secondary,
+html.light .text-secondary {
+  color: #0369a1 !important;
+}
+
+[data-theme="light"] .bg-surface-container,
+[data-theme="light"] .bg-surface-container-low,
+[data-theme="light"] .bg-surface-container-lowest,
+[data-theme="light"] .bg-surface-container-high,
+[data-theme="light"] .bg-surface-dim,
+html.light .bg-surface-container,
+html.light .bg-surface-container-low,
+html.light .bg-surface-container-lowest,
+html.light .bg-surface-container-high,
+html.light .bg-surface-dim {
+  background-color: rgba(255, 255, 255, 0.78) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .border-outline-variant,
+[data-theme="light"] [class*="border-outline-variant"],
+[data-theme="light"] [class*="border-white"],
+html.light .border-outline-variant,
+html.light [class*="border-outline-variant"],
+html.light [class*="border-white"] {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme="light"] .stat-counter-number,
+html.light .stat-counter-number {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] [class*="bg-secondary-container"],
+html.light [class*="bg-secondary-container"] {
+  background-color: rgba(186, 218, 245, 0.25) !important;
+}
