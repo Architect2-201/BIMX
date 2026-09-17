@@ -494,6 +494,72 @@ img {
   box-shadow: 0 6px 22px rgba(161, 204, 237, 0.35) !important;
 }
 
+/* Minimal Air Glass Core System Tokens */
+.header-air-glass {
+  background: rgba(6, 8, 13, 0.75) !important;
+  backdrop-filter: blur(24px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.45) !important;
+}
+
+.nav-dock-air-glass {
+  background: rgba(10, 14, 22, 0.55) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+
+.card-air-glass {
+  background: rgba(16, 21, 32, 0.6) !important;
+  backdrop-filter: blur(24px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.09) !important;
+  box-shadow: 0 10px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.12) !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.card-air-glass:hover {
+  background: rgba(22, 30, 45, 0.75) !important;
+  border-color: rgba(161, 204, 237, 0.35) !important;
+  box-shadow: 0 20px 48px -6px rgba(0, 0, 0, 0.65), 0 0 24px -2px rgba(161, 204, 237, 0.16), inset 0 1px 0 0 rgba(255, 255, 255, 0.2) !important;
+  transform: translateY(-3px) !important;
+}
+
+.btn-air-glass-primary {
+  background: linear-gradient(135deg, rgba(245, 247, 250, 0.95), rgba(161, 204, 237, 0.88)) !important;
+  color: #06080d !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 4px 20px rgba(161, 204, 237, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(12px) !important;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.btn-air-glass-primary:hover {
+  background: #ffffff !important;
+  color: #06080d !important;
+  box-shadow: 0 8px 28px rgba(161, 204, 237, 0.4), inset 0 1px 0 #ffffff !important;
+  transform: translateY(-2px) !important;
+}
+
+.btn-air-glass-outline {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #F5F7FA !important;
+  backdrop-filter: blur(12px) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.btn-air-glass-outline:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(161, 204, 237, 0.4) !important;
+  color: #ffffff !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+}
+
 /* Mobile Hamburger */
 .mobile-hamburger {
   display: none;

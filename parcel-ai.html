@@ -18,16 +18,66 @@
   <link rel="icon" type="image/png" href="assets/images/favicon.png">
   <link rel="apple-touch-icon" href="assets/images/favicon.png">
 
+  <!-- Google Fonts & Material Symbols -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-dim": "#101319",
+            "on-surface-variant": "#c4c7cb",
+            "outline": "#8e9195",
+            "secondary-fixed-dim": "#a1cced",
+            "on-background": "#e1e2e9",
+            "on-surface": "#e1e2e9",
+            "primary": "#ffffff",
+            "secondary": "#a1cced",
+            "secondary-container": "#1d4b67",
+            "on-secondary-container": "#90badb",
+            "surface-container": "#1d2025",
+            "background": "#06080d"
+          },
+          fontFamily: {
+            "display-hero": ["Inter", "sans-serif"],
+            "headline-lg": ["Inter", "sans-serif"],
+            "body-md": ["Inter", "sans-serif"],
+            "technical-code": ["JetBrains Mono", "monospace"]
+          }
+        }
+      }
+    };
+  </script>
+
   <!-- Icons (FontAwesome) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
   <!-- Leaflet GIS Stylesheet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 
-  <!-- Site Stylesheet -->
-  <link rel="stylesheet" href="styles.css">
+  <!-- Site Stylesheet (Cache-busted) -->
+  <link rel="stylesheet" href="styles.css?v=20260917_05">
 
   <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: #06080d !important;
+      background-image: 
+        radial-gradient(circle at 50% -12%, rgba(161, 204, 237, 0.09) 0%, transparent 48%),
+        radial-gradient(circle at 95% 45%, rgba(127, 169, 201, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 5% 85%, rgba(143, 184, 154, 0.04) 0%, transparent 35%) !important;
+      background-attachment: fixed !important;
+      color: #e1e2e9;
+    }
+
 
 
     /* Floating/Docked 'ინფორმაცია' Panel - Minimal Air Glass */
@@ -969,87 +1019,87 @@
   <!-- ==========================================================================
        Header (Pristine Original Logo with Subtle Shadow)
        ========================================================================== -->
-  <header class="header" id="mainHeader">
-    <div class="container-fluid nav-layout">
-      <!-- Pristine Original Logo with Subtle Shadow -->
-      <a href="index.html" class="brand-logo-link" id="brandLogo" aria-label="BIMX Studio Home">
-        <img src="https://lh3.googleusercontent.com/aida/AEtjO1UlQpLmx3hxMLrFft0DZd9fgb_zM6MGcwAutdadGpF3vMTF4O9GXDKcqZFAVeWvxpupLDWhlmcsfzZ8xQ-LKZA1eWrX7BjUUmZ5P4TrA46ZJZL1ssPJOH6MwiSt9bTS-cIkJ4KM3Dr0Ud_lWy8u_MzNfOtA8cmvY3p-1AsglJo9lqy0tHHJ9FLTfRuVYVxllZV2iAOkS9Ssf4ZgqY6NcqnZt1FWKN8IPZE_lhjE5AVg8jkyrltPVLM-aLh_ElX224se7IL1ZAbLuqI" alt="BIMX Studio" class="brand-logo-img">
+  <!-- ==================== HEADER (Minimal Air Glass Floating System) ==================== -->
+  <header class="fixed top-0 left-0 right-0 z-50 header-air-glass transition-all duration-300" id="mainHeader">
+    <div class="h-20 w-full px-4 sm:px-6 lg:px-8 max-w-[1600px] mx-auto flex items-center justify-between gap-4">
+      <!-- Logo + Brand -->
+      <a class="flex items-center focus:outline-none group brand-logo-link" id="brandLogo" data-path="home" href="index.html" aria-label="BIMX Studio Home">
+        <img alt="BIMX Logo" class="h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-105 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] brand-logo-img" src="https://lh3.googleusercontent.com/aida/AEtjO1UlQpLmx3hxMLrFft0DZd9fgb_zM6MGcwAutdadGpF3vMTF4O9GXDKcqZFAVeWvxpupLDWhlmcsfzZ8xQ-LKZA1eWrX7BjUUmZ5P4TrA46ZJZL1ssPJOH6MwiSt9bTS-cIkJ4KM3Dr0Ud_lWy8u_MzNfOtA8cmvY3p-1AsglJo9lqy0tHHJ9FLTfRuVYVxllZV2iAOkS9Ssf4ZgqY6NcqnZt1FWKN8IPZE_lhjE5AVg8jkyrltPVLM-aLh_ElX224se7IL1ZAbLuqI">
       </a>
 
-      <!-- Desktop Nav Links -->
-      <nav>
-        <ul class="nav-links-list" id="navLinksList">
-          <li><a href="index.html" class="nav-link-item" data-i18n="nav_home">მთავარი</a></li>
-          <li><a href="index.html#services" class="nav-link-item" data-i18n="nav_services">სერვისები</a></li>
-          <li><a href="apps.html" class="nav-link-item" data-i18n="nav_apps">აპლიკაციები</a></li>
-          <li><a href="plugins.html" class="nav-link-item" data-i18n="nav_plugins">პლაგინები</a></li>
-          <li><a href="land-intelligence.html" class="nav-link-item" data-i18n="nav_land_intel" style="color: var(--secondary-accent, #7FA9C9); font-weight: 600;">GIS ანალიზი</a></li>
-          <li><a href="parcel-ai.html" class="nav-link-item active" data-i18n="nav_parcel_ai" style="color: var(--primary-accent, #DCE8F5); font-weight: 700;">AI ანალიზი</a></li>
-          <li><a href="index.html#projects" class="nav-link-item" data-i18n="nav_portfolio">პროექტები</a></li>
-          <li><a href="index.html#calculator" class="nav-link-item" data-i18n="nav_calc">კალკულატორი</a></li>
-          <li><a href="index.html#contact" class="nav-link-item" data-i18n="nav_contact">კონტაქტი</a></li>
-        </ul>
+      <!-- Desktop Navigation -->
+      <nav class="hidden lg:flex items-center gap-1 p-1 nav-dock-air-glass rounded-xl" id="navLinksList" data-active-classes="bg-white/10 text-white font-medium rounded-lg shadow-inner border border-white/10">
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="home" href="index.html">მთავარი</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="services" href="index.html#modules">სერვისები</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="apps" href="apps.html">აპლიკაციები</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="plugins" href="plugins.html">პლაგინები</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="gis-analysis" href="land-intelligence.html">GIS ანალიზი</a>
+        <a aria-current="page" class="nav-link px-3 py-2 transition-all bg-white/10 text-white font-semibold rounded-lg shadow-inner border border-white/15 active text-sm" data-path="parcel-ai" href="parcel-ai.html">AI ანალიზი</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="projects" href="index.html#projects">პროექტები</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="calculator" href="index.html#calculator">კალკულატორი</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="contact" href="index.html#contact">კონტაქტი</a>
       </nav>
 
       <!-- Actions Group -->
-      <div class="nav-actions-group">
+      <div class="flex items-center gap-3">
         <!-- Language Switcher -->
-        <div class="lang-switch-box">
-          <button type="button" class="lang-btn active" data-lang="ka">KA</button>
-          <span style="color: var(--text-muted); opacity: 0.4;">/</span>
-          <button type="button" class="lang-btn" data-lang="en">EN</button>
+        <div class="lang-switch-box flex items-center p-0.5 bg-black/40 backdrop-blur-md border border-white/10 rounded-lg">
+          <button class="lang-btn active px-2.5 py-1 rounded text-xs font-mono bg-white/15 text-white font-semibold shadow-sm transition-all active:scale-95" type="button" data-lang="ka">KA</button>
+          <button class="lang-btn px-2.5 py-1 rounded text-xs font-mono text-slate-400 hover:text-white transition-all active:scale-95" type="button" data-lang="en">EN</button>
         </div>
 
-        <!-- Theme Toggle -->
-        <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle Light/Dark Theme">
-          <i class="fa-regular fa-sun"></i>
-        </button>
+        <!-- Hidden Theme Toggle for JS compatibility -->
+        <button type="button" class="theme-toggle-btn hidden" id="themeToggleBtn" aria-label="Toggle Theme"></button>
 
-        <a href="index.html#contact" class="btn-pill btn-pill-primary header-cta-btn" data-i18n="nav_cta">კონსულტაცია</a>
+        <!-- Consultation CTA -->
+        <a class="hidden sm:inline-flex items-center justify-center h-10 px-5 rounded-lg text-sm font-semibold btn-air-glass-primary active:scale-95 transition-all duration-200" data-path="consultation" href="index.html#contact">კონსულტაცია</a>
 
-        <!-- Mobile Hamburger -->
-        <button class="mobile-hamburger" id="mobileHamburger" aria-label="Toggle mobile menu">
-          <span></span>
-          <span></span>
-          <span></span>
+        <!-- User Profile Avatar -->
+        <div class="w-8 h-8 rounded-full bg-white/10 border border-white/15 flex items-center justify-center flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-secondary transition-all active:scale-95">
+          <span class="material-symbols-outlined text-white text-[18px]">person</span>
+        </div>
+
+        <!-- Mobile Hamburger Button -->
+        <button id="mobileHamburger" type="button" class="lg:hidden p-2 rounded-lg bg-white/5 text-slate-200 hover:text-white border border-white/10 flex items-center justify-center" aria-label="Toggle mobile menu">
+          <span class="material-symbols-outlined text-[24px]">menu</span>
         </button>
       </div>
     </div>
   </header>
 
   <!-- Mobile Drawer Menu -->
-  <div id="mobileNavDrawer" class="mobile-nav-drawer-glass hidden">
-    <a class="drawer-link" href="index.html">მთავარი</a>
-    <a class="drawer-link" href="index.html#services">სერვისები</a>
-    <a class="drawer-link" href="apps.html">აპლიკაციები</a>
-    <a class="drawer-link" href="plugins.html">პლაგინები</a>
-    <a class="drawer-link" href="land-intelligence.html" style="color: var(--cyan-neon);">GIS ანალიზი</a>
-    <a class="drawer-link active" href="parcel-ai.html" style="color: #60a5fa;">AI ანალიზი (საკადასტრო)</a>
-    <a class="drawer-link" href="index.html#projects">პროექტები</a>
-    <a class="drawer-link" href="index.html#calculator">კალკულატორი</a>
-    <a class="drawer-link" href="index.html#contact">კონტაქტი</a>
+  <div id="mobileNavDrawer" class="mobile-nav-drawer-glass fixed inset-x-0 top-20 z-40 p-4 border-b border-white/10 bg-slate-950/95 backdrop-blur-2xl hidden flex flex-col gap-2 shadow-2xl">
+    <a class="drawer-link px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5" href="index.html">მთავარი</a>
+    <a class="drawer-link px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5" href="index.html#services">სერვისები</a>
+    <a class="drawer-link px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5" href="apps.html">აპლიკაციები</a>
+    <a class="drawer-link px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5" href="plugins.html">პლაგინები</a>
+    <a class="drawer-link px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5" href="land-intelligence.html">GIS ანალიზი</a>
+    <a class="drawer-link px-3 py-2 rounded-lg text-sm font-semibold text-white bg-white/10 border border-white/10" href="parcel-ai.html">AI ანალიზი</a>
+    <a class="drawer-link px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5" href="index.html#projects">პროექტები</a>
+    <a class="drawer-link px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5" href="index.html#calculator">კალკულატორი</a>
+    <a class="drawer-link px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5" href="index.html#contact">კონტაქტი</a>
   </div>
 
   <!-- ==========================================================================
        Top Introduction Banner & Official Process Disclaimer
        ========================================================================== -->
-  <section class="parcel-top-intro">
-    <div class="container-fluid">
-      <div class="intro-flex">
+  <section class="parcel-top-intro" style="padding-top: 96px; padding-bottom: 12px; background: transparent;">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 py-2 border-b border-white/10">
         <div>
-          <div class="label-hud">
-            <span class="hud-dot"></span>
-            <span>PROPTECH &amp; CONTECH GIS ENGINE</span>
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-2">
+            <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span>
+            <span class="text-xs font-mono font-medium tracking-wider text-sky-300 uppercase">PROPTECH &amp; CONTECH GIS ENGINE</span>
           </div>
-          <h1 class="parcel-main-heading" data-i18n="parcel_main_title">ნაკვეთის AI ანალიზი</h1>
-          <p class="parcel-main-lead" data-i18n="parcel_main_desc">
+          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-1" data-i18n="parcel_main_title">ნაკვეთის AI ანალიზი</h1>
+          <p class="text-sm text-slate-400 max-w-2xl leading-relaxed" data-i18n="parcel_main_desc">
             შეიყვანე საკადასტრო კოდი, ნახე ნაკვეთი, გააანალიზე მისი სივრცითი მონაცემები და შექმენი შენობის საწყისი 3D კონცეფცია.
           </p>
         </div>
 
         <!-- System Status Banner (Item 13 in user requirements) -->
-        <div class="banner-system-status">
-          <i class="fa-solid fa-shield-halved"></i>
+        <div class="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs font-medium backdrop-blur-md self-start lg:self-center">
+          <i class="fa-solid fa-shield-halved text-amber-400 text-sm"></i>
           <span data-i18n="process_warning">ეს სისტემა არ აგზავნის განაცხადს ავტომატურად მუნიციპალიტეტში.</span>
         </div>
       </div>
