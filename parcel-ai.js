@@ -729,31 +729,67 @@ document.addEventListener('DOMContentLoaded', () => {
       '05': { name: 'ბათუმი', lat: 41.645, lng: 41.641 },
       '07': { name: 'ქობულეთი', lat: 41.821, lng: 41.775 },
       '08': { name: 'ხელვაჩაური', lat: 41.585, lng: 41.668 },
-      '10': { name: 'გორი', lat: 41.985, lng: 44.111 },
-      '11': { name: 'კასპი', lat: 41.925, lng: 44.426 },
-      '12': { name: 'ქარელი', lat: 42.023, lng: 43.896 },
-      '13': { name: 'ხაშური', lat: 41.996, lng: 43.599 },
-      '14': { name: 'ბორჯომი', lat: 41.839, lng: 43.385 },
-      '15': { name: 'ახალციხე', lat: 41.639, lng: 42.983 },
-      '20': { name: 'თელავი', lat: 41.919, lng: 45.474 },
-      '21': { name: 'გურჯაანი', lat: 41.745, lng: 45.799 },
-      '22': { name: 'სიღნაღი', lat: 41.621, lng: 45.923 },
-      '23': { name: 'ყვარელი', lat: 41.954, lng: 45.815 },
-      '24': { name: 'საგარეჯო', lat: 41.733, lng: 45.333 },
-      '30': { name: 'მცხეთა', lat: 41.843, lng: 44.721 },
-      '31': { name: 'დუშეთი', lat: 42.085, lng: 44.697 },
-      '40': { name: 'ზესტაფონი', lat: 42.110, lng: 43.036 },
-      '41': { name: 'სამტრედია', lat: 42.158, lng: 42.342 },
-      '43': { name: 'საჩხერე', lat: 42.343, lng: 43.418 },
-      '45': { name: 'წყალტუბო', lat: 42.327, lng: 42.597 },
-      '50': { name: 'ზუგდიდი', lat: 42.508, lng: 41.870 },
-      '51': { name: 'სენაკი', lat: 42.268, lng: 42.067 },
-      '52': { name: 'მარტვილი', lat: 42.414, lng: 42.378 },
-      '60': { name: 'ოზურგეთი', lat: 41.926, lng: 42.000 },
-      '61': { name: 'ლანჩხუთი', lat: 42.087, lng: 42.036 },
-      '72': { name: 'საგარეჯო', lat: 41.733, lng: 45.333 },
-      '73': { name: 'მარნეული', lat: 41.478, lng: 44.808 },
-      '74': { name: 'ბოლნისი', lat: 41.448, lng: 44.545 }
+      '09': { name: 'ქედა', lat: 41.601, lng: 41.940 },
+      '10': { name: 'შუახევი', lat: 41.625, lng: 42.185 },
+      '11': { name: 'ხულო', lat: 41.644, lng: 42.316 },
+      '20': { name: 'ხაშური', lat: 41.996, lng: 43.599 },
+      '21': { name: 'ბორჯომი', lat: 41.838, lng: 43.385 },
+      '22': { name: 'ახალციხე', lat: 41.640, lng: 42.983 },
+      '23': { name: 'ახალქალაქი', lat: 41.405, lng: 43.486 },
+      '24': { name: 'ნინოწმინდა', lat: 41.265, lng: 43.590 },
+      '25': { name: 'ასპინძა', lat: 41.574, lng: 43.248 },
+      '26': { name: 'ადიგენი', lat: 41.677, lng: 42.700 },
+      '30': { name: 'კასპი', lat: 41.925, lng: 44.425 },
+      '31': { name: 'ქარელი', lat: 42.023, lng: 43.896 },
+      '32': { name: 'გორი', lat: 41.984, lng: 44.114 },
+      '33': { name: 'ხაშური', lat: 41.996, lng: 43.599 },
+      '40': { name: 'მესტია', lat: 43.045, lng: 42.729 },
+      '41': { name: 'ზუგდიდი', lat: 42.508, lng: 41.870 },
+      '42': { name: 'სენაკი', lat: 42.269, lng: 42.067 },
+      '43': { name: 'ფოთი', lat: 42.146, lng: 41.672 },
+      '44': { name: 'აბაშა', lat: 42.203, lng: 42.203 },
+      '45': { name: 'მარტვილი', lat: 42.414, lng: 42.378 },
+      '46': { name: 'ხობი', lat: 42.316, lng: 41.898 },
+      '47': { name: 'წალენჯიხა', lat: 42.610, lng: 42.071 },
+      '48': { name: 'ჩხოროწყუ', lat: 42.527, lng: 42.131 },
+      '49': { name: 'მესტია', lat: 43.045, lng: 42.729 },
+      '50': { name: 'ოზურგეთი', lat: 41.926, lng: 42.000 },
+      '51': { name: 'ლანჩხუთი', lat: 42.087, lng: 42.035 },
+      '52': { name: 'ჩოხატაური', lat: 42.018, lng: 42.239 },
+      '60': { name: 'ამბროლაური', lat: 42.520, lng: 43.149 },
+      '61': { name: 'ონი', lat: 42.585, lng: 43.442 },
+      '62': { name: 'ცაგერი', lat: 42.648, lng: 42.770 },
+      '63': { name: 'ლენტეხი', lat: 42.788, lng: 42.723 },
+      '64': { name: 'თელავი', lat: 41.919, lng: 45.473 },
+      '65': { name: 'ახმეტა', lat: 42.036, lng: 45.207 },
+      '66': { name: 'გურჯაანი', lat: 41.745, lng: 45.798 },
+      '67': { name: 'საგარეჯო', lat: 41.733, lng: 45.333 },
+      '68': { name: 'სიღნაღი', lat: 41.621, lng: 45.922 },
+      '69': { name: 'დედოფლისწყარო', lat: 41.465, lng: 46.104 },
+      '70': { name: 'ლაგოდეხი', lat: 41.824, lng: 46.277 },
+      '71': { name: 'ყვარელი', lat: 41.951, lng: 45.816 },
+      '72': { name: 'მცხეთა', lat: 41.844, lng: 44.718 },
+      '73': { name: 'დუშეთი', lat: 42.052, lng: 44.697 },
+      '74': { name: 'ყაზბეგი', lat: 42.658, lng: 44.641 },
+      '75': { name: 'თიანეთი', lat: 42.109, lng: 44.963 },
+      '76': { name: 'სტეფანწმინდა', lat: 42.658, lng: 44.641 },
+      '80': { name: 'რუსთავი', lat: 41.549, lng: 45.018 },
+      '81': { name: 'მარნეული', lat: 41.476, lng: 44.810 },
+      '82': { name: 'ბოლნისი', lat: 41.448, lng: 44.545 },
+      '83': { name: 'დმანისი', lat: 41.332, lng: 44.347 },
+      '84': { name: 'გარდაბანი', lat: 41.460, lng: 45.092 },
+      '85': { name: 'თეთრიწყარო', lat: 41.544, lng: 44.463 },
+      '86': { name: 'წალკა', lat: 41.595, lng: 44.089 },
+      '90': { name: 'სამტრედია', lat: 42.162, lng: 42.336 },
+      '91': { name: 'წყალტუბო', lat: 42.327, lng: 42.600 },
+      '92': { name: 'ზესტაფონი', lat: 42.109, lng: 43.036 },
+      '93': { name: 'თერჯოლა', lat: 42.179, lng: 42.977 },
+      '94': { name: 'ბაღდათი', lat: 42.068, lng: 42.825 },
+      '95': { name: 'ვანი', lat: 42.083, lng: 42.502 },
+      '96': { name: 'ხონი', lat: 42.321, lng: 42.424 },
+      '97': { name: 'ჭიათურა', lat: 42.290, lng: 43.284 },
+      '98': { name: 'ტყიბული', lat: 42.348, lng: 42.997 },
+      '99': { name: 'საჩხერე', lat: 42.343, lng: 43.418 }
     };
 
     const regData = GEORGIA_REGIONS[region] || { name: 'საქართველო', lat: 41.724, lng: 44.768 };
@@ -762,21 +798,25 @@ document.addEventListener('DOMContentLoaded', () => {
     let districtName = regData.name;
 
     if (region === '01') {
-      if (district === '10' || district === '14') {
-        baseLat = 41.724; baseLng = 44.768; districtName = 'ვაკე-საბურთალო';
-      } else if (district === '15') {
-        baseLat = 41.731; baseLng = 44.785; districtName = 'დიდუბე-ჩუღურეთი';
-      } else if (district === '17') {
-        baseLat = 41.696; baseLng = 44.798; districtName = 'მთაწმინდა';
-      } else if (district === '19') {
-        baseLat = 41.692; baseLng = 44.842; districtName = 'ისანი-სამგორი';
-      } else if (district === '11') {
-        baseLat = 41.789; baseLng = 44.817; districtName = 'გლდანი-მუხიანი';
-      } else if (district === '18') {
-        baseLat = 41.798; baseLng = 44.820; districtName = 'ნაძალადევი';
-      } else {
-        baseLat = 41.785; baseLng = 44.754; districtName = 'დიდი დიღომი';
-      }
+      const TBS_DISTRICTS = {
+        '10': { lat: 41.717, lng: 44.776, name: 'ვაკე' },
+        '11': { lat: 41.789, lng: 44.817, name: 'გლდანი' },
+        '12': { lat: 41.692, lng: 44.826, name: 'კრწანისი' },
+        '13': { lat: 41.708, lng: 44.835, name: 'ავლაბარი' },
+        '14': { lat: 41.731, lng: 44.776, name: 'საბურთალო' },
+        '15': { lat: 41.740, lng: 44.793, name: 'დიდუბე' },
+        '16': { lat: 41.730, lng: 44.800, name: 'ჩუღურეთი' },
+        '17': { lat: 41.696, lng: 44.798, name: 'მთაწმინდა' },
+        '18': { lat: 41.789, lng: 44.813, name: 'ნაძალადევი' },
+        '19': { lat: 41.692, lng: 44.842, name: 'ისანი-სამგორი' },
+        '20': { lat: 41.785, lng: 44.754, name: 'დიდი დიღომი' },
+        '21': { lat: 41.760, lng: 44.755, name: 'დიღომი' },
+        '22': { lat: 41.746, lng: 44.763, name: 'სანზონა' },
+        '23': { lat: 41.718, lng: 44.752, name: 'ვაშლიჯვარი' }
+      };
+      const d = TBS_DISTRICTS[district];
+      if (d) { baseLat = d.lat; baseLng = d.lng; districtName = d.name; }
+      else { baseLat = 41.720; baseLng = 44.780; districtName = 'თბილისი'; }
     }
 
     const hash = Math.abs(sector * 37 + block * 17 + parcelNum) % 500;
@@ -990,14 +1030,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       let proxyRes = null;
-      try {
-        proxyRes = await fetch(`/api/parcel?code=${encodeURIComponent(code)}`);
-      } catch (netErr) {
-        // If running on a static server (e.g. port 5500 or 8080), try connecting to local BIMX server
-        if (window.location.port !== '3000') {
-          try {
-            proxyRes = await fetch(`http://localhost:3000/api/parcel?code=${encodeURIComponent(code)}`);
-          } catch (p3Err) {}
+      const queryEndpoints = [
+        `/api/parcel?code=${encodeURIComponent(code)}`,
+        `http://localhost:3000/api/parcel?code=${encodeURIComponent(code)}`,
+        `http://127.0.0.1:3000/api/parcel?code=${encodeURIComponent(code)}`
+      ];
+
+      for (const ep of queryEndpoints) {
+        try {
+          const res = await fetch(ep);
+          if (res.ok) {
+            const ct = res.headers.get('content-type') || '';
+            if (ct.includes('application/json')) {
+              proxyRes = res;
+              break;
+            }
+          }
+        } catch (netErr) {
+          // ignore and try next fallback endpoint
         }
       }
 
@@ -1168,6 +1218,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // For combined / 3d / 2d modes: explicitly re-apply the mode so 3D and 2D
         // panels are refreshed and building groups become visible for the new parcel.
         setMode(state.currentMode);
+      }
+
+      // If Architectural Sections / Masterplan Modal is currently open, refresh drawing for new parcel
+      const archModal = document.getElementById('archSectionsModalOverlay');
+      if (archModal && archModal.style.display === 'flex' && typeof renderArchSectionsSvg === 'function') {
+        renderArchSectionsSvg();
       }
       return;
     }
@@ -15296,6 +15352,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showAxes: true,
     showLevels: true,
     showCompass: true,
+    showLabels: true,
     isDrawingRoad: false,
     drawnRoadMeters: [],
     roadWidth: 6.0,
@@ -15442,6 +15499,12 @@ document.addEventListener('DOMContentLoaded', () => {
       asmState.showCompass = !asmState.showCompass;
       const el = document.getElementById('asmToggleCompass');
       if (el) el.classList.toggle('active', asmState.showCompass);
+    } else if (layer === 'labels') {
+      asmState.showLabels = !asmState.showLabels;
+      const el = document.getElementById('asmToggleLabels');
+      if (el) el.classList.toggle('active', asmState.showLabels);
+      const hudEl = document.getElementById('asmHudBtnLabels');
+      if (hudEl) hudEl.classList.toggle('active', asmState.showLabels);
     }
     renderArchSectionsSvg();
   }
@@ -15691,30 +15754,210 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function printArchSectionSvg() {
     const svgEl = document.querySelector('#asmDrawingStage svg');
-    if (!svgEl) return;
-    const svgHtml = svgEl.outerHTML;
-    const printWin = window.open('', '_blank', 'width=1100,height=750');
-    if (!printWin) return;
-    printWin.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>საარქიტექტურო ნახაზი — ${asmState.activeTab}</title>
-        <style>
-          body { margin: 0; padding: 20px; background: #fff; display: flex; align-items: center; justify-content: center; font-family: sans-serif; }
-          svg { max-width: 100%; height: auto; }
-          @media print { body { padding: 0; } }
-        </style>
-      </head>
-      <body>
-        ${svgHtml}
-        <script>
-          window.onload = function() { window.print(); window.close(); };
-        <\/script>
-      </body>
-      </html>
-    `);
-    printWin.document.close();
+    if (!svgEl) {
+      alert('ნახაზი ჯერ არ არის გენერირებული. გახსენით გენგეგმა ან ჭრილი პირველ რიგში.');
+      return;
+    }
+
+    const tabNames = {
+      section_a: 'ჭრილი A-A (განივი)',
+      section_b: 'ჭრილი B-B (გრძივი)',
+      facade_south: 'ფასადი 1 (სამხრეთი)',
+      facade_east: 'ფასადი 2 (აღმოსავლეთი)',
+      masterplan: 'გენერალური გეგმა (M 1:500)'
+    };
+    const tabLabel = tabNames[asmState.activeTab] || asmState.activeTab;
+    const parcelCode = (typeof state !== 'undefined' && state.activeParcel?.code) || '01.14.11.059.039';
+    const address = (typeof state !== 'undefined' && state.activeParcel?.address) || '';
+
+    // Clone SVG and prepare for print
+    const svgClone = svgEl.cloneNode(true);
+    svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    svgClone.removeAttribute('id');
+    svgClone.style.width = '100%';
+    svgClone.style.height = 'auto';
+    svgClone.style.display = 'block';
+
+    // Reset pan & zoom transform so printed architectural drawing is centered and full scale
+    const zoomGroup = svgClone.querySelector('#asmZoomPanGroup');
+    if (zoomGroup) {
+      zoomGroup.setAttribute('transform', 'translate(0, 0) scale(1)');
+    }
+
+    const printHtml = `<!DOCTYPE html>
+<html lang="ka">
+<head>
+  <meta charset="UTF-8">
+  <title>BIMX Studio — ${tabLabel} (${parcelCode})</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    @page { size: A3 landscape; margin: 8mm; }
+    body {
+      background: #05070c;
+      color: #e2e8f0;
+      font-family: 'Inter', -apple-system, sans-serif;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .print-bar {
+      width: 100%;
+      max-width: 1200px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 8px 16px;
+      margin-bottom: 12px;
+    }
+    .print-bar h2 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+    .print-bar span {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      margin-left: 8px;
+    }
+    .print-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-action {
+      background: #0284c7;
+      color: #fff;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-action.close-btn {
+      background: #334155;
+    }
+    .drawing-container {
+      width: 100%;
+      max-width: 1200px;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #030509;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .print-footer {
+      margin-top: 10px;
+      font-size: 10px;
+      color: #64748b;
+      font-family: 'JetBrains Mono', monospace;
+      text-align: center;
+    }
+    @media print {
+      body { background: #000 !important; padding: 0 !important; }
+      .print-bar { display: none !important; }
+      .drawing-container { border: none !important; box-shadow: none !important; max-width: 100% !important; border-radius: 0 !important; }
+      .print-footer { color: #94a3b8 !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-bar">
+    <div>
+      <h2>BIMX Studio — ${tabLabel}</h2>
+      <span>${parcelCode} ${address ? '• ' + address : ''}</span>
+    </div>
+    <div class="print-actions">
+      <button class="btn-action" onclick="window.print()">🖨 ბეჭდვა / PDF</button>
+      <button class="btn-action close-btn" onclick="window.close()">✕ დახურვა</button>
+    </div>
+  </div>
+  <div class="drawing-container">
+    ${svgClone.outerHTML}
+  </div>
+  <div class="print-footer">BIMX Architecture Studio | bimx.ge | ${new Date().toLocaleDateString('ka-GE')}</div>
+  <script>
+    function triggerPrint() {
+      try {
+        window.focus();
+        window.print();
+      } catch(e) {
+        console.warn(e);
+      }
+    }
+    if (document.readyState === 'complete') {
+      setTimeout(triggerPrint, 250);
+    } else {
+      window.addEventListener('load', () => setTimeout(triggerPrint, 250));
+      setTimeout(triggerPrint, 600);
+    }
+  <\/script>
+</body>
+</html>`;
+
+    const blob = new Blob([printHtml], { type: 'text/html;charset=utf-8' });
+    const blobUrl = URL.createObjectURL(blob);
+
+    let printWin = null;
+    try {
+      printWin = window.open(blobUrl, '_blank');
+    } catch(e) {
+      console.warn('window.open blocked:', e);
+    }
+
+    if (printWin) {
+      setTimeout(() => {
+        try {
+          printWin.focus();
+          printWin.print();
+        } catch(e) {}
+      }, 500);
+      return;
+    }
+
+    // Fallback if popups blocked: invisible iframe print
+    let iframe = document.getElementById('bimxPrintIframe');
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = 'bimxPrintIframe';
+      iframe.style.position = 'fixed';
+      iframe.style.top = '0';
+      iframe.style.left = '0';
+      iframe.style.width = '100vw';
+      iframe.style.height = '100vh';
+      iframe.style.zIndex = '999999';
+      iframe.style.background = '#030509';
+      iframe.style.border = 'none';
+      iframe.style.opacity = '0';
+      iframe.style.pointerEvents = 'none';
+      document.body.appendChild(iframe);
+    }
+    iframe.src = blobUrl;
+    iframe.onload = () => {
+      setTimeout(() => {
+        try {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+        } catch (err) {
+          console.error('Iframe print error:', err);
+          window.print();
+        }
+      }, 400);
+    };
   }
 
   // --- Real Project Geometries & Offset Calculations ---
@@ -16469,11 +16712,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const polyStr = eb.meters.map(p => `${toSvgX(p.x).toFixed(1)},${toSvgY(p.y).toFixed(1)}`).join(' ');
         const avgX = eb.meters.reduce((s, p) => s + p.x, 0) / eb.meters.length;
         const avgY = eb.meters.reduce((s, p) => s + p.y, 0) / eb.meters.length;
+        const lx = toSvgX(avgX);
+        const ly = toSvgY(avgY);
         return `
           <g class="asm-mp-existing-bldg">
-            <polygon points="${polyStr}" fill="rgba(100, 116, 139, 0.35)" stroke="#94a3b8" stroke-width="2" stroke-dasharray="5 3" />
-            <text x="${toSvgX(avgX)}" y="${toSvgY(avgY) - 5}" fill="#e2e8f0" font-size="9.5" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">${eb.name}</text>
-            <text x="${toSvgX(avgX)}" y="${toSvgY(avgY) + 10}" fill="#94a3b8" font-size="8.5" font-family="'JetBrains Mono', monospace" text-anchor="middle">${eb.area} მ² (${eb.floors} სართ.)</text>
+            <polygon points="${polyStr}" fill="rgba(100, 116, 139, 0.35)" stroke="#94a3b8" stroke-width="1.8" stroke-dasharray="5 3" />
+            ${asmState.showLabels ? `
+              <rect x="${lx - 52}" y="${ly - 14}" width="104" height="26" rx="4" fill="rgba(5, 7, 12, 0.82)" stroke="rgba(148, 163, 184, 0.3)" stroke-width="0.8" />
+              <text x="${lx}" y="${ly - 2}" fill="#f1f5f9" font-size="8.5" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">${eb.name}</text>
+              <text x="${lx}" y="${ly + 8.5}" fill="#94a3b8" font-size="7.5" font-family="'JetBrains Mono', monospace" text-anchor="middle">${eb.area} მ² (${eb.floors} სართ.)</text>
+            ` : ''}
           </g>
         `;
       }).join('');
@@ -16507,9 +16755,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <!-- Centerline -->
             <polyline points="${polyLinePts}" fill="none" stroke="#f8fafc" stroke-width="1.2" stroke-dasharray="6 4" opacity="0.8" />
             <!-- Label -->
-            <text x="${toSvgX(midPt.x)}" y="${toSvgY(midPt.y) - 6}" fill="#38bdf8" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">
-              ${r.name} (${r.width}მ)
-            </text>
+            ${asmState.showLabels ? `<text x="${toSvgX(midPt.x)}" y="${toSvgY(midPt.y) - 6}" fill="#38bdf8" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">${r.name} (${r.width}მ)</text>` : ''}
           </g>
         `;
       }).join('');
@@ -16575,9 +16821,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const content = `
       <!-- Title Block -->
       <g class="asm-title-block">
-        <text x="50" y="48" fill="#94a3b8" font-size="11" font-family="'JetBrains Mono', monospace" font-weight="600">${d.cadastralCode} • ${d.address}</text>
+        ${asmState.showLabels ? `<text x="50" y="48" fill="#94a3b8" font-size="11" font-family="'JetBrains Mono', monospace" font-weight="600">${d.cadastralCode} • ${d.address}</text>` : ''}
         <text x="50" y="74" fill="#00f0ff" font-size="16" font-family="'Inter', sans-serif" font-weight="800" letter-spacing="0.5">გენერალური გეგმა (SITE MASTERPLAN M ${activeScaleStr})</text>
-        <text x="50" y="94" fill="#64748b" font-size="10.5" font-family="'Inter', sans-serif">მასშტაბი: ${activeScaleStr} | ნაკვეთის ფართი: ${d.parcel?.area || d.parcel?.landArea || (typeof state !== 'undefined' && state.activeParcel?.area) || 1200} მ² | ზონა: ${d.zoneCode} (${d.zoneName}) | K1=${d.k1} K2=${d.k2} K3=${d.k3}</text>
+        ${asmState.showLabels ? `<text x="50" y="94" fill="#64748b" font-size="10.5" font-family="'Inter', sans-serif">მასშტაბი: ${activeScaleStr} | ნაკვეთის ფართი: ${d.parcel?.area || d.parcel?.landArea || (typeof state !== 'undefined' && state.activeParcel?.area) || 1200} მ² | ზონა: ${d.zoneCode} (${d.zoneName}) | K1=${d.k1} K2=${d.k2} K3=${d.k3}</text>` : ''}
       </g>
 
       <!-- Roads (Asphalt bands & markings) -->
@@ -16591,7 +16837,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <!-- Real Setback Boundary (${setbackDist}m) -->
       <g class="asm-mp-setbacks">
         <polygon points="${setbackPtsStr}" fill="rgba(239, 68, 68, 0.03)" stroke="#ef4444" stroke-width="1.6" stroke-dasharray="6 4" />
-        ${asmState.showDimensions ? `
+        ${(asmState.showDimensions && asmState.showLabels) ? `
           <text x="${toSvgX(cxMeters)}" y="${toSvgY(b.maxY) - 8}" fill="#ef4444" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">საკადასტრო მიჯნა (${setbackDist.toFixed(1)}მ)</text>
         ` : ''}
       </g>
@@ -16602,8 +16848,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <!-- Real Proposed / Drawn Building Footprint -->
       <g class="asm-mp-active-bldg">
         <polygon points="${bldgPtsStr}" fill="rgba(0, 240, 255, 0.22)" stroke="#00f0ff" stroke-width="2.5" />
-        <text x="${bldgSvgX}" y="${bldgSvgY - 7}" fill="#ffffff" font-size="11" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">${bldgStatusLabel}</text>
-        ${asmState.showDimensions ? `
+        ${asmState.showLabels ? `<text x="${bldgSvgX}" y="${bldgSvgY - 7}" fill="#ffffff" font-size="11" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">${bldgStatusLabel}</text>` : ''}
+        ${(asmState.showDimensions && asmState.showLabels) ? `
           <text x="${bldgSvgX}" y="${bldgSvgY + 11}" fill="#00f0ff" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">S = ${d.footprintArea} მ² (${(Number(d.bldgLength) || 15).toFixed(1)} × ${(Number(d.bldgWidth) || 15).toFixed(1)}მ)</text>
         ` : ''}
       </g>
@@ -16615,9 +16861,9 @@ document.addEventListener('DOMContentLoaded', () => {
       ${asmState.showLevels ? `
         <g class="asm-mp-levels">
           <circle cx="${toSvgX(b.minX)}" cy="${toSvgY(b.minY)}" r="4" fill="#f59e0b" stroke="#ffffff" stroke-width="1.5" />
-          <text x="${toSvgX(b.minX) + 8}" y="${toSvgY(b.minY) + 4}" fill="#fbbf24" font-size="8.5" font-family="'JetBrains Mono', monospace" font-weight="700">▼ H: ${(d.terrainElev || 467.0).toFixed(1)}მ (ზ.დ.)</text>
+          ${asmState.showLabels ? `<text x="${toSvgX(b.minX) + 8}" y="${toSvgY(b.minY) + 4}" fill="#fbbf24" font-size="8.5" font-family="'JetBrains Mono', monospace" font-weight="700">▼ H: ${(d.terrainElev || 467.0).toFixed(1)}მ (ზ.დ.)</text>` : ''}
           <circle cx="${bldgSvgX}" cy="${bldgSvgY + 28}" r="3.5" fill="#f59e0b" stroke="#ffffff" stroke-width="1" />
-          <text x="${bldgSvgX}" y="${bldgSvgY + 40}" fill="#fbbf24" font-size="8.5" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">±0.00 = ${(d.terrainElev || 467.0).toFixed(1)}მ</text>
+          ${asmState.showLabels ? `<text x="${bldgSvgX}" y="${bldgSvgY + 40}" fill="#fbbf24" font-size="8.5" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">±0.00 = ${(d.terrainElev || 467.0).toFixed(1)}მ</text>` : ''}
         </g>
       ` : ''}
 
@@ -16659,6 +16905,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnClose = document.getElementById('asmBtnClose');
     if (btnClose) btnClose.addEventListener('click', closeArchSectionsModal);
 
+    // Wire Print button explicitly
+    const btnPrint = document.getElementById('asmBtnPrint');
+    if (btnPrint) {
+      btnPrint.addEventListener('click', (e) => {
+        e.preventDefault();
+        printArchSectionSvg();
+      });
+    }
+
+    // Wire Layer Toggle buttons explicitly
+    const btnLabels = document.getElementById('asmToggleLabels');
+    if (btnLabels) btnLabels.addEventListener('click', () => toggleArchSectionLayer('labels'));
+    const hudLabels = document.getElementById('asmHudBtnLabels');
+    if (hudLabels) hudLabels.addEventListener('click', () => toggleArchSectionLayer('labels'));
+
+    const btnDim = document.getElementById('asmToggleDim');
+    if (btnDim) btnDim.addEventListener('click', () => toggleArchSectionLayer('dim'));
+    const btnAxes = document.getElementById('asmToggleAxes');
+    if (btnAxes) btnAxes.addEventListener('click', () => toggleArchSectionLayer('axes'));
+    const btnLevels = document.getElementById('asmToggleLevels');
+    if (btnLevels) btnLevels.addEventListener('click', () => toggleArchSectionLayer('levels'));
+    const btnCompass = document.getElementById('asmToggleCompass');
+    if (btnCompass) btnCompass.addEventListener('click', () => toggleArchSectionLayer('compass'));
+
+    // Wire Export & Copy buttons
+    const btnCopy = document.getElementById('asmBtnCopy');
+    if (btnCopy) btnCopy.addEventListener('click', copyArchSectionSvg);
+    const btnExportSvg = document.getElementById('asmBtnExportSvg');
+    if (btnExportSvg) btnExportSvg.addEventListener('click', exportArchSectionSvg);
+
     const overlay = document.getElementById('archSectionsModalOverlay');
     if (overlay) {
       overlay.addEventListener('click', (e) => {
@@ -16667,12 +16943,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && overlay && overlay.style.display === 'flex') {
+      if (!overlay || overlay.style.display !== 'flex') return;
+
+      if (e.key === 'Escape') {
         if (asmState.isDrawingRoad) {
           cancelArchMasterplanRoadDraw();
         } else {
           closeArchSectionsModal();
         }
+      } else if (e.key === 'l' || e.key === 'L' || e.key === 'ლ') {
+        toggleArchSectionLayer('labels');
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
+        e.preventDefault();
+        printArchSectionSvg();
+      } else if (e.key === '1') {
+        switchArchSectionTab('section_a');
+      } else if (e.key === '2') {
+        switchArchSectionTab('section_b');
+      } else if (e.key === '3') {
+        switchArchSectionTab('facade_south');
+      } else if (e.key === '4') {
+        switchArchSectionTab('facade_east');
+      } else if (e.key === '5') {
+        switchArchSectionTab('masterplan');
       }
     });
 

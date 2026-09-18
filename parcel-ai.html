@@ -1163,6 +1163,7 @@
           <!-- Sample Official Parcels Dropdown for Instant Testing -->
           <select class="sample-parcels-select" id="sampleParcelsSelect" aria-label="Sample official parcels">
             <option value="" disabled selected data-i18n="parcel_sample_lbl">საჯარო რეესტრის (NAPR) ნაკვეთები</option>
+            <option value="01.14.11.059.039">თბილისი, გიორგი შატბერაშვილის ქ. #5 (9,407 მ² · 01.14.11.059.039)</option>
             <option value="01.15.02.038.003">თბილისი, ვასილ ბარნოვის ქ. #10ა (420 მ² · 01.15.02.038.003)</option>
             <option value="01.16.01.013.031">თბილისი, ჩუღურეთი, ჯავახიშვილის ქ. #89 (554 მ² · 01.16.01.013.031)</option>
             <option value="01.14.03.005.001">თბილისი, ვაჟა-ფშაველას გამზ. II კვ. (723 მ² · 01.14.03.005.001)</option>
@@ -4087,6 +4088,10 @@
           <button type="button" class="asm-toggle-btn asm-toggle-compass active" id="asmToggleCompass" onclick="toggleArchSectionLayer('compass')" title="ჩრდილოეთის მაჩვენებელი">
             <i class="fa-regular fa-compass"></i>
           </button>
+          <button type="button" class="asm-toggle-btn active asm-toggle-labels" id="asmToggleLabels" data-layer="labels" onclick="toggleArchSectionLayer('labels')" title="წარწერების ჩართვა/გათიშვა (ტექსტური ანოტაციები)">
+            <i class="fa-solid fa-font"></i>
+            <span>წარწერები</span>
+          </button>
         </div>
       </div>
 
@@ -4126,6 +4131,10 @@
           </button>
           <button type="button" class="asm-zoom-btn" id="asmBtnZoomReset" onclick="archZoomReset()" title="ხედის გასწორება (Fit / Reset)">
             <i class="fa-solid fa-arrows-to-dot"></i>
+          </button>
+          <div class="asm-hud-divider" style="width: 1px; height: 16px; background: rgba(255,255,255,0.15); margin: 0 4px;"></div>
+          <button type="button" class="asm-zoom-btn asm-hud-btn-labels active" id="asmHudBtnLabels" onclick="toggleArchSectionLayer('labels')" title="წარწერების ჩართვა/გათიშვა (ტექსტური ანოტაციები) [L]">
+            <i class="fa-solid fa-font"></i>
           </button>
         </div>
 

@@ -8961,6 +8961,13 @@ html.light .asm-tab-btn,
   background: rgba(239, 68, 68, 0.14);
 }
 
+.asm-toggle-labels.active {
+  border-color: #38bdf8;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.14);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+}
+
 /* Canvas Area */
 .asm-canvas-wrap {
   flex: 1;
@@ -9271,6 +9278,13 @@ html.light .asm-zoom-btn:hover,
   color: #38bdf8;
   min-width: 44px;
   text-align: center;
+}
+
+.asm-hud-btn-labels.active {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: #38bdf8;
+  color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
 }
 
 @media (max-width: 900px) {
