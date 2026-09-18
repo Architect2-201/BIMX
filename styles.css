@@ -8583,6 +8583,102 @@ html.light .asm-title,
   font-family: 'JetBrains Mono', monospace;
 }
 
+/* Interactive Scale Picker Dropdown */
+.asm-scale-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(2, 132, 199, 0.18);
+  border: 1px solid #0284c7;
+  border-radius: 6px;
+  padding: 2px 8px;
+  transition: all 0.2s ease;
+  color: #38bdf8;
+  font-size: 0.74rem;
+}
+.asm-scale-picker:hover {
+  background: rgba(2, 132, 199, 0.3);
+  border-color: #38bdf8;
+}
+.asm-scale-select {
+  background: transparent;
+  border: none;
+  color: #38bdf8;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  padding: 0;
+}
+.asm-scale-select option {
+  background: #0d1420;
+  color: #f8fafc;
+}
+html.light .asm-scale-picker,
+[data-theme="light"] .asm-scale-picker {
+  background: rgba(2, 132, 199, 0.1);
+  border-color: #0284c7;
+  color: #0369a1;
+}
+html.light .asm-scale-select,
+[data-theme="light"] .asm-scale-select {
+  color: #0369a1;
+}
+html.light .asm-scale-select option,
+[data-theme="light"] .asm-scale-select option {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+/* Setback (სამეზობლო მიჯნა) interactive control */
+.asm-setback-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #fca5a5;
+  transition: all 0.15s ease;
+}
+.asm-setback-control:hover {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.18);
+}
+.asm-setback-input {
+  width: 44px;
+  background: rgba(15, 23, 42, 0.9) !important;
+  border: 1px solid rgba(239, 68, 68, 0.5) !important;
+  color: #ffffff !important;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-align: center;
+  border-radius: 4px;
+  padding: 2px 3px;
+  outline: none;
+}
+.asm-setback-input:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+}
+html.light .asm-setback-control,
+[data-theme="light"] .asm-setback-control {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #b91c1c;
+}
+html.light .asm-setback-input,
+[data-theme="light"] .asm-setback-input {
+  background: #ffffff;
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #0f172a;
+}
+
 .asm-badge-cadastral {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.15);

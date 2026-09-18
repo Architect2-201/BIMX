@@ -15299,6 +15299,8 @@ document.addEventListener('DOMContentLoaded', () => {
     isDrawingRoad: false,
     drawnRoadMeters: [],
     roadWidth: 6.0,
+    setbackMeters: 3.0,
+    customScale: null,
     fromSvgProj: null,
     toSvgX: null,
     toSvgY: null,
@@ -15339,6 +15341,25 @@ document.addEventListener('DOMContentLoaded', () => {
     applyArchZoomPanTransform();
   }
 
+  function updateArchSetbackDistance(val) {
+    const num = parseFloat(val);
+    if (isNaN(num) || num < 0) return;
+    asmState.setbackMeters = Math.max(0, Math.min(50, num));
+    const input = document.getElementById('asmSetbackInput');
+    if (input && document.activeElement !== input) input.value = asmState.setbackMeters;
+    renderArchSectionsSvg();
+  }
+
+  function changeArchSectionScale(scaleStr) {
+    if (!scaleStr) return;
+    asmState.customScale = scaleStr;
+    const elScaleSelect = document.getElementById('asmScaleSelect');
+    if (elScaleSelect) elScaleSelect.value = scaleStr;
+    const elScaleBadge = document.getElementById('asmScaleBadge');
+    if (elScaleBadge) elScaleBadge.textContent = scaleStr;
+    renderArchSectionsSvg();
+  }
+
   function openArchSectionsModal() {
     const overlay = document.getElementById('archSectionsModalOverlay');
     if (!overlay) return;
@@ -15376,14 +15397,20 @@ document.addEventListener('DOMContentLoaded', () => {
       b.classList.toggle('active', b.dataset.tab === tab);
     });
 
-    const elBadgeScale = document.getElementById('asmScaleBadge');
-    if (elBadgeScale) {
-      elBadgeScale.textContent = (tab === 'masterplan' ? '1:500' : '1:100');
-    }
+    const activeScale = asmState.customScale || (tab === 'masterplan' ? '1:500' : '1:100');
+    const elScaleSelect = document.getElementById('asmScaleSelect');
+    if (elScaleSelect) elScaleSelect.value = activeScale;
+    const elScaleBadge = document.getElementById('asmScaleBadge');
+    if (elScaleBadge) elScaleBadge.textContent = activeScale;
 
     const roadBtn = document.getElementById('asmBtnDrawRoad');
     if (roadBtn) {
       roadBtn.style.display = (tab === 'masterplan' ? 'inline-flex' : 'none');
+    }
+
+    const setbackControl = document.getElementById('asmSetbackControl');
+    if (setbackControl) {
+      setbackControl.style.display = (tab === 'masterplan' ? 'inline-flex' : 'none');
     }
 
     renderArchSectionsSvg();
@@ -15756,7 +15783,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const minPy = Math.min(...parcelMeters.map(p => p.y));
     const maxPy = Math.max(...parcelMeters.map(p => p.y));
 
-    const setbackMeters = computePolygonInwardOffset(parcelMeters, 3.0);
+    const setbackDist = typeof asmState.setbackMeters === 'number' ? asmState.setbackMeters : 3.0;
+    const setbackMeters = computePolygonInwardOffset(parcelMeters, setbackDist);
 
     // Existing structures on parcel
     const existingBldgs = [];
@@ -15842,6 +15870,7 @@ document.addEventListener('DOMContentLoaded', () => {
       parcelMeters,
       parcelBounds: { minX: minPx, maxX: maxPx, minY: minPy, maxY: maxPy },
       setbackMeters,
+      setbackDist,
       existingBldgs,
       activeBldg: bldg,
       activeBldgMeters,
@@ -16395,7 +16424,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const availW = 780;
     const availH = 460;
-    const scale = Math.min(availW / (spanX * 1.25), availH / (spanY * 1.25));
+    const baseFitScale = Math.min(availW / (spanX * 1.25), availH / (spanY * 1.25));
+
+    const activeScaleStr = asmState.customScale || '1:500';
+    const scaleDenom = parseInt(activeScaleStr.split(':')[1] || '500', 10);
+    const scaleRatio = 500 / Math.max(20, scaleDenom);
+    const scale = baseFitScale * scaleRatio;
 
     const cxMeters = (b.minX + b.maxX) / 2;
     const cyMeters = (b.minY + b.maxY) / 2;
@@ -16411,10 +16445,12 @@ document.addEventListener('DOMContentLoaded', () => {
       y: cyMeters - (sy - 360) / scale
     });
 
+    const setbackDist = typeof geo.setbackDist === 'number' ? geo.setbackDist : (asmState.setbackMeters || 3.0);
+
     // 1. Real Parcel Boundary
     const parcelPtsStr = geo.parcelMeters.map(p => `${toSvgX(p.x).toFixed(1)},${toSvgY(p.y).toFixed(1)}`).join(' ');
 
-    // 2. Real 3m Setback Boundary
+    // 2. Real Setback Boundary (${setbackDist}m)
     const setbackPtsStr = geo.setbackMeters.map(p => `${toSvgX(p.x).toFixed(1)},${toSvgY(p.y).toFixed(1)}`).join(' ');
 
     // 3. Existing Buildings on Parcel
@@ -16515,9 +16551,15 @@ document.addEventListener('DOMContentLoaded', () => {
       </g>
     ` : '';
 
-    // 8. Scale Bar (M 1:500 CAD graphic bar)
-    const scaleBarMeters = 20; // 20m
+    // 8. Graphic Scale Bar (adaptive to active scale)
+    let scaleBarMeters = 20;
+    if (scaleDenom <= 100) scaleBarMeters = 5;
+    else if (scaleDenom <= 250) scaleBarMeters = 10;
+    else if (scaleDenom <= 500) scaleBarMeters = 20;
+    else scaleBarMeters = 50;
+
     const scaleBarPx = scaleBarMeters * scale;
+    const halfMeters = (scaleBarMeters / 2).toFixed(scaleBarMeters < 5 ? 1 : 0);
     const sbX = 50;
     const sbY = svgH - 45;
 
@@ -16525,8 +16567,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <!-- Title Block -->
       <g class="asm-title-block">
         <text x="50" y="48" fill="#94a3b8" font-size="11" font-family="'JetBrains Mono', monospace" font-weight="600">${d.cadastralCode} • ${d.address}</text>
-        <text x="50" y="74" fill="#00f0ff" font-size="16" font-family="'Inter', sans-serif" font-weight="800" letter-spacing="0.5">გენერალური გეგმა (SITE MASTERPLAN M 1:500)</text>
-        <text x="50" y="94" fill="#64748b" font-size="10.5" font-family="'Inter', sans-serif">მასშტაბი: 1:500 | ნაკვეთის ფართი: ${d.parcel?.area || d.parcel?.landArea || (typeof state !== 'undefined' && state.activeParcel?.area) || 1200} მ² | ზონა: ${d.zoneCode} (${d.zoneName}) | K1=${d.k1} K2=${d.k2} K3=${d.k3}</text>
+        <text x="50" y="74" fill="#00f0ff" font-size="16" font-family="'Inter', sans-serif" font-weight="800" letter-spacing="0.5">გენერალური გეგმა (SITE MASTERPLAN M ${activeScaleStr})</text>
+        <text x="50" y="94" fill="#64748b" font-size="10.5" font-family="'Inter', sans-serif">მასშტაბი: ${activeScaleStr} | ნაკვეთის ფართი: ${d.parcel?.area || d.parcel?.landArea || (typeof state !== 'undefined' && state.activeParcel?.area) || 1200} მ² | ზონა: ${d.zoneCode} (${d.zoneName}) | K1=${d.k1} K2=${d.k2} K3=${d.k3}</text>
       </g>
 
       <!-- Roads (Asphalt bands & markings) -->
@@ -16537,10 +16579,12 @@ document.addEventListener('DOMContentLoaded', () => {
         <polygon points="${parcelPtsStr}" fill="rgba(16, 185, 129, 0.06)" stroke="#10b981" stroke-width="2.5" stroke-dasharray="8 5" />
       </g>
 
-      <!-- Real 3m Setback Boundary -->
+      <!-- Real Setback Boundary (${setbackDist}m) -->
       <g class="asm-mp-setbacks">
         <polygon points="${setbackPtsStr}" fill="rgba(239, 68, 68, 0.03)" stroke="#ef4444" stroke-width="1.6" stroke-dasharray="6 4" />
-        <text x="${toSvgX(cxMeters)}" y="${toSvgY(b.maxY) - 8}" fill="#ef4444" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">საკადასტრო მიჯნა (3მ)</text>
+        ${asmState.showDimensions ? `
+          <text x="${toSvgX(cxMeters)}" y="${toSvgY(b.maxY) - 8}" fill="#ef4444" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">საკადასტრო მიჯნა (${setbackDist.toFixed(1)}მ)</text>
+        ` : ''}
       </g>
 
       <!-- Existing Buildings on Parcel -->
@@ -16550,16 +16594,28 @@ document.addEventListener('DOMContentLoaded', () => {
       <g class="asm-mp-active-bldg">
         <polygon points="${bldgPtsStr}" fill="rgba(0, 240, 255, 0.22)" stroke="#00f0ff" stroke-width="2.5" />
         <text x="${bldgSvgX}" y="${bldgSvgY - 7}" fill="#ffffff" font-size="11" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">${bldgStatusLabel}</text>
-        <text x="${bldgSvgX}" y="${bldgSvgY + 11}" fill="#00f0ff" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">S = ${d.footprintArea} მ² (${(Number(d.bldgLength) || 15).toFixed(1)} × ${(Number(d.bldgWidth) || 15).toFixed(1)}მ)</text>
+        ${asmState.showDimensions ? `
+          <text x="${bldgSvgX}" y="${bldgSvgY + 11}" fill="#00f0ff" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">S = ${d.footprintArea} მ² (${(Number(d.bldgLength) || 15).toFixed(1)} × ${(Number(d.bldgWidth) || 15).toFixed(1)}მ)</text>
+        ` : ''}
       </g>
 
       <!-- Grid Axes Across Footprint -->
       ${axesMarkup}
 
+      <!-- Elevation Levels / Benchmarks -->
+      ${asmState.showLevels ? `
+        <g class="asm-mp-levels">
+          <circle cx="${toSvgX(b.minX)}" cy="${toSvgY(b.minY)}" r="4" fill="#f59e0b" stroke="#ffffff" stroke-width="1.5" />
+          <text x="${toSvgX(b.minX) + 8}" y="${toSvgY(b.minY) + 4}" fill="#fbbf24" font-size="8.5" font-family="'JetBrains Mono', monospace" font-weight="700">▼ H: ${(d.terrainElev || 467.0).toFixed(1)}მ (ზ.დ.)</text>
+          <circle cx="${bldgSvgX}" cy="${bldgSvgY + 28}" r="3.5" fill="#f59e0b" stroke="#ffffff" stroke-width="1" />
+          <text x="${bldgSvgX}" y="${bldgSvgY + 40}" fill="#fbbf24" font-size="8.5" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">±0.00 = ${(d.terrainElev || 467.0).toFixed(1)}მ</text>
+        </g>
+      ` : ''}
+
       <!-- Live Road Drawing in Progress Preview -->
       ${roadDrawingLiveMarkup}
 
-      <!-- Graphic Scale Bar (M 1:500) -->
+      <!-- Graphic Scale Bar -->
       <g class="asm-mp-scale-bar" transform="translate(${sbX}, ${sbY})">
         <rect x="0" y="0" width="${scaleBarPx}" height="4" fill="#64748b" />
         <rect x="0" y="0" width="${scaleBarPx / 2}" height="4" fill="#00f0ff" />
@@ -16567,8 +16623,8 @@ document.addEventListener('DOMContentLoaded', () => {
         <line x1="${scaleBarPx / 2}" y1="-3" x2="${scaleBarPx / 2}" y2="7" stroke="#94a3b8" stroke-width="1.5" />
         <line x1="${scaleBarPx}" y1="-3" x2="${scaleBarPx}" y2="7" stroke="#94a3b8" stroke-width="1.5" />
         <text x="0" y="-6" fill="#94a3b8" font-size="8" font-family="'JetBrains Mono', monospace">0</text>
-        <text x="${scaleBarPx / 2}" y="-6" fill="#94a3b8" font-size="8" font-family="'JetBrains Mono', monospace" text-anchor="middle">10მ</text>
-        <text x="${scaleBarPx}" y="-6" fill="#94a3b8" font-size="8" font-family="'JetBrains Mono', monospace" text-anchor="middle">20მ (M 1:500)</text>
+        <text x="${scaleBarPx / 2}" y="-6" fill="#94a3b8" font-size="8" font-family="'JetBrains Mono', monospace" text-anchor="middle">${halfMeters}მ</text>
+        <text x="${scaleBarPx}" y="-6" fill="#94a3b8" font-size="8" font-family="'JetBrains Mono', monospace" text-anchor="middle">${scaleBarMeters}მ (M ${activeScaleStr})</text>
       </g>
     `;
 
@@ -16611,51 +16667,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Tab buttons
-    document.querySelectorAll('.asm-tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const tab = btn.dataset.tab;
-        if (!tab) return;
-        switchArchSectionTab(tab);
-      });
-    });
-
-    // Layer toggle buttons
-    const toggleDim = document.getElementById('asmToggleDim');
-    if (toggleDim) toggleDim.addEventListener('click', () => toggleArchSectionLayer('dim'));
-
-    const toggleAxes = document.getElementById('asmToggleAxes');
-    if (toggleAxes) toggleAxes.addEventListener('click', () => toggleArchSectionLayer('axes'));
-
-    const toggleLevels = document.getElementById('asmToggleLevels');
-    if (toggleLevels) toggleLevels.addEventListener('click', () => toggleArchSectionLayer('levels'));
-
-    const toggleCompass = document.getElementById('asmToggleCompass');
-    if (toggleCompass) toggleCompass.addEventListener('click', () => toggleArchSectionLayer('compass'));
-
-    // Road Draw Button
-    const btnRoadDraw = document.getElementById('asmBtnDrawRoad');
-    if (btnRoadDraw) btnRoadDraw.addEventListener('click', toggleArchMasterplanRoadDraw);
-
-    // Export SVG Button
-    const btnExportSvg = document.getElementById('asmBtnExportSvg');
-    if (btnExportSvg) btnExportSvg.addEventListener('click', exportArchSectionSvg);
-
-    // Copy Drawing Button
-    const btnCopy = document.getElementById('asmBtnCopy');
-    if (btnCopy) btnCopy.addEventListener('click', copyArchSectionSvg);
-
-    // Print Drawing Button
-    const btnPrint = document.getElementById('asmBtnPrint');
-    if (btnPrint) btnPrint.addEventListener('click', printArchSectionSvg);
-
-    // Zoom & Pan Buttons
-    const btnZoomIn = document.getElementById('asmBtnZoomIn');
-    if (btnZoomIn) btnZoomIn.addEventListener('click', archZoomIn);
-    const btnZoomOut = document.getElementById('asmBtnZoomOut');
-    if (btnZoomOut) btnZoomOut.addEventListener('click', archZoomOut);
-    const btnZoomReset = document.getElementById('asmBtnZoomReset');
-    if (btnZoomReset) btnZoomReset.addEventListener('click', archZoomReset);
+    // Sync input initial state
+    const inputSetback = document.getElementById('asmSetbackInput');
+    if (inputSetback) inputSetback.value = asmState.setbackMeters;
+    const selectScale = document.getElementById('asmScaleSelect');
+    if (selectScale) selectScale.value = asmState.customScale || '1:100';
   }
 
   window.openArchSectionsModal = openArchSectionsModal;
@@ -16675,6 +16691,8 @@ document.addEventListener('DOMContentLoaded', () => {
   window.archZoomIn = archZoomIn;
   window.archZoomOut = archZoomOut;
   window.archZoomReset = archZoomReset;
+  window.updateArchSetbackDistance = updateArchSetbackDistance;
+  window.changeArchSectionScale = changeArchSectionScale;
   window.searchParcel = searchParcel;
   window.setMode = setMode;
 

@@ -4004,7 +4004,16 @@
           <div class="asm-header-text">
             <div class="asm-header-title-row">
               <h2 class="asm-title" id="asmModalTitle">საარქიტექტურო ჭრილები &amp; ფასადები</h2>
-              <span class="asm-badge-scale" id="asmScaleBadge">1:100</span>
+              <div class="asm-scale-picker" id="asmScalePicker" title="ნახაზის მასშტაბის შეცვლა">
+                <i class="fa-solid fa-ruler-combined"></i>
+                <select id="asmScaleSelect" class="asm-scale-select" onchange="changeArchSectionScale(this.value)">
+                  <option value="1:50">1:50</option>
+                  <option value="1:100" selected>1:100</option>
+                  <option value="1:200">1:200</option>
+                  <option value="1:500">1:500</option>
+                  <option value="1:1000">1:1000</option>
+                </select>
+              </div>
               <span class="asm-badge-cadastral" id="asmCadastralBadge">01.15.02.038.003</span>
             </div>
             <p class="asm-subtitle">ორთოგონალური 2D საპროექტო ნახაზები, სიმაღლის ნიშნულები და საკოორდინატო ღერძები</p>
@@ -4049,12 +4058,18 @@
           </button>
         </div>
 
-        <!-- Layer Display Toggles -->
+        <!-- Layer Display Toggles & Setback Control -->
         <div class="asm-toggles-group">
           <button type="button" class="asm-toggle-btn asm-btn-road-draw" id="asmBtnDrawRoad" onclick="toggleArchMasterplanRoadDraw()" title="გენგეგმაზე გზის დახაზვა">
             <i class="fa-solid fa-road"></i>
             <span>+ გზა</span>
           </button>
+          <div class="asm-setback-control" id="asmSetbackControl" title="სამეზობლო მიჯნის საზღვარი (დაშორება მეტრებში)">
+            <i class="fa-solid fa-arrows-left-right-to-line" style="color: #f87171;"></i>
+            <span>მიჯნა:</span>
+            <input type="number" id="asmSetbackInput" class="asm-setback-input" min="0" max="30" step="0.5" value="3.0" onchange="updateArchSetbackDistance(this.value)" oninput="updateArchSetbackDistance(this.value)">
+            <span>მ</span>
+          </div>
           <button type="button" class="asm-toggle-btn active asm-toggle-dim" id="asmToggleDim" data-layer="dim" onclick="toggleArchSectionLayer('dim')" title="ზომების ჩართვა/გათიშვა">
             <i class="fa-solid fa-ruler-horizontal"></i>
             <span>ზომები</span>
