@@ -15350,6 +15350,15 @@ document.addEventListener('DOMContentLoaded', () => {
     renderArchSectionsSvg();
   }
 
+  function stepArchSetback(delta) {
+    const current = typeof asmState.setbackMeters === 'number' ? asmState.setbackMeters : 3.0;
+    const nextVal = Math.max(0, Math.min(50, Math.round((current + delta) * 10) / 10));
+    asmState.setbackMeters = nextVal;
+    const input = document.getElementById('asmSetbackInput');
+    if (input) input.value = nextVal.toFixed(1);
+    renderArchSectionsSvg();
+  }
+
   function changeArchSectionScale(scaleStr) {
     if (!scaleStr) return;
     asmState.customScale = scaleStr;
@@ -16692,6 +16701,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.archZoomOut = archZoomOut;
   window.archZoomReset = archZoomReset;
   window.updateArchSetbackDistance = updateArchSetbackDistance;
+  window.stepArchSetback = stepArchSetback;
   window.changeArchSectionScale = changeArchSectionScale;
   window.searchParcel = searchParcel;
   window.setMode = setMode;

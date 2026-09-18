@@ -4066,9 +4066,11 @@
           </button>
           <div class="asm-setback-control" id="asmSetbackControl" title="სამეზობლო მიჯნის საზღვარი (დაშორება მეტრებში)">
             <i class="fa-solid fa-arrows-left-right-to-line" style="color: #f87171;"></i>
-            <span>მიჯნა:</span>
-            <input type="number" id="asmSetbackInput" class="asm-setback-input" min="0" max="30" step="0.5" value="3.0" onchange="updateArchSetbackDistance(this.value)" oninput="updateArchSetbackDistance(this.value)">
-            <span>მ</span>
+            <span class="asm-setback-label">მიჯნა:</span>
+            <button type="button" class="asm-setback-step-btn" onclick="stepArchSetback(-0.5)" title="-0.5 მ">−</button>
+            <input type="text" inputmode="decimal" id="asmSetbackInput" class="asm-setback-input" value="3.0" onchange="updateArchSetbackDistance(this.value)" oninput="updateArchSetbackDistance(this.value)">
+            <button type="button" class="asm-setback-step-btn" onclick="stepArchSetback(0.5)" title="+0.5 მ">+</button>
+            <span class="asm-setback-unit">მ</span>
           </div>
           <button type="button" class="asm-toggle-btn active asm-toggle-dim" id="asmToggleDim" data-layer="dim" onclick="toggleArchSectionLayer('dim')" title="ზომების ჩართვა/გათიშვა">
             <i class="fa-solid fa-ruler-horizontal"></i>
