@@ -15722,6 +15722,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ` : '';
 
     const d = {
+      parcel,
       cadastralCode,
       address,
       zoneCode,
@@ -15748,26 +15749,37 @@ document.addEventListener('DOMContentLoaded', () => {
     let vbWidth = 1080;
     let vbHeight = 680;
 
-    if (asmState.activeTab === 'section_a') {
-      const res = buildSectionASvg(d);
-      drawingContent = res.content;
-      vbHeight = res.height;
-    } else if (asmState.activeTab === 'section_b') {
-      const res = buildSectionBSvg(d);
-      drawingContent = res.content;
-      vbHeight = res.height;
-    } else if (asmState.activeTab === 'facade_south') {
-      const res = buildFacadeSouthSvg(d);
-      drawingContent = res.content;
-      vbHeight = res.height;
-    } else if (asmState.activeTab === 'facade_east') {
-      const res = buildFacadeEastSvg(d);
-      drawingContent = res.content;
-      vbHeight = res.height;
-    } else if (asmState.activeTab === 'masterplan') {
-      const res = buildMasterplanSvg(d);
-      drawingContent = res.content;
-      vbHeight = res.height;
+    try {
+      if (asmState.activeTab === 'section_a') {
+        const res = buildSectionASvg(d);
+        drawingContent = res.content;
+        vbHeight = res.height;
+      } else if (asmState.activeTab === 'section_b') {
+        const res = buildSectionBSvg(d);
+        drawingContent = res.content;
+        vbHeight = res.height;
+      } else if (asmState.activeTab === 'facade_south') {
+        const res = buildFacadeSouthSvg(d);
+        drawingContent = res.content;
+        vbHeight = res.height;
+      } else if (asmState.activeTab === 'facade_east') {
+        const res = buildFacadeEastSvg(d);
+        drawingContent = res.content;
+        vbHeight = res.height;
+      } else if (asmState.activeTab === 'masterplan') {
+        const res = buildMasterplanSvg(d);
+        drawingContent = res.content;
+        vbHeight = res.height;
+      }
+    } catch (tabRenderErr) {
+      console.error('[ArchSections] Error rendering tab:', asmState.activeTab, tabRenderErr);
+      drawingContent = `
+        <g transform="translate(540, 320)">
+          <rect x="-240" y="-50" width="480" height="100" rx="12" fill="rgba(239, 68, 68, 0.15)" stroke="#ef4444" stroke-width="1.5" />
+          <text x="0" y="-12" fill="#ef4444" font-size="14" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">ნახაზის გენერირების შეცდომა</text>
+          <text x="0" y="16" fill="#fca5a5" font-size="11" font-family="'JetBrains Mono', monospace" text-anchor="middle">${(tabRenderErr && tabRenderErr.message) || tabRenderErr}</text>
+        </g>
+      `;
     }
 
     stage.innerHTML = `
@@ -16301,7 +16313,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <g class="asm-title-block">
         <text x="50" y="48" fill="#94a3b8" font-size="11" font-family="'JetBrains Mono', monospace" font-weight="600">${d.cadastralCode} • ${d.address}</text>
         <text x="50" y="74" fill="#00f0ff" font-size="16" font-family="'Inter', sans-serif" font-weight="800" letter-spacing="0.5">გენერალური გეგმა (SITE MASTERPLAN M 1:500)</text>
-        <text x="50" y="94" fill="#64748b" font-size="10.5" font-family="'Inter', sans-serif">მასშტაბი: 1:500 | ნაკვეთის ფართი: ${d.parcel.area || 1200} მ² | ზონა: ${d.zoneCode} (${d.zoneName}) | K1=${d.k1} K2=${d.k2} K3=${d.k3}</text>
+        <text x="50" y="94" fill="#64748b" font-size="10.5" font-family="'Inter', sans-serif">მასშტაბი: 1:500 | ნაკვეთის ფართი: ${d.parcel?.area || d.parcel?.landArea || (typeof state !== 'undefined' && state.activeParcel?.area) || 1200} მ² | ზონა: ${d.zoneCode} (${d.zoneName}) | K1=${d.k1} K2=${d.k2} K3=${d.k3}</text>
       </g>
 
       <!-- Roads (Asphalt bands & markings) -->
@@ -16325,7 +16337,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <g class="asm-mp-active-bldg">
         <polygon points="${bldgPtsStr}" fill="rgba(0, 240, 255, 0.22)" stroke="#00f0ff" stroke-width="2.5" />
         <text x="${bldgSvgX}" y="${bldgSvgY - 7}" fill="#ffffff" font-size="11" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">${bldgStatusLabel}</text>
-        <text x="${bldgSvgX}" y="${bldgSvgY + 11}" fill="#00f0ff" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">S = ${d.footprintArea} მ² (${d.bldgLength.toFixed(1)} × ${d.bldgWidth.toFixed(1)}მ)</text>
+        <text x="${bldgSvgX}" y="${bldgSvgY + 11}" fill="#00f0ff" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">S = ${d.footprintArea} მ² (${(Number(d.bldgLength) || 15).toFixed(1)} × ${(Number(d.bldgWidth) || 15).toFixed(1)}მ)</text>
       </g>
 
       <!-- Grid Axes Across Footprint -->
@@ -16434,6 +16446,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.finishArchMasterplanRoadDraw = finishArchMasterplanRoadDraw;
   window.undoArchMasterplanRoadPoint = undoArchMasterplanRoadPoint;
   window.cancelArchMasterplanRoadDraw = cancelArchMasterplanRoadDraw;
+  window.handleMasterplanSvgClick = handleMasterplanSvgClick;
   window.copyArchSectionSvg = copyArchSectionSvg;
   window.exportArchSectionSvg = exportArchSectionSvg;
   window.printArchSectionSvg = printArchSectionSvg;
