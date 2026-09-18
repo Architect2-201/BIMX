@@ -4051,6 +4051,10 @@
 
         <!-- Layer Display Toggles -->
         <div class="asm-toggles-group">
+          <button type="button" class="asm-toggle-btn asm-btn-road-draw" id="asmBtnDrawRoad" onclick="toggleArchMasterplanRoadDraw()" title="გენგეგმაზე გზის დახაზვა">
+            <i class="fa-solid fa-road"></i>
+            <span>+ გზა</span>
+          </button>
           <button type="button" class="asm-toggle-btn active asm-toggle-dim" id="asmToggleDim" data-layer="dim" onclick="toggleArchSectionLayer('dim')" title="ზომების ჩართვა/გათიშვა">
             <i class="fa-solid fa-ruler-horizontal"></i>
             <span>ზომები</span>
@@ -4071,6 +4075,29 @@
 
       <!-- Main Drawing Viewport Canvas -->
       <div class="asm-canvas-wrap" id="asmCanvasWrap">
+        <!-- Floating Road Drawing HUD for Masterplan -->
+        <div class="asm-road-draw-hud" id="asmRoadDrawHud" style="display: none;">
+          <div class="asm-rd-title">
+            <i class="fa-solid fa-pen-ruler"></i>
+            <span>გზის დახაზვა:</span>
+          </div>
+          <span class="asm-rd-hint">დააკლიკეთ გენგეგმაზე (<strong id="asmRoadPtsCount" style="color: #38bdf8;">0</strong> წერტილი)</span>
+          <div class="asm-rd-width-wrap">
+            <span>სიგანე:</span>
+            <input type="number" id="asmRoadWidthInput" min="3" max="15" step="0.5" value="6.0" style="width: 48px;">
+            <span>მ</span>
+          </div>
+          <button type="button" class="asm-rd-btn asm-rd-finish" onclick="finishArchMasterplanRoadDraw()" title="გზის დასრულება">
+            <i class="fa-solid fa-check"></i> დასრულება
+          </button>
+          <button type="button" class="asm-rd-btn asm-rd-undo" onclick="undoArchMasterplanRoadPoint()" title="ბოლო წერტილის გაუქმება">
+            <i class="fa-solid fa-rotate-left"></i> უკან
+          </button>
+          <button type="button" class="asm-rd-btn asm-rd-cancel" onclick="cancelArchMasterplanRoadDraw()" title="გაუქმება">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
         <div class="asm-drawing-stage" id="asmDrawingStage">
           <!-- Dynamic SVG injected here -->
         </div>

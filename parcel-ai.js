@@ -15223,7 +15223,11 @@ document.addEventListener('DOMContentLoaded', () => {
     showDimensions: true,
     showAxes: true,
     showLevels: true,
-    showCompass: true
+    showCompass: true,
+    isDrawingRoad: false,
+    drawnRoadMeters: [],
+    roadWidth: 6.0,
+    fromSvgProj: null
   };
 
   function openArchSectionsModal() {
@@ -15243,14 +15247,31 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!overlay) return;
     overlay.style.display = 'none';
     document.body.style.overflow = '';
+    if (asmState.isDrawingRoad) {
+      cancelArchMasterplanRoadDraw();
+    }
   }
 
   function switchArchSectionTab(tab) {
     if (!tab) return;
+    if (asmState.activeTab === 'masterplan' && tab !== 'masterplan' && asmState.isDrawingRoad) {
+      cancelArchMasterplanRoadDraw();
+    }
     asmState.activeTab = tab;
     document.querySelectorAll('.asm-tab-btn').forEach(b => {
       b.classList.toggle('active', b.dataset.tab === tab);
     });
+
+    const elBadgeScale = document.getElementById('asmScaleBadge');
+    if (elBadgeScale) {
+      elBadgeScale.textContent = (tab === 'masterplan' ? '1:500' : '1:100');
+    }
+
+    const roadBtn = document.getElementById('asmBtnDrawRoad');
+    if (roadBtn) {
+      roadBtn.style.display = (tab === 'masterplan' ? 'inline-flex' : 'none');
+    }
+
     renderArchSectionsSvg();
   }
 
@@ -15272,6 +15293,116 @@ document.addEventListener('DOMContentLoaded', () => {
       const el = document.getElementById('asmToggleCompass');
       if (el) el.classList.toggle('active', asmState.showCompass);
     }
+    renderArchSectionsSvg();
+  }
+
+  // --- Masterplan Road Drawing Engine ---
+  function toggleArchMasterplanRoadDraw() {
+    if (asmState.activeTab !== 'masterplan') {
+      switchArchSectionTab('masterplan');
+    }
+    asmState.isDrawingRoad = !asmState.isDrawingRoad;
+    asmState.drawnRoadMeters = [];
+    updateMasterplanRoadDrawUI();
+    renderArchSectionsSvg();
+  }
+
+  function updateMasterplanRoadDrawUI() {
+    const roadBtn = document.getElementById('asmBtnDrawRoad');
+    if (roadBtn) {
+      roadBtn.classList.toggle('active', !!asmState.isDrawingRoad);
+    }
+    const hud = document.getElementById('asmRoadDrawHud');
+    if (hud) {
+      hud.style.display = asmState.isDrawingRoad ? 'flex' : 'none';
+    }
+    const countEl = document.getElementById('asmRoadPtsCount');
+    if (countEl) {
+      countEl.textContent = (asmState.drawnRoadMeters ? asmState.drawnRoadMeters.length : 0);
+    }
+    const stage = document.getElementById('asmDrawingStage');
+    if (stage) {
+      stage.classList.toggle('asm-drawing-road-active', !!asmState.isDrawingRoad);
+    }
+  }
+
+  function handleMasterplanSvgClick(e) {
+    if (!asmState.isDrawingRoad || asmState.activeTab !== 'masterplan') return;
+    const svgEl = document.querySelector('#asmDrawingStage svg');
+    if (!svgEl || typeof asmState.fromSvgProj !== 'function') return;
+
+    let svgX = 0, svgY = 0;
+    if (svgEl.createSVGPoint && svgEl.getScreenCTM) {
+      const pt = svgEl.createSVGPoint();
+      pt.x = e.clientX;
+      pt.y = e.clientY;
+      const matrix = svgEl.getScreenCTM().inverse();
+      const p = pt.matrixTransform(matrix);
+      svgX = p.x;
+      svgY = p.y;
+    } else {
+      const rect = svgEl.getBoundingClientRect();
+      const vb = svgEl.viewBox.baseVal || { width: 1080, height: 680 };
+      svgX = (e.clientX - rect.left) * (vb.width / rect.width);
+      svgY = (e.clientY - rect.top) * (vb.height / rect.height);
+    }
+
+    const localM = asmState.fromSvgProj(svgX, svgY);
+    if (!localM) return;
+
+    asmState.drawnRoadMeters.push(localM);
+    updateMasterplanRoadDrawUI();
+    renderArchSectionsSvg();
+  }
+
+  function finishArchMasterplanRoadDraw() {
+    if (!asmState.drawnRoadMeters || asmState.drawnRoadMeters.length < 2) {
+      alert('გთხოვთ გენგეგმაზე მონიშნოთ მინიმუმ 2 წერტილი გზის გასაყვანად');
+      return;
+    }
+    const geo = getArchProjectGeometries();
+    const widthVal = parseFloat(document.getElementById('asmRoadWidthInput')?.value) || asmState.roadWidth || 6.0;
+    const gpsPoints = asmState.drawnRoadMeters.map(p => localMetersToGps(p, geo.parcelCenter));
+
+    let totalLen = 0;
+    for (let i = 0; i < asmState.drawnRoadMeters.length - 1; i++) {
+      const p1 = asmState.drawnRoadMeters[i];
+      const p2 = asmState.drawnRoadMeters[i + 1];
+      totalLen += Math.hypot(p2.x - p1.x, p2.y - p1.y);
+    }
+
+    state.roads = state.roads || [];
+    const roadObj = {
+      id: `road-mp-${Date.now()}-${state.roads.length + 1}`,
+      name: `მისასვლელი გზა #${state.roads.length + 1}`,
+      width: widthVal,
+      points: gpsPoints,
+      length: parseFloat(totalLen.toFixed(1))
+    };
+
+    state.roads.push(roadObj);
+    asmState.isDrawingRoad = false;
+    asmState.drawnRoadMeters = [];
+    updateMasterplanRoadDrawUI();
+
+    if (typeof renderAllRoadsOnMap === 'function') renderAllRoadsOnMap();
+    if (typeof renderAllRoads3D === 'function') renderAllRoads3D();
+
+    renderArchSectionsSvg();
+  }
+
+  function undoArchMasterplanRoadPoint() {
+    if (asmState.drawnRoadMeters && asmState.drawnRoadMeters.length > 0) {
+      asmState.drawnRoadMeters.pop();
+      updateMasterplanRoadDrawUI();
+      renderArchSectionsSvg();
+    }
+  }
+
+  function cancelArchMasterplanRoadDraw() {
+    asmState.isDrawingRoad = false;
+    asmState.drawnRoadMeters = [];
+    updateMasterplanRoadDrawUI();
     renderArchSectionsSvg();
   }
 
@@ -15335,41 +15466,204 @@ document.addEventListener('DOMContentLoaded', () => {
     printWin.document.close();
   }
 
-  window.openArchSectionsModal = openArchSectionsModal;
-  window.closeArchSectionsModal = closeArchSectionsModal;
-  window.renderArchSectionsSvg = renderArchSectionsSvg;
-  window.switchArchSectionTab = switchArchSectionTab;
-  window.toggleArchSectionLayer = toggleArchSectionLayer;
-  window.copyArchSectionSvg = copyArchSectionSvg;
-  window.exportArchSectionSvg = exportArchSectionSvg;
-  window.printArchSectionSvg = printArchSectionSvg;
+  // --- Real Project Geometries & Offset Calculations ---
+  function localMetersToGps(pt, referenceOrigin) {
+    const centerLat = referenceOrigin.lat !== undefined ? referenceOrigin.lat : referenceOrigin[0];
+    const centerLng = referenceOrigin.lng !== undefined ? referenceOrigin.lng : referenceOrigin[1];
+    const latToMeters = 111139;
+    const lngToMeters = 111139 * Math.cos(centerLat * Math.PI / 180);
+    return [
+      centerLat + pt.y / latToMeters,
+      centerLng + pt.x / lngToMeters
+    ];
+  }
 
+  function computePolygonInwardOffset(pts, distMeters) {
+    if (!pts || pts.length < 3) return [];
+    const n = pts.length;
+    let area = 0;
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n;
+      area += pts[i].x * pts[j].y - pts[j].x * pts[i].y;
+    }
+    const ccw = area > 0;
+
+    const lines = [];
+    for (let i = 0; i < n; i++) {
+      const p1 = pts[i];
+      const p2 = pts[(i + 1) % n];
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const len = Math.hypot(dx, dy);
+      if (len < 1e-6) continue;
+      const nx = ccw ? -dy / len : dy / len;
+      const ny = ccw ? dx / len : -dx / len;
+      lines.push({
+        p1: { x: p1.x + nx * distMeters, y: p1.y + ny * distMeters },
+        p2: { x: p2.x + nx * distMeters, y: p2.y + ny * distMeters }
+      });
+    }
+
+    const offsetPts = [];
+    const ln = lines.length;
+    for (let i = 0; i < ln; i++) {
+      const l1 = lines[i];
+      const l2 = lines[(i + 1) % ln];
+      const x1 = l1.p1.x, y1 = l1.p1.y;
+      const x2 = l1.p2.x, y2 = l1.p2.y;
+      const x3 = l2.p1.x, y3 = l2.p1.y;
+      const x4 = l2.p2.x, y4 = l2.p2.y;
+
+      const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+      if (Math.abs(denom) < 1e-5) {
+        offsetPts.push({ x: l1.p2.x, y: l1.p2.y });
+      } else {
+        const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom;
+        offsetPts.push({
+          x: x1 + t * (x2 - x1),
+          y: y1 + t * (y2 - y1)
+        });
+      }
+    }
+    return offsetPts.length >= 3 ? offsetPts : pts;
+  }
+
+  function getArchProjectGeometries() {
+    const parcel = (state && state.activeParcel) ? state.activeParcel : null;
+    const bldg = (typeof getSelectedBuilding === 'function' ? getSelectedBuilding() : null) || (state && state.buildings && state.buildings[0]) || {};
+
+    let parcelCoords = parcel && parcel.coordinates && parcel.coordinates.length >= 3 ? parcel.coordinates : null;
+    if (!parcelCoords) {
+      parcelCoords = [
+        [41.7145, 44.7810],
+        [41.7153, 44.7824],
+        [41.7143, 44.7832],
+        [41.7135, 44.7818]
+      ];
+    }
+
+    const centerLat = parcelCoords.reduce((s, c) => s + c[0], 0) / parcelCoords.length;
+    const centerLng = parcelCoords.reduce((s, c) => s + c[1], 0) / parcelCoords.length;
+    const parcelCenter = { lat: centerLat, lng: centerLng };
+
+    const parcelMeters = gpsToLocalMeters(parcelCoords, parcelCenter);
+    const minPx = Math.min(...parcelMeters.map(p => p.x));
+    const maxPx = Math.max(...parcelMeters.map(p => p.x));
+    const minPy = Math.min(...parcelMeters.map(p => p.y));
+    const maxPy = Math.max(...parcelMeters.map(p => p.y));
+
+    const setbackMeters = computePolygonInwardOffset(parcelMeters, 3.0);
+
+    // Existing structures on parcel
+    const existingBldgs = [];
+    const rawExisting = state.savedExistingBuildings || state.existingParcelBuildings || (state.buildings || []).filter(b => b.isExisting);
+    if (rawExisting && rawExisting.length > 0) {
+      rawExisting.forEach((eb, idx) => {
+        const coords = eb.coordinates || eb.footprintCoords;
+        if (coords && coords.length >= 3) {
+          const mPts = gpsToLocalMeters(coords, parcelCenter);
+          existingBldgs.push({
+            id: eb.id || `eb-${idx}`,
+            name: eb.name || `არსებული შენობა #${idx + 1}`,
+            isExisting: true,
+            meters: mPts,
+            floors: eb.levels || eb.floorsAbove || Math.max(1, Math.round((eb.height || 9) / 3.2)),
+            height: eb.height || 9.6,
+            area: Math.round(eb.footprintArea || computePolygonArea(coords) || 120)
+          });
+        }
+      });
+    }
+
+    // Active or drawn building footprint
+    let activeBldgMeters = null;
+    let isDrawnByUser = false;
+    const customCoords = state.customFootprint && state.customFootprint.length >= 3 ? state.customFootprint : null;
+    const bldgCoords = bldg.footprintCoords && bldg.footprintCoords.length >= 3 ? bldg.footprintCoords : null;
+
+    if (customCoords) {
+      activeBldgMeters = gpsToLocalMeters(customCoords, parcelCenter);
+      isDrawnByUser = true;
+    } else if (bldgCoords) {
+      activeBldgMeters = gpsToLocalMeters(bldgCoords, parcelCenter);
+      isDrawnByUser = !bldg.isProcedural && !bldg.isExisting;
+    } else if (existingBldgs.length > 0) {
+      activeBldgMeters = existingBldgs[0].meters;
+    } else {
+      const fpArea = Math.round(bldg.footprintArea || parseInt(document.getElementById('sliderFootprint')?.value, 10) || 190);
+      const bW = Math.max(10, Math.round(Math.sqrt(fpArea / 1.32) * 10) / 10);
+      const bL = Math.max(12, Math.round((fpArea / bW) * 10) / 10);
+      const cx = (minPx + maxPx) / 2;
+      const cy = (minPy + maxPy) / 2;
+      activeBldgMeters = [
+        { x: cx - bW / 2, y: cy - bL / 2 },
+        { x: cx + bW / 2, y: cy - bL / 2 },
+        { x: cx + bW / 2, y: cy + bL / 2 },
+        { x: cx - bW / 2, y: cy + bL / 2 }
+      ];
+    }
+
+    const minBx = Math.min(...activeBldgMeters.map(p => p.x));
+    const maxBx = Math.max(...activeBldgMeters.map(p => p.x));
+    const minBy = Math.min(...activeBldgMeters.map(p => p.y));
+    const maxBy = Math.max(...activeBldgMeters.map(p => p.y));
+    const realWidthX = parseFloat(Math.max(8.0, maxBx - minBx).toFixed(2));
+    const realLengthY = parseFloat(Math.max(8.0, maxBy - minBy).toFixed(2));
+
+    const distWest = Math.max(3.0, parseFloat((minBx - minPx).toFixed(2)));
+    const distEast = Math.max(3.0, parseFloat((maxPx - maxBx).toFixed(2)));
+    const distSouth = Math.max(3.0, parseFloat((minBy - minPy).toFixed(2)));
+    const distNorth = Math.max(3.0, parseFloat((maxPy - maxBy).toFixed(2)));
+
+    // Roads
+    const roadsList = [];
+    if (state.roads && state.roads.length > 0) {
+      state.roads.forEach(r => {
+        if (r.points && r.points.length >= 2) {
+          roadsList.push({
+            id: r.id,
+            name: r.name,
+            width: r.width || 6.0,
+            meters: gpsToLocalMeters(r.points, parcelCenter),
+            length: r.length || 0
+          });
+        }
+      });
+    }
+
+    return {
+      parcel,
+      parcelCoords,
+      parcelCenter,
+      parcelMeters,
+      parcelBounds: { minX: minPx, maxX: maxPx, minY: minPy, maxY: maxPy },
+      setbackMeters,
+      existingBldgs,
+      activeBldg: bldg,
+      activeBldgMeters,
+      isDrawnByUser,
+      bldgBounds: { minX: minBx, maxX: maxBx, minY: minBy, maxY: maxBy },
+      realWidthX,
+      realLengthY,
+      distWest,
+      distEast,
+      distSouth,
+      distNorth,
+      roadsList
+    };
+  }
+
+  // --- Main Dispatcher ---
   function renderArchSectionsSvg() {
     const stage = document.getElementById('asmDrawingStage');
     if (!stage) return;
 
-    let bldg = {};
-    try {
-      if (typeof getSelectedBuilding === 'function') {
-        bldg = getSelectedBuilding() || {};
-      } else if (typeof state !== 'undefined' && state && state.buildings && state.buildings[0]) {
-        bldg = state.buildings[0] || {};
-      }
-    } catch (e) {
-      bldg = {};
-    }
+    const geo = getArchProjectGeometries();
+    const bldg = geo.activeBldg;
+    const parcel = geo.parcel || {};
 
-    let parcel = {};
-    try {
-      if (typeof state !== 'undefined' && state && state.activeParcel) {
-        parcel = state.activeParcel;
-      }
-    } catch (e) {
-      parcel = {};
-    }
-
-    const cadastralCode = parcel.code || document.getElementById('cadastralCodeInput')?.value || '01.15.02.038.003';
-    const address = parcel.address || parcel.municipality || 'თბილისი, მთაწმინდა, ვერა, ვასილ ბარნოვის ქ. #10ა';
+    const cadastralCode = parcel.code || document.getElementById('cadastralCodeInput')?.value || '01.14.11.059.039';
+    const address = parcel.address || parcel.municipality || 'თბილისი, გიორგი შატბერაშვილის ქ. N 5';
     const zoneCode = parcel.zone || 'სზ-6';
     const zoneName = parcel.zoneName || 'საცხოვრებელი ზონა 6';
     const k1 = parcel.maxK1 !== undefined ? parcel.maxK1 : (parcel.k1 !== undefined ? parcel.k1 : 0.5);
@@ -15379,10 +15673,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const floorsAbove = bldg.floorsAbove ? parseInt(bldg.floorsAbove, 10) : (parseInt(document.getElementById('sliderFloors')?.value, 10) || 5);
     const floorsBelow = bldg.floorsBelow !== undefined ? parseInt(bldg.floorsBelow, 10) : (parseInt(document.getElementById('sliderBasementFloors')?.value, 10) || 1);
     const floorH = bldg.floorHeight ? parseFloat(bldg.floorHeight) : (parseFloat(document.getElementById('sliderHeight')?.value) || 3.3);
-    const totalH = (floorsAbove * floorH);
-    const footprintArea = Math.round(bldg.footprintArea || parseInt(document.getElementById('sliderFootprint')?.value, 10) || 190);
-    const bldgLength = bldg.length ? parseFloat(bldg.length) : (Math.round(Math.sqrt(footprintArea * 1.325) * 10) / 10 || 15.90);
-    const bldgWidth = bldg.width ? parseFloat(bldg.width) : (Math.round((footprintArea / bldgLength) * 10) / 10 || 12.00);
+    const totalH = parseFloat((floorsAbove * floorH).toFixed(2));
+    const footprintArea = Math.round(bldg.footprintArea || parseInt(document.getElementById('sliderFootprint')?.value, 10) || (geo.realWidthX * geo.realLengthY) || 190);
 
     // Update Header Badges & Footer
     const elBadgeCad = document.getElementById('asmCadastralBadge');
@@ -15394,7 +15686,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const elHText = document.getElementById('asmHeightText');
     if (elHText) elHText.textContent = `${totalH.toFixed(1)} მ`;
 
-    // Common SVG Defs & Compass
+    const roadBtn = document.getElementById('asmBtnDrawRoad');
+    if (roadBtn) {
+      roadBtn.style.display = (asmState.activeTab === 'masterplan' ? 'inline-flex' : 'none');
+    }
+
     const svgDefs = `
       <defs>
         <pattern id="asmGroundHatch" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
@@ -15416,7 +15712,7 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
 
     const compassSvg = asmState.showCompass ? `
-      <g transform="translate(930, 68)">
+      <g transform="translate(970, 68)">
         <circle cx="0" cy="0" r="22" fill="#0b1320" stroke="#00b4d8" stroke-width="1.8" />
         <polygon points="0,-18 5,0 -5,0" fill="#ef4444" />
         <polygon points="0,18 5,0 -5,0" fill="#94a3b8" />
@@ -15425,43 +15721,90 @@ document.addEventListener('DOMContentLoaded', () => {
       </g>
     ` : '';
 
+    const d = {
+      cadastralCode,
+      address,
+      zoneCode,
+      zoneName,
+      k1,
+      k2,
+      k3,
+      floorsAbove,
+      floorsBelow,
+      floorH,
+      totalH,
+      footprintArea,
+      bldgWidth: geo.realWidthX,
+      bldgLength: geo.realLengthY,
+      distWest: geo.distWest,
+      distEast: geo.distEast,
+      distSouth: geo.distSouth,
+      distNorth: geo.distNorth,
+      bldg,
+      geo
+    };
+
     let drawingContent = '';
-    const d = { cadastralCode, address, zoneCode, zoneName, k1, k2, k3, floorsAbove, floorsBelow, floorH, totalH, footprintArea, bldgWidth, bldgLength, bldg };
+    let vbWidth = 1080;
+    let vbHeight = 680;
 
     if (asmState.activeTab === 'section_a') {
-      drawingContent = buildSectionASvg(d);
+      const res = buildSectionASvg(d);
+      drawingContent = res.content;
+      vbHeight = res.height;
     } else if (asmState.activeTab === 'section_b') {
-      drawingContent = buildSectionBSvg(d);
+      const res = buildSectionBSvg(d);
+      drawingContent = res.content;
+      vbHeight = res.height;
     } else if (asmState.activeTab === 'facade_south') {
-      drawingContent = buildFacadeSouthSvg(d);
+      const res = buildFacadeSouthSvg(d);
+      drawingContent = res.content;
+      vbHeight = res.height;
     } else if (asmState.activeTab === 'facade_east') {
-      drawingContent = buildFacadeEastSvg(d);
+      const res = buildFacadeEastSvg(d);
+      drawingContent = res.content;
+      vbHeight = res.height;
     } else if (asmState.activeTab === 'masterplan') {
-      drawingContent = buildMasterplanSvg(d);
+      const res = buildMasterplanSvg(d);
+      drawingContent = res.content;
+      vbHeight = res.height;
     }
 
     stage.innerHTML = `
-      <svg viewBox="0 0 1020 620" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-        <rect width="1020" height="620" fill="#030509" />
-        <rect width="1020" height="620" fill="url(#asmDotGrid)" />
+      <svg id="asmSvgCanvas" viewBox="0 0 ${vbWidth} ${vbHeight}" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style="display: block;">
+        <rect width="${vbWidth}" height="${vbHeight}" fill="#030509" />
+        <rect width="${vbWidth}" height="${vbHeight}" fill="url(#asmDotGrid)" />
         ${svgDefs}
         ${drawingContent}
         ${compassSvg}
       </svg>
     `;
+
+    const svgCanvas = document.getElementById('asmSvgCanvas');
+    if (svgCanvas && asmState.activeTab === 'masterplan') {
+      svgCanvas.removeEventListener('click', handleMasterplanSvgClick);
+      svgCanvas.addEventListener('click', handleMasterplanSvgClick);
+    }
   }
 
+  // --- 1. Cross Section A-A (Real Width, Real Floors, Adaptive Spacing) ---
   function buildSectionASvg(d) {
-    const groundY = 440;
-    const bldgW = 260;
+    const svgH = Math.max(720, 220 + d.floorsAbove * 44 + (d.floorsBelow > 0 ? 80 : 0));
+    const groundY = svgH - 130 - (d.floorsBelow > 0 ? 70 : 0);
+    const availH = groundY - 140;
+    const hFloor = Math.max(34, Math.min(48, availH / Math.max(1, d.floorsAbove)));
+    const roofY = groundY - d.floorsAbove * hFloor;
+    const parapetY = roofY - Math.max(18, hFloor * 0.38);
+    const bHeight = d.floorsBelow > 0 ? d.floorsBelow * hFloor : 0;
+    const bBottom = groundY + bHeight;
+
+    const bldgW = Math.max(260, Math.min(520, d.bldgWidth * 14));
     const cx = 530;
     const x1 = cx - bldgW / 2;
     const x2 = cx + bldgW / 2;
-    const hFloor = Math.min(42, Math.max(28, 200 / Math.max(1, d.floorsAbove)));
-    const roofY = groundY - d.floorsAbove * hFloor;
-    const parapetY = roofY - 14;
-    const bHeight = d.floorsBelow > 0 ? d.floorsBelow * hFloor : 0;
-    const bBottom = groundY + bHeight;
+
+    const sbLeftX = Math.max(70, x1 - Math.max(45, Math.min(130, d.distWest * 14)));
+    const sbRightX = Math.min(1010, x2 + Math.max(45, Math.min(130, d.distEast * 14)));
 
     let floorsMarkup = '';
     for (let f = 0; f < d.floorsAbove; f++) {
@@ -15473,7 +15816,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <g class="asm-floor-group" data-floor="${f + 1}">
           <rect x="${x1}" y="${fTop}" width="${bldgW}" height="${hFloor}" fill="rgba(14, 23, 38, 0.88)" stroke="rgba(0, 240, 255, 0.5)" stroke-width="1.4" />
           <rect x="${x1}" y="${fTop + hFloor - 3}" width="${bldgW}" height="3" fill="#00f0ff" opacity="0.65" />
-          <text x="${cx}" y="${fTop + hFloor / 2 + 3.5}" fill="#cbd5e1" font-size="9" font-family="'Inter', sans-serif" font-weight="500" text-anchor="middle">${label}</text>
+          <text x="${cx}" y="${fTop + hFloor / 2 + 3.5}" fill="#cbd5e1" font-size="9.5" font-family="'Inter', sans-serif" font-weight="500" text-anchor="middle">${label}</text>
         </g>
       `;
     }
@@ -15485,7 +15828,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <rect x="${x1}" y="${groundY}" width="${bldgW}" height="${bHeight}" fill="rgba(10, 16, 26, 0.95)" stroke="#00f0ff" stroke-width="1.4" />
           <rect x="${x1}" y="${bBottom - 3}" width="${bldgW}" height="3" fill="#00f0ff" opacity="0.8" />
           <text x="${cx}" y="${groundY + bHeight / 2 + 3.5}" fill="#cbd5e1" font-size="9.5" font-family="'Inter', sans-serif" font-weight="600" text-anchor="middle">
-            სართული -${d.floorsBelow} • მიწისქვეშა ავტოსადგომი / პარკინგი (${d.bldgLength.toFixed(2)}მ)
+            სართული -${d.floorsBelow} • მიწისქვეშა ავტოსადგომი / პარკინგი (${d.bldgWidth.toFixed(2)}მ)
           </text>
         </g>
       `;
@@ -15493,30 +15836,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const setbackMarkup = asmState.showDimensions ? `
       <g class="asm-setbacks">
-        <line x1="325" y1="120" x2="325" y2="465" stroke="#ef4444" stroke-width="1.6" stroke-dasharray="6 4" />
-        <line x1="735" y1="120" x2="735" y2="465" stroke="#ef4444" stroke-width="1.6" stroke-dasharray="6 4" />
-        <text x="319" y="240" fill="#ef4444" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="700" transform="rotate(-90 319 240)" text-anchor="middle">საკადასტრო მიჯნა (3მ)</text>
-        <text x="743" y="240" fill="#ef4444" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="700" transform="rotate(-90 743 240)" text-anchor="middle">საკადასტრო მიჯნა (3მ)</text>
+        <line x1="${sbLeftX}" y1="120" x2="${sbLeftX}" y2="${groundY + 25}" stroke="#ef4444" stroke-width="1.6" stroke-dasharray="6 4" />
+        <line x1="${sbRightX}" y1="120" x2="${sbRightX}" y2="${groundY + 25}" stroke="#ef4444" stroke-width="1.6" stroke-dasharray="6 4" />
+        <text x="${sbLeftX - 6}" y="${(140 + groundY) / 2}" fill="#ef4444" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="700" transform="rotate(-90 ${sbLeftX - 6} ${(140 + groundY) / 2})" text-anchor="middle">საკადასტრო მიჯნა (${d.distWest.toFixed(1)}მ)</text>
+        <text x="${sbRightX + 12}" y="${(140 + groundY) / 2}" fill="#ef4444" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="700" transform="rotate(-90 ${sbRightX + 12} ${(140 + groundY) / 2})" text-anchor="middle">საკადასტრო მიჯნა (${d.distEast.toFixed(1)}მ)</text>
       </g>
     ` : '';
 
     const axesMarkup = asmState.showAxes ? `
       <g class="asm-axes">
-        <!-- Axis A -->
         <line x1="${x1}" y1="${parapetY - 14}" x2="${x1}" y2="${bBottom + 24}" stroke="#8b5cf6" stroke-width="1.2" stroke-dasharray="5 4" opacity="0.8" />
         <circle cx="${x1}" cy="${parapetY - 26}" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
         <text x="${x1}" y="${parapetY - 22}" fill="#ffffff" font-size="10.5" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">A</text>
         <circle cx="${x1}" cy="${bBottom + 36}" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
         <text x="${x1}" y="${bBottom + 40}" fill="#ffffff" font-size="10.5" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">A</text>
 
-        <!-- Axis B -->
         <line x1="${cx}" y1="${parapetY - 14}" x2="${cx}" y2="${bBottom + 24}" stroke="#8b5cf6" stroke-width="1.2" stroke-dasharray="5 4" opacity="0.8" />
         <circle cx="${cx}" cy="${parapetY - 26}" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
         <text x="${cx}" y="${parapetY - 22}" fill="#ffffff" font-size="10.5" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">B</text>
         <circle cx="${cx}" cy="${bBottom + 36}" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
         <text x="${cx}" y="${bBottom + 40}" fill="#ffffff" font-size="10.5" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">B</text>
 
-        <!-- Axis C -->
         <line x1="${x2}" y1="${parapetY - 14}" x2="${x2}" y2="${bBottom + 24}" stroke="#8b5cf6" stroke-width="1.2" stroke-dasharray="5 4" opacity="0.8" />
         <circle cx="${x2}" cy="${parapetY - 26}" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
         <text x="${x2}" y="${parapetY - 22}" fill="#ffffff" font-size="10.5" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">C</text>
@@ -15527,12 +15867,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let levelsMarkup = '';
     if (asmState.showLevels) {
+      const levelX = Math.min(760, x2 + 60);
       levelsMarkup += `
-        <!-- Parapet Level (Yellow) -->
+        <!-- Parapet Level (Yellow) - Clean Leader line avoiding roof collision -->
         <g class="asm-level-parapet">
-          <line x1="${x2}" y1="${parapetY}" x2="710" y2="${parapetY}" stroke="#f59e0b" stroke-width="1.4" />
-          <polygon points="680,${parapetY} 690,${parapetY - 3.5} 690,${parapetY + 3.5}" fill="#f59e0b" />
-          <text x="716" y="${parapetY + 3.5}" fill="#f59e0b" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700">+${(d.totalH + 0.9).toFixed(2)} პარაპეტი</text>
+          <line x1="${x2}" y1="${parapetY}" x2="${levelX + 15}" y2="${parapetY}" stroke="#f59e0b" stroke-width="1.4" />
+          <polygon points="${levelX - 10},${parapetY} ${levelX},${parapetY - 3.5} ${levelX},${parapetY + 3.5}" fill="#f59e0b" />
+          <text x="${levelX + 22}" y="${parapetY + 3.5}" fill="#f59e0b" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700">+${(d.totalH + 0.90).toFixed(2)} პარაპეტი</text>
         </g>
       `;
       for (let f = d.floorsAbove; f >= 0; f--) {
@@ -15540,18 +15881,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const valStr = f === 0 ? '±0.00' : `+${(f * d.floorH).toFixed(2)}`;
         levelsMarkup += `
           <g class="asm-level-floor">
-            <line x1="${x2}" y1="${lvlY}" x2="710" y2="${lvlY}" stroke="#00f0ff" stroke-width="1.3" opacity="0.8" />
-            <polygon points="680,${lvlY} 690,${lvlY - 3} 690,${lvlY + 3}" fill="#00f0ff" />
-            <text x="716" y="${lvlY + 3.5}" fill="#00f0ff" font-size="9.5" font-family="'JetBrains Mono', monospace" font-weight="600">${valStr}</text>
+            <line x1="${x2}" y1="${lvlY}" x2="${levelX}" y2="${lvlY}" stroke="#00f0ff" stroke-width="1.2" opacity="0.8" />
+            <polygon points="${levelX - 10},${lvlY} ${levelX},${lvlY - 3} ${levelX},${lvlY + 3}" fill="#00f0ff" />
+            <text x="${levelX + 8}" y="${lvlY + 3.5}" fill="#00f0ff" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="600">${valStr}</text>
           </g>
         `;
       }
       if (d.floorsBelow > 0) {
         levelsMarkup += `
           <g class="asm-level-basement">
-            <line x1="${x2}" y1="${bBottom}" x2="710" y2="${bBottom}" stroke="#94a3b8" stroke-width="1.3" opacity="0.8" />
-            <polygon points="680,${bBottom} 690,${bBottom - 3} 690,${bBottom + 3}" fill="#94a3b8" />
-            <text x="716" y="${bBottom + 3.5}" fill="#94a3b8" font-size="9.5" font-family="'JetBrains Mono', monospace" font-weight="600">-${(d.floorsBelow * d.floorH).toFixed(2)}</text>
+            <line x1="${x2}" y1="${bBottom}" x2="${levelX}" y2="${bBottom}" stroke="#94a3b8" stroke-width="1.2" opacity="0.8" />
+            <polygon points="${levelX - 10},${bBottom} ${levelX},${bBottom - 3} ${levelX},${bBottom + 3}" fill="#94a3b8" />
+            <text x="${levelX + 8}" y="${bBottom + 3.5}" fill="#94a3b8" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="600">-${(d.floorsBelow * d.floorH).toFixed(2)}</text>
           </g>
         `;
       }
@@ -15559,35 +15900,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const dimMarkup = asmState.showDimensions ? `
       <g class="asm-dimensions">
-        <!-- Height Dimension String -->
-        <line x1="360" y1="${roofY}" x2="360" y2="${groundY}" stroke="#ffffff" stroke-width="1.4" marker-start="url(#asmArrowDim)" marker-end="url(#asmArrowDim)" />
-        <line x1="348" y1="${roofY}" x2="${x1}" y2="${roofY}" stroke="rgba(255,255,255,0.25)" stroke-width="1" />
-        <line x1="348" y1="${groundY}" x2="${x1}" y2="${groundY}" stroke="rgba(255,255,255,0.25)" stroke-width="1" />
-        <text x="350" y="${(roofY + groundY) / 2}" fill="#ffffff" font-size="11" font-family="'JetBrains Mono', monospace" font-weight="700" transform="rotate(-90 350 ${(roofY + groundY) / 2})" text-anchor="middle">H = ${d.totalH.toFixed(1)} მ</text>
+        <!-- Height Dimension String on Left -->
+        <line x1="${x1 - 42}" y1="${roofY}" x2="${x1 - 42}" y2="${groundY}" stroke="#ffffff" stroke-width="1.4" marker-start="url(#asmArrowDim)" marker-end="url(#asmArrowDim)" />
+        <line x1="${x1 - 50}" y1="${roofY}" x2="${x1}" y2="${roofY}" stroke="rgba(255,255,255,0.25)" stroke-width="1" />
+        <line x1="${x1 - 50}" y1="${groundY}" x2="${x1}" y2="${groundY}" stroke="rgba(255,255,255,0.25)" stroke-width="1" />
+        <text x="${x1 - 52}" y="${(roofY + groundY) / 2}" fill="#ffffff" font-size="11" font-family="'JetBrains Mono', monospace" font-weight="700" transform="rotate(-90 ${x1 - 52} ${(roofY + groundY) / 2})" text-anchor="middle">H = ${d.totalH.toFixed(1)} მ</text>
 
-        ${d.floorsBelow > 0 ? `
-          <line x1="360" y1="${groundY}" x2="360" y2="${bBottom}" stroke="#ef4444" stroke-width="1.4" marker-start="url(#asmArrowDim)" marker-end="url(#asmArrowDim)" />
-          <line x1="348" y1="${bBottom}" x2="${x1}" y2="${bBottom}" stroke="rgba(255,255,255,0.25)" stroke-width="1" />
-          <text x="350" y="${(groundY + bBottom) / 2}" fill="#ef4444" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700" transform="rotate(-90 350 ${(groundY + bBottom) / 2})" text-anchor="middle">-${(d.floorsBelow * d.floorH).toFixed(1)} მ</text>
-        ` : ''}
+        <!-- Building Width String at Bottom -->
+        <line x1="${x1}" y1="${bBottom + 16}" x2="${x2}" y2="${bBottom + 16}" stroke="#ffffff" stroke-width="1.2" marker-start="url(#asmArrowDim)" marker-end="url(#asmArrowDim)" />
+        <text x="${cx}" y="${bBottom + 28}" fill="#ffffff" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">სიგანე: ${d.bldgWidth.toFixed(2)} მ</text>
       </g>
     ` : '';
 
-    return `
+    const content = `
       <!-- Title Block -->
       <g class="asm-title-block">
         <text x="50" y="48" fill="#94a3b8" font-size="11" font-family="'JetBrains Mono', monospace" font-weight="600">${d.cadastralCode} • ${d.address}</text>
         <text x="50" y="74" fill="#00f0ff" font-size="16" font-family="'Inter', sans-serif" font-weight="800" letter-spacing="0.5">განივი ჭრილი A-A (CROSS SECTION)</text>
-        <text x="50" y="94" fill="#64748b" font-size="10.5" font-family="'Inter', sans-serif">მასშტაბი: 1:100 | ზონა: ${d.zoneCode} (${d.zoneName}) | K1=${d.k1} K2=${d.k2} K3=${d.k3}</text>
+        <text x="50" y="94" fill="#64748b" font-size="10.5" font-family="'Inter', sans-serif">მასშტაბი: 1:100 | გაბარიტი: ${d.bldgWidth.toFixed(1)} × ${d.bldgLength.toFixed(1)} მ | სრული H: ${d.totalH.toFixed(1)} მ | K1=${d.k1} K2=${d.k2}</text>
       </g>
 
       <!-- Ground Layer & Hatching -->
-      <rect x="30" y="${groundY}" width="960" height="170" fill="url(#asmGroundHatch)" opacity="0.9" />
-      <line x1="30" y1="${groundY}" x2="990" y2="${groundY}" stroke="#cbd5e1" stroke-width="1.8" stroke-dasharray="6 4" />
-      <text x="45" y="${groundY - 8}" fill="#cbd5e1" font-size="10.5" font-family="'JetBrains Mono', monospace" font-weight="700">±0.00 ბუნებრივი რელიეფის ნიშნული (GROUND LEVEL)</text>
+      <rect x="30" y="${groundY}" width="1020" height="${svgH - groundY}" fill="url(#asmGroundHatch)" opacity="0.9" />
+      <line x1="30" y1="${groundY}" x2="1050" y2="${groundY}" stroke="#cbd5e1" stroke-width="1.8" stroke-dasharray="6 4" />
+      <text x="45" y="${groundY - 8}" fill="#cbd5e1" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700">±0.00 ბუნებრივი რელიეფის ნიშნული (GROUND LEVEL)</text>
 
       <!-- Roof Elevator Shaft Bulkhead -->
-      <rect x="${cx - 36}" y="${roofY - 28}" width="72" height="28" fill="rgba(0, 240, 255, 0.22)" stroke="#00f0ff" stroke-width="1.6" />
+      <rect x="${cx - 40}" y="${roofY - 28}" width="80" height="28" fill="rgba(0, 240, 255, 0.22)" stroke="#00f0ff" stroke-width="1.6" />
       <text x="${cx}" y="${roofY - 10}" fill="#00f0ff" font-size="9" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">ლიფტის შახტა</text>
 
       <!-- Parapet Walls -->
@@ -15604,27 +15943,33 @@ document.addEventListener('DOMContentLoaded', () => {
       ${dimMarkup}
       ${levelsMarkup}
 
-      <!-- Entourage Scale Tree -->
-      <g transform="translate(700, ${groundY})">
+      <!-- Entourage Scale Tree & Human Scale -->
+      <g transform="translate(${Math.min(960, sbRightX - 25)}, ${groundY})">
         <rect x="-2" y="-55" width="4" height="55" fill="#52525b" />
         <circle cx="0" cy="-60" r="18" fill="#059669" opacity="0.65" />
         <circle cx="-6" cy="-70" r="14" fill="#10b981" opacity="0.75" />
         <circle cx="6" cy="-68" r="15" fill="#047857" opacity="0.7" />
       </g>
     `;
+
+    return { content, height: svgH };
   }
 
+  // --- 2. Longitudinal Section B-B (Real Length, Real Floors) ---
   function buildSectionBSvg(d) {
-    const groundY = 440;
-    const bldgW = 340;
+    const svgH = Math.max(720, 220 + d.floorsAbove * 44 + (d.floorsBelow > 0 ? 80 : 0));
+    const groundY = svgH - 130 - (d.floorsBelow > 0 ? 70 : 0);
+    const availH = groundY - 140;
+    const hFloor = Math.max(34, Math.min(48, availH / Math.max(1, d.floorsAbove)));
+    const roofY = groundY - d.floorsAbove * hFloor;
+    const parapetY = roofY - Math.max(18, hFloor * 0.38);
+    const bHeight = d.floorsBelow > 0 ? d.floorsBelow * hFloor : 0;
+    const bBottom = groundY + bHeight;
+
+    const bldgW = Math.max(300, Math.min(580, d.bldgLength * 13));
     const cx = 530;
     const x1 = cx - bldgW / 2;
     const x2 = cx + bldgW / 2;
-    const hFloor = Math.min(42, Math.max(28, 200 / Math.max(1, d.floorsAbove)));
-    const roofY = groundY - d.floorsAbove * hFloor;
-    const parapetY = roofY - 14;
-    const bHeight = d.floorsBelow > 0 ? d.floorsBelow * hFloor : 0;
-    const bBottom = groundY + bHeight;
 
     let floorsMarkup = '';
     for (let f = 0; f < d.floorsAbove; f++) {
@@ -15633,11 +15978,10 @@ document.addEventListener('DOMContentLoaded', () => {
         <g class="asm-floor-group">
           <rect x="${x1}" y="${fTop}" width="${bldgW}" height="${hFloor}" fill="rgba(14, 23, 38, 0.88)" stroke="rgba(0, 240, 255, 0.5)" stroke-width="1.4" />
           <rect x="${x1}" y="${fTop + hFloor - 3}" width="${bldgW}" height="3" fill="#00f0ff" opacity="0.65" />
-          <!-- Stair Core / Elevator Shaft Slice -->
           <rect x="${cx - 40}" y="${fTop}" width="80" height="${hFloor}" fill="rgba(56, 189, 248, 0.12)" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1" />
           <text x="${cx}" y="${fTop + hFloor / 2 + 3.5}" fill="#38bdf8" font-size="8.5" font-weight="600" text-anchor="middle">კიბე / ლიფტის ჰოლი</text>
-          <text x="${x1 + 60}" y="${fTop + hFloor / 2 + 3.5}" fill="#cbd5e1" font-size="8.5" text-anchor="middle">საცხოვრებელი სექცია A</text>
-          <text x="${x2 - 60}" y="${fTop + hFloor / 2 + 3.5}" fill="#cbd5e1" font-size="8.5" text-anchor="middle">საცხოვრებელი სექცია B</text>
+          <text x="${x1 + 60}" y="${fTop + hFloor / 2 + 3.5}" fill="#cbd5e1" font-size="8.5" text-anchor="middle">სექცია A</text>
+          <text x="${x2 - 60}" y="${fTop + hFloor / 2 + 3.5}" fill="#cbd5e1" font-size="8.5" text-anchor="middle">სექცია B</text>
         </g>
       `;
     }
@@ -15650,18 +15994,18 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
-    return `
+    const content = `
       <!-- Title Block -->
       <g class="asm-title-block">
         <text x="50" y="48" fill="#94a3b8" font-size="11" font-family="'JetBrains Mono', monospace" font-weight="600">${d.cadastralCode} • ${d.address}</text>
         <text x="50" y="74" fill="#00f0ff" font-size="16" font-family="'Inter', sans-serif" font-weight="800" letter-spacing="0.5">გრძივი ჭრილი B-B (LONGITUDINAL SECTION)</text>
-        <text x="50" y="94" fill="#64748b" font-size="10.5" font-family="'Inter', sans-serif">მასშტაბი: 1:100 | სიგრძე: ${d.bldgLength.toFixed(2)}მ | K1=${d.k1} K2=${d.k2} K3=${d.k3}</text>
+        <text x="50" y="94" fill="#64748b" font-size="10.5" font-family="'Inter', sans-serif">მასშტაბი: 1:100 | სიგრძე: ${d.bldgLength.toFixed(2)}მ | სრული H: ${d.totalH.toFixed(1)}მ | K1=${d.k1} K2=${d.k2}</text>
       </g>
 
       <!-- Ground Layer -->
-      <rect x="30" y="${groundY}" width="960" height="170" fill="url(#asmGroundHatch)" opacity="0.9" />
-      <line x1="30" y1="${groundY}" x2="990" y2="${groundY}" stroke="#cbd5e1" stroke-width="1.8" stroke-dasharray="6 4" />
-      <text x="45" y="${groundY - 8}" fill="#cbd5e1" font-size="10.5" font-family="'JetBrains Mono', monospace" font-weight="700">±0.00 ბუნებრივი რელიეფის ნიშნული (GROUND LEVEL)</text>
+      <rect x="30" y="${groundY}" width="1020" height="${svgH - groundY}" fill="url(#asmGroundHatch)" opacity="0.9" />
+      <line x1="30" y1="${groundY}" x2="1050" y2="${groundY}" stroke="#cbd5e1" stroke-width="1.8" stroke-dasharray="6 4" />
+      <text x="45" y="${groundY - 8}" fill="#cbd5e1" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700">±0.00 ბუნებრივი რელიეფის ნიშნული (GROUND LEVEL)</text>
 
       <!-- Roof Core -->
       <rect x="${cx - 45}" y="${roofY - 28}" width="90" height="28" fill="rgba(0, 240, 255, 0.2)" stroke="#00f0ff" stroke-width="1.6" />
@@ -15675,9 +16019,8 @@ document.addEventListener('DOMContentLoaded', () => {
       ${basementMarkup}
 
       ${asmState.showAxes ? `
-        <!-- Axes 1, 2, 3, 4 -->
         <g class="asm-axes-longitudinal">
-          ${[x1, cx - 60, cx + 60, x2].map((axX, idx) => `
+          ${[x1, cx - 70, cx + 70, x2].map((axX, idx) => `
             <line x1="${axX}" y1="${parapetY - 14}" x2="${axX}" y2="${bBottom + 24}" stroke="#8b5cf6" stroke-width="1.2" stroke-dasharray="5 4" opacity="0.8" />
             <circle cx="${axX}" cy="${parapetY - 26}" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
             <text x="${axX}" y="${parapetY - 22}" fill="#ffffff" font-size="10" font-weight="700" text-anchor="middle">${idx + 1}</text>
@@ -15688,31 +16031,39 @@ document.addEventListener('DOMContentLoaded', () => {
       ` : ''}
 
       ${asmState.showDimensions ? `
-        <line x1="310" y1="${roofY}" x2="310" y2="${groundY}" stroke="#ffffff" stroke-width="1.4" marker-start="url(#asmArrowDim)" marker-end="url(#asmArrowDim)" />
-        <text x="300" y="${(roofY + groundY) / 2}" fill="#ffffff" font-size="11" font-family="'JetBrains Mono', monospace" font-weight="700" transform="rotate(-90 300 ${(roofY + groundY) / 2})" text-anchor="middle">H = ${d.totalH.toFixed(1)} მ</text>
+        <line x1="${x1 - 42}" y1="${roofY}" x2="${x1 - 42}" y2="${groundY}" stroke="#ffffff" stroke-width="1.4" marker-start="url(#asmArrowDim)" marker-end="url(#asmArrowDim)" />
+        <text x="${x1 - 52}" y="${(roofY + groundY) / 2}" fill="#ffffff" font-size="11" font-family="'JetBrains Mono', monospace" font-weight="700" transform="rotate(-90 ${x1 - 52} ${(roofY + groundY) / 2})" text-anchor="middle">H = ${d.totalH.toFixed(1)} მ</text>
+
+        <line x1="${x1}" y1="${bBottom + 16}" x2="${x2}" y2="${bBottom + 16}" stroke="#ffffff" stroke-width="1.2" marker-start="url(#asmArrowDim)" marker-end="url(#asmArrowDim)" />
+        <text x="${cx}" y="${bBottom + 28}" fill="#ffffff" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">სიგრძე: ${d.bldgLength.toFixed(2)} მ</text>
       ` : ''}
     `;
+
+    return { content, height: svgH };
   }
 
+  // --- 3. South Elevation (Real Width, Real Floors) ---
   function buildFacadeSouthSvg(d) {
-    const groundY = 440;
-    const bldgW = 280;
+    const svgH = Math.max(720, 220 + d.floorsAbove * 44);
+    const groundY = svgH - 130;
+    const availH = groundY - 140;
+    const hFloor = Math.max(34, Math.min(48, availH / Math.max(1, d.floorsAbove)));
+    const roofY = groundY - d.floorsAbove * hFloor;
+    const parapetY = roofY - Math.max(18, hFloor * 0.38);
+
+    const bldgW = Math.max(280, Math.min(540, d.bldgWidth * 14));
     const cx = 530;
     const x1 = cx - bldgW / 2;
     const x2 = cx + bldgW / 2;
-    const hFloor = Math.min(42, Math.max(28, 200 / Math.max(1, d.floorsAbove)));
-    const roofY = groundY - d.floorsAbove * hFloor;
-    const parapetY = roofY - 14;
 
     let windowsMarkup = '';
-    const numCols = 4;
+    const numCols = Math.max(3, Math.min(7, Math.round(d.bldgWidth / 4)));
     const colW = (bldgW - 40) / numCols;
     for (let f = 0; f < d.floorsAbove; f++) {
       const fTop = groundY - (f + 1) * hFloor;
       for (let c = 0; c < numCols; c++) {
         const wx = x1 + 20 + c * colW;
-        if (f === 0 && (c === 1 || c === 2)) {
-          // Ground floor entrance canopy & lobby double door
+        if (f === 0 && (c === Math.floor(numCols / 2) || c === Math.floor(numCols / 2) - 1)) {
           windowsMarkup += `
             <rect x="${wx + 4}" y="${fTop + 10}" width="${colW - 8}" height="${hFloor - 12}" fill="rgba(0, 240, 255, 0.35)" stroke="#00f0ff" stroke-width="1.4" />
             <line x1="${wx + colW / 2}" y1="${fTop + 10}" x2="${wx + colW / 2}" y2="${fTop + hFloor - 2}" stroke="#00f0ff" stroke-width="1.2" />
@@ -15726,15 +16077,15 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    return `
+    const content = `
       <g class="asm-title-block">
         <text x="50" y="48" fill="#94a3b8" font-size="11" font-family="'JetBrains Mono', monospace" font-weight="600">${d.cadastralCode} • ${d.address}</text>
         <text x="50" y="74" fill="#00f0ff" font-size="16" font-family="'Inter', sans-serif" font-weight="800" letter-spacing="0.5">სამხრეთის ფასადი (SOUTH ELEVATION)</text>
-        <text x="50" y="94" fill="#64748b" font-size="10.5" font-family="'Inter', sans-serif">მასშტაბი: 1:100 | მასალა: ${d.bldg.facadeMaterial || 'მინა / ტრავერტინი'} | სიმაღლე: ${d.totalH.toFixed(1)}მ</text>
+        <text x="50" y="94" fill="#64748b" font-size="10.5" font-family="'Inter', sans-serif">მასშტაბი: 1:100 | მასალა: ${d.bldg.facadeMaterial || 'მინა / ტრავერტინი'} | სიგანე: ${d.bldgWidth.toFixed(1)}მ | სიმაღლე: ${d.totalH.toFixed(1)}მ</text>
       </g>
 
-      <rect x="30" y="${groundY}" width="960" height="170" fill="url(#asmGroundHatch)" opacity="0.8" />
-      <line x1="30" y1="${groundY}" x2="990" y2="${groundY}" stroke="#cbd5e1" stroke-width="1.8" />
+      <rect x="30" y="${groundY}" width="1020" height="${svgH - groundY}" fill="url(#asmGroundHatch)" opacity="0.8" />
+      <line x1="30" y1="${groundY}" x2="1050" y2="${groundY}" stroke="#cbd5e1" stroke-width="1.8" />
       <text x="45" y="${groundY - 8}" fill="#cbd5e1" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700">±0.00 ბუნებრივი რელიეფის ნიშნული</text>
 
       <!-- Building Shell -->
@@ -15748,117 +16099,255 @@ document.addEventListener('DOMContentLoaded', () => {
       ${windowsMarkup}
 
       ${asmState.showLevels ? `
-        <line x1="${x2}" y1="${parapetY}" x2="730" y2="${parapetY}" stroke="#f59e0b" stroke-width="1.4" />
-        <polygon points="700,${parapetY} 710,${parapetY - 3.5} 710,${parapetY + 3.5}" fill="#f59e0b" />
-        <text x="736" y="${parapetY + 3.5}" fill="#f59e0b" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700">+${(d.totalH + 0.9).toFixed(2)} პარაპეტი</text>
-        <line x1="${x2}" y1="${roofY}" x2="730" y2="${roofY}" stroke="#00f0ff" stroke-width="1.3" />
-        <polygon points="700,${roofY} 710,${roofY - 3} 710,${roofY + 3}" fill="#00f0ff" />
-        <text x="736" y="${roofY + 3.5}" fill="#00f0ff" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700">+${d.totalH.toFixed(2)} გადახურვა</text>
+        <line x1="${x2}" y1="${parapetY}" x2="${x2 + 70}" y2="${parapetY}" stroke="#f59e0b" stroke-width="1.4" />
+        <polygon points="${x2 + 55},${parapetY} ${x2 + 65},${parapetY - 3.5} ${x2 + 65},${parapetY + 3.5}" fill="#f59e0b" />
+        <text x="${x2 + 75}" y="${parapetY + 3.5}" fill="#f59e0b" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700">+${(d.totalH + 0.90).toFixed(2)} პარაპეტი</text>
+
+        <line x1="${x2}" y1="${roofY}" x2="${x2 + 70}" y2="${roofY}" stroke="#00f0ff" stroke-width="1.3" />
+        <polygon points="${x2 + 55},${roofY} ${x2 + 65},${roofY - 3} ${x2 + 65},${roofY + 3}" fill="#00f0ff" />
+        <text x="${x2 + 75}" y="${roofY + 3.5}" fill="#00f0ff" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700">+${d.totalH.toFixed(2)} გადახურვა</text>
       ` : ''}
 
-      <!-- Human Silhouette & Scale Tree -->
-      <g transform="translate(640, ${groundY})">
-        <!-- Stylized Person -->
+      <!-- Scale Human Silhouette & Tree -->
+      <g transform="translate(${Math.min(960, x2 + 60)}, ${groundY})">
         <circle cx="0" cy="-28" r="3" fill="#cbd5e1" />
         <line x1="0" y1="-25" x2="0" y2="-12" stroke="#cbd5e1" stroke-width="2" />
         <line x1="0" y1="-12" x2="-4" y2="0" stroke="#cbd5e1" stroke-width="1.8" />
         <line x1="0" y1="-12" x2="4" y2="0" stroke="#cbd5e1" stroke-width="1.8" />
       </g>
     `;
+
+    return { content, height: svgH };
   }
 
+  // --- 4. East Elevation (Real Length, Real Floors) ---
   function buildFacadeEastSvg(d) {
-    const groundY = 440;
-    const bldgW = 220;
+    const svgH = Math.max(720, 220 + d.floorsAbove * 44);
+    const groundY = svgH - 130;
+    const availH = groundY - 140;
+    const hFloor = Math.max(34, Math.min(48, availH / Math.max(1, d.floorsAbove)));
+    const roofY = groundY - d.floorsAbove * hFloor;
+    const parapetY = roofY - Math.max(18, hFloor * 0.38);
+
+    const bldgW = Math.max(260, Math.min(560, d.bldgLength * 13));
     const cx = 530;
     const x1 = cx - bldgW / 2;
     const x2 = cx + bldgW / 2;
-    const hFloor = Math.min(42, Math.max(28, 200 / Math.max(1, d.floorsAbove)));
-    const roofY = groundY - d.floorsAbove * hFloor;
-    const parapetY = roofY - 14;
 
-    return `
+    const numCols = Math.max(3, Math.min(8, Math.round(d.bldgLength / 4)));
+    const colW = (bldgW - 40) / numCols;
+
+    let windowsMarkup = '';
+    for (let f = 0; f < d.floorsAbove; f++) {
+      const fTop = groundY - (f + 1) * hFloor;
+      for (let c = 0; c < numCols; c++) {
+        const wx = x1 + 20 + c * colW;
+        windowsMarkup += `
+          <rect x="${wx + 6}" y="${fTop + 8}" width="${colW - 12}" height="${hFloor - 16}" fill="rgba(2, 132, 199, 0.28)" stroke="#38bdf8" stroke-width="1" rx="2" />
+        `;
+      }
+    }
+
+    const content = `
       <g class="asm-title-block">
         <text x="50" y="48" fill="#94a3b8" font-size="11" font-family="'JetBrains Mono', monospace" font-weight="600">${d.cadastralCode} • ${d.address}</text>
         <text x="50" y="74" fill="#00f0ff" font-size="16" font-family="'Inter', sans-serif" font-weight="800" letter-spacing="0.5">აღმოსავლეთის ფასადი (EAST ELEVATION)</text>
-        <text x="50" y="94" fill="#64748b" font-size="10.5" font-family="'Inter', sans-serif">მასშტაბი: 1:100 | სიგანე: ${d.bldgWidth.toFixed(2)}მ | სიმაღლე: ${d.totalH.toFixed(1)}მ</text>
+        <text x="50" y="94" fill="#64748b" font-size="10.5" font-family="'Inter', sans-serif">მასშტაბი: 1:100 | სიგრძე: ${d.bldgLength.toFixed(2)}მ | სიმაღლე: ${d.totalH.toFixed(1)}მ</text>
       </g>
 
-      <rect x="30" y="${groundY}" width="960" height="170" fill="url(#asmGroundHatch)" opacity="0.8" />
-      <line x1="30" y1="${groundY}" x2="990" y2="${groundY}" stroke="#cbd5e1" stroke-width="1.8" />
+      <rect x="30" y="${groundY}" width="1020" height="${svgH - groundY}" fill="url(#asmGroundHatch)" opacity="0.8" />
+      <line x1="30" y1="${groundY}" x2="1050" y2="${groundY}" stroke="#cbd5e1" stroke-width="1.8" />
       <text x="45" y="${groundY - 8}" fill="#cbd5e1" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700">±0.00 ბუნებრივი რელიეფის ნიშნული</text>
 
-      <!-- Building Shell -->
       <rect x="${x1}" y="${parapetY}" width="${bldgW}" height="${groundY - parapetY}" fill="#111827" stroke="#38bdf8" stroke-width="1.8" />
       <rect x="${x1}" y="${parapetY}" width="${bldgW}" height="14" fill="#1e293b" stroke="#38bdf8" stroke-width="1.2" />
 
-      <!-- Floor Lines & Windows -->
-      ${Array.from({ length: d.floorsAbove }).map((_, f) => {
-        const fTop = groundY - (f + 1) * hFloor;
-        return `
-          <line x1="${x1}" y1="${fTop}" x2="${x2}" y2="${fTop}" stroke="rgba(56, 189, 248, 0.3)" stroke-width="1" />
-          <rect x="${x1 + 35}" y="${fTop + 8}" width="60" height="${hFloor - 16}" fill="rgba(2, 132, 199, 0.28)" stroke="#38bdf8" stroke-width="1" rx="2" />
-          <rect x="${x2 - 95}" y="${fTop + 8}" width="60" height="${hFloor - 16}" fill="rgba(2, 132, 199, 0.28)" stroke="#38bdf8" stroke-width="1" rx="2" />
-        `;
-      }).join('')}
+      ${windowsMarkup}
     `;
+
+    return { content, height: svgH };
   }
 
+  // --- 5. Real Site Masterplan (M 1:500) & Interactive Road Drawing ---
   function buildMasterplanSvg(d) {
-    const parcelPoly = `<polygon points="375,235 685,245 665,515 390,500" fill="rgba(16, 185, 129, 0.05)" stroke="#10b981" stroke-width="2" stroke-dasharray="8 5" />`;
-    const setbackPoly = `<polygon points="405,255 655,265 640,490 415,480" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="6 4" />`;
+    const geo = d.geo;
+    const svgW = 1080;
+    const svgH = 680;
 
-    const fpX = 430;
-    const fpY = 265;
-    const fpW = 190;
-    const fpH = 150;
+    const b = geo.parcelBounds;
+    const spanX = Math.max(35, b.maxX - b.minX);
+    const spanY = Math.max(35, b.maxY - b.minY);
 
-    return `
+    const availW = 780;
+    const availH = 460;
+    const scale = Math.min(availW / (spanX * 1.25), availH / (spanY * 1.25));
+
+    const cxMeters = (b.minX + b.maxX) / 2;
+    const cyMeters = (b.minY + b.maxY) / 2;
+
+    const toSvgX = (x) => 530 + (x - cxMeters) * scale;
+    const toSvgY = (y) => 360 - (y - cyMeters) * scale;
+
+    // Provide inverse transformation for road drawing click events
+    asmState.fromSvgProj = (sx, sy) => ({
+      x: cxMeters + (sx - 530) / scale,
+      y: cyMeters - (sy - 360) / scale
+    });
+
+    // 1. Real Parcel Boundary
+    const parcelPtsStr = geo.parcelMeters.map(p => `${toSvgX(p.x).toFixed(1)},${toSvgY(p.y).toFixed(1)}`).join(' ');
+
+    // 2. Real 3m Setback Boundary
+    const setbackPtsStr = geo.setbackMeters.map(p => `${toSvgX(p.x).toFixed(1)},${toSvgY(p.y).toFixed(1)}`).join(' ');
+
+    // 3. Existing Buildings on Parcel
+    let existingBldgsMarkup = '';
+    if (geo.existingBldgs && geo.existingBldgs.length > 0) {
+      existingBldgsMarkup = geo.existingBldgs.map(eb => {
+        const polyStr = eb.meters.map(p => `${toSvgX(p.x).toFixed(1)},${toSvgY(p.y).toFixed(1)}`).join(' ');
+        const avgX = eb.meters.reduce((s, p) => s + p.x, 0) / eb.meters.length;
+        const avgY = eb.meters.reduce((s, p) => s + p.y, 0) / eb.meters.length;
+        return `
+          <g class="asm-mp-existing-bldg">
+            <polygon points="${polyStr}" fill="rgba(100, 116, 139, 0.35)" stroke="#94a3b8" stroke-width="2" stroke-dasharray="5 3" />
+            <text x="${toSvgX(avgX)}" y="${toSvgY(avgY) - 5}" fill="#e2e8f0" font-size="9.5" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">${eb.name}</text>
+            <text x="${toSvgX(avgX)}" y="${toSvgY(avgY) + 10}" fill="#94a3b8" font-size="8.5" font-family="'JetBrains Mono', monospace" text-anchor="middle">${eb.area} მ² (${eb.floors} სართ.)</text>
+          </g>
+        `;
+      }).join('');
+    }
+
+    // 4. Active / Proposed / User-drawn Building Footprint
+    const bldgPtsStr = geo.activeBldgMeters.map(p => `${toSvgX(p.x).toFixed(1)},${toSvgY(p.y).toFixed(1)}`).join(' ');
+    const bldgCentroidX = geo.activeBldgMeters.reduce((s, p) => s + p.x, 0) / geo.activeBldgMeters.length;
+    const bldgCentroidY = geo.activeBldgMeters.reduce((s, p) => s + p.y, 0) / geo.activeBldgMeters.length;
+    const bldgSvgX = toSvgX(bldgCentroidX);
+    const bldgSvgY = toSvgY(bldgCentroidY);
+
+    const bldgStatusLabel = geo.isDrawnByUser 
+      ? 'დახაზული საპროექტო შენობა' 
+      : (d.bldg.isExisting ? 'არსებული შენობა' : 'საპროექტო შენობის ლაქა (K1)');
+
+    // 5. Real Roads on Parcel (Existing / Saved)
+    let roadsMarkup = '';
+    if (geo.roadsList && geo.roadsList.length > 0) {
+      roadsMarkup = geo.roadsList.map(r => {
+        const polyLinePts = r.meters.map(p => `${toSvgX(p.x).toFixed(1)},${toSvgY(p.y).toFixed(1)}`).join(' ');
+        const roadW = Math.max(8, r.width * scale);
+        const midPt = r.meters[Math.floor(r.meters.length / 2)];
+        return `
+          <g class="asm-mp-road-item">
+            <!-- Road Asphalt Band -->
+            <polyline points="${polyLinePts}" fill="none" stroke="#1e293b" stroke-width="${roadW}" stroke-linecap="round" stroke-linejoin="round" opacity="0.9" />
+            <polyline points="${polyLinePts}" fill="none" stroke="#475569" stroke-width="${roadW}" stroke-linecap="round" stroke-linejoin="round" opacity="0.6" />
+            <!-- Casing Lines -->
+            <polyline points="${polyLinePts}" fill="none" stroke="#94a3b8" stroke-width="${roadW + 2}" stroke-linecap="round" stroke-linejoin="round" opacity="0.3" />
+            <!-- Centerline -->
+            <polyline points="${polyLinePts}" fill="none" stroke="#f8fafc" stroke-width="1.2" stroke-dasharray="6 4" opacity="0.8" />
+            <!-- Label -->
+            <text x="${toSvgX(midPt.x)}" y="${toSvgY(midPt.y) - 6}" fill="#38bdf8" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">
+              ${r.name} (${r.width}მ)
+            </text>
+          </g>
+        `;
+      }).join('');
+    }
+
+    // 6. Live Road Drawing in Progress Preview
+    let roadDrawingLiveMarkup = '';
+    if (asmState.isDrawingRoad && asmState.drawnRoadMeters && asmState.drawnRoadMeters.length > 0) {
+      const activePts = asmState.drawnRoadMeters;
+      const ptsStr = activePts.map(p => `${toSvgX(p.x).toFixed(1)},${toSvgY(p.y).toFixed(1)}`).join(' ');
+      const roadW = Math.max(8, (asmState.roadWidth || 6.0) * scale);
+
+      const vertexCircles = activePts.map((p, idx) => `
+        <circle cx="${toSvgX(p.x)}" cy="${toSvgY(p.y)}" r="${idx === 0 ? 6 : 4}" fill="${idx === 0 ? '#38bdf8' : '#ffffff'}" stroke="#0284c7" stroke-width="2" />
+      `).join('');
+
+      roadDrawingLiveMarkup = `
+        <g class="asm-mp-live-road">
+          <polyline points="${ptsStr}" fill="none" stroke="rgba(56, 189, 248, 0.35)" stroke-width="${roadW}" stroke-linecap="round" stroke-linejoin="round" />
+          <polyline points="${ptsStr}" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="5 3" />
+          ${vertexCircles}
+        </g>
+      `;
+    }
+
+    // 7. Grid Axes Crossing Building
+    const axesMarkup = asmState.showAxes ? `
+      <g class="asm-masterplan-axes">
+        <line x1="${bldgSvgX - 80}" y1="${bldgSvgY}" x2="${bldgSvgX + 80}" y2="${bldgSvgY}" stroke="#8b5cf6" stroke-width="1.2" stroke-dasharray="5 4" opacity="0.85" />
+        <circle cx="${bldgSvgX - 95}" cy="${bldgSvgY}" r="11" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
+        <text x="${bldgSvgX - 95}" y="${bldgSvgY + 3.5}" fill="#ffffff" font-size="9.5" font-weight="700" text-anchor="middle">A</text>
+        <circle cx="${bldgSvgX + 95}" cy="${bldgSvgY}" r="11" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
+        <text x="${bldgSvgX + 95}" y="${bldgSvgY + 3.5}" fill="#ffffff" font-size="9.5" font-weight="700" text-anchor="middle">C</text>
+
+        <line x1="${bldgSvgX}" y1="${bldgSvgY - 70}" x2="${bldgSvgX}" y2="${bldgSvgY + 70}" stroke="#8b5cf6" stroke-width="1.2" stroke-dasharray="5 4" opacity="0.85" />
+        <circle cx="${bldgSvgX}" cy="${bldgSvgY - 85}" r="11" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
+        <text x="${bldgSvgX}" y="${bldgSvgY - 81.5}" fill="#ffffff" font-size="9.5" font-weight="700" text-anchor="middle">1</text>
+        <circle cx="${bldgSvgX}" cy="${bldgSvgY + 85}" r="11" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
+        <text x="${bldgSvgX}" y="${bldgSvgY + 88.5}" fill="#ffffff" font-size="9.5" font-weight="700" text-anchor="middle">2</text>
+      </g>
+    ` : '';
+
+    // 8. Scale Bar (M 1:500 CAD graphic bar)
+    const scaleBarMeters = 20; // 20m
+    const scaleBarPx = scaleBarMeters * scale;
+    const sbX = 50;
+    const sbY = svgH - 45;
+
+    const content = `
       <!-- Title Block -->
       <g class="asm-title-block">
         <text x="50" y="48" fill="#94a3b8" font-size="11" font-family="'JetBrains Mono', monospace" font-weight="600">${d.cadastralCode} • ${d.address}</text>
         <text x="50" y="74" fill="#00f0ff" font-size="16" font-family="'Inter', sans-serif" font-weight="800" letter-spacing="0.5">გენერალური გეგმა (SITE MASTERPLAN M 1:500)</text>
-        <text x="50" y="94" fill="#64748b" font-size="10.5" font-family="'Inter', sans-serif">მასშტაბი: 1:500 | ზონა: ${d.zoneCode} (${d.zoneName}) | K1=${d.k1} K2=${d.k2} K3=${d.k3}</text>
+        <text x="50" y="94" fill="#64748b" font-size="10.5" font-family="'Inter', sans-serif">მასშტაბი: 1:500 | ნაკვეთის ფართი: ${d.parcel.area || 1200} მ² | ზონა: ${d.zoneCode} (${d.zoneName}) | K1=${d.k1} K2=${d.k2} K3=${d.k3}</text>
       </g>
 
-      <!-- Setback Boundaries & Parcel Poly -->
-      ${parcelPoly}
-      ${setbackPoly}
-      <text x="402" y="240" fill="#ef4444" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="700" transform="rotate(-90 402 240)" text-anchor="middle">საკადასტრო მიჯნა (3მ)</text>
-      <text x="658" y="240" fill="#ef4444" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="700" transform="rotate(-90 658 240)" text-anchor="middle">საკადასტრო მიჯნა (3მ)</text>
+      <!-- Roads (Asphalt bands & markings) -->
+      ${roadsMarkup}
 
-      <!-- Ground Level Reference Datum -->
-      <line x1="60" y1="520" x2="960" y2="520" stroke="#64748b" stroke-width="1.6" stroke-dasharray="6 4" />
-      <text x="65" y="512" fill="#cbd5e1" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700">±0.00 ბუნებრივი რელიეფის ნიშნული (GROUND LEVEL)</text>
+      <!-- Real Cadastral Parcel Boundary -->
+      <g class="asm-mp-parcel">
+        <polygon points="${parcelPtsStr}" fill="rgba(16, 185, 129, 0.06)" stroke="#10b981" stroke-width="2.5" stroke-dasharray="8 5" />
+      </g>
 
-      <!-- Building Footprint Shape -->
-      <rect x="${fpX}" y="${fpY}" width="${fpW}" height="${fpH}" fill="rgba(0, 240, 255, 0.16)" stroke="#00f0ff" stroke-width="2" />
-      <text x="${fpX + fpW / 2}" y="${fpY + fpH / 2 - 8}" fill="#ffffff" font-size="11" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">საპროექტო შენობის ლაქა (K1 = ${d.k1})</text>
-      <text x="${fpX + fpW / 2}" y="${fpY + fpH / 2 + 12}" fill="#00f0ff" font-size="10.5" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">S = ${d.footprintArea} მ² (${d.bldgLength.toFixed(2)} × ${d.bldgWidth.toFixed(2)})</text>
+      <!-- Real 3m Setback Boundary -->
+      <g class="asm-mp-setbacks">
+        <polygon points="${setbackPtsStr}" fill="rgba(239, 68, 68, 0.03)" stroke="#ef4444" stroke-width="1.6" stroke-dasharray="6 4" />
+        <text x="${toSvgX(cxMeters)}" y="${toSvgY(b.maxY) - 8}" fill="#ef4444" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">საკადასტრო მიჯნა (3მ)</text>
+      </g>
+
+      <!-- Existing Buildings on Parcel -->
+      ${existingBldgsMarkup}
+
+      <!-- Real Proposed / Drawn Building Footprint -->
+      <g class="asm-mp-active-bldg">
+        <polygon points="${bldgPtsStr}" fill="rgba(0, 240, 255, 0.22)" stroke="#00f0ff" stroke-width="2.5" />
+        <text x="${bldgSvgX}" y="${bldgSvgY - 7}" fill="#ffffff" font-size="11" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">${bldgStatusLabel}</text>
+        <text x="${bldgSvgX}" y="${bldgSvgY + 11}" fill="#00f0ff" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">S = ${d.footprintArea} მ² (${d.bldgLength.toFixed(1)} × ${d.bldgWidth.toFixed(1)}მ)</text>
+      </g>
 
       <!-- Grid Axes Across Footprint -->
-      ${asmState.showAxes ? `
-        <g class="asm-masterplan-axes">
-          <line x1="${fpX}" y1="210" x2="${fpX}" y2="475" stroke="#8b5cf6" stroke-width="1.2" stroke-dasharray="5 4" opacity="0.85" />
-          <circle cx="${fpX}" cy="235" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
-          <text x="${fpX}" y="239" fill="#ffffff" font-size="10" font-weight="700" text-anchor="middle">A</text>
-          <circle cx="${fpX}" cy="460" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
-          <text x="${fpX}" y="464" fill="#ffffff" font-size="10" font-weight="700" text-anchor="middle">A</text>
+      ${axesMarkup}
 
-          <line x1="${fpX + fpW / 2}" y1="210" x2="${fpX + fpW / 2}" y2="475" stroke="#8b5cf6" stroke-width="1.2" stroke-dasharray="5 4" opacity="0.85" />
-          <circle cx="${fpX + fpW / 2}" cy="235" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
-          <text x="${fpX + fpW / 2}" y="239" fill="#ffffff" font-size="10" font-weight="700" text-anchor="middle">B</text>
-          <circle cx="${fpX + fpW / 2}" cy="460" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
-          <text x="${fpX + fpW / 2}" y="464" fill="#ffffff" font-size="10" font-weight="700" text-anchor="middle">B</text>
+      <!-- Live Road Drawing in Progress Preview -->
+      ${roadDrawingLiveMarkup}
 
-          <line x1="${fpX + fpW}" y1="210" x2="${fpX + fpW}" y2="475" stroke="#8b5cf6" stroke-width="1.2" stroke-dasharray="5 4" opacity="0.85" />
-          <circle cx="${fpX + fpW}" cy="235" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
-          <text x="${fpX + fpW}" y="239" fill="#ffffff" font-size="10" font-weight="700" text-anchor="middle">C</text>
-          <circle cx="${fpX + fpW}" cy="460" r="12" fill="#6d28d9" stroke="#a78bfa" stroke-width="1.5" />
-          <text x="${fpX + fpW}" y="464" fill="#ffffff" font-size="10" font-weight="700" text-anchor="middle">C</text>
-        </g>
-      ` : ''}
+      <!-- Graphic Scale Bar (M 1:500) -->
+      <g class="asm-mp-scale-bar" transform="translate(${sbX}, ${sbY})">
+        <rect x="0" y="0" width="${scaleBarPx}" height="4" fill="#64748b" />
+        <rect x="0" y="0" width="${scaleBarPx / 2}" height="4" fill="#00f0ff" />
+        <line x1="0" y1="-3" x2="0" y2="7" stroke="#94a3b8" stroke-width="1.5" />
+        <line x1="${scaleBarPx / 2}" y1="-3" x2="${scaleBarPx / 2}" y2="7" stroke="#94a3b8" stroke-width="1.5" />
+        <line x1="${scaleBarPx}" y1="-3" x2="${scaleBarPx}" y2="7" stroke="#94a3b8" stroke-width="1.5" />
+        <text x="0" y="-6" fill="#94a3b8" font-size="8" font-family="'JetBrains Mono', monospace">0</text>
+        <text x="${scaleBarPx / 2}" y="-6" fill="#94a3b8" font-size="8" font-family="'JetBrains Mono', monospace" text-anchor="middle">10მ</text>
+        <text x="${scaleBarPx}" y="-6" fill="#94a3b8" font-size="8" font-family="'JetBrains Mono', monospace" text-anchor="middle">20მ (M 1:500)</text>
+      </g>
     `;
+
+    return { content, height: svgH };
   }
 
   function initArchSectionsModal() {
@@ -15889,7 +16378,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && overlay && overlay.style.display === 'flex') {
-        closeArchSectionsModal();
+        if (asmState.isDrawingRoad) {
+          cancelArchMasterplanRoadDraw();
+        } else {
+          closeArchSectionsModal();
+        }
       }
     });
 
@@ -15898,119 +16391,52 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.addEventListener('click', () => {
         const tab = btn.dataset.tab;
         if (!tab) return;
-        asmState.activeTab = tab;
-        document.querySelectorAll('.asm-tab-btn').forEach(b => b.classList.toggle('active', b === btn));
-        renderArchSectionsSvg();
+        switchArchSectionTab(tab);
       });
     });
 
     // Layer toggle buttons
     const toggleDim = document.getElementById('asmToggleDim');
-    if (toggleDim) {
-      toggleDim.addEventListener('click', () => {
-        asmState.showDimensions = !asmState.showDimensions;
-        toggleDim.classList.toggle('active', asmState.showDimensions);
-        renderArchSectionsSvg();
-      });
-    }
+    if (toggleDim) toggleDim.addEventListener('click', () => toggleArchSectionLayer('dim'));
 
     const toggleAxes = document.getElementById('asmToggleAxes');
-    if (toggleAxes) {
-      toggleAxes.addEventListener('click', () => {
-        asmState.showAxes = !asmState.showAxes;
-        toggleAxes.classList.toggle('active', asmState.showAxes);
-        renderArchSectionsSvg();
-      });
-    }
+    if (toggleAxes) toggleAxes.addEventListener('click', () => toggleArchSectionLayer('axes'));
 
     const toggleLevels = document.getElementById('asmToggleLevels');
-    if (toggleLevels) {
-      toggleLevels.addEventListener('click', () => {
-        asmState.showLevels = !asmState.showLevels;
-        toggleLevels.classList.toggle('active', asmState.showLevels);
-        renderArchSectionsSvg();
-      });
-    }
+    if (toggleLevels) toggleLevels.addEventListener('click', () => toggleArchSectionLayer('levels'));
 
     const toggleCompass = document.getElementById('asmToggleCompass');
-    if (toggleCompass) {
-      toggleCompass.addEventListener('click', () => {
-        asmState.showCompass = !asmState.showCompass;
-        toggleCompass.classList.toggle('active', asmState.showCompass);
-        renderArchSectionsSvg();
-      });
-    }
+    if (toggleCompass) toggleCompass.addEventListener('click', () => toggleArchSectionLayer('compass'));
+
+    // Road Draw Button
+    const btnRoadDraw = document.getElementById('asmBtnDrawRoad');
+    if (btnRoadDraw) btnRoadDraw.addEventListener('click', toggleArchMasterplanRoadDraw);
 
     // Export SVG Button
     const btnExportSvg = document.getElementById('asmBtnExportSvg');
-    if (btnExportSvg) {
-      btnExportSvg.addEventListener('click', () => {
-        const svgEl = document.querySelector('#asmDrawingStage svg');
-        if (!svgEl) return;
-        const svgData = new XMLSerializer().serializeToString(svgEl);
-        const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        const code = state.activeParcel?.code || 'parcel';
-        a.href = url;
-        a.download = `${code}_${asmState.activeTab}.svg`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      });
-    }
+    if (btnExportSvg) btnExportSvg.addEventListener('click', exportArchSectionSvg);
 
     // Copy Drawing Button
     const btnCopy = document.getElementById('asmBtnCopy');
-    if (btnCopy) {
-      btnCopy.addEventListener('click', async () => {
-        const svgEl = document.querySelector('#asmDrawingStage svg');
-        if (!svgEl) return;
-        const svgData = new XMLSerializer().serializeToString(svgEl);
-        try {
-          await navigator.clipboard.writeText(svgData);
-          const origText = btnCopy.innerHTML;
-          btnCopy.innerHTML = '<i class="fa-solid fa-check" style="color: #10b981;"></i> დაკოპირდა!';
-          setTimeout(() => { btnCopy.innerHTML = origText; }, 2000);
-        } catch (err) {
-          console.warn('Clipboard copy failed:', err);
-        }
-      });
-    }
+    if (btnCopy) btnCopy.addEventListener('click', copyArchSectionSvg);
 
     // Print Drawing Button
     const btnPrint = document.getElementById('asmBtnPrint');
-    if (btnPrint) {
-      btnPrint.addEventListener('click', () => {
-        const svgEl = document.querySelector('#asmDrawingStage svg');
-        if (!svgEl) return;
-        const svgHtml = svgEl.outerHTML;
-        const printWin = window.open('', '_blank', 'width=1100,height=750');
-        if (!printWin) return;
-        printWin.document.write(`
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>საარქიტექტურო ნახაზი — ${asmState.activeTab}</title>
-            <style>
-              body { margin: 0; padding: 20px; background: #fff; display: flex; align-items: center; justify-content: center; font-family: sans-serif; }
-              svg { max-width: 100%; height: auto; }
-              @media print { body { padding: 0; } }
-            </style>
-          </head>
-          <body>
-            ${svgHtml}
-            <script>
-              window.onload = function() { window.print(); window.close(); };
-            <\/script>
-          </body>
-          </html>
-        `);
-        printWin.document.close();
-      });
-    }
+    if (btnPrint) btnPrint.addEventListener('click', printArchSectionSvg);
   }
+
+  window.openArchSectionsModal = openArchSectionsModal;
+  window.closeArchSectionsModal = closeArchSectionsModal;
+  window.renderArchSectionsSvg = renderArchSectionsSvg;
+  window.switchArchSectionTab = switchArchSectionTab;
+  window.toggleArchSectionLayer = toggleArchSectionLayer;
+  window.toggleArchMasterplanRoadDraw = toggleArchMasterplanRoadDraw;
+  window.finishArchMasterplanRoadDraw = finishArchMasterplanRoadDraw;
+  window.undoArchMasterplanRoadPoint = undoArchMasterplanRoadPoint;
+  window.cancelArchMasterplanRoadDraw = cancelArchMasterplanRoadDraw;
+  window.copyArchSectionSvg = copyArchSectionSvg;
+  window.exportArchSectionSvg = exportArchSectionSvg;
+  window.printArchSectionSvg = printArchSectionSvg;
 
   /* ==========================================================================
      15. Initialize Map, 3D Canvas, and Default Search
