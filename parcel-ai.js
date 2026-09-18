@@ -15431,6 +15431,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!overlay) return;
     overlay.style.display = 'flex';
     document.body.style.overflow = 'hidden';
+    syncArchSectionLayerButtons();
     try {
       renderArchSectionsSvg();
     } catch (err) {
@@ -15482,31 +15483,48 @@ document.addEventListener('DOMContentLoaded', () => {
     renderArchSectionsSvg();
   }
 
+  const _layerToggleDebounce = {};
   function toggleArchSectionLayer(layer) {
+    const now = Date.now();
+    if (_layerToggleDebounce[layer] && (now - _layerToggleDebounce[layer] < 220)) {
+      return; // Ignore duplicate click or dual-event triggers
+    }
+    _layerToggleDebounce[layer] = now;
+
     if (layer === 'dim') {
       asmState.showDimensions = !asmState.showDimensions;
-      const el = document.getElementById('asmToggleDim');
-      if (el) el.classList.toggle('active', asmState.showDimensions);
     } else if (layer === 'axes') {
       asmState.showAxes = !asmState.showAxes;
-      const el = document.getElementById('asmToggleAxes');
-      if (el) el.classList.toggle('active', asmState.showAxes);
     } else if (layer === 'levels') {
       asmState.showLevels = !asmState.showLevels;
-      const el = document.getElementById('asmToggleLevels');
-      if (el) el.classList.toggle('active', asmState.showLevels);
     } else if (layer === 'compass') {
       asmState.showCompass = !asmState.showCompass;
-      const el = document.getElementById('asmToggleCompass');
-      if (el) el.classList.toggle('active', asmState.showCompass);
     } else if (layer === 'labels') {
       asmState.showLabels = !asmState.showLabels;
-      const el = document.getElementById('asmToggleLabels');
-      if (el) el.classList.toggle('active', asmState.showLabels);
-      const hudEl = document.getElementById('asmHudBtnLabels');
-      if (hudEl) hudEl.classList.toggle('active', asmState.showLabels);
     }
+
+    syncArchSectionLayerButtons();
     renderArchSectionsSvg();
+  }
+
+  function syncArchSectionLayerButtons() {
+    const elDim = document.getElementById('asmToggleDim');
+    if (elDim) elDim.classList.toggle('active', !!asmState.showDimensions);
+
+    const elAxes = document.getElementById('asmToggleAxes');
+    if (elAxes) elAxes.classList.toggle('active', !!asmState.showAxes);
+
+    const elLevels = document.getElementById('asmToggleLevels');
+    if (elLevels) elLevels.classList.toggle('active', !!asmState.showLevels);
+
+    const elCompass = document.getElementById('asmToggleCompass');
+    if (elCompass) elCompass.classList.toggle('active', !!asmState.showCompass);
+
+    const elLabels = document.getElementById('asmToggleLabels');
+    if (elLabels) elLabels.classList.toggle('active', !!asmState.showLabels);
+
+    const hudLabels = document.getElementById('asmHudBtnLabels');
+    if (hudLabels) hudLabels.classList.toggle('active', !!asmState.showLabels);
   }
 
   // --- Masterplan Road Drawing Engine ---
@@ -16720,7 +16738,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ${asmState.showLabels ? `
               <rect x="${lx - 52}" y="${ly - 14}" width="104" height="26" rx="4" fill="rgba(5, 7, 12, 0.82)" stroke="rgba(148, 163, 184, 0.3)" stroke-width="0.8" />
               <text x="${lx}" y="${ly - 2}" fill="#f1f5f9" font-size="8.5" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">${eb.name}</text>
-              <text x="${lx}" y="${ly + 8.5}" fill="#94a3b8" font-size="7.5" font-family="'JetBrains Mono', monospace" text-anchor="middle">${eb.area} მ² (${eb.floors} სართ.)</text>
+              ${asmState.showDimensions ? `<text x="${lx}" y="${ly + 8.5}" fill="#94a3b8" font-size="7.5" font-family="'JetBrains Mono', monospace" text-anchor="middle">${eb.area} მ² (${eb.floors} სართ.)</text>` : ''}
             ` : ''}
           </g>
         `;
@@ -16755,7 +16773,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <!-- Centerline -->
             <polyline points="${polyLinePts}" fill="none" stroke="#f8fafc" stroke-width="1.2" stroke-dasharray="6 4" opacity="0.8" />
             <!-- Label -->
-            ${asmState.showLabels ? `<text x="${toSvgX(midPt.x)}" y="${toSvgY(midPt.y) - 6}" fill="#38bdf8" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">${r.name} (${r.width}მ)</text>` : ''}
+            ${asmState.showLabels ? `<text x="${toSvgX(midPt.x)}" y="${toSvgY(midPt.y) - 6}" fill="#38bdf8" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">${r.name}${asmState.showDimensions ? ` (${r.width}მ)` : ''}</text>` : ''}
           </g>
         `;
       }).join('');
@@ -16821,9 +16839,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const content = `
       <!-- Title Block -->
       <g class="asm-title-block">
-        ${asmState.showLabels ? `<text x="50" y="48" fill="#94a3b8" font-size="11" font-family="'JetBrains Mono', monospace" font-weight="600">${d.cadastralCode} • ${d.address}</text>` : ''}
-        <text x="50" y="74" fill="#00f0ff" font-size="16" font-family="'Inter', sans-serif" font-weight="800" letter-spacing="0.5">გენერალური გეგმა (SITE MASTERPLAN M ${activeScaleStr})</text>
-        ${asmState.showLabels ? `<text x="50" y="94" fill="#64748b" font-size="10.5" font-family="'Inter', sans-serif">მასშტაბი: ${activeScaleStr} | ნაკვეთის ფართი: ${d.parcel?.area || d.parcel?.landArea || (typeof state !== 'undefined' && state.activeParcel?.area) || 1200} მ² | ზონა: ${d.zoneCode} (${d.zoneName}) | K1=${d.k1} K2=${d.k2} K3=${d.k3}</text>` : ''}
+        ${asmState.showLabels ? `
+          <text x="50" y="48" fill="#94a3b8" font-size="11" font-family="'JetBrains Mono', monospace" font-weight="600">${d.cadastralCode} • ${d.address}</text>
+          <text x="50" y="74" fill="#00f0ff" font-size="16" font-family="'Inter', sans-serif" font-weight="800" letter-spacing="0.5">გენერალური გეგმა (SITE MASTERPLAN M ${activeScaleStr})</text>
+          <text x="50" y="94" fill="#64748b" font-size="10.5" font-family="'Inter', sans-serif">მასშტაბი: ${activeScaleStr} | ნაკვეთის ფართი: ${d.parcel?.area || d.parcel?.landArea || (typeof state !== 'undefined' && state.activeParcel?.area) || 1200} მ² | ზონა: ${d.zoneCode} (${d.zoneName}) | K1=${d.k1} K2=${d.k2} K3=${d.k3}</text>
+        ` : ''}
       </g>
 
       <!-- Roads (Asphalt bands & markings) -->
@@ -16838,6 +16858,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <g class="asm-mp-setbacks">
         <polygon points="${setbackPtsStr}" fill="rgba(239, 68, 68, 0.03)" stroke="#ef4444" stroke-width="1.6" stroke-dasharray="6 4" />
         ${(asmState.showDimensions && asmState.showLabels) ? `
+          <rect x="${toSvgX(cxMeters) - 65}" y="${toSvgY(b.maxY) - 20}" width="130" height="17" rx="3" fill="rgba(5, 7, 12, 0.85)" stroke="rgba(239, 68, 68, 0.35)" stroke-width="0.8" />
           <text x="${toSvgX(cxMeters)}" y="${toSvgY(b.maxY) - 8}" fill="#ef4444" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">საკადასტრო მიჯნა (${setbackDist.toFixed(1)}მ)</text>
         ` : ''}
       </g>
@@ -16848,9 +16869,13 @@ document.addEventListener('DOMContentLoaded', () => {
       <!-- Real Proposed / Drawn Building Footprint -->
       <g class="asm-mp-active-bldg">
         <polygon points="${bldgPtsStr}" fill="rgba(0, 240, 255, 0.22)" stroke="#00f0ff" stroke-width="2.5" />
-        ${asmState.showLabels ? `<text x="${bldgSvgX}" y="${bldgSvgY - 7}" fill="#ffffff" font-size="11" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">${bldgStatusLabel}</text>` : ''}
+        ${asmState.showLabels ? `
+          <rect x="${bldgSvgX - 85}" y="${bldgSvgY - 18}" width="170" height="19" rx="3.5" fill="rgba(5, 7, 12, 0.85)" stroke="rgba(0, 240, 255, 0.35)" stroke-width="0.8" />
+          <text x="${bldgSvgX}" y="${bldgSvgY - 4.5}" fill="#ffffff" font-size="10.5" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">${bldgStatusLabel}</text>
+        ` : ''}
         ${(asmState.showDimensions && asmState.showLabels) ? `
-          <text x="${bldgSvgX}" y="${bldgSvgY + 11}" fill="#00f0ff" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">S = ${d.footprintArea} მ² (${(Number(d.bldgLength) || 15).toFixed(1)} × ${(Number(d.bldgWidth) || 15).toFixed(1)}მ)</text>
+          <rect x="${bldgSvgX - 80}" y="${bldgSvgY + 4}" width="160" height="18" rx="3.5" fill="rgba(5, 7, 12, 0.85)" stroke="rgba(0, 240, 255, 0.35)" stroke-width="0.8" />
+          <text x="${bldgSvgX}" y="${bldgSvgY + 16.5}" fill="#00f0ff" font-size="9.5" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">S = ${d.footprintArea} მ² (${(Number(d.bldgLength) || 15).toFixed(1)} × ${(Number(d.bldgWidth) || 15).toFixed(1)}მ)</text>
         ` : ''}
       </g>
 
@@ -16861,9 +16886,15 @@ document.addEventListener('DOMContentLoaded', () => {
       ${asmState.showLevels ? `
         <g class="asm-mp-levels">
           <circle cx="${toSvgX(b.minX)}" cy="${toSvgY(b.minY)}" r="4" fill="#f59e0b" stroke="#ffffff" stroke-width="1.5" />
-          ${asmState.showLabels ? `<text x="${toSvgX(b.minX) + 8}" y="${toSvgY(b.minY) + 4}" fill="#fbbf24" font-size="8.5" font-family="'JetBrains Mono', monospace" font-weight="700">▼ H: ${(d.terrainElev || 467.0).toFixed(1)}მ (ზ.დ.)</text>` : ''}
-          <circle cx="${bldgSvgX}" cy="${bldgSvgY + 28}" r="3.5" fill="#f59e0b" stroke="#ffffff" stroke-width="1" />
-          ${asmState.showLabels ? `<text x="${bldgSvgX}" y="${bldgSvgY + 40}" fill="#fbbf24" font-size="8.5" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">±0.00 = ${(d.terrainElev || 467.0).toFixed(1)}მ</text>` : ''}
+          ${asmState.showLabels ? `
+            <rect x="${toSvgX(b.minX) + 6}" y="${toSvgY(b.minY) - 7}" width="95" height="16" rx="3" fill="rgba(5, 7, 12, 0.82)" stroke="rgba(245, 158, 11, 0.3)" stroke-width="0.8" />
+            <text x="${toSvgX(b.minX) + 10}" y="${toSvgY(b.minY) + 4.5}" fill="#fbbf24" font-size="8.5" font-family="'JetBrains Mono', monospace" font-weight="700">▼ H: ${(d.terrainElev || 467.0).toFixed(1)}მ (ზ.დ.)</text>
+          ` : ''}
+          <circle cx="${bldgSvgX}" cy="${bldgSvgY + 30}" r="3.5" fill="#f59e0b" stroke="#ffffff" stroke-width="1" />
+          ${asmState.showLabels ? `
+            <rect x="${bldgSvgX - 45}" y="${bldgSvgY + 36}" width="90" height="16" rx="3" fill="rgba(5, 7, 12, 0.82)" stroke="rgba(245, 158, 11, 0.3)" stroke-width="0.8" />
+            <text x="${bldgSvgX}" y="${bldgSvgY + 47.5}" fill="#fbbf24" font-size="8.5" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">±0.00 = ${(d.terrainElev || 467.0).toFixed(1)}მ</text>
+          ` : ''}
         </g>
       ` : ''}
 
@@ -16914,20 +16945,8 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // Wire Layer Toggle buttons explicitly
-    const btnLabels = document.getElementById('asmToggleLabels');
-    if (btnLabels) btnLabels.addEventListener('click', () => toggleArchSectionLayer('labels'));
-    const hudLabels = document.getElementById('asmHudBtnLabels');
-    if (hudLabels) hudLabels.addEventListener('click', () => toggleArchSectionLayer('labels'));
-
-    const btnDim = document.getElementById('asmToggleDim');
-    if (btnDim) btnDim.addEventListener('click', () => toggleArchSectionLayer('dim'));
-    const btnAxes = document.getElementById('asmToggleAxes');
-    if (btnAxes) btnAxes.addEventListener('click', () => toggleArchSectionLayer('axes'));
-    const btnLevels = document.getElementById('asmToggleLevels');
-    if (btnLevels) btnLevels.addEventListener('click', () => toggleArchSectionLayer('levels'));
-    const btnCompass = document.getElementById('asmToggleCompass');
-    if (btnCompass) btnCompass.addEventListener('click', () => toggleArchSectionLayer('compass'));
+    // Synchronize initial layer toggle button states
+    syncArchSectionLayerButtons();
 
     // Wire Export & Copy buttons
     const btnCopy = document.getElementById('asmBtnCopy');

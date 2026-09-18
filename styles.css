@@ -8959,6 +8959,7 @@ html.light .asm-tab-btn,
   border-color: #ef4444;
   color: #f87171;
   background: rgba(239, 68, 68, 0.14);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
 }
 
 .asm-toggle-labels.active {
