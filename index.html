@@ -513,18 +513,30 @@
 
                 <!-- Viewport Graphic Surface with Deep Parallax -->
                 <div class="relative w-full h-72 rounded-xl overflow-hidden bg-surface-container-lowest border border-outline-variant/30 group-hover:border-secondary/30 transition-colors">
-                  <img class="layer-depth-mid w-full h-full object-cover transition-transform duration-300 ease-out" data-alt="Futuristic architectural isometric 3D wireframe and BIM digital twin visualization" id="hud-img-target" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAG3uxAZ3c-UCbM8u_-QmmAY778WC0aujE_aS-WrNEOaO0DtJTd0hx6O-ZasxCTr1ZXn1EC10uqW1SVWLurU5EIUo3ikSkCueLAJYFyMdEb_OdIR9l-MbWAnNjqiHd1WI0f6_rsIzFjWB4owoc8rCESyn8yAZClUmK9PmeXFYt5PdaKCXUU9ESz0jTKmwGoOVWHJR5WLXczQz27laLYCXsFT5EoA0ilvZrOpXVIVxGuaYFhJJu_7a8GiQ" style="transform: translate3d(0px, 0px, 15px) scale(1.05);">
+                  <video class="layer-depth-mid w-full h-full object-cover transition-transform duration-300 ease-out" id="hud-img-target" autoplay loop muted playsinline poster="assets/images/hero-bim.jpg">
+                    <source src="assets/videos/bim-architect-flow.mp4" type="video/mp4">
+                  </video>
                   <!-- Viewport grid gradient overlay -->
                   <div class="layer-depth-back absolute inset-0 bg-gradient-to-t from-surface-dim/90 via-transparent to-surface-dim/30 pointer-events-none transition-transform duration-300 ease-out" id="hud-grid-overlay" style="transform: translate3d(0px, 0px, -20px) scale(1.04);"></div>
 
                   <!-- Floating CAD Telemetry Tag Overlays -->
                   <div class="layer-depth-high absolute top-3 left-3 px-2.5 py-1 rounded bg-surface-dim/90 backdrop-blur border border-outline-variant/40 font-technical-code text-technical-code text-secondary shadow-md flex items-center gap-1.5 transition-transform duration-200 ease-out" id="hud-tag-section" style="transform: translate3d(0px, 0px, 45px);">
                     <span class="w-1.5 h-1.5 rounded-full bg-secondary animate-ping"></span>
-                    SECTION A-A // ELEV: +54.200m
+                    BIMX // ARCHITECT IN ACTION
                   </div>
                   <div class="layer-depth-high absolute bottom-3 right-3 px-2.5 py-1 rounded bg-surface-dim/90 backdrop-blur border border-outline-variant/40 font-technical-code text-technical-code text-primary flex items-center gap-1.5 shadow-md transition-transform duration-200 ease-out" id="hud-tag-clash" style="transform: translate3d(0px, 0px, 48px);">
-                    <span class="material-symbols-outlined text-[14px] text-secondary animate-pulse">verified</span>
-                    AUTONOMOUS CLASH: 0 DETECTED
+                    <span class="material-symbols-outlined text-[14px] text-secondary animate-pulse">videocam</span>
+                    AUTONOMOUS AI · 1080p
+                  </div>
+
+                  <!-- Quick Audio & Fullscreen Control Overlay -->
+                  <div class="layer-depth-high absolute bottom-3 left-3 flex items-center gap-1.5 transition-transform duration-200 ease-out z-20" style="transform: translate3d(0px, 0px, 50px);">
+                    <button type="button" id="hud-audio-toggle" class="p-1.5 rounded-lg bg-surface-dim/90 backdrop-blur border border-outline-variant/50 text-secondary hover:text-white hover:border-secondary transition-all flex items-center justify-center shadow-md cursor-pointer" title="ხმის ჩართვა / გამორთვა">
+                      <span class="material-symbols-outlined text-[16px]" id="hud-audio-icon">volume_off</span>
+                    </button>
+                    <button type="button" id="hud-fullscreen-toggle" class="p-1.5 rounded-lg bg-surface-dim/90 backdrop-blur border border-outline-variant/50 text-secondary hover:text-white hover:border-secondary transition-all flex items-center justify-center shadow-md cursor-pointer" title="სრული ეკრანი">
+                      <span class="material-symbols-outlined text-[16px]">fullscreen</span>
+                    </button>
                   </div>
                 </div>
 
@@ -647,6 +659,75 @@
                 <span>დაგვიკავშირდით</span>
                 <span class="material-symbols-outlined text-[16px] group-hover:translate-x-1.5 transition-transform duration-200">arrow_forward</span>
               </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== CINEMATIC VIDEO SHOWCASE ==================== -->
+      <section class="w-full px-gutter py-space-xl reveal-on-scroll is-visible" id="bim-video-showcase">
+        <div class="max-w-7xl mx-auto flex flex-col gap-space-lg">
+          <!-- Section Header -->
+          <div class="flex flex-col md:flex-row md:items-end justify-between gap-space-md">
+            <div class="flex flex-col gap-2 max-w-2xl">
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/10 border border-secondary/30 text-secondary w-fit text-xs font-technical-code uppercase tracking-wider">
+                <span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+                Google Flow AI × BIM Workflow
+              </div>
+              <h2 class="font-headline-lg text-headline-lg text-primary font-semibold leading-tight">
+                ინტელექტუალური BIM მოდელირების პროცესი რეალურ დროში
+              </h2>
+              <p class="font-body-md text-body-md text-on-surface-variant">
+                ვიდეო დემონსტრაცია: ნახეთ, როგორ ხორციელდება ციფრული არქიტექტურისა და BIM მოდელის შექმნა, სივრცითი კოორდინაცია და პარამეტრული ანალიზი.
+              </p>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="font-technical-code text-xs text-outline flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px] text-secondary">hd</span>
+                1080p Ultra-HD · 60 FPS
+              </span>
+            </div>
+          </div>
+
+          <!-- Video Player Container with Glassmorphic Frame -->
+          <div class="card-air-glass rounded-2xl p-2 sm:p-4 border border-outline-variant/40 shadow-2xl overflow-hidden relative group">
+            <div class="relative w-full aspect-video rounded-xl overflow-hidden bg-surface-container-lowest border border-outline-variant/30">
+              <video id="showcase-video-player" class="w-full h-full object-cover" controls playsinline preload="metadata" poster="assets/images/hero-bim.jpg">
+                <source src="assets/videos/bim-architect-flow.mp4" type="video/mp4">
+                თქვენს ბრაუზერს არ აქვს ვიდეოს მხარდაჭერა.
+              </video>
+            </div>
+
+            <!-- Features Bar below the video -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-3 sm:pt-4 px-1">
+              <div class="flex items-center gap-2.5 p-2.5 rounded-lg bg-surface-container/60 border border-outline-variant/20">
+                <span class="material-symbols-outlined text-secondary text-[20px]">architecture</span>
+                <div class="flex flex-col">
+                  <span class="text-xs font-medium text-primary">3D ციფრული მოდელირება</span>
+                  <span class="text-[11px] text-outline">Revit &amp; ArchiCAD Core</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-2.5 p-2.5 rounded-lg bg-surface-container/60 border border-outline-variant/20">
+                <span class="material-symbols-outlined text-secondary text-[20px]">troubleshoot</span>
+                <div class="flex flex-col">
+                  <span class="text-xs font-medium text-primary">შეჯახების აღმოჩენა</span>
+                  <span class="text-[11px] text-outline">Clash Detection 0% Error</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-2.5 p-2.5 rounded-lg bg-surface-container/60 border border-outline-variant/20">
+                <span class="material-symbols-outlined text-secondary text-[20px]">cloud_sync</span>
+                <div class="flex flex-col">
+                  <span class="text-xs font-medium text-primary">ღრუბლოვანი სინქრონიზაცია</span>
+                  <span class="text-[11px] text-outline">BIM 360 / ACC Ecosystem</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-2.5 p-2.5 rounded-lg bg-surface-container/60 border border-outline-variant/20">
+                <span class="material-symbols-outlined text-secondary text-[20px]">verified</span>
+                <div class="flex flex-col">
+                  <span class="text-xs font-medium text-primary">ISO 19650 სტანდარტი</span>
+                  <span class="text-[11px] text-outline">საერთაშორისო ვალიდაცია</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -2043,6 +2124,49 @@
           if (calcSelect) calcSelect.dispatchEvent(new Event('change'));
           showToast('ახალი ტარიფები გააქტიურდა!');
         });
+      }
+
+      // 6. Interactive Video HUD & Showcase controls
+      const hudVideo = document.getElementById('hud-img-target');
+      const hudAudioToggle = document.getElementById('hud-audio-toggle');
+      const hudAudioIcon = document.getElementById('hud-audio-icon');
+      const hudFullscreenToggle = document.getElementById('hud-fullscreen-toggle');
+
+      if (hudVideo) {
+        // Ensure autoplay starts smoothly
+        const startAutoplay = () => {
+          hudVideo.play().catch(() => {
+            // Autoplay with audio muted is standard; retry muted if needed
+            hudVideo.muted = true;
+            hudVideo.play().catch(() => {});
+          });
+        };
+        startAutoplay();
+        document.addEventListener('click', () => {
+          if (hudVideo.paused) hudVideo.play().catch(() => {});
+        }, { once: true });
+
+        if (hudAudioToggle && hudAudioIcon) {
+          hudAudioToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            hudVideo.muted = !hudVideo.muted;
+            hudAudioIcon.textContent = hudVideo.muted ? 'volume_off' : 'volume_up';
+            if (!hudVideo.muted && hudVideo.paused) {
+              hudVideo.play().catch(() => {});
+            }
+          });
+        }
+
+        if (hudFullscreenToggle) {
+          hudFullscreenToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (hudVideo.requestFullscreen) {
+              hudVideo.requestFullscreen();
+            } else if (hudVideo.webkitRequestFullscreen) {
+              hudVideo.webkitRequestFullscreen();
+            }
+          });
+        }
       }
     })();
   </script>
