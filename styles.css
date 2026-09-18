@@ -9045,8 +9045,86 @@ html.light .asm-road-draw-hud,
   color: #ffffff;
 }
 
-.asm-drawing-road-active {
+.asm-drawing-stage {
+  cursor: grab;
+}
+.asm-drawing-stage.asm-panning {
+  cursor: grabbing !important;
+}
+.asm-drawing-stage.asm-drawing-road-active {
   cursor: crosshair !important;
+}
+
+/* Floating CAD Zoom & Pan Controls HUD */
+.asm-zoom-hud {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(13, 20, 32, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 6px 10px;
+  border-radius: 24px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  color: #e2e8f0;
+  user-select: none;
+}
+
+html.light .asm-zoom-hud,
+[data-theme="light"] .asm-zoom-hud {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(0, 0, 0, 0.15);
+  color: #0f172a;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.asm-zoom-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+}
+
+.asm-zoom-btn:hover {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #38bdf8;
+  transform: scale(1.08);
+}
+
+html.light .asm-zoom-btn,
+[data-theme="light"] .asm-zoom-btn {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #1e293b;
+}
+
+html.light .asm-zoom-btn:hover,
+[data-theme="light"] .asm-zoom-btn:hover {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+.asm-zoom-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #38bdf8;
+  min-width: 44px;
+  text-align: center;
 }
 
 @media (max-width: 900px) {

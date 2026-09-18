@@ -4059,9 +4059,9 @@
             <i class="fa-solid fa-ruler-horizontal"></i>
             <span>ზომები</span>
           </button>
-          <button type="button" class="asm-toggle-btn active asm-toggle-axes" id="asmToggleAxes" data-layer="axes" onclick="toggleArchSectionLayer('axes')" title="ღერძების ჩართვა/გათიშვა">
+          <button type="button" class="asm-toggle-btn active asm-toggle-axes" id="asmToggleAxes" data-layer="axes" onclick="toggleArchSectionLayer('axes')" title="ბადისა და ღერძების ჩართვა/გათიშვა">
             <i class="fa-solid fa-table-cells"></i>
-            <span>ღერძები</span>
+            <span>ბადე / ღერძები</span>
           </button>
           <button type="button" class="asm-toggle-btn active asm-toggle-levels" id="asmToggleLevels" data-layer="levels" onclick="toggleArchSectionLayer('levels')" title="ნიშნულების ჩართვა/გათიშვა">
             <i class="fa-solid fa-layer-group"></i>
@@ -4087,7 +4087,7 @@
             <input type="number" id="asmRoadWidthInput" min="3" max="15" step="0.5" value="6.0" style="width: 48px;">
             <span>მ</span>
           </div>
-          <button type="button" class="asm-rd-btn asm-rd-finish" onclick="finishArchMasterplanRoadDraw()" title="გზის დასრულება">
+          <button type="button" class="asm-rd-btn asm-rd-finish" onclick="finishArchMasterplanRoadDraw()" title="გზის დასრულება (ორმაგი კლიკიც ასრულებს)">
             <i class="fa-solid fa-check"></i> დასრულება
           </button>
           <button type="button" class="asm-rd-btn asm-rd-undo" onclick="undoArchMasterplanRoadPoint()" title="ბოლო წერტილის გაუქმება">
@@ -4095,6 +4095,20 @@
           </button>
           <button type="button" class="asm-rd-btn asm-rd-cancel" onclick="cancelArchMasterplanRoadDraw()" title="გაუქმება">
             <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- Floating Zoom & Pan Controls HUD -->
+        <div class="asm-zoom-hud" id="asmZoomHud">
+          <button type="button" class="asm-zoom-btn" id="asmBtnZoomIn" onclick="archZoomIn()" title="გადიდება (Zoom In)">
+            <i class="fa-solid fa-plus"></i>
+          </button>
+          <span class="asm-zoom-val" id="asmZoomVal">100%</span>
+          <button type="button" class="asm-zoom-btn" id="asmBtnZoomOut" onclick="archZoomOut()" title="დაპატარავება (Zoom Out)">
+            <i class="fa-solid fa-minus"></i>
+          </button>
+          <button type="button" class="asm-zoom-btn" id="asmBtnZoomReset" onclick="archZoomReset()" title="ხედის გასწორება (Fit / Reset)">
+            <i class="fa-solid fa-arrows-to-dot"></i>
           </button>
         </div>
 

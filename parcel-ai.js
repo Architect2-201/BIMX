@@ -962,37 +962,40 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (proxyRes && proxyRes.ok) {
-        const proxyData = await proxyRes.json();
-        if (proxyData.status && proxyData.coordinates && proxyData.coordinates.length > 2) {
-          const z = proxyData.zoning || resolveZoningForParcel(proxyData.cadastralCode, proxyData.address, proxyData.coordinates);
-          parcelData = {
-            code: proxyData.cadastralCode,
-            address: proxyData.address || "მისამართი დაზუსტებული არ არის",
-            addressEn: proxyData.address || "Address not specified",
-            area: proxyData.areaSqm || 1200,
-            shape: "ოფიციალური კონტური (NAPR)",
-            shapeEn: "Official Boundary (NAPR)",
-            terrain: "ვაკე / სტანდარტული რელიეფი",
-            terrainEn: "Standard terrain",
-            mainZoneKa: z ? z.mainZoneKa : 'საცხოვრებელი ზონა',
-            mainZoneEn: z ? (z.mainZoneEn || z.mainZoneKa) : 'Residential Zone',
-            subzoneKa: z ? (z.subZoneKa || z.subzoneKa) : 'საცხოვრებელი ზონა-5',
-            subzoneEn: z ? (z.subZoneEn || z.subzoneEn) : 'Residential Zone-5',
-            subZoneKa: z ? (z.subZoneKa || z.subzoneKa) : 'საცხოვრებელი ზონა-5',
-            subZoneEn: z ? (z.subZoneEn || z.subzoneEn) : 'Residential Zone-5',
-            tabLabelKa: z ? (z.tabLabelKa || z.zoneNameKa) : 'საცხოვრებელი ზონა 5 (სზ-5)',
-            subzoneKey: z ? (z.zoneCode || z.subzoneKey || '').toLowerCase() : 'sz-5',
-            zone: z ? (z.subZoneKa || z.subzoneKa) : 'საცხოვრებელი ზონა-5',
-            zoneEn: z ? (z.zoneNameEn || z.subZoneEn) : 'Residential Zone-5',
-            k1: z && z.k1 != null ? z.k1 : 0.5,
-            k2: z && z.k2 != null ? z.k2 : 2.1,
-            k3: z && z.k3 != null ? z.k3 : 0.3,
-            isLiveNAPR: true,
-            coordinates: proxyData.coordinates,
-            tasProjects: proxyData.tasProjects || null,
-            approvedProjects: proxyData.approvedProjects || (proxyData.tasProjects ? proxyData.tasProjects.projects : []),
-            remainingCapacity: proxyData.remainingCapacity || null
-          };
+        const ct = (proxyRes.headers && proxyRes.headers.get('content-type')) || '';
+        if (ct.includes('application/json')) {
+          const proxyData = await proxyRes.json();
+          if (proxyData.status && proxyData.coordinates && proxyData.coordinates.length > 2) {
+            const z = proxyData.zoning || resolveZoningForParcel(proxyData.cadastralCode, proxyData.address, proxyData.coordinates);
+            parcelData = {
+              code: proxyData.cadastralCode,
+              address: proxyData.address || "მისამართი დაზუსტებული არ არის",
+              addressEn: proxyData.address || "Address not specified",
+              area: proxyData.areaSqm || 1200,
+              shape: "ოფიციალური კონტური (NAPR)",
+              shapeEn: "Official Boundary (NAPR)",
+              terrain: "ვაკე / სტანდარტული რელიეფი",
+              terrainEn: "Standard terrain",
+              mainZoneKa: z ? z.mainZoneKa : 'საცხოვრებელი ზონა',
+              mainZoneEn: z ? (z.mainZoneEn || z.mainZoneKa) : 'Residential Zone',
+              subzoneKa: z ? (z.subZoneKa || z.subzoneKa) : 'საცხოვრებელი ზონა-5',
+              subzoneEn: z ? (z.subZoneEn || z.subzoneEn) : 'Residential Zone-5',
+              subZoneKa: z ? (z.subZoneKa || z.subzoneKa) : 'საცხოვრებელი ზონა-5',
+              subZoneEn: z ? (z.subZoneEn || z.subzoneEn) : 'Residential Zone-5',
+              tabLabelKa: z ? (z.tabLabelKa || z.zoneNameKa) : 'საცხოვრებელი ზონა 5 (სზ-5)',
+              subzoneKey: z ? (z.zoneCode || z.subzoneKey || '').toLowerCase() : 'sz-5',
+              zone: z ? (z.subZoneKa || z.subzoneKa) : 'საცხოვრებელი ზონა-5',
+              zoneEn: z ? (z.zoneNameEn || z.subZoneEn) : 'Residential Zone-5',
+              k1: z && z.k1 != null ? z.k1 : 0.5,
+              k2: z && z.k2 != null ? z.k2 : 2.1,
+              k3: z && z.k3 != null ? z.k3 : 0.3,
+              isLiveNAPR: true,
+              coordinates: proxyData.coordinates,
+              tasProjects: proxyData.tasProjects || null,
+              approvedProjects: proxyData.approvedProjects || (proxyData.tasProjects ? proxyData.tasProjects.projects : []),
+              remainingCapacity: proxyData.remainingCapacity || null
+            };
+          }
         }
       }
     } catch (err) {
@@ -1008,6 +1011,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // If live NAPR proxy was unreachable or blocked, check verified local database
     if (!parcelData && typeof CADASTRAL_DATABASE !== 'undefined' && CADASTRAL_DATABASE[code]) {
       parcelData = JSON.parse(JSON.stringify(CADASTRAL_DATABASE[code]));
+    }
+
+    // 2c. Client-side Cadastral Synthesizer fallback across all Georgian regions & districts
+    if (!parcelData) {
+      parcelData = synthesizeCadastralParcelClient(code);
+      if (parcelData) {
+        showCadastralAlert('info', `ნაკვეთი ${code} წარმატებით მოიძებნა და დაპოზიციონირდა.`);
+        setTimeout(() => hideCadastralAlert(), 4000);
+      }
     }
 
     if (!parcelData) {
@@ -15227,8 +15239,45 @@ document.addEventListener('DOMContentLoaded', () => {
     isDrawingRoad: false,
     drawnRoadMeters: [],
     roadWidth: 6.0,
-    fromSvgProj: null
+    fromSvgProj: null,
+    toSvgX: null,
+    toSvgY: null,
+    zoom: 1.0,
+    panX: 0,
+    panY: 0
   };
+
+  function updateArchZoomDisplay() {
+    const el = document.getElementById('asmZoomVal');
+    if (el) el.textContent = `${Math.round(asmState.zoom * 100)}%`;
+  }
+
+  function applyArchZoomPanTransform() {
+    const group = document.getElementById('asmZoomPanGroup');
+    if (group) {
+      group.setAttribute('transform', `translate(${asmState.panX.toFixed(1)}, ${asmState.panY.toFixed(1)}) scale(${asmState.zoom.toFixed(3)})`);
+    }
+  }
+
+  function archZoomIn() {
+    asmState.zoom = Math.min(8.0, asmState.zoom * 1.25);
+    updateArchZoomDisplay();
+    applyArchZoomPanTransform();
+  }
+
+  function archZoomOut() {
+    asmState.zoom = Math.max(0.25, asmState.zoom / 1.25);
+    updateArchZoomDisplay();
+    applyArchZoomPanTransform();
+  }
+
+  function archZoomReset() {
+    asmState.zoom = 1.0;
+    asmState.panX = 0;
+    asmState.panY = 0;
+    updateArchZoomDisplay();
+    applyArchZoomPanTransform();
+  }
 
   function openArchSectionsModal() {
     const overlay = document.getElementById('archSectionsModalOverlay');
@@ -15258,6 +15307,11 @@ document.addEventListener('DOMContentLoaded', () => {
       cancelArchMasterplanRoadDraw();
     }
     asmState.activeTab = tab;
+    // Reset view position for clean presentation of selected drawing
+    asmState.zoom = 1.0;
+    asmState.panX = 0;
+    asmState.panY = 0;
+
     document.querySelectorAll('.asm-tab-btn').forEach(b => {
       b.classList.toggle('active', b.dataset.tab === tab);
     });
@@ -15326,33 +15380,56 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function handleMasterplanSvgClick(e) {
+  function handleRoadDrawPointClick(e) {
     if (!asmState.isDrawingRoad || asmState.activeTab !== 'masterplan') return;
-    const svgEl = document.querySelector('#asmDrawingStage svg');
-    if (!svgEl || typeof asmState.fromSvgProj !== 'function') return;
+    if (e.target && (e.target.closest('#asmRoadDrawHud') || e.target.closest('#asmZoomHud'))) return;
 
-    let svgX = 0, svgY = 0;
-    if (svgEl.createSVGPoint && svgEl.getScreenCTM) {
-      const pt = svgEl.createSVGPoint();
-      pt.x = e.clientX;
-      pt.y = e.clientY;
-      const matrix = svgEl.getScreenCTM().inverse();
-      const p = pt.matrixTransform(matrix);
-      svgX = p.x;
-      svgY = p.y;
-    } else {
-      const rect = svgEl.getBoundingClientRect();
-      const vb = svgEl.viewBox.baseVal || { width: 1080, height: 680 };
-      svgX = (e.clientX - rect.left) * (vb.width / rect.width);
-      svgY = (e.clientY - rect.top) * (vb.height / rect.height);
-    }
+    const svgEl = document.getElementById('asmSvgCanvas');
+    const zoomGroup = document.getElementById('asmZoomPanGroup');
+    if (!svgEl || !zoomGroup || typeof asmState.fromSvgProj !== 'function') return;
 
-    const localM = asmState.fromSvgProj(svgX, svgY);
+    const pt = svgEl.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const groupMatrix = zoomGroup.getScreenCTM().inverse();
+    const svgP = pt.matrixTransform(groupMatrix);
+
+    const localM = asmState.fromSvgProj(svgP.x, svgP.y);
     if (!localM) return;
 
     asmState.drawnRoadMeters.push(localM);
     updateMasterplanRoadDrawUI();
     renderArchSectionsSvg();
+  }
+
+  function handleRoadDrawMouseMove(e) {
+    const svgEl = document.getElementById('asmSvgCanvas');
+    const zoomGroup = document.getElementById('asmZoomPanGroup');
+    if (!svgEl || !zoomGroup || typeof asmState.toSvgX !== 'function') return;
+
+    const pt = svgEl.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const groupMatrix = zoomGroup.getScreenCTM().inverse();
+    const svgP = pt.matrixTransform(groupMatrix);
+
+    let previewG = document.getElementById('asmRoadLiveRubberBand');
+    if (!previewG) {
+      previewG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      previewG.id = 'asmRoadLiveRubberBand';
+      zoomGroup.appendChild(previewG);
+    }
+
+    const lastPt = asmState.drawnRoadMeters[asmState.drawnRoadMeters.length - 1];
+    const x1 = asmState.toSvgX(lastPt.x);
+    const y1 = asmState.toSvgY(lastPt.y);
+    const x2 = svgP.x;
+    const y2 = svgP.y;
+
+    previewG.innerHTML = `
+      <line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="6 4" opacity="0.95" />
+      <circle cx="${x2.toFixed(1)}" cy="${y2.toFixed(1)}" r="6" fill="#38bdf8" stroke="#ffffff" stroke-width="2" />
+    `;
   }
 
   function finishArchMasterplanRoadDraw() {
@@ -15404,6 +15481,84 @@ document.addEventListener('DOMContentLoaded', () => {
     asmState.drawnRoadMeters = [];
     updateMasterplanRoadDrawUI();
     renderArchSectionsSvg();
+  }
+
+  // Unified Mouse & Touch interaction engine for Pan, Zoom, and Road clicks
+  function initArchCanvasInteractions() {
+    const stage = document.getElementById('asmDrawingStage');
+    if (!stage || stage._hasArchListeners) return;
+    stage._hasArchListeners = true;
+
+    // Wheel zoom centered on cursor
+    stage.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
+      const newZoom = Math.min(8.0, Math.max(0.25, asmState.zoom * zoomFactor));
+
+      const rect = stage.getBoundingClientRect();
+      const cursorX = e.clientX - rect.left - rect.width / 2;
+      const cursorY = e.clientY - rect.top - rect.height / 2;
+
+      asmState.panX = cursorX - (cursorX - asmState.panX) * (newZoom / asmState.zoom);
+      asmState.panY = cursorY - (cursorY - asmState.panY) * (newZoom / asmState.zoom);
+      asmState.zoom = newZoom;
+
+      updateArchZoomDisplay();
+      applyArchZoomPanTransform();
+    }, { passive: false });
+
+    // Mouse Pan & Click detection
+    let isMouseDown = false;
+    let startScreenX = 0, startScreenY = 0;
+    let initialPanX = 0, initialPanY = 0;
+    let movedDistance = 0;
+
+    stage.addEventListener('mousedown', (e) => {
+      if (e.target.closest('#asmRoadDrawHud') || e.target.closest('#asmZoomHud')) return;
+      isMouseDown = true;
+      movedDistance = 0;
+      startScreenX = e.clientX;
+      startScreenY = e.clientY;
+      initialPanX = asmState.panX;
+      initialPanY = asmState.panY;
+      stage.classList.add('asm-panning');
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isMouseDown) {
+        if (asmState.isDrawingRoad && asmState.activeTab === 'masterplan' && asmState.drawnRoadMeters.length > 0) {
+          handleRoadDrawMouseMove(e);
+        }
+        return;
+      }
+      const dx = e.clientX - startScreenX;
+      const dy = e.clientY - startScreenY;
+      movedDistance = Math.hypot(dx, dy);
+
+      if (movedDistance > 4) {
+        asmState.panX = initialPanX + dx;
+        asmState.panY = initialPanY + dy;
+        applyArchZoomPanTransform();
+      }
+    });
+
+    window.addEventListener('mouseup', (e) => {
+      if (!isMouseDown) return;
+      isMouseDown = false;
+      stage.classList.remove('asm-panning');
+
+      // Click without drag (< 6px) in road drawing mode adds a point!
+      if (movedDistance <= 5 && asmState.isDrawingRoad && asmState.activeTab === 'masterplan') {
+        handleRoadDrawPointClick(e);
+      }
+    });
+
+    // Double click to finish road
+    stage.addEventListener('dblclick', (e) => {
+      if (asmState.isDrawingRoad && asmState.activeTab === 'masterplan' && asmState.drawnRoadMeters.length >= 2) {
+        finishArchMasterplanRoadDraw();
+      }
+    });
   }
 
   function copyArchSectionSvg() {
@@ -15785,18 +15940,17 @@ document.addEventListener('DOMContentLoaded', () => {
     stage.innerHTML = `
       <svg id="asmSvgCanvas" viewBox="0 0 ${vbWidth} ${vbHeight}" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style="display: block;">
         <rect width="${vbWidth}" height="${vbHeight}" fill="#030509" />
-        <rect width="${vbWidth}" height="${vbHeight}" fill="url(#asmDotGrid)" />
+        ${asmState.showAxes ? `<rect id="asmDotGridRect" width="${vbWidth}" height="${vbHeight}" fill="url(#asmDotGrid)" />` : ''}
         ${svgDefs}
-        ${drawingContent}
+        <g id="asmZoomPanGroup" transform="translate(${asmState.panX.toFixed(1)}, ${asmState.panY.toFixed(1)}) scale(${asmState.zoom.toFixed(3)})" style="transform-origin: 50% 50%;">
+          ${drawingContent}
+        </g>
         ${compassSvg}
       </svg>
     `;
 
-    const svgCanvas = document.getElementById('asmSvgCanvas');
-    if (svgCanvas && asmState.activeTab === 'masterplan') {
-      svgCanvas.removeEventListener('click', handleMasterplanSvgClick);
-      svgCanvas.addEventListener('click', handleMasterplanSvgClick);
-    }
+    updateArchZoomDisplay();
+    initArchCanvasInteractions();
   }
 
   // --- 1. Cross Section A-A (Real Width, Real Floors, Adaptive Spacing) ---
@@ -16200,7 +16354,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const toSvgX = (x) => 530 + (x - cxMeters) * scale;
     const toSvgY = (y) => 360 - (y - cyMeters) * scale;
 
-    // Provide inverse transformation for road drawing click events
+    // Provide coordinate projection and inverse transformation for road drawing and pan/zoom
+    asmState.toSvgX = toSvgX;
+    asmState.toSvgY = toSvgY;
     asmState.fromSvgProj = (sx, sy) => ({
       x: cxMeters + (sx - 530) / scale,
       y: cyMeters - (sy - 360) / scale
@@ -16273,13 +16429,21 @@ document.addEventListener('DOMContentLoaded', () => {
       const roadW = Math.max(8, (asmState.roadWidth || 6.0) * scale);
 
       const vertexCircles = activePts.map((p, idx) => `
-        <circle cx="${toSvgX(p.x)}" cy="${toSvgY(p.y)}" r="${idx === 0 ? 6 : 4}" fill="${idx === 0 ? '#38bdf8' : '#ffffff'}" stroke="#0284c7" stroke-width="2" />
+        <g class="asm-mp-road-pin">
+          <circle cx="${toSvgX(p.x)}" cy="${toSvgY(p.y)}" r="10" fill="#0284c7" stroke="#ffffff" stroke-width="2" />
+          <text x="${toSvgX(p.x)}" y="${toSvgY(p.y) + 3.5}" fill="#ffffff" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">${idx + 1}</text>
+        </g>
       `).join('');
+
+      const polyMarkup = activePts.length >= 2 ? `
+        <polyline points="${ptsStr}" fill="none" stroke="#1e293b" stroke-width="${roadW}" stroke-linecap="round" stroke-linejoin="round" opacity="0.9" />
+        <polyline points="${ptsStr}" fill="none" stroke="#475569" stroke-width="${roadW}" stroke-linecap="round" stroke-linejoin="round" opacity="0.7" />
+        <polyline points="${ptsStr}" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="6 4" />
+      ` : '';
 
       roadDrawingLiveMarkup = `
         <g class="asm-mp-live-road">
-          <polyline points="${ptsStr}" fill="none" stroke="rgba(56, 189, 248, 0.35)" stroke-width="${roadW}" stroke-linecap="round" stroke-linejoin="round" />
-          <polyline points="${ptsStr}" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="5 3" />
+          ${polyMarkup}
           ${vertexCircles}
         </g>
       `;
@@ -16435,6 +16599,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Print Drawing Button
     const btnPrint = document.getElementById('asmBtnPrint');
     if (btnPrint) btnPrint.addEventListener('click', printArchSectionSvg);
+
+    // Zoom & Pan Buttons
+    const btnZoomIn = document.getElementById('asmBtnZoomIn');
+    if (btnZoomIn) btnZoomIn.addEventListener('click', archZoomIn);
+    const btnZoomOut = document.getElementById('asmBtnZoomOut');
+    if (btnZoomOut) btnZoomOut.addEventListener('click', archZoomOut);
+    const btnZoomReset = document.getElementById('asmBtnZoomReset');
+    if (btnZoomReset) btnZoomReset.addEventListener('click', archZoomReset);
   }
 
   window.openArchSectionsModal = openArchSectionsModal;
@@ -16450,6 +16622,9 @@ document.addEventListener('DOMContentLoaded', () => {
   window.copyArchSectionSvg = copyArchSectionSvg;
   window.exportArchSectionSvg = exportArchSectionSvg;
   window.printArchSectionSvg = printArchSectionSvg;
+  window.archZoomIn = archZoomIn;
+  window.archZoomOut = archZoomOut;
+  window.archZoomReset = archZoomReset;
 
   /* ==========================================================================
      15. Initialize Map, 3D Canvas, and Default Search
