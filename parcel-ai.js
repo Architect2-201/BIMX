@@ -845,6 +845,46 @@ document.addEventListener('DOMContentLoaded', () => {
     cadastralAlertMsg.style.display = 'none';
   }
 
+  function showLiveToast(msg, type = 'info') {
+    if (!msg) return;
+    let toast = document.getElementById('bimxGlobalToast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'bimxGlobalToast';
+      toast.style.cssText = `
+        position: fixed;
+        bottom: 28px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        z-index: 99999;
+        background: rgba(13, 20, 32, 0.95);
+        color: #f8fafc;
+        border: 1px solid rgba(56, 189, 248, 0.4);
+        padding: 8px 18px;
+        border-radius: 24px;
+        font-family: var(--font-main, sans-serif);
+        font-size: 0.82rem;
+        font-weight: 500;
+        box-shadow: 0 10px 28px rgba(0,0,0,0.6);
+        pointer-events: none;
+        opacity: 0;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      `;
+      document.body.appendChild(toast);
+    }
+    const color = type === 'success' ? '#10b981' : (type === 'error' ? '#ef4444' : (type === 'warning' ? '#f59e0b' : '#38bdf8'));
+    toast.style.borderColor = color;
+    toast.innerHTML = `<span style="color:${color}; margin-right: 6px;">●</span> ${msg}`;
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateX(-50%) translateY(0)';
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(-50%) translateY(20px)';
+    }, 3200);
+  }
+  window.showLiveToast = showLiveToast;
+
   // NAPR API does NOT return zone data — zoning is a municipal (not NAPR) attribute.
   // For live parcels: returns null → user must select zone manually.
   // For local DB parcels: zone is already encoded in CADASTRAL_DATABASE entries.
@@ -1011,6 +1051,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // If live NAPR proxy was unreachable or blocked, check verified local database
     if (!parcelData && typeof CADASTRAL_DATABASE !== 'undefined' && CADASTRAL_DATABASE[code]) {
       parcelData = JSON.parse(JSON.stringify(CADASTRAL_DATABASE[code]));
+      if (!parcelData.mainZoneKa) parcelData.mainZoneKa = 'საცხოვრებელი ზონა';
+      if (!parcelData.mainZoneEn) parcelData.mainZoneEn = 'Residential Zone';
+      if (!parcelData.subZoneKa) parcelData.subZoneKa = 'საცხოვრებელი ზონა-5';
+      if (!parcelData.subzoneKa) parcelData.subzoneKa = 'საცხოვრებელი ზონა-5';
+      if (!parcelData.tabLabelKa) parcelData.tabLabelKa = 'საცხოვრებელი ზონა 5 (სზ-5)';
+      if (!parcelData.subzoneKey) parcelData.subzoneKey = 'sz-5';
+      if (!parcelData.zone) parcelData.zone = 'საცხოვრებელი ზონა-5';
+      if (parcelData.k1 === undefined) parcelData.k1 = 0.5;
+      if (parcelData.k2 === undefined) parcelData.k2 = 2.1;
+      if (parcelData.k3 === undefined) parcelData.k3 = 0.3;
+      if (!parcelData.terrain) parcelData.terrain = 'ვაკე / სტანდარტული რელიეფი';
+      if (!parcelData.shape) parcelData.shape = 'ოფიციალური კონტური (NAPR)';
     }
 
     // 2c. Client-side Cadastral Synthesizer fallback across all Georgian regions & districts
@@ -4535,16 +4587,24 @@ document.addEventListener('DOMContentLoaded', () => {
     return isSingle ? converted[0] : converted;
   }
 
-  // Convert local meters back to GPS coordinates relative to parcel center
+  // Convert local meters back to GPS coordinates relative to parcel center (supports array of points or single point)
   function localMetersToGps(localPts, centerGps) {
-    if (!localPts || localPts.length === 0 || !centerGps) return [];
+    if (!localPts || !centerGps) return Array.isArray(localPts) ? [] : null;
+    const centerLat = centerGps.lat !== undefined ? centerGps.lat : centerGps[0];
+    const centerLng = centerGps.lng !== undefined ? centerGps.lng : centerGps[1];
     const latToMeters = 111139;
-    const lngToMeters = 111139 * Math.cos(centerGps.lat * Math.PI / 180);
+    const lngToMeters = 111139 * Math.cos(centerLat * Math.PI / 180);
 
-    return localPts.map(pt => [
-      centerGps.lat + (pt.y / latToMeters),
-      centerGps.lng + (pt.x / lngToMeters)
-    ]);
+    if (Array.isArray(localPts)) {
+      return localPts.map(pt => [
+        centerLat + (pt.y / latToMeters),
+        centerLng + (pt.x / lngToMeters)
+      ]);
+    }
+    return [
+      centerLat + (localPts.y / latToMeters),
+      centerLng + (localPts.x / lngToMeters)
+    ];
   }
 
   /* ==========================================================================
@@ -15622,17 +15682,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- Real Project Geometries & Offset Calculations ---
-  function localMetersToGps(pt, referenceOrigin) {
-    const centerLat = referenceOrigin.lat !== undefined ? referenceOrigin.lat : referenceOrigin[0];
-    const centerLng = referenceOrigin.lng !== undefined ? referenceOrigin.lng : referenceOrigin[1];
-    const latToMeters = 111139;
-    const lngToMeters = 111139 * Math.cos(centerLat * Math.PI / 180);
-    return [
-      centerLat + pt.y / latToMeters,
-      centerLng + pt.x / lngToMeters
-    ];
-  }
-
   function computePolygonInwardOffset(pts, distMeters) {
     if (!pts || pts.length < 3) return [];
     const n = pts.length;
@@ -16618,13 +16667,16 @@ document.addEventListener('DOMContentLoaded', () => {
   window.finishArchMasterplanRoadDraw = finishArchMasterplanRoadDraw;
   window.undoArchMasterplanRoadPoint = undoArchMasterplanRoadPoint;
   window.cancelArchMasterplanRoadDraw = cancelArchMasterplanRoadDraw;
-  window.handleMasterplanSvgClick = handleMasterplanSvgClick;
+  window.handleRoadDrawPointClick = typeof handleRoadDrawPointClick !== 'undefined' ? handleRoadDrawPointClick : null;
+  window.handleMasterplanSvgClick = typeof handleRoadDrawPointClick !== 'undefined' ? handleRoadDrawPointClick : null;
   window.copyArchSectionSvg = copyArchSectionSvg;
   window.exportArchSectionSvg = exportArchSectionSvg;
   window.printArchSectionSvg = printArchSectionSvg;
   window.archZoomIn = archZoomIn;
   window.archZoomOut = archZoomOut;
   window.archZoomReset = archZoomReset;
+  window.searchParcel = searchParcel;
+  window.setMode = setMode;
 
   /* ==========================================================================
      15. Initialize Map, 3D Canvas, and Default Search
