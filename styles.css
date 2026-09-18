@@ -9307,4 +9307,524 @@ html.light .asm-zoom-btn:hover,
   }
 }
 
+/* Footprint Drawing HUD */
+.asm-footprint-draw-hud {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(13, 20, 32, 0.94);
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: 8px 16px;
+  border-radius: 30px;
+  box-shadow: 0 8px 30px rgba(0, 240, 255, 0.2);
+  color: #e2e8f0;
+  user-select: none;
+  animation: asmFadeIn 0.2s ease-out;
+}
+
+.asm-fp-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #00f0ff;
+}
+
+.asm-fp-hint {
+  font-size: 0.74rem;
+  color: #94a3b8;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.asm-fp-floors-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.74rem;
+}
+
+.asm-fp-floors-wrap input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #00f0ff;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  text-align: center;
+}
+
+.asm-fp-btn {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.asm-fp-finish {
+  background: #00f0ff;
+  color: #030712;
+  font-weight: 700;
+}
+.asm-fp-finish:hover {
+  background: #38bdf8;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+}
+
+.asm-fp-undo {
+  background: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+}
+.asm-fp-undo:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+.asm-fp-cancel {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  padding: 4px 8px;
+}
+.asm-fp-cancel:hover {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.asm-drawing-stage.asm-drawing-footprint-active {
+  cursor: crosshair !important;
+}
+
+/* Masterplan Toolbar Button States */
+.asm-toggle-existing.active {
+  border-color: #94a3b8;
+  color: #f1f5f9;
+  background: rgba(148, 163, 184, 0.18);
+  box-shadow: 0 0 10px rgba(148, 163, 184, 0.25);
+}
+
+.asm-btn-footprint-draw.active {
+  border-color: #00f0ff;
+  color: #00f0ff;
+  background: rgba(0, 240, 255, 0.16);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.35);
+}
+
+.asm-btn-clear-parcel:hover {
+  border-color: #f87171;
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.asm-btn-toggle-sidebar.active {
+  border-color: #10b981;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.16);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.25);
+}
+
+/* Architectural Zoning Sidebar */
+.asm-zoning-sidebar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 325px;
+  max-width: 88vw;
+  background: rgba(8, 13, 22, 0.94);
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 46;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: -8px 0 28px rgba(0, 0, 0, 0.5);
+}
+
+.asm-zoning-sidebar.collapsed {
+  transform: translateX(100%);
+  pointer-events: none;
+}
+
+.asm-sb-header {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.02);
+  flex-shrink: 0;
+}
+
+.asm-sb-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.asm-sb-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #f8fafc;
+  letter-spacing: 0.2px;
+}
+
+.asm-sb-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.asm-sb-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.asm-sb-card {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.asm-sb-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+.asm-sb-btn-reset {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+  border-radius: 5px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.asm-sb-btn-reset:hover {
+  background: rgba(56, 189, 248, 0.25);
+  color: #ffffff;
+}
+
+.asm-sb-btn-clear {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  border-radius: 5px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.asm-sb-btn-clear:hover {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.asm-sb-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.77rem;
+}
+
+.asm-sb-label {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.asm-sb-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  color: #f8fafc;
+}
+
+.asm-sb-input-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.asm-sb-unit {
+  font-size: 0.74rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.asm-sb-input {
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #00f0ff;
+  border-radius: 6px;
+  padding: 3px 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: right;
+  width: 76px;
+  outline: none;
+}
+.asm-sb-input:focus {
+  border-color: #00f0ff;
+  box-shadow: 0 0 6px rgba(0, 240, 255, 0.4);
+}
+
+.asm-sb-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.asm-sb-param {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 6px 4px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.asm-sb-param label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #94a3b8;
+  margin-bottom: 2px;
+}
+
+.asm-sb-param input {
+  width: 100%;
+  text-align: center;
+  font-size: 0.84rem;
+}
+
+/* Metric Cards */
+.asm-sb-metric-card {
+  border-left: 3px solid #00f0ff;
+}
+#asmCardK2 {
+  border-left-color: #8b5cf6;
+}
+
+.asm-sb-metric-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.asm-sb-badge-k {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 5px;
+  border: 1px solid transparent;
+}
+
+.asm-sb-limit {
+  font-size: 0.7rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.asm-sb-progress-wrap {
+  width: 100%;
+  height: 7px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 5px 0;
+}
+
+.asm-sb-progress-bar {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #00f0ff, #38bdf8);
+  transition: width 0.3s ease;
+}
+
+.asm-sb-progress-bar.exceeded {
+  background: linear-gradient(90deg, #ef4444, #dc2626) !important;
+}
+
+.asm-sb-balance-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.asm-sb-bal-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.asm-bal-label {
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
+.asm-bal-val {
+  font-size: 0.82rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+}
+
+.asm-bal-used {
+  color: #00f0ff;
+}
+#asmCardK2 .asm-bal-used {
+  color: #c084fc;
+}
+
+.asm-bal-remain {
+  color: #34d399;
+}
+.asm-bal-remain.exceeded {
+  color: #ef4444;
+}
+
+.asm-bal-sub {
+  font-size: 0.67rem;
+  color: #64748b;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Footprints list */
+.asm-fp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 140px;
+  overflow-y: auto;
+  margin-top: 4px;
+}
+
+.asm-fp-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 0.74rem;
+}
+
+.asm-fp-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.asm-fp-item-name {
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.asm-fp-item-area {
+  font-size: 0.7rem;
+  color: #00f0ff;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.asm-fp-item-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.asm-fp-stepper {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.asm-fp-step-btn {
+  background: transparent;
+  border: none;
+  color: #cbd5e1;
+  font-size: 0.72rem;
+  font-weight: 700;
+  width: 18px;
+  height: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.asm-fp-step-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.asm-fp-step-val {
+  padding: 0 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  color: #ffffff;
+  font-size: 0.72rem;
+}
+
+.asm-fp-del-btn {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  padding: 3px 5px;
+  border-radius: 4px;
+  font-size: 0.74rem;
+}
+.asm-fp-del-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+
 

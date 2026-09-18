@@ -15353,11 +15353,18 @@ document.addEventListener('DOMContentLoaded', () => {
     showLevels: true,
     showCompass: true,
     showLabels: true,
+    showExistingBldgs: true,
+    hideDefaultBuilding: false,
     isDrawingRoad: false,
     drawnRoadMeters: [],
     roadWidth: 6.0,
     setbackMeters: 3.0,
     customScale: null,
+    isDrawingFootprint: false,
+    drawnFootprintPts: [],
+    customFootprints: [],
+    showZoningSidebar: true,
+    zoningOverride: null,
     fromSvgProj: null,
     toSvgX: null,
     toSvgY: null,
@@ -15451,8 +15458,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function switchArchSectionTab(tab) {
     if (!tab) return;
-    if (asmState.activeTab === 'masterplan' && tab !== 'masterplan' && asmState.isDrawingRoad) {
-      cancelArchMasterplanRoadDraw();
+    if (asmState.activeTab === 'masterplan' && tab !== 'masterplan') {
+      if (asmState.isDrawingRoad) cancelArchMasterplanRoadDraw();
+      if (asmState.isDrawingFootprint) cancelArchMasterplanFootprintDraw();
     }
     asmState.activeTab = tab;
     // Reset view position for clean presentation of selected drawing
@@ -15470,14 +15478,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const elScaleBadge = document.getElementById('asmScaleBadge');
     if (elScaleBadge) elScaleBadge.textContent = activeScale;
 
+    const isMp = (tab === 'masterplan');
     const roadBtn = document.getElementById('asmBtnDrawRoad');
-    if (roadBtn) {
-      roadBtn.style.display = (tab === 'masterplan' ? 'inline-flex' : 'none');
-    }
-
+    if (roadBtn) roadBtn.style.display = isMp ? 'inline-flex' : 'none';
+    const fpBtn = document.getElementById('asmBtnDrawFootprint');
+    if (fpBtn) fpBtn.style.display = isMp ? 'inline-flex' : 'none';
+    const clearParcelBtn = document.getElementById('asmBtnClearParcel');
+    if (clearParcelBtn) clearParcelBtn.style.display = isMp ? 'inline-flex' : 'none';
+    const existingBtn = document.getElementById('asmToggleExisting');
+    if (existingBtn) existingBtn.style.display = isMp ? 'inline-flex' : 'none';
+    const sidebarBtn = document.getElementById('asmBtnToggleSidebar');
+    if (sidebarBtn) sidebarBtn.style.display = isMp ? 'inline-flex' : 'none';
     const setbackControl = document.getElementById('asmSetbackControl');
-    if (setbackControl) {
-      setbackControl.style.display = (tab === 'masterplan' ? 'inline-flex' : 'none');
+    if (setbackControl) setbackControl.style.display = isMp ? 'inline-flex' : 'none';
+
+    const zoningSidebar = document.getElementById('asmZoningSidebar');
+    if (zoningSidebar) {
+      zoningSidebar.style.display = (isMp && asmState.showZoningSidebar) ? 'flex' : 'none';
     }
 
     renderArchSectionsSvg();
@@ -15501,6 +15518,8 @@ document.addEventListener('DOMContentLoaded', () => {
       asmState.showCompass = !asmState.showCompass;
     } else if (layer === 'labels') {
       asmState.showLabels = !asmState.showLabels;
+    } else if (layer === 'existing') {
+      asmState.showExistingBldgs = !asmState.showExistingBldgs;
     }
 
     syncArchSectionLayerButtons();
@@ -15522,6 +15541,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const elLabels = document.getElementById('asmToggleLabels');
     if (elLabels) elLabels.classList.toggle('active', !!asmState.showLabels);
+
+    const elExisting = document.getElementById('asmToggleExisting');
+    if (elExisting) elExisting.classList.toggle('active', !!asmState.showExistingBldgs);
+
+    const elSidebar = document.getElementById('asmBtnToggleSidebar');
+    if (elSidebar) elSidebar.classList.toggle('active', !!asmState.showZoningSidebar);
 
     const hudLabels = document.getElementById('asmHudBtnLabels');
     if (hudLabels) hudLabels.classList.toggle('active', !!asmState.showLabels);
@@ -15660,7 +15685,383 @@ document.addEventListener('DOMContentLoaded', () => {
     renderArchSectionsSvg();
   }
 
-  // Unified Mouse & Touch interaction engine for Pan, Zoom, and Road clicks
+  // --- Masterplan Footprint Drawing Engine ---
+  function computeShoelaceArea(pts) {
+    if (!pts || pts.length < 3) return 0;
+    let sum = 0;
+    for (let i = 0; i < pts.length; i++) {
+      const j = (i + 1) % pts.length;
+      sum += pts[i].x * pts[j].y - pts[j].x * pts[i].y;
+    }
+    return Math.abs(sum) / 2.0;
+  }
+
+  function toggleArchMasterplanFootprintDraw() {
+    if (asmState.activeTab !== 'masterplan') {
+      switchArchSectionTab('masterplan');
+    }
+    if (asmState.isDrawingRoad) {
+      cancelArchMasterplanRoadDraw();
+    }
+    asmState.isDrawingFootprint = !asmState.isDrawingFootprint;
+    asmState.drawnFootprintPts = [];
+    updateMasterplanFootprintDrawUI();
+    renderArchSectionsSvg();
+  }
+
+  function updateMasterplanFootprintDrawUI() {
+    const btn = document.getElementById('asmBtnDrawFootprint');
+    if (btn) btn.classList.toggle('active', !!asmState.isDrawingFootprint);
+
+    const hud = document.getElementById('asmFootprintDrawHud');
+    if (hud) hud.style.display = asmState.isDrawingFootprint ? 'flex' : 'none';
+
+    const countEl = document.getElementById('asmFootprintPtsCount');
+    if (countEl) countEl.textContent = (asmState.drawnFootprintPts ? asmState.drawnFootprintPts.length : 0);
+
+    const stage = document.getElementById('asmDrawingStage');
+    if (stage) {
+      stage.classList.toggle('asm-drawing-footprint-active', !!asmState.isDrawingFootprint);
+    }
+  }
+
+  function handleFootprintDrawPointClick(e) {
+    if (!asmState.isDrawingFootprint || asmState.activeTab !== 'masterplan') return;
+    if (e.target && (e.target.closest('#asmFootprintDrawHud') || e.target.closest('#asmRoadDrawHud') || e.target.closest('#asmZoomHud') || e.target.closest('#asmZoningSidebar'))) return;
+
+    const svgEl = document.getElementById('asmSvgCanvas');
+    const zoomGroup = document.getElementById('asmZoomPanGroup');
+    if (!svgEl || !zoomGroup || typeof asmState.fromSvgProj !== 'function') return;
+
+    const pt = svgEl.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const groupMatrix = zoomGroup.getScreenCTM().inverse();
+    const svgP = pt.matrixTransform(groupMatrix);
+
+    const localM = asmState.fromSvgProj(svgP.x, svgP.y);
+    if (!localM) return;
+
+    asmState.drawnFootprintPts.push(localM);
+    updateMasterplanFootprintDrawUI();
+    renderArchSectionsSvg();
+  }
+
+  function handleFootprintDrawMouseMove(e) {
+    const svgEl = document.getElementById('asmSvgCanvas');
+    const zoomGroup = document.getElementById('asmZoomPanGroup');
+    if (!svgEl || !zoomGroup || typeof asmState.toSvgX !== 'function' || !asmState.drawnFootprintPts.length) return;
+
+    const pt = svgEl.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const groupMatrix = zoomGroup.getScreenCTM().inverse();
+    const svgP = pt.matrixTransform(groupMatrix);
+
+    let previewG = document.getElementById('asmFootprintLiveRubberBand');
+    if (!previewG) {
+      previewG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      previewG.id = 'asmFootprintLiveRubberBand';
+      zoomGroup.appendChild(previewG);
+    }
+
+    const lastPt = asmState.drawnFootprintPts[asmState.drawnFootprintPts.length - 1];
+    const firstPt = asmState.drawnFootprintPts[0];
+    const x1 = asmState.toSvgX(lastPt.x);
+    const y1 = asmState.toSvgY(lastPt.y);
+    const x2 = svgP.x;
+    const y2 = svgP.y;
+    const x0 = asmState.toSvgX(firstPt.x);
+    const y0 = asmState.toSvgY(firstPt.y);
+
+    const closeLine = asmState.drawnFootprintPts.length >= 2
+      ? `<line x1="${x2.toFixed(1)}" y1="${y2.toFixed(1)}" x2="${x0.toFixed(1)}" y2="${y0.toFixed(1)}" stroke="#00f0ff" stroke-width="1.4" stroke-dasharray="4 4" opacity="0.6" />`
+      : '';
+
+    previewG.innerHTML = `
+      <line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#00f0ff" stroke-width="2.5" stroke-dasharray="6 4" opacity="0.95" />
+      ${closeLine}
+      <circle cx="${x2.toFixed(1)}" cy="${y2.toFixed(1)}" r="6" fill="#00f0ff" stroke="#ffffff" stroke-width="2" />
+    `;
+  }
+
+  function finishArchMasterplanFootprintDraw() {
+    if (!asmState.drawnFootprintPts || asmState.drawnFootprintPts.length < 3) {
+      alert('გთხოვთ გენგეგმაზე მონიშნოთ მინიმუმ 3 წერტილი შენობის ლაქის დასახაზად');
+      return;
+    }
+
+    const floorsVal = parseInt(document.getElementById('asmFootprintFloorsInput')?.value, 10) || 3;
+    const pts = [...asmState.drawnFootprintPts];
+    const fpArea = Math.round(computeShoelaceArea(pts));
+
+    if (fpArea < 5) {
+      alert('დახაზული ლაქის ფართობი ძალიან მცირეა. გთხოვთ მონიშნოთ რეალური ზომის შენობა.');
+      return;
+    }
+
+    const num = asmState.customFootprints.length + 1;
+    const fpObj = {
+      id: `fp-${Date.now()}-${num}`,
+      name: `შენობა #${num}`,
+      meters: pts,
+      area: fpArea,
+      floors: Math.max(1, floorsVal),
+      height: parseFloat((Math.max(1, floorsVal) * 3.3).toFixed(1))
+    };
+
+    asmState.customFootprints.push(fpObj);
+    asmState.hideDefaultBuilding = true;
+    asmState.isDrawingFootprint = false;
+    asmState.drawnFootprintPts = [];
+
+    const rubberBand = document.getElementById('asmFootprintLiveRubberBand');
+    if (rubberBand) rubberBand.remove();
+
+    updateMasterplanFootprintDrawUI();
+    renderArchSectionsSvg();
+  }
+
+  function undoArchMasterplanFootprintPoint() {
+    if (asmState.drawnFootprintPts && asmState.drawnFootprintPts.length > 0) {
+      asmState.drawnFootprintPts.pop();
+      updateMasterplanFootprintDrawUI();
+      renderArchSectionsSvg();
+    }
+  }
+
+  function cancelArchMasterplanFootprintDraw() {
+    asmState.isDrawingFootprint = false;
+    asmState.drawnFootprintPts = [];
+    const rubberBand = document.getElementById('asmFootprintLiveRubberBand');
+    if (rubberBand) rubberBand.remove();
+    updateMasterplanFootprintDrawUI();
+    renderArchSectionsSvg();
+  }
+
+  function clearArchMasterplanParcel() {
+    asmState.customFootprints = [];
+    asmState.hideDefaultBuilding = true;
+    asmState.drawnFootprintPts = [];
+    asmState.isDrawingFootprint = false;
+    const rubberBand = document.getElementById('asmFootprintLiveRubberBand');
+    if (rubberBand) rubberBand.remove();
+    updateMasterplanFootprintDrawUI();
+    renderArchSectionsSvg();
+  }
+
+  function setFootprintFloors(fpId, delta) {
+    const fp = (asmState.customFootprints || []).find(f => f.id === fpId);
+    if (!fp) return;
+    fp.floors = Math.min(60, Math.max(1, (fp.floors || 1) + delta));
+    fp.height = parseFloat((fp.floors * 3.3).toFixed(1));
+    renderArchSectionsSvg();
+  }
+
+  function deleteCustomFootprint(fpId) {
+    asmState.customFootprints = (asmState.customFootprints || []).filter(f => f.id !== fpId);
+    renderArchSectionsSvg();
+  }
+
+  function toggleArchZoningSidebar() {
+    asmState.showZoningSidebar = !asmState.showZoningSidebar;
+    const sb = document.getElementById('asmZoningSidebar');
+    if (sb) {
+      sb.style.display = (asmState.activeTab === 'masterplan' && asmState.showZoningSidebar) ? 'flex' : 'none';
+    }
+    const btn = document.getElementById('asmBtnToggleSidebar');
+    if (btn) btn.classList.toggle('active', !!asmState.showZoningSidebar);
+  }
+
+  function resetArchZoningToTas() {
+    asmState.zoningOverride = null;
+    renderArchSectionsSvg();
+  }
+
+  function handleArchZoningParamChange() {
+    const areaInput = document.getElementById('asmInputLandArea');
+    const k1Input = document.getElementById('asmInputK1');
+    const k2Input = document.getElementById('asmInputK2');
+    const k3Input = document.getElementById('asmInputK3');
+
+    asmState.zoningOverride = {
+      parcelArea: areaInput ? (parseFloat(areaInput.value) || 0) : null,
+      k1: k1Input ? (parseFloat(k1Input.value) || 0) : null,
+      k2: k2Input ? (parseFloat(k2Input.value) || 0) : null,
+      k3: k3Input ? (parseFloat(k3Input.value) || 0) : null
+    };
+
+    renderArchSectionsSvg();
+  }
+
+  function updateArchZoningSidebar(d) {
+    const sb = document.getElementById('asmZoningSidebar');
+    if (!sb) return;
+
+    if (asmState.activeTab !== 'masterplan' || !asmState.showZoningSidebar) {
+      sb.style.display = 'none';
+      return;
+    }
+    sb.style.display = 'flex';
+
+    // Official data from TAS.GE / EMS / active parcel
+    const parcel = d.parcel || {};
+    const officialLandArea = Math.round(parcel.area || parcel.landArea || (typeof state !== 'undefined' && state.activeParcel?.area) || 1200);
+    const officialZone = d.zoneCode || 'სზ-6';
+    const officialZoneName = d.zoneName || 'საცხოვრებელი ზონა 6';
+    const officialK1 = d.k1 !== undefined ? d.k1 : 0.5;
+    const officialK2 = d.k2 !== undefined ? d.k2 : 2.5;
+    const officialK3 = d.k3 !== undefined ? d.k3 : 0.2;
+
+    const landArea = (asmState.zoningOverride && asmState.zoningOverride.parcelArea != null) ? asmState.zoningOverride.parcelArea : officialLandArea;
+    const k1 = (asmState.zoningOverride && asmState.zoningOverride.k1 != null) ? asmState.zoningOverride.k1 : officialK1;
+    const k2 = (asmState.zoningOverride && asmState.zoningOverride.k2 != null) ? asmState.zoningOverride.k2 : officialK2;
+    const k3 = (asmState.zoningOverride && asmState.zoningOverride.k3 != null) ? asmState.zoningOverride.k3 : officialK3;
+
+    const isOverridden = !!asmState.zoningOverride;
+    const badge = document.getElementById('asmZoningSourceBadge');
+    if (badge) {
+      badge.textContent = isOverridden ? 'ხელით შეყვანილი' : 'TAS / EMS';
+      badge.style.background = isOverridden ? 'rgba(245, 158, 11, 0.18)' : 'rgba(0, 240, 255, 0.15)';
+      badge.style.color = isOverridden ? '#f59e0b' : '#00f0ff';
+      badge.style.borderColor = isOverridden ? 'rgba(245, 158, 11, 0.4)' : 'rgba(0, 240, 255, 0.35)';
+    }
+
+    const areaInput = document.getElementById('asmInputLandArea');
+    if (areaInput && document.activeElement !== areaInput) areaInput.value = landArea;
+    const k1Input = document.getElementById('asmInputK1');
+    if (k1Input && document.activeElement !== k1Input) k1Input.value = k1;
+    const k2Input = document.getElementById('asmInputK2');
+    if (k2Input && document.activeElement !== k2Input) k2Input.value = k2;
+    const k3Input = document.getElementById('asmInputK3');
+    if (k3Input && document.activeElement !== k3Input) k3Input.value = k3;
+
+    const zoneValEl = document.getElementById('asmZoneNameVal');
+    if (zoneValEl) zoneValEl.textContent = `${officialZone} (${officialZoneName})`;
+
+    let activeBuildingsList = [];
+    if (asmState.customFootprints && asmState.customFootprints.length > 0) {
+      activeBuildingsList = [...asmState.customFootprints];
+    } else if (!asmState.hideDefaultBuilding) {
+      activeBuildingsList = [{
+        id: 'default-bldg',
+        name: 'საპროექტო შენობა (ნაგულისხმევი)',
+        area: d.footprintArea,
+        floors: d.floorsAbove,
+        height: d.totalH,
+        isDefault: true
+      }];
+    }
+
+    const proposedFpArea = activeBuildingsList.reduce((s, b) => s + (b.area || 0), 0);
+    const proposedGfa = activeBuildingsList.reduce((s, b) => s + ((b.area || 0) * (b.floors || 1)), 0);
+
+    const existingFpArea = (asmState.showExistingBldgs && d.geo.existingBldgs) ? d.geo.existingBldgs.reduce((s, b) => s + (b.area || 0), 0) : 0;
+    const existingGfa = (asmState.showExistingBldgs && d.geo.existingBldgs) ? d.geo.existingBldgs.reduce((s, b) => s + ((b.area || 0) * (b.floors || 1)), 0) : 0;
+
+    const totalUsedK1 = parseFloat((proposedFpArea + existingFpArea).toFixed(1));
+    const totalUsedK2 = parseFloat((proposedGfa + existingGfa).toFixed(1));
+
+    const maxK1Area = parseFloat((landArea * k1).toFixed(1));
+    const remainK1 = parseFloat(Math.max(0, maxK1Area - totalUsedK1).toFixed(1));
+    const pctK1 = maxK1Area > 0 ? Math.min(100, Math.round((totalUsedK1 / maxK1Area) * 100)) : 0;
+
+    const maxK2Area = parseFloat((landArea * k2).toFixed(1));
+    const remainK2 = parseFloat(Math.max(0, maxK2Area - totalUsedK2).toFixed(1));
+    const pctK2 = maxK2Area > 0 ? Math.min(100, Math.round((totalUsedK2 / maxK2Area) * 100)) : 0;
+
+    const reqK3Area = parseFloat((landArea * k3).toFixed(1));
+
+    const k1MaxEl = document.getElementById('asmK1MaxText');
+    if (k1MaxEl) k1MaxEl.textContent = `დაშვებული: ${maxK1Area.toLocaleString()} მ²`;
+    const k1UsedEl = document.getElementById('asmK1UsedText');
+    if (k1UsedEl) k1UsedEl.textContent = `${totalUsedK1.toLocaleString()} მ²`;
+    const k1UsedPctEl = document.getElementById('asmK1UsedPercent');
+    if (k1UsedPctEl) k1UsedPctEl.textContent = `(${pctK1}%)`;
+    const k1RemainEl = document.getElementById('asmK1RemainText');
+    if (k1RemainEl) k1RemainEl.textContent = `${remainK1.toLocaleString()} მ²`;
+    const k1RemainPctEl = document.getElementById('asmK1RemainPercent');
+    if (k1RemainPctEl) k1RemainPctEl.textContent = `(${Math.max(0, 100 - pctK1)}%)`;
+    const k1Bar = document.getElementById('asmK1ProgressBar');
+    if (k1Bar) {
+      k1Bar.style.width = `${Math.min(100, pctK1)}%`;
+      if (pctK1 > 100) {
+        k1Bar.style.background = '#ef4444';
+      } else if (pctK1 > 85) {
+        k1Bar.style.background = '#f59e0b';
+      } else {
+        k1Bar.style.background = '#00f0ff';
+      }
+    }
+
+    const k2MaxEl = document.getElementById('asmK2MaxText');
+    if (k2MaxEl) k2MaxEl.textContent = `დაშვებული: ${maxK2Area.toLocaleString()} მ²`;
+    const k2UsedEl = document.getElementById('asmK2UsedText');
+    if (k2UsedEl) k2UsedEl.textContent = `${totalUsedK2.toLocaleString()} მ²`;
+    const k2UsedPctEl = document.getElementById('asmK2UsedPercent');
+    if (k2UsedPctEl) k2UsedPctEl.textContent = `(${pctK2}%)`;
+    const k2RemainEl = document.getElementById('asmK2RemainText');
+    if (k2RemainEl) k2RemainEl.textContent = `${remainK2.toLocaleString()} მ²`;
+    const k2RemainPctEl = document.getElementById('asmK2RemainPercent');
+    if (k2RemainPctEl) k2RemainPctEl.textContent = `(${Math.max(0, 100 - pctK2)}%)`;
+    const k2Bar = document.getElementById('asmK2ProgressBar');
+    if (k2Bar) {
+      k2Bar.style.width = `${Math.min(100, pctK2)}%`;
+      if (pctK2 > 100) {
+        k2Bar.style.background = '#ef4444';
+      } else if (pctK2 > 85) {
+        k2Bar.style.background = '#f59e0b';
+      } else {
+        k2Bar.style.background = 'linear-gradient(90deg, #8b5cf6, #c084fc)';
+      }
+    }
+
+    const k3MinEl = document.getElementById('asmK3MinText');
+    if (k3MinEl) k3MinEl.textContent = `${reqK3Area.toLocaleString()} მ²`;
+
+    const fpListEl = document.getElementById('asmFootprintsList');
+    const fpCountEl = document.getElementById('asmFootprintsCount');
+    if (fpCountEl) fpCountEl.textContent = activeBuildingsList.length;
+
+    if (fpListEl) {
+      if (activeBuildingsList.length === 0) {
+        fpListEl.innerHTML = `
+          <div style="padding: 14px 10px; text-align: center; color: #64748b; font-size: 11px;">
+            <i class="fa-solid fa-seedling" style="color: #10b981; font-size: 16px; margin-bottom: 4px; display: block;"></i>
+            ნაკვეთი ცარიელია. გამოიყენეთ <strong>+ ლაქა</strong> ღილაკი შენობების დასახაზად.
+          </div>
+        `;
+      } else {
+        fpListEl.innerHTML = activeBuildingsList.map((b) => {
+          const isDef = !!b.isDefault;
+          return `
+            <div class="asm-fp-item ${isDef ? 'asm-fp-item-default' : ''}">
+              <div class="asm-fp-item-info">
+                <span class="asm-fp-item-name">${b.name}</span>
+                <span class="asm-fp-item-metrics">S = ${b.area} მ² • ჯამი = ${b.area * (b.floors || 1)} მ²</span>
+              </div>
+              <div class="asm-fp-item-actions">
+                ${!isDef ? `
+                  <div class="asm-fp-stepper">
+                    <button type="button" class="asm-fp-step-btn" onclick="setFootprintFloors('${b.id}', -1)" title="-1 სართული">−</button>
+                    <span class="asm-fp-step-val">${b.floors || 1} ს</span>
+                    <button type="button" class="asm-fp-step-btn" onclick="setFootprintFloors('${b.id}', 1)" title="+1 სართული">+</button>
+                  </div>
+                  <button type="button" class="asm-fp-del-btn" onclick="deleteCustomFootprint('${b.id}')" title="წაშლა">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                ` : `
+                  <span style="font-size: 10px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">${b.floors} სართ.</span>
+                `}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+  }
+
+  // Unified Mouse & Touch interaction engine for Pan, Zoom, Road, and Footprint clicks
   function initArchCanvasInteractions() {
     const stage = document.getElementById('asmDrawingStage');
     if (!stage || stage._hasArchListeners) return;
@@ -15691,7 +16092,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let movedDistance = 0;
 
     stage.addEventListener('mousedown', (e) => {
-      if (e.target.closest('#asmRoadDrawHud') || e.target.closest('#asmZoomHud')) return;
+      if (e.target.closest('#asmRoadDrawHud') || e.target.closest('#asmFootprintDrawHud') || e.target.closest('#asmZoomHud') || e.target.closest('#asmZoningSidebar')) return;
       isMouseDown = true;
       movedDistance = 0;
       startScreenX = e.clientX;
@@ -15705,6 +16106,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!isMouseDown) {
         if (asmState.isDrawingRoad && asmState.activeTab === 'masterplan' && asmState.drawnRoadMeters.length > 0) {
           handleRoadDrawMouseMove(e);
+        } else if (asmState.isDrawingFootprint && asmState.activeTab === 'masterplan' && asmState.drawnFootprintPts.length > 0) {
+          handleFootprintDrawMouseMove(e);
         }
         return;
       }
@@ -15724,16 +16127,24 @@ document.addEventListener('DOMContentLoaded', () => {
       isMouseDown = false;
       stage.classList.remove('asm-panning');
 
-      // Click without drag (< 6px) in road drawing mode adds a point!
-      if (movedDistance <= 5 && asmState.isDrawingRoad && asmState.activeTab === 'masterplan') {
-        handleRoadDrawPointClick(e);
+      // Click without drag (< 6px)
+      if (movedDistance <= 5 && asmState.activeTab === 'masterplan') {
+        if (asmState.isDrawingRoad) {
+          handleRoadDrawPointClick(e);
+        } else if (asmState.isDrawingFootprint) {
+          handleFootprintDrawPointClick(e);
+        }
       }
     });
 
-    // Double click to finish road
+    // Double click to finish road or footprint
     stage.addEventListener('dblclick', (e) => {
-      if (asmState.isDrawingRoad && asmState.activeTab === 'masterplan' && asmState.drawnRoadMeters.length >= 2) {
-        finishArchMasterplanRoadDraw();
+      if (asmState.activeTab === 'masterplan') {
+        if (asmState.isDrawingRoad && asmState.drawnRoadMeters.length >= 2) {
+          finishArchMasterplanRoadDraw();
+        } else if (asmState.isDrawingFootprint && asmState.drawnFootprintPts.length >= 3) {
+          finishArchMasterplanFootprintDraw();
+        }
       }
     });
   }
@@ -16299,6 +16710,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateArchZoomDisplay();
     initArchCanvasInteractions();
+    if (asmState.activeTab === 'masterplan') {
+      updateArchZoningSidebar(d);
+    }
   }
 
   // --- 1. Cross Section A-A (Real Width, Real Floors, Adaptive Spacing) ---
@@ -16723,9 +17137,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. Real Setback Boundary (${setbackDist}m)
     const setbackPtsStr = geo.setbackMeters.map(p => `${toSvgX(p.x).toFixed(1)},${toSvgY(p.y).toFixed(1)}`).join(' ');
 
-    // 3. Existing Buildings on Parcel
+    // 3. Existing Buildings on Parcel (can be toggled on/off)
     let existingBldgsMarkup = '';
-    if (geo.existingBldgs && geo.existingBldgs.length > 0) {
+    if (asmState.showExistingBldgs && geo.existingBldgs && geo.existingBldgs.length > 0) {
       existingBldgsMarkup = geo.existingBldgs.map(eb => {
         const polyStr = eb.meters.map(p => `${toSvgX(p.x).toFixed(1)},${toSvgY(p.y).toFixed(1)}`).join(' ');
         const avgX = eb.meters.reduce((s, p) => s + p.x, 0) / eb.meters.length;
@@ -16745,16 +17159,61 @@ document.addEventListener('DOMContentLoaded', () => {
       }).join('');
     }
 
-    // 4. Active / Proposed / User-drawn Building Footprint
-    const bldgPtsStr = geo.activeBldgMeters.map(p => `${toSvgX(p.x).toFixed(1)},${toSvgY(p.y).toFixed(1)}`).join(' ');
-    const bldgCentroidX = geo.activeBldgMeters.reduce((s, p) => s + p.x, 0) / geo.activeBldgMeters.length;
-    const bldgCentroidY = geo.activeBldgMeters.reduce((s, p) => s + p.y, 0) / geo.activeBldgMeters.length;
+    // 4. Proposed / Custom / Drawn Building Footprint(s)
+    let buildingsMarkup = '';
+    let bldgCentroidX = cxMeters;
+    let bldgCentroidY = cyMeters;
+
+    if (asmState.customFootprints && asmState.customFootprints.length > 0) {
+      const firstFp = asmState.customFootprints[0];
+      bldgCentroidX = firstFp.meters.reduce((s, p) => s + p.x, 0) / firstFp.meters.length;
+      bldgCentroidY = firstFp.meters.reduce((s, p) => s + p.y, 0) / firstFp.meters.length;
+
+      buildingsMarkup = asmState.customFootprints.map((fp) => {
+        const polyStr = fp.meters.map(p => `${toSvgX(p.x).toFixed(1)},${toSvgY(p.y).toFixed(1)}`).join(' ');
+        const avgX = fp.meters.reduce((s, p) => s + p.x, 0) / fp.meters.length;
+        const avgY = fp.meters.reduce((s, p) => s + p.y, 0) / fp.meters.length;
+        const lx = toSvgX(avgX);
+        const ly = toSvgY(avgY);
+        return `
+          <g class="asm-mp-custom-bldg" data-fp-id="${fp.id}">
+            <polygon points="${polyStr}" fill="rgba(0, 240, 255, 0.24)" stroke="#00f0ff" stroke-width="2.5" />
+            ${asmState.showLabels ? `
+              <rect x="${lx - 60}" y="${ly - 17}" width="120" height="34" rx="4" fill="rgba(5, 7, 12, 0.88)" stroke="rgba(0, 240, 255, 0.4)" stroke-width="1" />
+              <text x="${lx}" y="${ly - 2}" fill="#ffffff" font-size="10" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">${fp.name} (${fp.floors} სართ.)</text>
+              ${asmState.showDimensions ? `<text x="${lx}" y="${ly + 11}" fill="#00f0ff" font-size="8.5" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">S = ${fp.area} მ²</text>` : ''}
+            ` : ''}
+          </g>
+        `;
+      }).join('');
+    } else if (!asmState.hideDefaultBuilding) {
+      bldgCentroidX = geo.activeBldgMeters.reduce((s, p) => s + p.x, 0) / geo.activeBldgMeters.length;
+      bldgCentroidY = geo.activeBldgMeters.reduce((s, p) => s + p.y, 0) / geo.activeBldgMeters.length;
+      const bldgPtsStr = geo.activeBldgMeters.map(p => `${toSvgX(p.x).toFixed(1)},${toSvgY(p.y).toFixed(1)}`).join(' ');
+      const bldgSvgX_def = toSvgX(bldgCentroidX);
+      const bldgSvgY_def = toSvgY(bldgCentroidY);
+
+      const bldgStatusLabel = geo.isDrawnByUser 
+        ? 'დახაზული საპროექტო შენობა' 
+        : (d.bldg.isExisting ? 'არსებული შენობა' : 'საპროექტო შენობის ლაქა (K1)');
+
+      buildingsMarkup = `
+        <g class="asm-mp-active-bldg">
+          <polygon points="${bldgPtsStr}" fill="rgba(0, 240, 255, 0.22)" stroke="#00f0ff" stroke-width="2.5" />
+          ${asmState.showLabels ? `
+            <rect x="${bldgSvgX_def - 85}" y="${bldgSvgY_def - 18}" width="170" height="19" rx="3.5" fill="rgba(5, 7, 12, 0.85)" stroke="rgba(0, 240, 255, 0.35)" stroke-width="0.8" />
+            <text x="${bldgSvgX_def}" y="${bldgSvgY_def - 4.5}" fill="#ffffff" font-size="10.5" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">${bldgStatusLabel}</text>
+          ` : ''}
+          ${(asmState.showDimensions && asmState.showLabels) ? `
+            <rect x="${bldgSvgX_def - 80}" y="${bldgSvgY_def + 4}" width="160" height="18" rx="3.5" fill="rgba(5, 7, 12, 0.85)" stroke="rgba(0, 240, 255, 0.35)" stroke-width="0.8" />
+            <text x="${bldgSvgX_def}" y="${bldgSvgY_def + 16.5}" fill="#00f0ff" font-size="9.5" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">S = ${d.footprintArea} მ² (${(Number(d.bldgLength) || 15).toFixed(1)} × ${(Number(d.bldgWidth) || 15).toFixed(1)}მ)</text>
+          ` : ''}
+        </g>
+      `;
+    }
+
     const bldgSvgX = toSvgX(bldgCentroidX);
     const bldgSvgY = toSvgY(bldgCentroidY);
-
-    const bldgStatusLabel = geo.isDrawnByUser 
-      ? 'დახაზული საპროექტო შენობა' 
-      : (d.bldg.isExisting ? 'არსებული შენობა' : 'საპროექტო შენობის ლაქა (K1)');
 
     // 5. Real Roads on Parcel (Existing / Saved)
     let roadsMarkup = '';
@@ -16801,6 +17260,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
       roadDrawingLiveMarkup = `
         <g class="asm-mp-live-road">
+          ${polyMarkup}
+          ${vertexCircles}
+        </g>
+      `;
+    }
+
+    // 6b. Live Footprint Drawing in Progress Preview
+    let footprintDrawingLiveMarkup = '';
+    if (asmState.isDrawingFootprint && asmState.drawnFootprintPts && asmState.drawnFootprintPts.length > 0) {
+      const activePts = asmState.drawnFootprintPts;
+      const ptsStr = activePts.map(p => `${toSvgX(p.x).toFixed(1)},${toSvgY(p.y).toFixed(1)}`).join(' ');
+
+      const vertexCircles = activePts.map((p, idx) => `
+        <g class="asm-mp-fp-pin">
+          <circle cx="${toSvgX(p.x)}" cy="${toSvgY(p.y)}" r="8" fill="#00f0ff" stroke="#ffffff" stroke-width="2" />
+          <text x="${toSvgX(p.x)}" y="${toSvgY(p.y) + 3}" fill="#030509" font-size="8.5" font-family="'JetBrains Mono', monospace" font-weight="800" text-anchor="middle">${idx + 1}</text>
+        </g>
+      `).join('');
+
+      const polyMarkup = activePts.length >= 3 ? `
+        <polygon points="${ptsStr}" fill="rgba(0, 240, 255, 0.2)" stroke="#00f0ff" stroke-width="2" stroke-dasharray="6 4" />
+      ` : (activePts.length === 2 ? `
+        <polyline points="${ptsStr}" fill="none" stroke="#00f0ff" stroke-width="2" stroke-dasharray="6 4" />
+      ` : '');
+
+      footprintDrawingLiveMarkup = `
+        <g class="asm-mp-live-footprint">
           ${polyMarkup}
           ${vertexCircles}
         </g>
@@ -16866,18 +17352,11 @@ document.addEventListener('DOMContentLoaded', () => {
       <!-- Existing Buildings on Parcel -->
       ${existingBldgsMarkup}
 
-      <!-- Real Proposed / Drawn Building Footprint -->
-      <g class="asm-mp-active-bldg">
-        <polygon points="${bldgPtsStr}" fill="rgba(0, 240, 255, 0.22)" stroke="#00f0ff" stroke-width="2.5" />
-        ${asmState.showLabels ? `
-          <rect x="${bldgSvgX - 85}" y="${bldgSvgY - 18}" width="170" height="19" rx="3.5" fill="rgba(5, 7, 12, 0.85)" stroke="rgba(0, 240, 255, 0.35)" stroke-width="0.8" />
-          <text x="${bldgSvgX}" y="${bldgSvgY - 4.5}" fill="#ffffff" font-size="10.5" font-family="'Inter', sans-serif" font-weight="700" text-anchor="middle">${bldgStatusLabel}</text>
-        ` : ''}
-        ${(asmState.showDimensions && asmState.showLabels) ? `
-          <rect x="${bldgSvgX - 80}" y="${bldgSvgY + 4}" width="160" height="18" rx="3.5" fill="rgba(5, 7, 12, 0.85)" stroke="rgba(0, 240, 255, 0.35)" stroke-width="0.8" />
-          <text x="${bldgSvgX}" y="${bldgSvgY + 16.5}" fill="#00f0ff" font-size="9.5" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">S = ${d.footprintArea} მ² (${(Number(d.bldgLength) || 15).toFixed(1)} × ${(Number(d.bldgWidth) || 15).toFixed(1)}მ)</text>
-        ` : ''}
-      </g>
+      <!-- Real Proposed / Custom Drawn Building Footprints -->
+      ${buildingsMarkup}
+
+      <!-- Live Footprint Drawing in Progress Preview -->
+      ${footprintDrawingLiveMarkup}
 
       <!-- Grid Axes Across Footprint -->
       ${axesMarkup}
@@ -16967,6 +17446,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.key === 'Escape') {
         if (asmState.isDrawingRoad) {
           cancelArchMasterplanRoadDraw();
+        } else if (asmState.isDrawingFootprint) {
+          cancelArchMasterplanFootprintDraw();
         } else {
           closeArchSectionsModal();
         }
@@ -17004,7 +17485,18 @@ document.addEventListener('DOMContentLoaded', () => {
   window.finishArchMasterplanRoadDraw = finishArchMasterplanRoadDraw;
   window.undoArchMasterplanRoadPoint = undoArchMasterplanRoadPoint;
   window.cancelArchMasterplanRoadDraw = cancelArchMasterplanRoadDraw;
+  window.toggleArchMasterplanFootprintDraw = toggleArchMasterplanFootprintDraw;
+  window.finishArchMasterplanFootprintDraw = finishArchMasterplanFootprintDraw;
+  window.undoArchMasterplanFootprintPoint = undoArchMasterplanFootprintPoint;
+  window.cancelArchMasterplanFootprintDraw = cancelArchMasterplanFootprintDraw;
+  window.clearArchMasterplanParcel = clearArchMasterplanParcel;
+  window.setFootprintFloors = setFootprintFloors;
+  window.deleteCustomFootprint = deleteCustomFootprint;
+  window.toggleArchZoningSidebar = toggleArchZoningSidebar;
+  window.resetArchZoningToTas = resetArchZoningToTas;
+  window.handleArchZoningParamChange = handleArchZoningParamChange;
   window.handleRoadDrawPointClick = typeof handleRoadDrawPointClick !== 'undefined' ? handleRoadDrawPointClick : null;
+  window.handleFootprintDrawPointClick = typeof handleFootprintDrawPointClick !== 'undefined' ? handleFootprintDrawPointClick : null;
   window.handleMasterplanSvgClick = typeof handleRoadDrawPointClick !== 'undefined' ? handleRoadDrawPointClick : null;
   window.copyArchSectionSvg = copyArchSectionSvg;
   window.exportArchSectionSvg = exportArchSectionSvg;
