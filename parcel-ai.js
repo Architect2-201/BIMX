@@ -669,9 +669,29 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // If unit/apartment code (6+ segments in any region), take parent 5 segments
-    if (parts.length > 5) {
-      parts = parts.slice(0, 5);
+    const regCode = parts[0].padStart(2, '0');
+    const isStrict5City = ['01', '02', '04'].includes(regCode); // Tbilisi, Rustavi, Poti
+
+    // In regional districts across Georgia (all regions except 01, 02, 04):
+    // Land parcel codes are 4 segments: RR.SS.BB.PPP.
+    // If a user inputs 5 or more segments (e.g. 72.13.12.123/01 or 72.13.12.123.01),
+    // the 5th segment is an apartment or building unit, and the land plot is the first 4 segments.
+    if (!isStrict5City && parts.length >= 5) {
+      if (['03', '05'].includes(regCode) && parts[4].length === 3 && parts[3].length === 3) {
+        return [
+          parts[0].padStart(2, '0'),
+          parts[1].padStart(2, '0'),
+          parts[2].padStart(2, '0'),
+          parts[3].padStart(3, '0'),
+          parts[4].padStart(3, '0')
+        ].join('.');
+      }
+      return [
+        parts[0].padStart(2, '0'),
+        parts[1].padStart(2, '0'),
+        parts[2].padStart(2, '0'),
+        parts[3]
+      ].join('.');
     }
 
     // 5-segment municipal format (Tbilisi, Batumi, Rustavi, etc.) -> 01.15.02.038.003

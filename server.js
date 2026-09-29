@@ -87,14 +87,38 @@ function universalNormalizeCadastral(rawCode) {
       return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4, 6)}.${digits.slice(6, 9)}.${digits.slice(9, 12)}`;
     }
     if (digits.length === 9 || digits.length === 10) {
+      if (digits.length === 9 && !digits.startsWith('0')) {
+        return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4, 6)}.${digits.slice(6)}`;
+      }
       if (digits.length === 9) digits = '0' + digits;
       return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4, 6)}.${digits.slice(6)}`;
     }
   }
 
-  if (parts.length > 5) parts = parts.slice(0, 5);
+  const regCode = parts[0].padStart(2, '0');
+  const isStrict5City = ['01', '02', '04'].includes(regCode); // Tbilisi, Rustavi, Poti
 
-  if (parts.length === 5) {
+  // If regional district (outside Tbilisi, Rustavi, Poti) with 5+ segments,
+  // the parent land plot is 4 segments (parts 0..3)
+  if (!isStrict5City && parts.length >= 5) {
+    if (['03', '05'].includes(regCode) && parts[4].length === 3 && parts[3].length === 3) {
+      return [
+        parts[0].padStart(2, '0'),
+        parts[1].padStart(2, '0'),
+        parts[2].padStart(2, '0'),
+        parts[3].padStart(3, '0'),
+        parts[4].padStart(3, '0')
+      ].join('.');
+    }
+    return [
+      parts[0].padStart(2, '0'),
+      parts[1].padStart(2, '0'),
+      parts[2].padStart(2, '0'),
+      parts[3]
+    ].join('.');
+  }
+
+  if (parts.length >= 5) {
     return [
       parts[0].padStart(2, '0'),
       parts[1].padStart(2, '0'),
