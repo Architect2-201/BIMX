@@ -221,6 +221,47 @@ const requestHandler = async (req, res) => {
     }
   }
 
+  // Diagnostic route to inspect NAPR connectivity from cloud environment
+  if (parsedUrl.pathname === '/api/diag-napr') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    const diag = { env: process.env.VERCEL ? 'vercel' : 'local', time: new Date().toISOString() };
+    try {
+      const t0 = Date.now();
+      const pRes = await fetch('https://maps.gov.ge/map/portal/', {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+        },
+        signal: AbortSignal.timeout(6000)
+      });
+      diag.portalStatus = pRes.status;
+      diag.portalTimeMs = Date.now() - t0;
+      diag.portalCookies = pRes.headers.getSetCookie ? pRes.headers.getSetCookie() : [pRes.headers.get('set-cookie')];
+      
+      const s0 = Date.now();
+      const sRes = await fetch('https://maps.gov.ge/map/portal/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          'Referer': 'https://maps.gov.ge/map/portal/'
+        },
+        body: new URLSearchParams({ keyword: parsedUrl.searchParams.get('code') || '01.14.11.059.039', keyword_description: '' }),
+        signal: AbortSignal.timeout(8000)
+      });
+      diag.searchStatus = sRes.status;
+      diag.searchTimeMs = Date.now() - s0;
+      const sText = await sRes.text();
+      diag.searchSample = sText.slice(0, 300);
+    } catch (e) {
+      diag.error = e.message;
+      diag.errorStack = e.stack;
+    }
+    res.writeHead(200);
+    res.end(JSON.stringify(diag, null, 2));
+    return;
+  }
+
   // Stateless NAPR / Cadastral Proxy route
   if (parsedUrl.pathname === '/api/parcel') {
     res.setHeader('Access-Control-Allow-Origin', '*');
