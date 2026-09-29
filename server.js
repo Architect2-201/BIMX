@@ -73,7 +73,7 @@ function universalNormalizeCadastral(rawCode) {
   if (!rawCode || typeof rawCode !== 'string') return '';
   let clean = rawCode.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, ' ').trim();
   // Strip common prefixes like 'საკადასტრო:', '№', 'N', 'code:' etc.
-  clean = clean.replace(/^(?:საკადასტრო(?: კოდი)?:?|№|N|code:?)\s*/i, '');
+  clean = clean.replace(/^(?:საკადასტრო(?: კოდი)?:?|საკ\/კოდი:?|№|N|code:?)\s*/i, '').trim();
   let parts = clean.split(/[^\d]+/).filter(Boolean);
   if (parts.length === 0) return '';
 
@@ -109,7 +109,7 @@ function universalNormalizeCadastral(rawCode) {
       parts[0].padStart(2, '0'),
       parts[1].padStart(2, '0'),
       parts[2].padStart(2, '0'),
-      parts[3].padStart(3, '0')
+      parts[3]
     ].join('.');
   }
 
@@ -314,6 +314,11 @@ const requestHandler = async (req, res) => {
             cadastralCode: parcelRes.cadastralCode,
             address: parcelRes.address,
             areaSqm: parcelRes.areaSqm,
+            officialAreaSqm: parcelRes.officialAreaSqm || null,
+            geometricAreaSqm: parcelRes.geometricAreaSqm || null,
+            landType: parcelRes.landType || null,
+            ownershipType: parcelRes.ownershipType || null,
+            owners: parcelRes.owners || [],
             coordinates: parcelRes.boundary, // [lat, lng] array
             shapeWkt: parcelRes.shapeWkt,
             centroid: parcelRes.centroid,

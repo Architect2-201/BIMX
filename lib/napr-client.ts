@@ -223,14 +223,76 @@ const VERIFIED_PARCELS: Record<string, { address: string; areaSqm: number; bound
   }
 };
 
+export interface ParcelData {
+  cadastralCode: string;
+  /** GeoJSON-ის მსგავსი polygon კოორდინატები [lng, lat][] */
+  boundary: [number, number][];
+  areaSqm: number;
+  officialAreaSqm?: number | null;
+  geometricAreaSqm?: number;
+  landType?: string;
+  ownershipType?: string | null;
+  owners?: string[];
+  address: string;
+  shapeWkt?: string;
+  raw?: unknown;
+}
+
+/**
+ * Parses official NAPR info_link HTML to extract registered parameters
+ */
+export function parseNaprInfoHtml(html: string): {
+  officialAreaSqm?: number;
+  landType?: string;
+  officialAddress?: string;
+  ownershipType?: string;
+  owners?: string[];
+} {
+  if (!html || typeof html !== 'string') return {};
+  const data: any = {};
+
+  const areaMatch = html.match(/ფართობი<\/div>\s*<div[^>]*>\s*([\d.,]+)\s*<span[^>]*>\s*კვ\.მ/i);
+  if (areaMatch) {
+    data.officialAreaSqm = parseFloat(areaMatch[1].replace(/,/g, ''));
+  }
+
+  const typeMatch = html.match(/ნაკვეთის ტიპი<\/div>\s*<div[^>]*>\s*([^<]+)/i);
+  if (typeMatch) {
+    data.landType = typeMatch[1].trim();
+  }
+
+  const addrMatch = html.match(/მისამართი<\/div>\s*<div[^>]*>\s*([^<]+)/i);
+  if (addrMatch) {
+    data.officialAddress = addrMatch[1].trim();
+  }
+
+  const ownerTypeMatch = html.match(/საკუთრების ტიპი<\/div>\s*<div[^>]*>\s*([^<]+)/i);
+  if (ownerTypeMatch) {
+    data.ownershipType = ownerTypeMatch[1].trim();
+  }
+
+  const ownersMatch = html.match(/მესაკუთრე\(ებ\)ი<\/div>\s*<!--begin[^>]*-->\s*<div[^>]*>([\s\S]*?)<\/div>/i);
+  if (ownersMatch) {
+    const rawOwners = ownersMatch[1].replace(/<[^>]+>/g, '\n').split('\n').map((s: string) => s.trim()).filter(Boolean);
+    if (rawOwners.length > 0) {
+      data.owners = rawOwners;
+    }
+  }
+
+  return data;
+}
+
 /**
  * Normalizes Georgian cadastral codes
  */
 export function normalizeCadastralCode(raw: string): string {
   if (!raw) return '';
-  const clean = raw.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, ' ').trim();
+  let clean = raw.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, ' ').trim();
+  clean = clean.replace(/^(?:საკადასტრო(?: კოდი)?:?|საკ\/კოდი:?|№|N|code:?)\s*/i, '').trim();
+
   let parts = clean.split(/[^\d]+/).filter(Boolean);
   if (parts.length === 0) return '';
+
   if (parts.length === 1) {
     let digits = parts[0];
     if (digits.length === 11) digits = '0' + digits;
@@ -240,8 +302,14 @@ export function normalizeCadastralCode(raw: string): string {
     if (digits.length >= 13) {
       return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4, 6)}.${digits.slice(6, 9)}.${digits.slice(9, 12)}`;
     }
+    if (digits.length === 9 || digits.length === 10) {
+      if (digits.length === 9) digits = '0' + digits;
+      return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4, 6)}.${digits.slice(6)}`;
+    }
   }
+
   if (parts.length > 5) parts = parts.slice(0, 5);
+
   if (parts.length === 5) {
     return [
       parts[0].padStart(2, '0'),
@@ -251,67 +319,17 @@ export function normalizeCadastralCode(raw: string): string {
       parts[4].padStart(3, '0')
     ].join('.');
   }
+
   if (parts.length === 4) {
     return [
       parts[0].padStart(2, '0'),
       parts[1].padStart(2, '0'),
       parts[2].padStart(2, '0'),
-      parts[3].padStart(3, '0')
+      parts[3]
     ].join('.');
   }
+
   return parts.join('.');
-}
-
-/**
- * Geocodes an authentic Georgian address to get precise GPS [lat, lng]
- */
-async function geocodeOfficialAddress(address: string): Promise<{ lat: number; lng: number } | null> {
-  try {
-    const clean = address
-      .replace(/ქალაქი თბილისი,?\s*/i, '')
-      .replace(/N\s*/g, '')
-      .replace(/,\s*კორპუსი.*/i, '')
-      .trim();
-
-    const searchQueries = [
-      `${clean}, თბილისი, საქართველო`,
-      `${address}, საქართველო`,
-      `${clean}, Georgia`
-    ];
-
-    for (const q of searchQueries) {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`;
-      const res = await fetch(url, { headers: { 'User-Agent': 'BIMX-Spatial-Engine/2.0' }, signal: AbortSignal.timeout(3500) });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data[0] && data[0].lat && data[0].lon) {
-          return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-        }
-      }
-    }
-  } catch (e) {
-    // Non-fatal
-  }
-  return null;
-}
-
-/**
- * Creates a geographic boundary centered on real GPS coordinates
- */
-function createBoundaryAroundLocation(lat: number, lng: number, areaSqm: number = 1000): [number, number][] {
-  const aspect = 1.35;
-  const widthM = Math.sqrt(areaSqm / aspect);
-  const lengthM = widthM * aspect;
-  const halfLengthDeg = (lengthM / 2) / 111132.954;
-  const halfWidthDeg = (widthM / 2) / (111132.954 * Math.cos(lat * Math.PI / 180));
-
-  return [
-    [Number((lng - halfWidthDeg).toFixed(6)), Number((lat - halfLengthDeg).toFixed(6))],
-    [Number((lng - halfWidthDeg).toFixed(6)), Number((lat + halfLengthDeg).toFixed(6))],
-    [Number((lng + halfWidthDeg).toFixed(6)), Number((lat + halfLengthDeg).toFixed(6))],
-    [Number((lng + halfWidthDeg).toFixed(6)), Number((lat - halfLengthDeg).toFixed(6))],
-    [Number((lng - halfWidthDeg).toFixed(6)), Number((lat - halfLengthDeg).toFixed(6))]
-  ];
 }
 
 /**
@@ -335,23 +353,41 @@ export async function fetchParcelByCadastralCode(
     if (!variants.includes(normalizedCode)) variants.push(normalizedCode);
 
     if (allParts.length >= 5) {
-      const p5 = [
+      const p5Padded = [
         allParts[0].padStart(2, '0'),
         allParts[1].padStart(2, '0'),
         allParts[2].padStart(2, '0'),
         allParts[3].padStart(3, '0'),
         allParts[4].padStart(3, '0')
       ].join('.');
-      if (!variants.includes(p5)) variants.push(p5);
+      if (!variants.includes(p5Padded)) variants.push(p5Padded);
+
+      const p5Unpadded = [
+        allParts[0].padStart(2, '0'),
+        allParts[1].padStart(2, '0'),
+        allParts[2].padStart(2, '0'),
+        parseInt(allParts[3], 10).toString(),
+        parseInt(allParts[4], 10).toString()
+      ].join('.');
+      if (!variants.includes(p5Unpadded)) variants.push(p5Unpadded);
     }
+
     if (allParts.length >= 4) {
       const p4 = [
         allParts[0].padStart(2, '0'),
         allParts[1].padStart(2, '0'),
         allParts[2].padStart(2, '0'),
-        allParts[3].padStart(3, '0')
+        allParts[3]
       ].join('.');
       if (!variants.includes(p4)) variants.push(p4);
+
+      const p4Padded = [
+        allParts[0].padStart(2, '0'),
+        allParts[1].padStart(2, '0'),
+        allParts[2].padStart(2, '0'),
+        allParts[3].padStart(3, '0')
+      ].join('.');
+      if (!variants.includes(p4Padded)) variants.push(p4Padded);
     }
 
     const queryNums = allParts.map(x => parseInt(x, 10)).join('.');
@@ -370,18 +406,30 @@ export async function fetchParcelByCadastralCode(
             "Referer": "https://maps.gov.ge/map/portal/",
             "Origin": "https://maps.gov.ge",
             "X-Requested-With": "XMLHttpRequest",
+            "Accept": "application/json, text/javascript, */*; q=0.01"
           },
           body: new URLSearchParams({ keyword: searchKw, keyword_description: "" }),
-          signal: AbortSignal.timeout(6000)
+          signal: AbortSignal.timeout(8500)
         });
 
         if (searchRes.ok) {
           const searchData = await searchRes.json();
           if (searchData.status && searchData.result && searchData.result.length > 0) {
+            // Prioritize land parcel
             let m = searchData.result.find((r: any) => {
               const rNums = (r.name || '').split(/[^\d]+/).filter(Boolean).map((x: string) => parseInt(x, 10)).join('.');
-              return rNums === queryNums || (p5Nums && rNums === p5Nums) || (p4Nums && rNums === p4Nums);
+              const isLandParcel = (r.resultlink && r.resultlink.includes('lr_parcels')) ||
+                                   (r.details && r.details.info_link && r.details.info_link.includes('lr_parcels'));
+              const numMatch = rNums === queryNums || (p5Nums && rNums === p5Nums) || (p4Nums && rNums === p4Nums);
+              return isLandParcel && numMatch;
             });
+
+            if (!m) {
+              m = searchData.result.find((r: any) => {
+                const rNums = (r.name || '').split(/[^\d]+/).filter(Boolean).map((x: string) => parseInt(x, 10)).join('.');
+                return rNums === queryNums || (p5Nums && rNums === p5Nums) || (p4Nums && rNums === p4Nums);
+              });
+            }
 
             if (!m) {
               m = searchData.result.find((r: any) => {
@@ -393,7 +441,7 @@ export async function fetchParcelByCadastralCode(
             if (!m && searchData.result.length === 1) {
               const single = searchData.result[0];
               const sNums = (single.name || '').split(/[^\d]+/).filter(Boolean).map((x: string) => parseInt(x, 10)).join('.');
-              if (sNums && (queryNums.startsWith(sNums) || (p4Nums && sNums === p4Nums))) {
+              if (sNums && (queryNums.startsWith(sNums) || (p4Nums && sNums === p4Nums) || (p5Nums && sNums === p5Nums))) {
                 m = single;
               }
             }
@@ -408,8 +456,32 @@ export async function fetchParcelByCadastralCode(
     }
 
     if (matchedItem) {
-      const officialAddress = matchedItem.descript || matchedItem.resulttext || matchedItem.name || "მისამართი დაუზუსტებელია";
+      let officialAddress = matchedItem.descript || matchedItem.resulttext || matchedItem.name || "მისამართი დაუზუსტებელია";
       const geomLink = matchedItem.details?.geometry_link;
+      const infoLink = matchedItem.details?.info_link;
+
+      let parsedInfo: any = {};
+      if (infoLink) {
+        try {
+          const infoUrl = infoLink.startsWith("http") ? infoLink : `${NAPR_BASE_URL}${infoLink}`;
+          const iRes = await fetch(infoUrl, {
+            headers: {
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+              "Referer": "https://maps.gov.ge/map/portal/",
+              "Origin": "https://maps.gov.ge",
+              "X-Requested-With": "XMLHttpRequest"
+            },
+            signal: AbortSignal.timeout(8500)
+          });
+          if (iRes.ok) {
+            const iHtml = await iRes.text();
+            parsedInfo = parseNaprInfoHtml(iHtml);
+            if (parsedInfo.officialAddress) {
+              officialAddress = parsedInfo.officialAddress;
+            }
+          }
+        } catch (_) {}
+      }
 
       if (geomLink) {
         const baseGeomUrl = geomLink.startsWith("http") ? geomLink : `${NAPR_BASE_URL}${geomLink}`;
@@ -420,7 +492,7 @@ export async function fetchParcelByCadastralCode(
             "Origin": "https://maps.gov.ge",
             "X-Requested-With": "XMLHttpRequest"
           },
-          signal: AbortSignal.timeout(6000)
+          signal: AbortSignal.timeout(8500)
         });
         const txt = await gRes.text();
         if (!txt.includes("Access Denied") && txt.startsWith("{")) {
@@ -429,14 +501,21 @@ export async function fetchParcelByCadastralCode(
             const shapeWkt: string = geomData.data[0].shape;
             const boundary = parseWktPolygon(shapeWkt);
             if (boundary.length >= 3) {
-              const areaSqm = calculatePolygonAreaSqm(boundary);
+              const geometricAreaSqm = calculatePolygonAreaSqm(boundary);
+              const officialAreaSqm = parsedInfo.officialAreaSqm || null;
+              const areaSqm = officialAreaSqm || geometricAreaSqm;
               return {
                 cadastralCode: matchedItem.name || normalizedCode,
                 address: officialAddress,
                 areaSqm: areaSqm,
+                officialAreaSqm,
+                geometricAreaSqm,
+                landType: parsedInfo.landType || 'არასასოფლო სამეურნეო',
+                ownershipType: parsedInfo.ownershipType || null,
+                owners: parsedInfo.owners || [],
                 boundary,
                 shapeWkt,
-                raw: { search: matchedItem, geometry: geomData }
+                raw: { search: matchedItem, geometry: geomData, info: parsedInfo }
               };
             }
           }

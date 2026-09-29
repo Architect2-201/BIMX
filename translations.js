@@ -482,6 +482,9 @@ const translations = {
     parcel_info_shape: "ფორმა",
     parcel_info_address: "მისამართი",
     parcel_info_terrain: "რელიეფი",
+    parcel_info_land_type: "ნაკვეთის სტატუსი",
+    parcel_info_ownership: "საკუთრების ტიპი",
+    parcel_info_owners: "მესაკუთრე",
 
     assessment_title: "პროექტის AI შეფასება",
     assess_footprint: "შენობის Footprint",
@@ -1008,6 +1011,9 @@ const translations = {
     parcel_info_shape: "Geometry Shape",
     parcel_info_address: "Official Location",
     parcel_info_terrain: "Topography",
+    parcel_info_land_type: "Land Status",
+    parcel_info_ownership: "Ownership Type",
+    parcel_info_owners: "Registered Owner",
 
     assessment_title: "Project AI Assessment",
     assess_footprint: "Building Footprint",

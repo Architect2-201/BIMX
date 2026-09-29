@@ -646,7 +646,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!raw || typeof raw !== 'string') return '';
     let clean = raw.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, ' ').trim();
     // Strip common prefixes like 'საკადასტრო:', '№', 'N', 'code:' etc.
-    clean = clean.replace(/^(?:საკადასტრო(?: კოდი)?:?|№|N|code:?)\s*/i, '');
+    clean = clean.replace(/^(?:საკადასტრო(?: კოდი)?:?|საკ\/კოდი:?|№|N|code:?)\s*/i, '').trim();
     
     // Extract segments by any non-digit separator
     let parts = clean.split(/[^\d]+/).filter(Boolean);
@@ -691,7 +691,7 @@ document.addEventListener('DOMContentLoaded', () => {
         parts[0].padStart(2, '0'),
         parts[1].padStart(2, '0'),
         parts[2].padStart(2, '0'),
-        parts[3].padStart(3, '0')
+        parts[3]
       ].join('.');
     }
 
@@ -705,165 +705,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     return parts.map((p, idx) => (idx < 3 ? p.padStart(2, '0') : p.padStart(3, '0'))).join('.');
-  }
-
-  /**
-   * Client-side Deterministic Cadastral Synthesizer fallback.
-   * Accurately positions any Georgian cadastral code within its official municipality
-   * whenever live government servers are unreachable or rate-limited.
-   */
-  function synthesizeCadastralParcelClient(code) {
-    if (!code) return null;
-    const parts = code.split(/[.\-_/]/);
-    const region = parts[0] || '01';
-    const district = parts[1] || '10';
-    const sector = parseInt(parts[2] || '1', 10);
-    const block = parts.length >= 5 ? parseInt(parts[3] || '1', 10) : 1;
-    const parcelNum = parts.length >= 5 ? parseInt(parts[4] || '1', 10) : parseInt(parts[3] || '1', 10);
-
-    const GEORGIA_REGIONS = {
-      '01': { name: 'თბილისი', lat: 41.724, lng: 44.768 },
-      '02': { name: 'რუსთავი', lat: 41.549, lng: 45.018 },
-      '03': { name: 'ქუთაისი', lat: 42.266, lng: 42.718 },
-      '04': { name: 'ფოთი', lat: 42.146, lng: 41.672 },
-      '05': { name: 'ბათუმი', lat: 41.645, lng: 41.641 },
-      '07': { name: 'ქობულეთი', lat: 41.821, lng: 41.775 },
-      '08': { name: 'ხელვაჩაური', lat: 41.585, lng: 41.668 },
-      '09': { name: 'ქედა', lat: 41.601, lng: 41.940 },
-      '10': { name: 'შუახევი', lat: 41.625, lng: 42.185 },
-      '11': { name: 'ხულო', lat: 41.644, lng: 42.316 },
-      '20': { name: 'ხაშური', lat: 41.996, lng: 43.599 },
-      '21': { name: 'ბორჯომი', lat: 41.838, lng: 43.385 },
-      '22': { name: 'ახალციხე', lat: 41.640, lng: 42.983 },
-      '23': { name: 'ახალქალაქი', lat: 41.405, lng: 43.486 },
-      '24': { name: 'ნინოწმინდა', lat: 41.265, lng: 43.590 },
-      '25': { name: 'ასპინძა', lat: 41.574, lng: 43.248 },
-      '26': { name: 'ადიგენი', lat: 41.677, lng: 42.700 },
-      '30': { name: 'კასპი', lat: 41.925, lng: 44.425 },
-      '31': { name: 'ქარელი', lat: 42.023, lng: 43.896 },
-      '32': { name: 'გორი', lat: 41.984, lng: 44.114 },
-      '33': { name: 'ხაშური', lat: 41.996, lng: 43.599 },
-      '40': { name: 'მესტია', lat: 43.045, lng: 42.729 },
-      '41': { name: 'ზუგდიდი', lat: 42.508, lng: 41.870 },
-      '42': { name: 'სენაკი', lat: 42.269, lng: 42.067 },
-      '43': { name: 'ფოთი', lat: 42.146, lng: 41.672 },
-      '44': { name: 'აბაშა', lat: 42.203, lng: 42.203 },
-      '45': { name: 'მარტვილი', lat: 42.414, lng: 42.378 },
-      '46': { name: 'ხობი', lat: 42.316, lng: 41.898 },
-      '47': { name: 'წალენჯიხა', lat: 42.610, lng: 42.071 },
-      '48': { name: 'ჩხოროწყუ', lat: 42.527, lng: 42.131 },
-      '49': { name: 'მესტია', lat: 43.045, lng: 42.729 },
-      '50': { name: 'ოზურგეთი', lat: 41.926, lng: 42.000 },
-      '51': { name: 'ლანჩხუთი', lat: 42.087, lng: 42.035 },
-      '52': { name: 'ჩოხატაური', lat: 42.018, lng: 42.239 },
-      '60': { name: 'ამბროლაური', lat: 42.520, lng: 43.149 },
-      '61': { name: 'ონი', lat: 42.585, lng: 43.442 },
-      '62': { name: 'ცაგერი', lat: 42.648, lng: 42.770 },
-      '63': { name: 'ლენტეხი', lat: 42.788, lng: 42.723 },
-      '64': { name: 'თელავი', lat: 41.919, lng: 45.473 },
-      '65': { name: 'ახმეტა', lat: 42.036, lng: 45.207 },
-      '66': { name: 'გურჯაანი', lat: 41.745, lng: 45.798 },
-      '67': { name: 'საგარეჯო', lat: 41.733, lng: 45.333 },
-      '68': { name: 'სიღნაღი', lat: 41.621, lng: 45.922 },
-      '69': { name: 'დედოფლისწყარო', lat: 41.465, lng: 46.104 },
-      '70': { name: 'ლაგოდეხი', lat: 41.824, lng: 46.277 },
-      '71': { name: 'ყვარელი', lat: 41.951, lng: 45.816 },
-      '72': { name: 'მცხეთა', lat: 41.844, lng: 44.718 },
-      '73': { name: 'დუშეთი', lat: 42.052, lng: 44.697 },
-      '74': { name: 'ყაზბეგი', lat: 42.658, lng: 44.641 },
-      '75': { name: 'თიანეთი', lat: 42.109, lng: 44.963 },
-      '76': { name: 'სტეფანწმინდა', lat: 42.658, lng: 44.641 },
-      '80': { name: 'რუსთავი', lat: 41.549, lng: 45.018 },
-      '81': { name: 'მარნეული', lat: 41.476, lng: 44.810 },
-      '82': { name: 'ბოლნისი', lat: 41.448, lng: 44.545 },
-      '83': { name: 'დმანისი', lat: 41.332, lng: 44.347 },
-      '84': { name: 'გარდაბანი', lat: 41.460, lng: 45.092 },
-      '85': { name: 'თეთრიწყარო', lat: 41.544, lng: 44.463 },
-      '86': { name: 'წალკა', lat: 41.595, lng: 44.089 },
-      '90': { name: 'სამტრედია', lat: 42.162, lng: 42.336 },
-      '91': { name: 'წყალტუბო', lat: 42.327, lng: 42.600 },
-      '92': { name: 'ზესტაფონი', lat: 42.109, lng: 43.036 },
-      '93': { name: 'თერჯოლა', lat: 42.179, lng: 42.977 },
-      '94': { name: 'ბაღდათი', lat: 42.068, lng: 42.825 },
-      '95': { name: 'ვანი', lat: 42.083, lng: 42.502 },
-      '96': { name: 'ხონი', lat: 42.321, lng: 42.424 },
-      '97': { name: 'ჭიათურა', lat: 42.290, lng: 43.284 },
-      '98': { name: 'ტყიბული', lat: 42.348, lng: 42.997 },
-      '99': { name: 'საჩხერე', lat: 42.343, lng: 43.418 }
-    };
-
-    const regData = GEORGIA_REGIONS[region] || { name: 'საქართველო', lat: 41.724, lng: 44.768 };
-    let baseLat = regData.lat;
-    let baseLng = regData.lng;
-    let districtName = regData.name;
-
-    if (region === '01') {
-      const TBS_DISTRICTS = {
-        '10': { lat: 41.717, lng: 44.776, name: 'ვაკე' },
-        '11': { lat: 41.789, lng: 44.817, name: 'გლდანი' },
-        '12': { lat: 41.692, lng: 44.826, name: 'კრწანისი' },
-        '13': { lat: 41.708, lng: 44.835, name: 'ავლაბარი' },
-        '14': { lat: 41.731, lng: 44.776, name: 'საბურთალო' },
-        '15': { lat: 41.740, lng: 44.793, name: 'დიდუბე' },
-        '16': { lat: 41.730, lng: 44.800, name: 'ჩუღურეთი' },
-        '17': { lat: 41.696, lng: 44.798, name: 'მთაწმინდა' },
-        '18': { lat: 41.789, lng: 44.813, name: 'ნაძალადევი' },
-        '19': { lat: 41.692, lng: 44.842, name: 'ისანი-სამგორი' },
-        '20': { lat: 41.785, lng: 44.754, name: 'დიდი დიღომი' },
-        '21': { lat: 41.760, lng: 44.755, name: 'დიღომი' },
-        '22': { lat: 41.746, lng: 44.763, name: 'სანზონა' },
-        '23': { lat: 41.718, lng: 44.752, name: 'ვაშლიჯვარი' }
-      };
-      const d = TBS_DISTRICTS[district];
-      if (d) { baseLat = d.lat; baseLng = d.lng; districtName = d.name; }
-      else { baseLat = 41.720; baseLng = 44.780; districtName = 'თბილისი'; }
-    }
-
-    const hash = Math.abs(sector * 37 + block * 17 + parcelNum) % 500;
-    const latOffset = ((hash % 25) - 12) * 0.0007;
-    const lngOffset = ((Math.floor(hash / 25) % 20) - 10) * 0.0009;
-
-    const centerLat = baseLat + latOffset;
-    const centerLng = baseLng + lngOffset;
-
-    const dLat = 0.00028 + (parcelNum % 5) * 0.00004;
-    const dLng = 0.00038 + (block % 5) * 0.00005;
-
-    const coords = [
-      [Number((centerLat - dLat).toFixed(6)), Number((centerLng - dLng).toFixed(6))],
-      [Number((centerLat + dLat).toFixed(6)), Number((centerLng - dLng).toFixed(6))],
-      [Number((centerLat + dLat * 0.95).toFixed(6)), Number((centerLng + dLng).toFixed(6))],
-      [Number((centerLat - dLat * 1.05).toFixed(6)), Number((centerLng + dLng).toFixed(6))],
-      [Number((centerLat - dLat).toFixed(6)), Number((centerLng - dLng).toFixed(6))]
-    ];
-
-    const area = Math.round(650 + (hash * 19) % 2500);
-
-    return {
-      code: code,
-      address: `${regData.name === 'თბილისი' ? 'ქ. თბილისი' : regData.name}, ${districtName}, კვარტალი ${district}.${sector}, ნაკვეთი №${parcelNum}`,
-      addressEn: `${regData.name}, District ${district}.${sector}, Plot #${parcelNum}`,
-      area: area,
-      shape: "ოფიციალური კონტური (NAPR)",
-      shapeEn: "Official Boundary (NAPR)",
-      terrain: "ვაკე / სტანდარტული რელიეფი",
-      terrainEn: "Standard terrain",
-      mainZoneKa: 'საცხოვრებელი ზონა',
-      mainZoneEn: 'Residential Zone',
-      subzoneKa: 'საცხოვრებელი ზონა-5',
-      subzoneEn: 'Residential Zone-5',
-      subZoneKa: 'საცხოვრებელი ზონა-5',
-      subZoneEn: 'Residential Zone-5',
-      tabLabelKa: 'საცხოვრებელი ზონა 5 (სზ-5)',
-      subzoneKey: 'sz-5',
-      zone: 'საცხოვრებელი ზონა-5',
-      zoneEn: 'Residential Zone-5',
-      k1: 0.5,
-      k2: 2.1,
-      k3: 0.3,
-      isLiveNAPR: true,
-      coordinates: coords
-    };
   }
 
   function isValidCadastralCode(code) {
@@ -1030,25 +871,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       let proxyRes = null;
-      const queryEndpoints = [
-        `/api/parcel?code=${encodeURIComponent(code)}`,
-        `http://localhost:3000/api/parcel?code=${encodeURIComponent(code)}`,
-        `http://127.0.0.1:3000/api/parcel?code=${encodeURIComponent(code)}`
-      ];
-
-      for (const ep of queryEndpoints) {
-        try {
-          const res = await fetch(ep);
-          if (res.ok) {
-            const ct = res.headers.get('content-type') || '';
-            if (ct.includes('application/json')) {
-              proxyRes = res;
-              break;
-            }
+      try {
+        const res = await fetch(`/api/parcel?code=${encodeURIComponent(code)}`);
+        if (res.ok) {
+          const ct = res.headers.get('content-type') || '';
+          if (ct.includes('application/json')) {
+            proxyRes = res;
           }
-        } catch (netErr) {
-          // ignore and try next fallback endpoint
         }
+      } catch (netErr) {
+        console.warn('Network error fetching live NAPR parcel:', netErr);
       }
 
       if (proxyRes && proxyRes.ok) {
@@ -1062,6 +894,11 @@ document.addEventListener('DOMContentLoaded', () => {
               address: proxyData.address || "მისამართი დაზუსტებული არ არის",
               addressEn: proxyData.address || "Address not specified",
               area: proxyData.areaSqm || 1200,
+              officialAreaSqm: proxyData.officialAreaSqm || null,
+              geometricAreaSqm: proxyData.geometricAreaSqm || null,
+              landType: proxyData.landType || null,
+              ownershipType: proxyData.ownershipType || null,
+              owners: proxyData.owners || [],
               shape: "ოფიციალური კონტური (NAPR)",
               shapeEn: "Official Boundary (NAPR)",
               terrain: "ვაკე / სტანდარტული რელიეფი",
@@ -1115,14 +952,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!parcelData.shape) parcelData.shape = 'ოფიციალური კონტური (NAPR)';
     }
 
-    // 2c. Client-side Cadastral Synthesizer fallback across all Georgian regions & districts
-    if (!parcelData) {
-      parcelData = synthesizeCadastralParcelClient(code);
-      if (parcelData) {
-        showCadastralAlert('info', `ნაკვეთი ${code} წარმატებით მოიძებნა და დაპოზიციონირდა.`);
-        setTimeout(() => hideCadastralAlert(), 4000);
-      }
-    }
+
 
     if (!parcelData) {
       showCadastralAlert('error', `საკადასტრო კოდი "${code}" საჯარო რეესტრის (NAPR) ოფიციალურ ბაზაში ვერ მოიძებნა. გთხოვთ გადაამოწმოთ კოდის სისწორე.`);
@@ -6302,9 +6132,44 @@ document.addEventListener('DOMContentLoaded', () => {
     const hasZone = parcel.mainZoneKa || parcel.mainZoneEn;
 
     set('infoCadastralCode', parcel.code);
-    set('infoParcelArea', `${parcel.area.toLocaleString()} ${isEn ? 'm²' : 'მ²'}`);
+    const dispArea = parcel.officialAreaSqm || parcel.area;
+    const isOfficialArea = Boolean(parcel.officialAreaSqm);
+    set('infoParcelArea', `${dispArea.toLocaleString()} ${isEn ? (isOfficialArea ? 'm² (official)' : 'm²') : (isOfficialArea ? 'მ² (ოფიციალური)' : 'მ²')}`);
     set('infoParcelShape', isEn ? parcel.shapeEn : parcel.shape);
     set('infoParcelAddress', isEn ? parcel.addressEn : parcel.address);
+
+    // Display authentic NAPR legal land type / status
+    const landTypeRow = document.getElementById('infoParcelLandTypeRow');
+    if (landTypeRow) {
+      if (parcel.landType) {
+        set('infoParcelLandType', parcel.landType);
+        landTypeRow.style.display = 'flex';
+      } else {
+        landTypeRow.style.display = 'none';
+      }
+    }
+
+    // Display authentic NAPR ownership form
+    const ownershipRow = document.getElementById('infoParcelOwnershipRow');
+    if (ownershipRow) {
+      if (parcel.ownershipType) {
+        set('infoParcelOwnership', parcel.ownershipType);
+        ownershipRow.style.display = 'flex';
+      } else {
+        ownershipRow.style.display = 'none';
+      }
+    }
+
+    // Display registered owners if available
+    const ownersRow = document.getElementById('infoParcelOwnersRow');
+    if (ownersRow) {
+      if (parcel.owners && parcel.owners.length > 0) {
+        set('infoParcelOwners', parcel.owners.join(', '));
+        ownersRow.style.display = 'flex';
+      } else {
+        ownersRow.style.display = 'none';
+      }
+    }
     const elevNum = (parcel.elevation != null)
       ? parcel.elevation
       : ((state.terrainData && state.terrainData.elevation != null) ? state.terrainData.elevation : null);
@@ -12335,8 +12200,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!state.activeParcel) {
       if (typeof CADASTRAL_DATABASE !== 'undefined' && CADASTRAL_DATABASE['01.15.02.038.003']) {
         state.activeParcel = JSON.parse(JSON.stringify(CADASTRAL_DATABASE['01.15.02.038.003']));
-      } else if (typeof synthesizeCadastralParcelClient === 'function') {
-        state.activeParcel = synthesizeCadastralParcelClient('01.15.02.038.003');
+      } else if (typeof searchParcel === 'function') {
+        searchParcel('01.15.02.038.003');
       }
     }
     if (!state.activeParcel) return;
