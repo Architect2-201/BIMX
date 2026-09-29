@@ -848,7 +848,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function searchParcel(codeQuery) {
     hideCadastralAlert();
-    const rawInput = codeQuery || (cadastralInput ? cadastralInput.value : '');
+    const inputVal = (cadastralInput ? cadastralInput.value : '').trim();
+    const rawInput = (codeQuery || inputVal || (cadastralInput ? cadastralInput.placeholder : '01.15.02.038.003')).trim();
     const code = normalizeCode(rawInput);
 
     // Format validation
@@ -17393,13 +17394,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof initAiExtraModulesDropdown === 'function') initAiExtraModulesDropdown();
     initMobileSystem();
 
-    // Initial display: full overview map of Georgia, awaiting user cadastral search
-    setMode('map');
-    if (map) {
-      map.setView([42.15, 43.85], 7.5);
-      setTimeout(() => {
-        if (map) map.invalidateSize();
-      }, 150);
+    // Initial display: Automatically load official sample parcel so user immediately sees real map boundary & 3D model
+    if (typeof searchParcel === 'function') {
+      searchParcel('01.15.02.038.003');
     }
   }, 120);
 });
