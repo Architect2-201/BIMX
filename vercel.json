@@ -7,7 +7,10 @@
     }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api" }
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/tsinare", "destination": "/tsinare.html" },
+    { "source": "/წინარე", "destination": "/tsinare.html" },
+    { "source": "/%E1%83%AC%E1%83%98%E1%83%9C%E1%83%90%E1%83%A0%E1%83%94", "destination": "/tsinare.html" }
   ],
   "headers": [
     {

@@ -1474,6 +1474,8 @@ const requestHandler = async (req, res) => {
   let reqPath = decodeURI(parsedUrl.pathname);
   if (reqPath === '/' || reqPath === '') {
     reqPath = '/index.html';
+  } else if (reqPath === '/tsinare' || reqPath === '/წინარე') {
+    reqPath = '/tsinare.html';
   }
 
   let safePath = path.normalize(reqPath).replace(/^(\.\.[\/\\])+/, '');
