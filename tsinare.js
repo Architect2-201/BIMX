@@ -1155,11 +1155,17 @@
     a.click();
   };
 
-  // --- 24 Architectural Visual Styles Map ---
+  // --- Architectural Visual Styles Map (24+ Styles including Real Engineering Drawing Plots) ---
   const styleNamesMap = {
+    'autocad': '📐 AutoCAD Model Space (შავი CAD)',
+    'cadplot': '📄 AutoCAD Paper Plot (თეთრი პლოტი)',
+    'napr': '🏛️ საჯარო რეესტრის გეგმა (წითელი ხაზები)',
+    'vellum': '📜 არქიტექტურული კალკა & ტუში',
+    'topographic': '🗺️ ტოპოგრაფიული გეოდეზია',
+    'masterplan': '🌳 საპრეზენტაციო ფერადი გენგეგმა',
     'blueprint': '📐 Royal Blueprint (ლურჯი)',
     'classic': '🏛️ არქიტექტურული თეთრი',
-    'presentation': '🌿 საპრეზენტაციო გენგეგმა',
+    'presentation': '🌿 კლასიკური გენგეგმა',
     'satellite': '🛰️ სატელიტური ორთოფოტო',
     'dark': '🌑 OLED Dark CAD',
     'sepia': '📜 ვინტაჟური პერგამენტი',
@@ -1206,12 +1212,16 @@
 
   // --- Ribbon Dropdown Menu Toggle Helpers ---
   window.toggleDropdownMenu = function (menuId, e) {
-    if (e) e.stopPropagation();
+    if (e && e.stopPropagation) {
+      e.stopPropagation();
+    }
     const target = document.getElementById(menuId);
-    document.querySelectorAll('.cad-menu-popup').forEach(p => {
-      if (p !== target) p.classList.add('hidden');
-    });
-    if (target) target.classList.toggle('hidden');
+    if (!target) return;
+    const isCurrentlyOpen = !target.classList.contains('hidden');
+    window.closeAllDropdowns();
+    if (!isCurrentlyOpen) {
+      target.classList.remove('hidden');
+    }
   };
 
   window.closeAllDropdowns = function () {
@@ -1219,9 +1229,9 @@
   };
 
   window.addEventListener('click', (e) => {
-    if (!e.target.closest('.cad-menu-popup') && !e.target.closest('[id^="btn"][id$="Menu"]') && !e.target.closest('#btnLayersMenuTrigger') && !e.target.closest('#btnPresetMenuTrigger')) {
-      window.closeAllDropdowns();
-    }
+    if (e.target.closest('.cad-menu-popup')) return;
+    if (e.target.closest('[onclick*="toggleDropdownMenu"]') || e.target.closest('[id^="btn"][id$="Menu"]') || e.target.closest('#btnLayersMenuTrigger')) return;
+    window.closeAllDropdowns();
   });
 
   // --- REAL ARCHITECTURAL SCALE CONTROLS ---
@@ -2514,7 +2524,8 @@
       return;
     }
 
-    const hatchId = state.activeStyle === 'classic' ? 'hatchBuildingClassic' : 'hatchBuildingBlueprint';
+    const lightHatchStyles = ['classic', 'cadplot', 'napr', 'vellum', 'topographic', 'masterplan', 'presentation', 'nordic', 'sepia', 'graph', 'zen', 'bauhaus', 'sketch', 'desert'];
+    const hatchId = lightHatchStyles.includes(state.activeStyle) ? 'hatchBuildingClassic' : 'hatchBuildingBlueprint';
     const setbackPoly = (state.boundaryMeters && state.boundaryMeters.length >= 3)
       ? computeSetbackPolygon(state.boundaryMeters, state.setbackDistance)
       : null;
@@ -2877,11 +2888,28 @@
         canvas.height = 1200;
         const ctx = canvas.getContext('2d');
         const bgMap = {
+          'autocad': '#0b0d12',
+          'cadplot': '#ffffff',
+          'napr': '#fcfbf7',
+          'vellum': '#f6f1e5',
+          'topographic': '#f4f6f8',
+          'masterplan': '#f8fafc',
           'classic': '#fdfdfd',
           'presentation': '#f1f8f3',
           'sepia': '#f8f3e6',
           'mono': '#e2e8f0',
-          'aqua': '#e0f2fe'
+          'aqua': '#e0f2fe',
+          'nordic': '#ffffff',
+          'zen': '#f4f0ea',
+          'bauhaus': '#faf7ee',
+          'sketch': '#f8f6f0',
+          'desert': '#faf4eb',
+          'concrete': '#1c1f24',
+          'emerald': '#03140e',
+          'dark': '#05080f',
+          'nightglow': '#070b14',
+          'satellite': '#091018',
+          'blueprint': '#071329'
         };
         ctx.fillStyle = bgMap[state.activeStyle] || '#071329';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -2916,11 +2944,28 @@
       canvas.height = 1600;
       const ctx = canvas.getContext('2d');
       const bgMap = {
+        'autocad': '#0b0d12',
+        'cadplot': '#ffffff',
+        'napr': '#fcfbf7',
+        'vellum': '#f6f1e5',
+        'topographic': '#f4f6f8',
+        'masterplan': '#f8fafc',
         'classic': '#fdfdfd',
         'presentation': '#f1f8f3',
         'sepia': '#f8f3e6',
         'mono': '#e2e8f0',
-        'aqua': '#e0f2fe'
+        'aqua': '#e0f2fe',
+        'nordic': '#ffffff',
+        'zen': '#f4f0ea',
+        'bauhaus': '#faf7ee',
+        'sketch': '#f8f6f0',
+        'desert': '#faf4eb',
+        'concrete': '#1c1f24',
+        'emerald': '#03140e',
+        'dark': '#05080f',
+        'nightglow': '#070b14',
+        'satellite': '#091018',
+        'blueprint': '#071329'
       };
       ctx.fillStyle = bgMap[state.activeStyle] || '#071329';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
