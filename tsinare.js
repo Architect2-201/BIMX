@@ -937,9 +937,25 @@
     if (wVal !== null) fp.width = parseFloat(wVal) || fp.width;
     if (lVal !== null) fp.length = parseFloat(lVal) || fp.length;
 
-    const newFp = createFootprintObject(fp.name, fp.shape, fp.width, fp.length, fp.rotation, fp.center[0], fp.center[1], fp.floors, fp.floorHeight, fp.functionType);
-    fp.vertices = newFp.vertices;
-    fp.areaSqm = newFp.areaSqm;
+    if (fp.shape === 'freeform' && fp.baseVertices) {
+      const scaleX = wVal !== null ? (parseFloat(wVal) / (fp.width || 1)) : 1;
+      const scaleY = lVal !== null ? (parseFloat(lVal) / (fp.length || 1)) : 1;
+      if (wVal !== null) fp.width = parseFloat(wVal) || fp.width;
+      if (lVal !== null) fp.length = parseFloat(lVal) || fp.length;
+      fp.baseVertices = fp.baseVertices.map(pt => [pt[0] * scaleX, pt[1] * scaleY]);
+      const rad = (fp.rotation * Math.PI) / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+      fp.vertices = fp.baseVertices.map(pt => [
+        fp.center[0] + pt[0] * cos - pt[1] * sin,
+        fp.center[1] + pt[0] * sin + pt[1] * cos
+      ]);
+      fp.areaSqm = Math.round(calculatePolygonArea(fp.vertices));
+    } else {
+      const newFp = createFootprintObject(fp.name, fp.shape, fp.width, fp.length, fp.rotation, fp.center[0], fp.center[1], fp.floors, fp.floorHeight, fp.functionType);
+      fp.vertices = newFp.vertices;
+      fp.areaSqm = newFp.areaSqm;
+    }
 
     // Sync dual controls
     if (els.inputNumBuildingWidth) els.inputNumBuildingWidth.value = fp.width.toFixed(1);
@@ -978,8 +994,18 @@
     fp.rotation = parseInt(deg, 10) % 360;
     if (fp.rotation < 0) fp.rotation += 360;
 
-    const newFp = createFootprintObject(fp.name, fp.shape, fp.width, fp.length, fp.rotation, fp.center[0], fp.center[1], fp.floors, fp.floorHeight, fp.functionType);
-    fp.vertices = newFp.vertices;
+    if (fp.shape === 'freeform' && fp.baseVertices) {
+      const rad = (fp.rotation * Math.PI) / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+      fp.vertices = fp.baseVertices.map(pt => [
+        fp.center[0] + pt[0] * cos - pt[1] * sin,
+        fp.center[1] + pt[0] * sin + pt[1] * cos
+      ]);
+    } else {
+      const newFp = createFootprintObject(fp.name, fp.shape, fp.width, fp.length, fp.rotation, fp.center[0], fp.center[1], fp.floors, fp.floorHeight, fp.functionType);
+      fp.vertices = newFp.vertices;
+    }
 
     if (els.inputNumBuildingRotation) els.inputNumBuildingRotation.value = fp.rotation;
     if (els.sliderBuildingRotation) els.sliderBuildingRotation.value = fp.rotation;
@@ -1932,7 +1958,25 @@
 
       // 10. DRAW FOOTPRINT / POLYGON TOOL
       if (state.activeTool === 'draw_footprint' || state.activeTool === 'draw_polygon') {
-        state.drawPoints.push(worldPos);
+        const pxToM = 1 / Math.max(0.001, state.zoomScale);
+        const snapDist = 12 * pxToM;
+        if (state.drawPoints.length >= 3) {
+          // 1. Check if clicked close to start point -> FINISH!
+          const dStart = Math.hypot(worldPos[0] - state.drawPoints[0][0], worldPos[1] - state.drawPoints[0][1]);
+          if (dStart < snapDist) {
+            finishDrawnFootprint();
+            return;
+          }
+          // 2. Check if clicked in place (repeat click on last point) -> FINISH!
+          const lastP = state.drawPoints[state.drawPoints.length - 1];
+          const dLast = Math.hypot(worldPos[0] - lastP[0], worldPos[1] - lastP[1]);
+          if (dLast < 4 * pxToM) {
+            finishDrawnFootprint();
+            return;
+          }
+        }
+        state.drawPoints.push([Math.round(worldPos[0] * 10) / 10, Math.round(worldPos[1] * 10) / 10]);
+        updateToolStatus(`მრავალკუთხედი: მონიშნულია ${state.drawPoints.length} წერტილი. დასასრულებლად დააკლიკეთ მწვანე წერტილზე [🎯], დააჭირეთ Enter-ს ან მარჯვენა ღილაკს.`);
         renderInteractionLayer();
         return;
       }
@@ -1946,7 +1990,8 @@
       }
     });
 
-    container.addEventListener('dblclick', () => {
+    container.addEventListener('dblclick', (e) => {
+      e.preventDefault();
       if ((state.activeTool === 'draw_footprint' || state.activeTool === 'draw_polygon') && state.drawPoints.length >= 3) {
         finishDrawnFootprint();
       } else if (state.activeTool === 'walkway') {
@@ -1957,6 +2002,13 @@
         finishRoad();
       } else if (state.activeTool === 'hedge') {
         finishHedge();
+      }
+    });
+
+    container.addEventListener('contextmenu', (e) => {
+      if ((state.activeTool === 'draw_footprint' || state.activeTool === 'draw_polygon') && state.drawPoints.length >= 3) {
+        e.preventDefault();
+        finishDrawnFootprint();
       }
     });
 
@@ -2006,9 +2058,20 @@
           const newCx = state.dragStartCenter[0] + dx;
           const newCy = state.dragStartCenter[1] + dy;
 
-          const newFp = createFootprintObject(fp.name, fp.shape, fp.width, fp.length, fp.rotation, newCx, newCy, fp.floors, fp.floorHeight, fp.functionType);
-          fp.center = [newCx, newCy];
-          fp.vertices = newFp.vertices;
+          if (fp.shape === 'freeform' && fp.baseVertices) {
+            const rad = (fp.rotation * Math.PI) / 180;
+            const cos = Math.cos(rad);
+            const sin = Math.sin(rad);
+            fp.center = [newCx, newCy];
+            fp.vertices = fp.baseVertices.map(pt => [
+              newCx + pt[0] * cos - pt[1] * sin,
+              newCy + pt[0] * sin + pt[1] * cos
+            ]);
+          } else {
+            const newFp = createFootprintObject(fp.name, fp.shape, fp.width, fp.length, fp.rotation, newCx, newCy, fp.floors, fp.floorHeight, fp.functionType);
+            fp.center = [newCx, newCy];
+            fp.vertices = newFp.vertices;
+          }
 
           renderCadWorld();
         }
@@ -2017,9 +2080,13 @@
     });
 
     window.addEventListener('mouseup', (e) => {
+      const wasDragging = state.isDraggingFootprint || state.isRotatingFootprint;
       state.isPanning = false;
       state.isDraggingFootprint = false;
       state.isRotatingFootprint = false;
+      if (wasDragging) {
+        updateZoningCoefficientsUI();
+      }
 
       if (state.isDrawingRect && state.activeTool === 'draw_rect_footprint') {
         state.isDrawingRect = false;
@@ -2127,26 +2194,61 @@
   }
 
   function finishDrawnFootprint() {
-    if (state.drawPoints.length < 3) return;
-    saveUndoSnapshot();
-    const area = calculatePolygonArea(state.drawPoints);
-    const cx = state.drawPoints.reduce((s, p) => s + p[0], 0) / state.drawPoints.length;
-    const cy = state.drawPoints.reduce((s, p) => s + p[1], 0) / state.drawPoints.length;
+    if (!state.drawPoints || state.drawPoints.length < 3) {
+      updateToolStatus('მრავალკუთხედის შესაქმნელად საჭიროა მინიმუმ 3 წერტილი.');
+      return;
+    }
 
+    // Filter duplicate consecutive points (from rapid clicks or double clicks)
+    const cleanPoints = [];
+    for (let i = 0; i < state.drawPoints.length; i++) {
+      const p = state.drawPoints[i];
+      if (cleanPoints.length === 0 || Math.hypot(p[0] - cleanPoints[cleanPoints.length - 1][0], p[1] - cleanPoints[cleanPoints.length - 1][1]) > 0.2) {
+        cleanPoints.push(p);
+      }
+    }
+    // If last point was clicked on the start point, pop it to close cleanly
+    if (cleanPoints.length >= 4) {
+      const first = cleanPoints[0];
+      const last = cleanPoints[cleanPoints.length - 1];
+      if (Math.hypot(first[0] - last[0], first[1] - last[1]) < 1.5) {
+        cleanPoints.pop();
+      }
+    }
+    if (cleanPoints.length < 3) {
+      updateToolStatus('მრავალკუთხედის შესაქმნელად საჭიროა მინიმუმ 3 განსხვავებული წერტილი.');
+      return;
+    }
+
+    saveUndoSnapshot();
+    const area = calculatePolygonArea(cleanPoints);
+    const cx = cleanPoints.reduce((s, p) => s + p[0], 0) / cleanPoints.length;
+    const cy = cleanPoints.reduce((s, p) => s + p[1], 0) / cleanPoints.length;
+
+    const xs = cleanPoints.map(p => p[0]);
+    const ys = cleanPoints.map(p => p[1]);
+    const bldW = Math.max(4, Math.round((Math.max(...xs) - Math.min(...xs)) * 10) / 10);
+    const bldL = Math.max(4, Math.round((Math.max(...ys) - Math.min(...ys)) * 10) / 10);
+
+    const baseVerts = cleanPoints.map(p => [p[0] - cx, p[1] - cy]);
+    const floors = state.stampFloors || (els.inputNumBuildingFloors ? parseInt(els.inputNumBuildingFloors.value, 10) : 4) || 4;
+    const flH = (els.inputNumFloorHeight ? parseFloat(els.inputNumFloorHeight.value) : 3.0) || 3.0;
     const nextNum = state.footprints.length + 1;
+
     const fp = {
-      id: 'bld_' + Date.now(),
-      name: `შენობა ${nextNum}`,
+      id: 'bld_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+      name: `შენობა ${nextNum} (მრავალკუთხა)`,
       shape: 'freeform',
-      width: Math.round(Math.sqrt(area)),
-      length: Math.round(Math.sqrt(area)),
+      baseVertices: baseVerts,
+      width: bldW,
+      length: bldL,
       rotation: 0,
-      center: [cx, cy],
-      vertices: [...state.drawPoints],
-      floors: 4,
-      floorHeight: 3.0,
-      totalHeight: 12.8,
-      functionType: 'residential',
+      center: [Math.round(cx * 10) / 10, Math.round(cy * 10) / 10],
+      vertices: cleanPoints,
+      floors: floors,
+      floorHeight: flH,
+      totalHeight: Math.round((floors * flH + 0.8) * 10) / 10,
+      functionType: state.stampFn || 'residential',
       areaSqm: Math.round(area)
     };
 
@@ -2154,9 +2256,12 @@
     state.selectedFootprintId = fp.id;
     state.drawPoints = [];
     setCadActiveTool('pan');
+    updateSelectedBuildingUI();
     updateZoningCoefficientsUI();
     renderCadWorld();
+    updateToolStatus(`მრავალკუთხა შენობა "${fp.name}" (${fp.areaSqm} მ², ${fp.floors}ს) წარმატებით დაჯდა ნაკვეთზე და აისახა კოეფიციენტებზე!`);
   }
+  window.finishDrawnFootprint = finishDrawnFootprint;
 
   // =========================================================================
   // --- ARCHITECTURAL RENDER PIPELINE WITH SCREEN-SCALED GRAPHICS ---
@@ -2801,10 +2906,56 @@
         <circle cx="${state.splitLine[0][0]}" cy="${state.splitLine[0][1]}" r="${4 * p2m}" fill="#f59e0b" stroke="#ffffff" stroke-width="${1 * p2m}" />
       `;
     } else if ((state.activeTool === 'draw_footprint' || state.activeTool === 'draw_polygon') && state.drawPoints.length > 0) {
+      const p0 = state.drawPoints[0];
+      const lastP = state.drawPoints[state.drawPoints.length - 1];
+      const curMouse = state.mouseWorldPos || lastP;
+      
+      const distToStart = Math.hypot(curMouse[0] - p0[0], curMouse[1] - p0[1]);
+      const isNearStart = state.drawPoints.length >= 3 && distToStart < 14 * p2m;
+
       const pts = state.drawPoints.map(p => `${p[0]},${p[1]}`).join(' ');
+      const targetX = isNearStart ? p0[0] : curMouse[0];
+      const targetY = isNearStart ? p0[1] : curMouse[1];
+
+      // Live area estimate
+      const previewPolygon = [...state.drawPoints, [targetX, targetY]];
+      const previewArea = state.drawPoints.length >= 2 ? Math.round(calculatePolygonArea(previewPolygon)) : 0;
+
+      // Start point target badge
+      const startPointSvg = state.drawPoints.length >= 3 ? `
+        <circle cx="${p0[0]}" cy="${p0[1]}" r="${9 * p2m}" fill="${isNearStart ? '#10b981' : 'rgba(16, 185, 129, 0.35)'}" stroke="#10b981" stroke-width="${2 * p2m}" />
+        <circle cx="${p0[0]}" cy="${p0[1]}" r="${4.5 * p2m}" fill="#ffffff" />
+        <rect x="${p0[0] - 60 * p2m}" y="${p0[1] - 24 * p2m}" width="${120 * p2m}" height="${17 * p2m}" rx="${3.5 * p2m}" fill="rgba(8,13,26,0.95)" stroke="#10b981" stroke-width="${0.9 * p2m}"/>
+        <text x="${p0[0]}" y="${p0[1] - 12 * p2m}" text-anchor="middle" fill="#10b981" font-size="${8.5 * p2m}" font-weight="bold" font-family="'JetBrains Mono', monospace">🎯 დააკლიკეთ დასახურად</text>
+      ` : `
+        <circle cx="${p0[0]}" cy="${p0[1]}" r="${5 * p2m}" fill="#00f0ff" stroke="#ffffff" stroke-width="${1.5 * p2m}"/>
+      `;
+
+      // Floating Finish Button (appears when >= 3 points)
+      let finishBtnSvg = '';
+      if (state.drawPoints.length >= 3) {
+        const btnX = lastP[0] + 12 * p2m;
+        const btnY = lastP[1] - 28 * p2m;
+        finishBtnSvg = `
+          <g onclick="window.finishDrawnFootprint()" class="cursor-pointer" style="cursor: pointer;">
+            <rect x="${btnX}" y="${btnY}" width="${160 * p2m}" height="${24 * p2m}" rx="${4 * p2m}" fill="#0284c7" stroke="#38bdf8" stroke-width="${1.2 * p2m}" filter="drop-shadow(0 2px 6px rgba(0,0,0,0.6))"/>
+            <text x="${btnX + 80 * p2m}" y="${btnY + 16 * p2m}" text-anchor="middle" fill="#ffffff" font-size="${9.5 * p2m}" font-weight="bold" font-family="Inter, sans-serif">✓ ლაქის დასრულება (Enter)</text>
+          </g>
+        `;
+      }
+
       els.interactionLayer.innerHTML = `
-        <polyline points="${pts}" fill="none" stroke="#00f0ff" stroke-width="${1.5 * p2m}" stroke-dasharray="${3 * p2m}, ${2 * p2m}" />
-        ${state.drawPoints.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${3 * p2m}" fill="#00f0ff"/>`).join('')}
+        <polygon points="${pts} ${targetX},${targetY}" fill="rgba(0, 240, 255, 0.12)" stroke="none" pointer-events="none" />
+        <polyline points="${pts}" fill="none" stroke="#00f0ff" stroke-width="${1.8 * p2m}" stroke-dasharray="${3 * p2m}, ${2 * p2m}" pointer-events="none" />
+        <line x1="${lastP[0]}" y1="${lastP[1]}" x2="${targetX}" y2="${targetY}" stroke="${isNearStart ? '#10b981' : '#38bdf8'}" stroke-width="${2 * p2m}" stroke-dasharray="${4 * p2m}, ${3 * p2m}" pointer-events="none" />
+        ${state.drawPoints.length >= 3 ? `<line x1="${targetX}" y1="${targetY}" x2="${p0[0]}" y2="${p0[1]}" stroke="rgba(16, 185, 129, 0.6)" stroke-width="${1.2 * p2m}" stroke-dasharray="${3 * p2m}, ${3 * p2m}" pointer-events="none" />` : ''}
+        ${state.drawPoints.map((p, idx) => idx === 0 ? '' : `<circle cx="${p[0]}" cy="${p[1]}" r="${3.5 * p2m}" fill="#00f0ff" stroke="#080d1a" stroke-width="${0.8 * p2m}" pointer-events="none"/>`).join('')}
+        ${startPointSvg}
+        ${previewArea > 0 ? `
+          <rect x="${targetX + 10 * p2m}" y="${targetY + 10 * p2m}" width="${85 * p2m}" height="${17 * p2m}" rx="${3 * p2m}" fill="rgba(8,13,26,0.92)" stroke="#38bdf8" stroke-width="${0.8 * p2m}" pointer-events="none"/>
+          <text x="${targetX + 52.5 * p2m}" y="${targetY + 22 * p2m}" text-anchor="middle" fill="#38bdf8" font-size="${8.5 * p2m}" font-family="'JetBrains Mono', monospace" font-weight="bold" pointer-events="none">~${previewArea} მ²</text>
+        ` : ''}
+        ${finishBtnSvg}
       `;
     } else if (state.activeTool === 'walkway' && state.currentWalkwayPoints && state.currentWalkwayPoints.length > 0) {
       const pts = state.currentWalkwayPoints.map(p => `${p[0]},${p[1]}`).join(' ');
@@ -3233,6 +3384,13 @@
         window.undoLastAction();
         return;
       }
+      if (e.key === 'Enter') {
+        if ((state.activeTool === 'draw_footprint' || state.activeTool === 'draw_polygon') && state.drawPoints.length >= 3) {
+          e.preventDefault();
+          finishDrawnFootprint();
+          return;
+        }
+      }
       if (e.key === ' ' || e.key.toLowerCase() === 'v') setCadActiveTool('pan');
       if (e.key.toLowerCase() === 'p') setCadActiveTool('parking');
       if (e.key.toLowerCase() === 'e') setCadActiveTool('delete');
@@ -3243,7 +3401,10 @@
       if (e.key.toLowerCase() === 'k') setCadActiveTool('walkway');
       if (e.key.toLowerCase() === 'g') setCadActiveTool('draw_road');
       if (e.key.toLowerCase() === 'r') setCadActiveTool('ruler');
-      if (e.key === 'Escape') setCadActiveTool('pan');
+      if (e.key === 'Escape') {
+        state.drawPoints = [];
+        setCadActiveTool('pan');
+      }
     });
   }
 
