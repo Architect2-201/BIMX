@@ -42,6 +42,7 @@
     k3Limit: 0.2,
     rawCoordinates: [], // [lat, lng] array from NAPR
     boundaryMeters: [], // [[x, y], ...] in metric coordinates relative to centroid
+    boundaryEdgeTypes: [], // ['neighbor', 'road', ...] for each edge i -> (i+1)%n
     centroidLatLng: [41.7049, 44.7751],
     
     // 2D Masterplan Elements
@@ -286,7 +287,8 @@
       fountains: JSON.parse(JSON.stringify(state.fountains || [])),
       parkingBays: JSON.parse(JSON.stringify(state.parkingBays)),
       subParcels: JSON.parse(JSON.stringify(state.subParcels)),
-      setbackDistance: state.setbackDistance
+      setbackDistance: state.setbackDistance,
+      boundaryEdgeTypes: [...(state.boundaryEdgeTypes || [])]
     });
     if (state.undoStack.length > 30) state.undoStack.shift();
   }
@@ -306,6 +308,7 @@
       state.parkingBays = snap.parkingBays || [];
       state.subParcels = snap.subParcels || [];
       if (snap.setbackDistance) state.setbackDistance = snap.setbackDistance;
+      if (snap.boundaryEdgeTypes) state.boundaryEdgeTypes = [...snap.boundaryEdgeTypes];
 
       if (!state.footprints.some(f => f.id === state.selectedFootprintId)) {
         state.selectedFootprintId = state.footprints[0] ? state.footprints[0].id : null;
@@ -419,6 +422,8 @@
       const y = -(c[0] - avgLat) * metersPerDegLat;
       return [x, y];
     });
+
+    state.boundaryEdgeTypes = detectBoundaryEdgeTypes(state.boundaryMeters, state.roads);
   }
 
   // --- Generate Default Building Footprint upon parcel load ---
@@ -583,86 +588,297 @@
     }
   };
 
-  // --- Setback Line Buffer (სამეზობლო მიჯნა 1.5მ - 6.0მ) - ყოველთვის საკადასტრო საზღვრის შიგნით ---
-  function computeSetbackPolygon(polygon, offsetDist) {
+  // --- Geometric Distance from Point p to Segment [a, b] ---
+  function distPointToSegment(p, a, b) {
+    const dx = b[0] - a[0], dy = b[1] - a[1];
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq === 0) return Math.hypot(p[0] - a[0], p[1] - a[1]);
+    let t = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / lenSq));
+    return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
+  }
+
+  // --- Boundary Edge Classification: Road/Public (0m setback) vs Neighbor (3.0m setback) ---
+  function detectBoundaryEdgeTypes(polygon, roads = []) {
     if (!polygon || polygon.length < 3) return [];
     const n = polygon.length;
-    if (offsetDist <= 0) return polygon.map(p => [p[0], p[1]]);
+    const types = new Array(n).fill('neighbor');
 
-    function getSignedArea(pts) {
-      let a = 0;
-      for (let i = 0; i < pts.length; i++) {
-        const p0 = pts[i];
-        const p1 = pts[(i + 1) % pts.length];
-        a += (p0[0] * p1[1] - p1[0] * p0[1]);
+    // 1. Entrance / Street Frontage Detection:
+    // In Georgian urban practice, the parcel access road is at the main entrance / south side (highest Y in SVG)
+    let bestRoadEdgeIdx = 0;
+    let maxEdgeY = -Infinity;
+    for (let i = 0; i < n; i++) {
+      const midY = (polygon[i][1] + polygon[(i + 1) % n][1]) / 2;
+      if (midY > maxEdgeY) {
+        maxEdgeY = midY;
+        bestRoadEdgeIdx = i;
       }
-      return a / 2;
+    }
+    types[bestRoadEdgeIdx] = 'road';
+
+    // 2. Cross-reference with user-drawn or system roads
+    if (roads && roads.length > 0) {
+      roads.forEach(r => {
+        if (!r.points || r.points.length < 2) return;
+        for (let i = 0; i < n; i++) {
+          const midX = (polygon[i][0] + polygon[(i + 1) % n][0]) / 2;
+          const midY = (polygon[i][1] + polygon[(i + 1) % n][1]) / 2;
+          for (let k = 0; k < r.points.length - 1; k++) {
+            const d = distPointToSegment([midX, midY], r.points[k], r.points[k + 1]);
+            if (d < (r.width || 6) * 1.5) {
+              types[i] = 'road';
+            }
+          }
+        }
+      });
     }
 
-    const origSignedArea = getSignedArea(polygon);
-    const origArea = Math.abs(origSignedArea);
-    if (origArea < 1e-4) return [];
+    return types;
+  }
 
-    function computeWithOrientation(orient) {
-      const inset = [];
-      for (let i = 0; i < n; i++) {
-        const prev = polygon[(i - 1 + n) % n];
-        const curr = polygon[i];
-        const next = polygon[(i + 1) % n];
+  // Toggle boundary edge type between road and neighbor
+  window.toggleBoundaryEdgeType = function (edgeIdx) {
+    if (!state.boundaryEdgeTypes || edgeIdx < 0 || edgeIdx >= state.boundaryEdgeTypes.length) return;
+    saveUndoSnapshot();
+    state.boundaryEdgeTypes[edgeIdx] = state.boundaryEdgeTypes[edgeIdx] === 'road' ? 'neighbor' : 'road';
+    renderCadWorld();
+    const typeKa = state.boundaryEdgeTypes[edgeIdx] === 'road' ? '🚗 საგზაო / საზოგადოებრივი (0მ მიჯნა)' : `🏡 სამეზობლო საზღვარი (${state.setbackDistance}მ მიჯნა)`;
+    updateToolStatus(`საზღვარი №${edgeIdx + 1} შეიცვალა: ${typeKa}`);
+  };
 
-        let v1x = curr[0] - prev[0];
-        let v1y = curr[1] - prev[1];
-        const l1 = Math.hypot(v1x, v1y) || 1;
-        v1x /= l1; v1y /= l1;
+  // --- Boundary-Aware Neighbor Setback Polylines (დადგენილება №41) ---
+  // სამეზობლო მიჯნის შეზღუდვა მოქმედებს მხოლოდ სამეზობლო საზღვრებზე (3.0მ). გზის/საზოგადოებრივ მხარეს = 0მ.
+  function computeNeighborSetbackPolylines(polygon, edgeTypes, defaultDist) {
+    if (!polygon || polygon.length < 3) return { polylines: [], insetVertices: [] };
+    const n = polygon.length;
+    if (!edgeTypes || edgeTypes.length !== n) {
+      edgeTypes = new Array(n).fill('neighbor');
+    }
 
-        let v2x = next[0] - curr[0];
-        let v2y = next[1] - curr[1];
-        const l2 = Math.hypot(v2x, v2y) || 1;
-        v2x /= l2; v2y /= l2;
+    let signedArea = 0;
+    for (let i = 0; i < n; i++) {
+      const p0 = polygon[i];
+      const p1 = polygon[(i + 1) % n];
+      signedArea += (p0[0] * p1[1] - p1[0] * p0[1]);
+    }
+    const orient = signedArea >= 0 ? 1 : -1;
 
-        const n1x = -v1y * orient;
-        const n1y = v1x * orient;
-        const n2x = -v2y * orient;
-        const n2y = v2x * orient;
+    const lines = [];
+    for (let i = 0; i < n; i++) {
+      const p1 = polygon[i];
+      const p2 = polygon[(i + 1) % n];
+      const isNeighbor = edgeTypes[i] !== 'road';
+      const dist = isNeighbor ? defaultDist : 0;
 
-        const bisectorX = n1x + n2x;
-        const bisectorY = n1y + n2y;
-        const blen = Math.hypot(bisectorX, bisectorY);
+      let dx = p2[0] - p1[0];
+      let dy = p2[1] - p1[1];
+      const len = Math.hypot(dx, dy) || 1;
+      dx /= len;
+      dy /= len;
 
-        if (blen < 1e-4) {
-          inset.push([curr[0] + n1x * offsetDist, curr[1] + n1y * offsetDist]);
-          continue;
+      const nx = -dy * orient;
+      const ny = dx * orient;
+
+      lines.push({
+        p1: [p1[0] + nx * dist, p1[1] + ny * dist],
+        p2: [p2[0] + nx * dist, p2[1] + ny * dist],
+        dx, dy, nx, ny, dist, isNeighbor
+      });
+    }
+
+    function intersectLines(l1, l2) {
+      const x1 = l1.p1[0], y1 = l1.p1[1];
+      const x2 = l1.p2[0], y2 = l1.p2[1];
+      const x3 = l2.p1[0], y3 = l2.p1[1];
+      const x4 = l2.p2[0], y4 = l2.p2[1];
+
+      const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+      if (Math.abs(denom) < 1e-5) return [x2, y2];
+      const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom;
+      return [x1 + t * (x2 - x1), y1 + t * (y2 - y1)];
+    }
+
+    const insetVertices = [];
+    for (let i = 0; i < n; i++) {
+      const prevLine = lines[(i - 1 + n) % n];
+      const currLine = lines[i];
+      insetVertices.push(intersectLines(prevLine, currLine));
+    }
+
+    // Extract contiguous neighbor setback polylines
+    const polylines = [];
+    let currentPolyline = [];
+
+    for (let i = 0; i < n; i++) {
+      if (edgeTypes[i] !== 'road') {
+        const ptStart = insetVertices[i];
+        const ptEnd = insetVertices[(i + 1) % n];
+        if (currentPolyline.length === 0) {
+          currentPolyline.push(ptStart);
         }
-
-        const cosHalf = (n1x * bisectorX + n1y * bisectorY) / blen;
-        let distOnBisector = offsetDist;
-        if (Math.abs(cosHalf) > 0.05) {
-          distOnBisector = offsetDist / cosHalf;
+        currentPolyline.push(ptEnd);
+      } else {
+        if (currentPolyline.length >= 2) {
+          polylines.push(currentPolyline);
         }
-        if (Math.abs(distOnBisector) > 2.5 * offsetDist) {
-          distOnBisector = Math.sign(distOnBisector) * 2.5 * offsetDist;
-        }
-
-        const px = curr[0] + (bisectorX / blen) * distOnBisector;
-        const py = curr[1] + (bisectorY / blen) * distOnBisector;
-        inset.push([px, py]);
+        currentPolyline = [];
       }
-      return inset;
+    }
+    if (currentPolyline.length >= 2) {
+      if (polylines.length > 0 && edgeTypes[0] !== 'road') {
+        polylines[0] = currentPolyline.concat(polylines[0].slice(1));
+      } else {
+        polylines.push(currentPolyline);
+      }
     }
 
-    let orient = origSignedArea >= 0 ? 1 : -1;
-    let candidate = computeWithOrientation(orient);
-    let candArea = Math.abs(getSignedArea(candidate));
+    return { polylines, insetVertices };
+  }
 
-    // FAILSAFE: If candidate area is larger than original, it was pushed OUTSIDE.
-    // Invert orientation so it is strictly INSIDE the parcel boundary.
-    if (candArea >= origArea) {
-      orient = -orient;
-      candidate = computeWithOrientation(orient);
-      candArea = Math.abs(getSignedArea(candidate));
+  // --- Real Adjoining Neighbor Parcels (სამეზობლო ნაკვეთები საზღვრის გასწვრივ) ---
+  function buildAdjacentNeighborParcels(polygon, edgeTypes, depth = 28) {
+    if (!polygon || polygon.length < 3) return [];
+    const n = polygon.length;
+    if (!edgeTypes || edgeTypes.length !== n) edgeTypes = new Array(n).fill('neighbor');
+
+    let signedArea = 0;
+    for (let i = 0; i < n; i++) {
+      const p0 = polygon[i];
+      const p1 = polygon[(i + 1) % n];
+      signedArea += (p0[0] * p1[1] - p1[0] * p0[1]);
+    }
+    const orient = signedArea >= 0 ? 1 : -1;
+
+    // Outward vertex normals
+    const vertexNormals = [];
+    for (let i = 0; i < n; i++) {
+      const prev = polygon[(i - 1 + n) % n];
+      const curr = polygon[i];
+      const next = polygon[(i + 1) % n];
+
+      let v1x = curr[0] - prev[0], v1y = curr[1] - prev[1];
+      const l1 = Math.hypot(v1x, v1y) || 1;
+      v1x /= l1; v1y /= l1;
+
+      let v2x = next[0] - curr[0], v2y = next[1] - curr[1];
+      const l2 = Math.hypot(v2x, v2y) || 1;
+      v2x /= l2; v2y /= l2;
+
+      const n1x = v1y * orient, n1y = -v1x * orient;
+      const n2x = v2y * orient, n2y = -v2x * orient;
+      let bx = n1x + n2x, by = n1y + n2y;
+      const blen = Math.hypot(bx, by) || 1;
+      vertexNormals.push([bx / blen, by / blen]);
     }
 
-    return candidate;
+    // Edge directions & normals
+    const edgeNormals = [];
+    for (let i = 0; i < n; i++) {
+      const p1 = polygon[i];
+      const p2 = polygon[(i + 1) % n];
+      let edx = p2[0] - p1[0], edy = p2[1] - p1[1];
+      const elen = Math.hypot(edx, edy) || 1;
+      edgeNormals.push([(edy / elen) * orient, (-edx / elen) * orient, elen]);
+    }
+
+    // Group contiguous neighbor edges into distinct logical neighbor parcels
+    const neighborGroups = [];
+    let currentGroup = [];
+
+    for (let i = 0; i < n; i++) {
+      if (edgeTypes[i] !== 'road') {
+        if (currentGroup.length === 0) {
+          currentGroup.push(i);
+        } else {
+          const lastIdx = currentGroup[currentGroup.length - 1];
+          const dot = edgeNormals[lastIdx][0] * edgeNormals[i][0] + edgeNormals[lastIdx][1] * edgeNormals[i][1];
+          if (dot > 0.4) {
+            currentGroup.push(i);
+          } else {
+            neighborGroups.push(currentGroup);
+            currentGroup = [i];
+          }
+        }
+      } else {
+        if (currentGroup.length > 0) {
+          neighborGroups.push(currentGroup);
+          currentGroup = [];
+        }
+      }
+    }
+    if (currentGroup.length > 0) {
+      if (neighborGroups.length > 0 && edgeTypes[0] !== 'road') {
+        const firstGroup = neighborGroups[0];
+        const lastIdx = currentGroup[currentGroup.length - 1];
+        const dot = edgeNormals[lastIdx][0] * edgeNormals[firstGroup[0]][0] + edgeNormals[lastIdx][1] * edgeNormals[firstGroup[0]][1];
+        if (dot > 0.4) {
+          neighborGroups[0] = currentGroup.concat(firstGroup);
+        } else {
+          neighborGroups.push(currentGroup);
+        }
+      } else {
+        neighborGroups.push(currentGroup);
+      }
+    }
+
+    const parcels = [];
+    neighborGroups.forEach((grp, gIdx) => {
+      const chain = [];
+      grp.forEach(eIdx => {
+        chain.push(polygon[eIdx]);
+      });
+      const lastEdgeIdx = grp[grp.length - 1];
+      chain.push(polygon[(lastEdgeIdx + 1) % n]);
+
+      const extPoints = [];
+      for (let k = chain.length - 1; k >= 0; k--) {
+        let nx = 0, ny = 0;
+        if (k === 0) {
+          const vIdx = grp[0];
+          nx = vertexNormals[vIdx][0]; ny = vertexNormals[vIdx][1];
+        } else if (k === chain.length - 1) {
+          const vIdx = (lastEdgeIdx + 1) % n;
+          nx = vertexNormals[vIdx][0]; ny = vertexNormals[vIdx][1];
+        } else {
+          const vIdx = grp[k];
+          nx = vertexNormals[vIdx][0]; ny = vertexNormals[vIdx][1];
+        }
+        extPoints.push([chain[k][0] + nx * depth, chain[k][1] + ny * depth]);
+      }
+
+      const parcelPoly = chain.concat(extPoints);
+
+      let cx = 0, cy = 0;
+      parcelPoly.forEach(p => { cx += p[0]; cy += p[1]; });
+      cx /= parcelPoly.length;
+      cy /= parcelPoly.length;
+
+      let area = 0;
+      for (let i = 0; i < parcelPoly.length; i++) {
+        const p0 = parcelPoly[i];
+        const p1 = parcelPoly[(i + 1) % parcelPoly.length];
+        area += (p0[0] * p1[1] - p1[0] * p0[1]);
+      }
+
+      parcels.push({
+        id: 'nb_' + gIdx,
+        edges: grp,
+        polygon: parcelPoly,
+        center: [cx, cy],
+        sharedChain: chain,
+        areaSqm: Math.round(Math.abs(area) / 2)
+      });
+    });
+
+    return parcels;
+  }
+
+  // Backward-compatible setback polygon calculation
+  function computeSetbackPolygon(polygon, offsetDist) {
+    if (!polygon || polygon.length < 3) return [];
+    const types = state.boundaryEdgeTypes || new Array(polygon.length).fill('neighbor');
+    const res = computeNeighborSetbackPolylines(polygon, types, offsetDist);
+    return res.insetVertices || [];
   }
 
   // --- Parcel Subdivision Algorithm (ნაკვეთის დაყოფა) ---
@@ -2509,183 +2725,79 @@
       return;
     }
 
-    const xs = state.boundaryMeters.map(p => p[0]);
-    const ys = state.boundaryMeters.map(p => p[1]);
-    const minX = Math.min(...xs), maxX = Math.max(...xs);
-    const minY = Math.min(...ys), maxY = Math.max(...ys);
-    const cx = (minX + maxX) / 2;
-    const cy = (minY + maxY) / 2;
-
     const baseCode = state.cadastralCode || '01.14.11.059.039';
     const parts = baseCode.split('.');
     const lastNum = parseInt(parts[parts.length - 1], 10) || 39;
     const prefix = parts.slice(0, parts.length - 1).join('.');
 
-    // Generate 4 surrounding adjacent parcels (North, East, South, West)
-    const neighborParcels = [
-      {
-        id: 'nb_north',
-        code: `${prefix}.${String(lastNum + 2).padStart(3, '0')}`,
-        label: 'სამეზობლო ნაკვეთი (ჩრდილოეთი)',
-        points: [
-          [minX - 15, minY - 35],
-          [maxX + 20, minY - 35],
-          [maxX + 15, minY - 1],
-          [minX - 10, minY - 1]
-        ],
-        center: [cx, minY - 18]
-      },
-      {
-        id: 'nb_east',
-        code: `${prefix}.${String(lastNum + 1).padStart(3, '0')}`,
-        label: 'სამეზობლო ნაკვეთი (აღმოსავლეთი)',
-        points: [
-          [maxX + 1, minY - 5],
-          [maxX + 45, minY - 5],
-          [maxX + 45, maxY + 20],
-          [maxX + 1, maxY + 5]
-        ],
-        center: [maxX + 22, cy]
-      },
-      {
-        id: 'nb_south',
-        code: `${prefix}.${String(Math.max(1, lastNum - 4)).padStart(3, '0')}`,
-        label: 'სამეზობლო ნაკვეთი (სამხრეთი)',
-        points: [
-          [minX - 25, maxY + 1],
-          [maxX + 15, maxY + 1],
-          [maxX + 10, maxY + 40],
-          [minX - 20, maxY + 40]
-        ],
-        center: [cx, maxY + 20]
-      },
-      {
-        id: 'nb_west',
-        code: `${prefix}.${String(Math.max(1, lastNum - 1)).padStart(3, '0')}`,
-        label: 'სამეზობლო ნაკვეთი (დასავლეთი)',
-        points: [
-          [minX - 45, minY - 10],
-          [minX - 1, minY - 5],
-          [minX - 1, maxY + 15],
-          [minX - 45, maxY + 10]
-        ],
-        center: [minX - 22, cy]
-      }
-    ];
+    const neighborParcels = buildAdjacentNeighborParcels(state.boundaryMeters, state.boundaryEdgeTypes, 28);
+    if (!neighborParcels || neighborParcels.length === 0) {
+      els.neighborhoodContextLayer.innerHTML = '';
+      return;
+    }
 
     let html = '';
+    const offsets = [1, 2, -1, -2, 3, -3, 4, -4];
 
-    // A. Neighbor Parcels Polygons & Badges
-    neighborParcels.forEach(np => {
-      const ptsStr = np.points.map(p => `${p[0]},${p[1]}`).join(' ');
-      const strokeW = Math.max(0.25, 1.1 * pxToM);
+    neighborParcels.forEach((np, idx) => {
+      const codeNum = Math.max(1, lastNum + (offsets[idx % offsets.length] || (idx + 1)));
+      const code = `${prefix}.${String(codeNum).padStart(3, '0')}`;
+      const ptsStr = np.polygon.map(p => `${p[0]},${p[1]}`).join(' ');
+      const strokeW = Math.max(0.25, 1.0 * pxToM);
       const dash = `${6 * pxToM}, ${4 * pxToM}`;
 
+      // Subtle, muted aesthetic fill and stroke (different color from main parcel)
       html += `
-        <polygon points="${ptsStr}" fill="var(--neighbor-fill, rgba(241,245,249,0.35))" stroke="var(--neighbor-stroke, #64748b)" stroke-width="${strokeW}" stroke-dasharray="${dash}" opacity="0.85" />
+        <!-- Neighbor Parcel Polygon -->
+        <polygon points="${ptsStr}" fill="var(--neighbor-fill, rgba(148, 163, 184, 0.08))" stroke="var(--neighbor-stroke, rgba(100, 116, 139, 0.45))" stroke-width="${strokeW}" stroke-dasharray="${dash}" opacity="0.9" />
       `;
 
-      // Cadastral number badge inside neighbor parcel
+      // Cadastral number badge inside neighbor parcel (strictly outside our parcel)
       const badgeW = 95 * pxToM;
       const badgeH = 22 * pxToM;
       html += `
         <g transform="translate(${np.center[0]}, ${np.center[1]})">
-          <rect x="${-badgeW / 2}" y="${-badgeH / 2}" width="${badgeW}" height="${badgeH}" rx="${3 * pxToM}" fill="rgba(15,23,42,0.85)" stroke="var(--neighbor-stroke, #64748b)" stroke-width="${0.7 * pxToM}" />
-          <text x="0" y="${-1 * pxToM}" text-anchor="middle" fill="#ffffff" font-size="${8 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">${np.code}</text>
-          <text x="0" y="${7.5 * pxToM}" text-anchor="middle" fill="#94a3b8" font-size="${6.5 * pxToM}" font-family="Inter, sans-serif">${np.label}</text>
-        </g>
-      `;
-    });
-
-    // B. Surrounding Existing Buildings (სამეზობლო შენობები)
-    const neighborBuildings = [
-      {
-        id: 'nb_bldg_1',
-        name: 'მეზობელი №40',
-        type: 'საცხოვრებელი',
-        heightM: 9.5,
-        floors: 3,
-        cx: maxX + 18,
-        cy: cy - 10,
-        w: 16,
-        l: 12,
-        rot: 12,
-        distToBoundary: 5.8,
-        dimP1: [maxX + 10, cy - 10],
-        dimP2: [maxX + 1, cy - 10]
-      },
-      {
-        id: 'nb_bldg_2',
-        name: 'მეზობელი №38',
-        type: 'კერძო სახლი',
-        heightM: 6.8,
-        floors: 2,
-        cx: minX - 18,
-        cy: cy + 8,
-        w: 14,
-        l: 10,
-        rot: -18,
-        distToBoundary: 6.2,
-        dimP1: [minX - 11, cy + 8],
-        dimP2: [minX - 1, cy + 8]
-      },
-      {
-        id: 'nb_bldg_3',
-        name: 'მეზობელი №41',
-        type: 'ავტოფარეხი',
-        heightM: 3.5,
-        floors: 1,
-        cx: cx + 12,
-        cy: minY - 18,
-        w: 12,
-        l: 8,
-        rot: 5,
-        distToBoundary: 4.8,
-        dimP1: [cx + 12, minY - 14],
-        dimP2: [cx + 12, minY - 1]
-      }
-    ];
-
-    neighborBuildings.forEach(nb => {
-      const rad = (nb.rot * Math.PI) / 180;
-      const cos = Math.cos(rad);
-      const sin = Math.sin(rad);
-      const hw = nb.w / 2;
-      const hl = nb.l / 2;
-
-      const corners = [
-        [-hw, -hl], [hw, -hl], [hw, hl], [-hw, hl]
-      ].map(([x, y]) => [
-        nb.cx + x * cos - y * sin,
-        nb.cy + x * sin + y * cos
-      ]);
-
-      const ptsStr = corners.map(p => `${p[0]},${p[1]}`).join(' ');
-      const strokeW = Math.max(0.3, 1.3 * pxToM);
-
-      html += `
-        <g>
-          <!-- Building Footprint -->
-          <polygon points="${ptsStr}" fill="var(--neighbor-bldg, rgba(148,163,184,0.35))" stroke="var(--neighbor-bldg-stroke, #475569)" stroke-width="${strokeW}" stroke-linejoin="round" />
-          <!-- Roof ridge line -->
-          <line x1="${(corners[0][0] + corners[3][0]) / 2}" y1="${(corners[0][1] + corners[3][1]) / 2}" x2="${(corners[1][0] + corners[2][0]) / 2}" y2="${(corners[1][1] + corners[2][1]) / 2}" stroke="var(--neighbor-bldg-stroke, #475569)" stroke-width="${0.7 * pxToM}" stroke-dasharray="${3 * pxToM}, ${2 * pxToM}" />
-          <!-- Info Tag -->
-          <text x="${nb.cx}" y="${nb.cy - 1 * pxToM}" text-anchor="middle" fill="#ffffff" font-size="${7.5 * pxToM}" font-family="Inter, sans-serif" font-weight="bold">${nb.name}</text>
-          <text x="${nb.cx}" y="${nb.cy + 7 * pxToM}" text-anchor="middle" fill="#cbd5e1" font-size="${6.5 * pxToM}" font-family="Inter, sans-serif">H: ${nb.heightM}მ (${nb.floors}ს)</text>
+          <rect x="${-badgeW / 2}" y="${-badgeH / 2}" width="${badgeW}" height="${badgeH}" rx="${3 * pxToM}" fill="rgba(15,23,42,0.88)" stroke="var(--neighbor-stroke, #64748b)" stroke-width="${0.7 * pxToM}" />
+          <text x="0" y="${-1 * pxToM}" text-anchor="middle" fill="#ffffff" font-size="${8 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">${code}</text>
+          <text x="0" y="${7.5 * pxToM}" text-anchor="middle" fill="#94a3b8" font-size="${6.5 * pxToM}" font-family="Inter, sans-serif">სამეზობლო ნაკვეთი (${np.areaSqm} მ²)</text>
         </g>
       `;
 
-      // Setback Distance Measurement Line to Site Boundary
-      if (nb.dimP1 && nb.dimP2) {
-        const mx = (nb.dimP1[0] + nb.dimP2[0]) / 2;
-        const my = (nb.dimP1[1] + nb.dimP2[1]) / 2;
+      // Existing Neighbor Building (optional 1 building per neighbor lot, up to 2 buildings total)
+      if (idx < 2 && np.sharedChain && np.sharedChain.length >= 2) {
+        const midSharedX = (np.sharedChain[0][0] + np.sharedChain[np.sharedChain.length - 1][0]) / 2;
+        const midSharedY = (np.sharedChain[0][1] + np.sharedChain[np.sharedChain.length - 1][1]) / 2;
+        const bldgX = midSharedX + (np.center[0] - midSharedX) * 0.75;
+        const bldgY = midSharedY + (np.center[1] - midSharedY) * 0.75;
+
+        const bW = 12;
+        const bL = 8;
+        const bH = idx === 0 ? 8.5 : 6.0;
+        const floors = idx === 0 ? 2 : 2;
+        const bldgName = `მეზობელი №${codeNum}`;
+
+        const hw = bW / 2;
+        const hl = bL / 2;
+        const corners = [
+          [bldgX - hw, bldgY - hl],
+          [bldgX + hw, bldgY - hl],
+          [bldgX + hw, bldgY + hl],
+          [bldgX - hw, bldgY + hl]
+        ];
+        const bPtsStr = corners.map(p => `${p[0]},${p[1]}`).join(' ');
+        const distToBound = Math.max(3.2, Math.round(Math.hypot(bldgX - midSharedX, bldgY - midSharedY) * 10) / 10);
+
         html += `
           <g>
-            <line x1="${nb.dimP1[0]}" y1="${nb.dimP1[1]}" x2="${nb.dimP2[0]}" y2="${nb.dimP2[1]}" stroke="#f43f5e" stroke-width="${0.8 * pxToM}" stroke-dasharray="${2 * pxToM}, ${2 * pxToM}" />
-            <circle cx="${nb.dimP1[0]}" cy="${nb.dimP1[1]}" r="${1.5 * pxToM}" fill="#f43f5e"/>
-            <circle cx="${nb.dimP2[0]}" cy="${nb.dimP2[1]}" r="${1.5 * pxToM}" fill="#f43f5e"/>
-            <rect x="${mx - 15 * pxToM}" y="${my - 6 * pxToM}" width="${30 * pxToM}" height="${12 * pxToM}" rx="${2 * pxToM}" fill="rgba(10,16,28,0.85)" stroke="#f43f5e" stroke-width="${0.5 * pxToM}"/>
-            <text x="${mx}" y="${my + 2.5 * pxToM}" text-anchor="middle" fill="#f43f5e" font-size="${6.5 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">↔ ${nb.distToBoundary}მ</text>
+            <polygon points="${bPtsStr}" fill="var(--neighbor-bldg, rgba(148,163,184,0.35))" stroke="var(--neighbor-bldg-stroke, #475569)" stroke-width="${Math.max(0.3, 1.2 * pxToM)}" stroke-linejoin="round" />
+            <text x="${bldgX}" y="${bldgY - 1 * pxToM}" text-anchor="middle" fill="#ffffff" font-size="${7 * pxToM}" font-family="Inter, sans-serif" font-weight="bold">${bldgName}</text>
+            <text x="${bldgX}" y="${bldgY + 6.5 * pxToM}" text-anchor="middle" fill="#cbd5e1" font-size="${6 * pxToM}" font-family="Inter, sans-serif">H: ${bH}მ (${floors}ს)</text>
+
+            <!-- Setback line from neighbor building to boundary -->
+            <line x1="${bldgX}" y1="${bldgY}" x2="${midSharedX}" y2="${midSharedY}" stroke="#f43f5e" stroke-width="${0.7 * pxToM}" stroke-dasharray="${2 * pxToM}, ${2 * pxToM}" opacity="0.8" />
+            <circle cx="${midSharedX}" cy="${midSharedY}" r="${1.4 * pxToM}" fill="#f43f5e"/>
+            <rect x="${(bldgX + midSharedX) / 2 - 13 * pxToM}" y="${(bldgY + midSharedY) / 2 - 5 * pxToM}" width="${26 * pxToM}" height="${10 * pxToM}" rx="${2 * pxToM}" fill="rgba(10,16,28,0.85)" stroke="#f43f5e" stroke-width="${0.5 * pxToM}"/>
+            <text x="${(bldgX + midSharedX) / 2}" y="${(bldgY + midSharedY) / 2 + 2.5 * pxToM}" text-anchor="middle" fill="#f43f5e" font-size="${6 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">↔ ${distToBound}მ</text>
           </g>
         `;
       }
@@ -2704,13 +2816,45 @@
 
     const pointsStr = state.boundaryMeters.map(p => `${p[0]},${p[1]}`).join(' ');
     const strokeW = Math.max(0.3, 2.2 * pxToM);
+    const poly = state.boundaryMeters;
+    const n = poly.length;
+    const types = state.boundaryEdgeTypes || [];
+
+    // Edge boundary badges for toggle between road and neighbor
+    let edgeBadgesSvg = '';
+    for (let i = 0; i < n; i++) {
+      const p1 = poly[i];
+      const p2 = poly[(i + 1) % n];
+      const dist = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]);
+      if (dist < 3.5) continue; // Skip very small segments to avoid clutter
+
+      const midX = (p1[0] + p2[0]) / 2;
+      const midY = (p1[1] + p2[1]) / 2;
+      const isRoad = types[i] === 'road';
+
+      const tagText = isRoad ? '🚗 გზა (0მ)' : `🏡 მიჯნა (${state.setbackDistance}მ)`;
+      const badgeW = (isRoad ? 55 : 62) * pxToM;
+      const badgeH = 14 * pxToM;
+      const bg = isRoad ? 'rgba(16, 185, 129, 0.92)' : 'rgba(30, 41, 59, 0.88)';
+      const stroke = isRoad ? '#34d399' : 'rgba(244, 63, 94, 0.7)';
+      const textColor = '#ffffff';
+
+      edgeBadgesSvg += `
+        <g class="cursor-pointer" onclick="toggleBoundaryEdgeType(${i})" style="cursor: pointer;">
+          <title>საზღვარი №${i + 1}: ${isRoad ? 'საგზაო/საზოგადოებრივი (მიჯნა 0მ)' : 'სამეზობლო მიჯნა (' + state.setbackDistance + 'მ)'} - დააწკაპუნეთ ტიპის შესაცვლელად</title>
+          <rect x="${midX - badgeW / 2}" y="${midY - badgeH / 2}" width="${badgeW}" height="${badgeH}" rx="${3 * pxToM}" fill="${bg}" stroke="${stroke}" stroke-width="${0.7 * pxToM}" />
+          <text x="${midX}" y="${midY + 3.5 * pxToM}" text-anchor="middle" fill="${textColor}" font-size="${7.2 * pxToM}" font-family="Inter, sans-serif" font-weight="600">${tagText}</text>
+        </g>
+      `;
+    }
 
     els.cadastralBoundaryLayer.innerHTML = `
       <polygon points="${pointsStr}" fill="var(--parcel-fill)" stroke="var(--parcel-stroke)" stroke-width="${strokeW}" stroke-linejoin="round" />
+      ${edgeBadgesSvg}
     `;
   }
 
-  // 2. Setback Buffer Layer (სამეზობლო მიჯნა 1.5მ - 6.0მ)
+  // 2. Setback Buffer Layer (სამეზობლო მიჯნა 1.5მ - 6.0მ) - მხოლოდ სამეზობლო საზღვრებზე
   function renderSetbackBuffer(pxToM) {
     if (!els.setbackBoundaryLayer) return;
     if (!state.layers.setback || !state.boundaryMeters || state.boundaryMeters.length < 3) {
@@ -2718,18 +2862,23 @@
       return;
     }
 
-    const setbackPoly = computeSetbackPolygon(state.boundaryMeters, state.setbackDistance);
-    if (setbackPoly.length < 3) {
+    const setbackRes = computeNeighborSetbackPolylines(state.boundaryMeters, state.boundaryEdgeTypes, state.setbackDistance);
+    if (!setbackRes.polylines || setbackRes.polylines.length === 0) {
       els.setbackBoundaryLayer.innerHTML = '';
       return;
     }
-    const pts = setbackPoly.map(p => `${p[0]},${p[1]}`).join(' ');
+
     const strokeW = Math.max(0.2, 1.2 * pxToM);
     const dash = `${4 * pxToM}, ${3 * pxToM}`;
 
-    els.setbackBoundaryLayer.innerHTML = `
-      <polygon points="${pts}" fill="none" stroke="var(--setback-stroke)" stroke-width="${strokeW}" stroke-dasharray="${dash}" opacity="0.9" />
-    `;
+    els.setbackBoundaryLayer.innerHTML = setbackRes.polylines.map((poly, idx) => {
+      const pts = poly.map(p => `${p[0]},${p[1]}`).join(' ');
+      return `
+        <g id="setback_poly_${idx}">
+          <polyline points="${pts}" fill="none" stroke="var(--setback-stroke)" stroke-width="${strokeW}" stroke-dasharray="${dash}" opacity="0.9" />
+        </g>
+      `;
+    }).join('');
   }
 
   // 3. Sub-parcels (when split)
@@ -3126,14 +3275,26 @@
       const pts = f.vertices.map(p => `${p[0]},${p[1]}`).join(' ');
       const isSelected = f.id === state.selectedFootprintId;
 
-      // Check setback violation: does any vertex cross outside the setback zone?
+      // Check setback violation: does building violate neighbor boundary setback?
+      // In Georgian building code (დადგენილება №41), 3.0m setback is required ONLY on neighbor boundaries.
+      // Along road frontage / public spaces (road), there is no neighbor setback restriction.
       let isSetbackViolated = false;
-      if (setbackPoly && setbackPoly.length >= 3) {
-        for (const v of f.vertices) {
-          if (!pointInPolygon(v, setbackPoly)) {
-            isSetbackViolated = true;
-            break;
+      if (state.boundaryMeters && state.boundaryMeters.length >= 3) {
+        const poly = state.boundaryMeters;
+        const n = poly.length;
+        const types = state.boundaryEdgeTypes || [];
+        for (let i = 0; i < n; i++) {
+          if (types[i] === 'road') continue; // Road frontage is exempt from neighbor setback
+          const pA = poly[i];
+          const pB = poly[(i + 1) % n];
+          for (const v of f.vertices) {
+            const d = distPointToSegment(v, pA, pB);
+            if (d < (state.setbackDistance - 0.05)) {
+              isSetbackViolated = true;
+              break;
+            }
           }
+          if (isSetbackViolated) break;
         }
       }
 
@@ -3752,7 +3913,14 @@
     };
 
     addPolyline('CADASTRAL_BOUNDARY', state.boundaryMeters);
-    addPolyline('SETBACK_BUFFER', computeSetbackPolygon(state.boundaryMeters, state.setbackDistance));
+    const setbackRes = computeNeighborSetbackPolylines(state.boundaryMeters, state.boundaryEdgeTypes, state.setbackDistance);
+    (setbackRes.polylines || []).forEach(poly => {
+      for (let i = 0; i < poly.length - 1; i++) {
+        const p1 = poly[i];
+        const p2 = poly[i + 1];
+        dxf += `0\nLINE\n8\nSETBACK_BUFFER\n10\n${p1[0].toFixed(3)}\n20\n${p1[1].toFixed(3)}\n30\n0.0\n11\n${p2[0].toFixed(3)}\n21\n${p2[1].toFixed(3)}\n31\n0.0\n`;
+      }
+    });
     state.subParcels.forEach(sp => addPolyline('SUBDIVISION_PARCELS', sp.polygon));
     state.footprints.forEach(fp => addPolyline('BUILDING_FOOTPRINTS', fp.vertices));
     (state.roads || []).forEach(r => addPolyline('ROADS', r.points));
