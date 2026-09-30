@@ -46,14 +46,14 @@
     
     // 2D Masterplan Elements
     subParcels: [], // [{ id, name, polygon: [[x,y]...], areaSqm, color }]
-    footprints: [], // [{ id, name, shape, width, length, rotation, floors, floorHeight, totalHeight, functionType, center: [x,y], vertices: [[x,y]...], areaSqm }]
+    footprints: [], // [{ id, name, shape, width, length, rotation, floors, floorHeight, totalHeight, functionType, center: [x,y], vertices: [[x,y]...], areaSqm, isViolatingSetback }]
     selectedFootprintId: null,
     trees: [], // [{ id, x, y, radius }]
     waterBodies: [], // [{ id, x, y, width: 10, length: 5 }]
     terraces: [], // [{ id, x, y, width: 12, length: 6 }]
-    walkways: [], // [{ id, points: [[x,y]...] }]
-    roads: [], // [{ id, points: [[x,y]...], width: 6 }]
-    parkingBays: [], // [{ id, center: [x,y], width: 2.5, length: 5 }]
+    walkways: [], // [{ id, points: [[x,y]...], width: 1.8 }]
+    roads: [], // [{ id, points: [[x,y]...], width: 6.0 }]
+    parkingBays: [], // [{ id, center: [x,y], width: 2.5, length: 5.0, rotation: 0 }]
     setbackDistance: 3.0,
     
     // Layer Visibility
@@ -65,7 +65,9 @@
       shadows: true,
       trees: true,
       water: true,
+      terraces: true,
       roads: true,
+      parking: true,
       nodes: false
     },
 
@@ -77,15 +79,16 @@
     panStart: { x: 0, y: 0 },
     
     // Tools & Modes
-    activeTool: 'pan', // 'pan', 'delete', 'split', 'draw_footprint', 'tree', 'water', 'terrace', 'walkway', 'draw_road', 'ruler'
-    activeStyle: 'blueprint', // 'blueprint', 'classic', 'presentation', 'satellite', 'dark', 'sepia', 'mono', 'aqua'
+    activeTool: 'pan', // 'pan', 'delete', 'split', 'draw_footprint', 'tree', 'water', 'terrace', 'walkway', 'draw_road', 'parking', 'ruler'
+    activeStyle: 'blueprint', // 16 styles
     sunAzimuth: 135, // degrees
     
     // Interactive Transformations
     drawPoints: [],
     splitLine: [],
     rulerPoints: [],
-    walkwayPoints: [],
+    currentWalkwayPoints: [],
+    currentRoadPoints: [],
     isDraggingFootprint: false,
     isRotatingFootprint: false,
     draggedFootprintId: null,
@@ -216,8 +219,11 @@
       trees: JSON.parse(JSON.stringify(state.trees)),
       waterBodies: JSON.parse(JSON.stringify(state.waterBodies)),
       terraces: JSON.parse(JSON.stringify(state.terraces)),
+      walkways: JSON.parse(JSON.stringify(state.walkways || [])),
+      roads: JSON.parse(JSON.stringify(state.roads || [])),
       parkingBays: JSON.parse(JSON.stringify(state.parkingBays)),
-      subParcels: JSON.parse(JSON.stringify(state.subParcels))
+      subParcels: JSON.parse(JSON.stringify(state.subParcels)),
+      setbackDistance: state.setbackDistance
     });
     if (state.undoStack.length > 30) state.undoStack.shift();
   }
@@ -225,12 +231,15 @@
   window.undoLastAction = function () {
     if (state.undoStack.length > 0) {
       const snap = state.undoStack.pop();
-      state.footprints = snap.footprints;
-      state.trees = snap.trees;
-      state.waterBodies = snap.waterBodies;
-      state.terraces = snap.terraces;
-      state.parkingBays = snap.parkingBays;
-      state.subParcels = snap.subParcels;
+      state.footprints = snap.footprints || [];
+      state.trees = snap.trees || [];
+      state.waterBodies = snap.waterBodies || [];
+      state.terraces = snap.terraces || [];
+      state.walkways = snap.walkways || [];
+      state.roads = snap.roads || [];
+      state.parkingBays = snap.parkingBays || [];
+      state.subParcels = snap.subParcels || [];
+      if (snap.setbackDistance) state.setbackDistance = snap.setbackDistance;
 
       if (!state.footprints.some(f => f.id === state.selectedFootprintId)) {
         state.selectedFootprintId = state.footprints[0] ? state.footprints[0].id : null;
@@ -867,16 +876,24 @@
     a.click();
   };
 
-  // --- 8 Visual Plan Styles Selector ---
+  // --- 16 Architectural Visual Styles Map ---
   const styleNamesMap = {
+    'blueprint': '📐 Royal Blueprint (ლურჯი)',
     'classic': '🏛️ არქიტექტურული თეთრი',
-    'blueprint': '📐 Royal Blueprint',
-    'presentation': '🌿 გენგეგმა',
-    'satellite': '🛰️ სატელიტი',
+    'presentation': '🌿 საპრეზენტაციო გენგეგმა',
+    'satellite': '🛰️ სატელიტური ორთოფოტო',
     'dark': '🌑 OLED Dark CAD',
     'sepia': '📜 ვინტაჟური პერგამენტი',
-    'mono': '🏙️ მონოქრომული',
-    'aqua': '💧 აკვა-გენგეგმა'
+    'mono': '🏙️ მონოქრომული გრაფიტი',
+    'aqua': '💧 საკურორტო აკვა',
+    'scandi': '🌲 სკანდინავიური მწვანე',
+    'terracotta': '🧱 ტოსკანური ტერაკოტა',
+    'cyberpunk': '🌌 კიბერპანკ ნეონი',
+    'municipal': '📑 მუნიციპალური / მერიის',
+    'sunset': '🌅 ოქროს საათი',
+    'slate': '🪨 ფიქალი & სპილენძი',
+    'pastel': '🎨 თანამედროვე პასტელი',
+    'graph': '📐 მილიმეტრული ბადე'
   };
 
   window.setDrawingStyle = function (styleName) {
@@ -886,8 +903,9 @@
       wrapper.className = `flex-1 relative overflow-hidden style-${styleName}`;
     }
 
-    if (els.lblActiveStyleName) {
-      els.lblActiveStyleName.innerText = styleNamesMap[styleName] || styleName;
+    const selStyle = document.getElementById('selCadDrawingStyle');
+    if (selStyle && selStyle.value !== styleName) {
+      selStyle.value = styleName;
     }
 
     renderCadWorld();
@@ -897,6 +915,58 @@
   window.toggleLayer = function (layerName, isChecked) {
     state.layers[layerName] = isChecked;
     renderCadWorld();
+  };
+
+  // --- Dropdown Menu Toggle Helpers (No sticky hover states) ---
+  window.togglePresetMenu = function (e) {
+    if (e) e.stopPropagation();
+    const pm = document.getElementById('dropdownPresetMenu');
+    if (pm) pm.classList.toggle('hidden');
+    const lm = document.getElementById('dropdownLayersMenu');
+    if (lm) lm.classList.add('hidden');
+  };
+
+  window.toggleLayersMenu = function (e) {
+    if (e) e.stopPropagation();
+    const lm = document.getElementById('dropdownLayersMenu');
+    if (lm) lm.classList.toggle('hidden');
+    const pm = document.getElementById('dropdownPresetMenu');
+    if (pm) pm.classList.add('hidden');
+  };
+
+  window.addEventListener('click', (e) => {
+    const pm = document.getElementById('dropdownPresetMenu');
+    if (pm && !e.target.closest('#btnPresetMenuTrigger') && !e.target.closest('#dropdownPresetMenu')) {
+      pm.classList.add('hidden');
+    }
+    const lm = document.getElementById('dropdownLayersMenu');
+    if (lm && !e.target.closest('#btnLayersMenuTrigger') && !e.target.closest('#dropdownLayersMenu')) {
+      lm.classList.add('hidden');
+    }
+  });
+
+  // --- Setback Distance Adjustment (სამეზობლო მიჯნები) ---
+  window.setSetbackDistance = function (dist) {
+    saveUndoSnapshot();
+    state.setbackDistance = parseFloat(dist) || 3.0;
+    
+    if (els.lblSetbackDistVal) els.lblSetbackDistVal.innerText = `${state.setbackDistance.toFixed(1)} მ`;
+    const badge = document.getElementById('lblSetbackDistBadge');
+    if (badge) badge.innerText = `${state.setbackDistance.toFixed(1)} მ`;
+
+    // Update quick buttons UI
+    document.querySelectorAll('.btn-setback-quick').forEach(btn => {
+      const match = btn.innerText.includes(`${state.setbackDistance.toFixed(1)}მ`) || 
+                    (state.setbackDistance === 3.0 && btn.innerText.includes('3.0მ'));
+      if (match) {
+        btn.className = 'btn-setback-quick px-2 py-0.5 rounded text-[10px] font-mono bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold transition';
+      } else {
+        btn.className = 'btn-setback-quick px-2 py-0.5 rounded text-[10px] font-mono text-slate-300 hover:text-white hover:bg-white/10 transition';
+      }
+    });
+
+    renderCadWorld();
+    updateToolStatus(`სამეზობლო მიჯნის ზღვარი: ${state.setbackDistance.toFixed(1)} მეტრი`);
   };
 
   // --- REAL ARCHITECTURAL SCALE CONTROLS ---
@@ -927,9 +997,9 @@
     els.lblCurrentScaleRatio.innerText = `M 1:${currentRatio}`;
 
     if (els.selCadScale) {
-      const standards = [100, 200, 500, 1000, 2000];
+      const standards = [100, 200, 500, 1000, 2000, 5000];
       const closest = standards.reduce((prev, curr) => Math.abs(curr - currentRatio) < Math.abs(prev - currentRatio) ? curr : prev);
-      if (Math.abs(closest - currentRatio) / closest < 0.15) {
+      if (Math.abs(closest - currentRatio) / closest < 0.18) {
         els.selCadScale.value = `1:${closest}`;
       }
     }
@@ -963,7 +1033,8 @@
     state.drawPoints = [];
     state.splitLine = [];
     state.rulerPoints = [];
-    state.walkwayPoints = [];
+    state.currentWalkwayPoints = [];
+    state.currentRoadPoints = [];
 
     document.querySelectorAll('.btn-cad-tool').forEach(btn => btn.classList.remove('btn-tool-active'));
     const btnMap = {
@@ -976,6 +1047,7 @@
       'terrace': 'toolBtnTerrace',
       'walkway': 'toolBtnWalkway',
       'draw_road': 'toolBtnDrawRoad',
+      'parking': 'toolBtnParking',
       'ruler': 'toolBtnRuler'
     };
     if (btnMap[toolName]) {
@@ -990,15 +1062,16 @@
     }
 
     const hintMap = {
-      'pan': 'არჩევა და გადაადგილება: დააკლიკეთ შენობას გადასაადგილებლად',
-      'delete': 'საშლელი: დააკლიკეთ ნებისმიერ ობიექტზე (შენობა, ხე, აუზი, გზა) მის წასაშლელად',
+      'pan': 'არჩევა და გადაადგილება: დააკლიკეთ შენობას გადასაადგილებლად ან როტაციისთვის',
+      'delete': 'საშლელი: დააკლიკეთ ნებისმიერ ობიექტზე (შენობა, ხე, აუზი, ტერასა, გზა, ბილიკი, პარკინგი) მის წასაშლელად',
       'split': 'ნაკვეთის დაყოფა: დააკლიკეთ ორ წერტილზე გამყოფი ხაზის გასავლებად',
-      'draw_footprint': 'ლაქის დახაზვა: დააკლიკეთ წერტილების დასასმელად, ორმაგი კლიკი ასრულებს',
-      'tree': 'გამწვანება: დააკლიკეთ ნაკვეთის ნებისმიერ ზონაში ხის დასარგავად',
+      'draw_footprint': 'ლაქის დახაზვა: დააკლიკეთ წერტილების დასასმელად, ორმაგი კლიკით ასრულებს',
+      'tree': 'გამწვანება: დააკლიკეთ ნაკვეთის ნებისმიერ ადგილას ხის დასარგავად',
       'water': 'აუზი: დააკლიკეთ ნაკვეთზე საცურაო აუზის განსათავსებლად',
       'terrace': 'ტერასა: დააკლიკეთ ნაკვეთზე ხის ტერასის / დეკის განსათავსებლად',
-      'walkway': 'ბილიკი: დააკლიკეთ წერტილების დასასმელად, ორმაგი კლიკი ასრულებს',
-      'draw_road': 'გზის დახაზვა: დააკლიკეთ გზის ტრაექტორიის მოსანიშნად',
+      'walkway': 'ბილიკი: დააკლიკეთ წერტილების დასასმელად, ორმაგი კლიკი დაასრულებს',
+      'draw_road': 'გზა: დააკლიკეთ წერტილების დასასმელად, ორმაგი კლიკი დაასრულებს (6.0მ)',
+      'parking': 'ავტოსადგომი: დააკლიკეთ ნაკვეთზე საპარკინგე ადგილის განსათავსებლად (2.5×5მ)',
       'ruler': 'საზომი: დააკლიკეთ ორ წერტილზე მანძილის გასაზომად'
     };
     updateToolStatus(hintMap[toolName] || '');
@@ -1008,6 +1081,60 @@
   function updateToolStatus(text) {
     if (els.lblToolStatusHint) els.lblToolStatusHint.innerText = text;
   }
+
+  // --- Walkway & Road Finish Helpers ---
+  function finishWalkway() {
+    if (state.currentWalkwayPoints.length >= 2) {
+      saveUndoSnapshot();
+      state.walkways.push({
+        id: 'walk_' + Date.now(),
+        points: [...state.currentWalkwayPoints],
+        width: 1.8
+      });
+      state.currentWalkwayPoints = [];
+      renderCadWorld();
+      updateToolStatus('საფეხმავლო ბილიკი დაემატა.');
+    }
+  }
+
+  function finishRoad() {
+    if (state.currentRoadPoints.length >= 2) {
+      saveUndoSnapshot();
+      state.roads.push({
+        id: 'road_' + Date.now(),
+        points: [...state.currentRoadPoints],
+        width: 6.0
+      });
+      state.currentRoadPoints = [];
+      renderCadWorld();
+      updateToolStatus('საავტომობილო გზა (6.0მ) დაემატა.');
+    }
+  }
+
+  // --- Auto-Plant Trees along setback / perimeter ---
+  window.autoPlantTrees = function (count = 8) {
+    if (!state.boundaryMeters || state.boundaryMeters.length < 3) return;
+    saveUndoSnapshot();
+    const setbackPoly = computeSetbackPolygon(state.boundaryMeters, state.setbackDistance);
+    const poly = setbackPoly.length >= 3 ? setbackPoly : state.boundaryMeters;
+    
+    for (let i = 0; i < count; i++) {
+      const idx = Math.floor((i / count) * poly.length);
+      const nextIdx = (idx + 1) % poly.length;
+      const t = 0.25 + 0.5 * (i % 2);
+      const x = poly[idx][0] + (poly[nextIdx][0] - poly[idx][0]) * t;
+      const y = poly[idx][1] + (poly[nextIdx][1] - poly[idx][1]) * t;
+      state.trees.push({
+        id: 'tree_' + Date.now() + '_' + i,
+        x: Math.round(x * 10) / 10,
+        y: Math.round(y * 10) / 10,
+        radius: 2.2 + Math.random() * 0.8
+      });
+    }
+    updateZoningCoefficientsUI();
+    renderCadWorld();
+    updateToolStatus(`დაირგო ${count} ხე ნაკვეთის პერიმეტრზე.`);
+  };
 
   // --- Interactive CAD Canvas Mouse Handlers ---
   function initCadCanvas() {
@@ -1060,7 +1187,7 @@
         }
 
         // Check if hit water body
-        const waterIdx = state.waterBodies.findIndex(w => Math.abs(worldPos[0] - w.x) < w.width / 2 && Math.abs(worldPos[1] - w.y) < w.length / 2);
+        const waterIdx = state.waterBodies.findIndex(w => Math.abs(worldPos[0] - w.x) < (w.width || 10) / 2 && Math.abs(worldPos[1] - w.y) < (w.length || 5) / 2);
         if (waterIdx !== -1) {
           state.waterBodies.splice(waterIdx, 1);
           renderCadWorld();
@@ -1069,7 +1196,7 @@
         }
 
         // Check if hit terrace
-        const terraceIdx = state.terraces.findIndex(t => Math.abs(worldPos[0] - t.x) < t.width / 2 && Math.abs(worldPos[1] - t.y) < t.length / 2);
+        const terraceIdx = state.terraces.findIndex(t => Math.abs(worldPos[0] - t.x) < (t.width || 12) / 2 && Math.abs(worldPos[1] - t.y) < (t.length || 6) / 2);
         if (terraceIdx !== -1) {
           state.terraces.splice(terraceIdx, 1);
           renderCadWorld();
@@ -1078,13 +1205,50 @@
         }
 
         // Check if hit parking
-        const parkIdx = state.parkingBays.findIndex(p => Math.hypot(worldPos[0] - p.center[0], worldPos[1] - p.center[1]) < 3);
+        const parkIdx = state.parkingBays.findIndex(p => Math.hypot(worldPos[0] - p.center[0], worldPos[1] - p.center[1]) < 3.0);
         if (parkIdx !== -1) {
           state.parkingBays.splice(parkIdx, 1);
           renderCadWorld();
           updateToolStatus('ავტოსადგომი წაიშალა.');
           return;
         }
+
+        // Check if hit walkway
+        const walkIdx = state.walkways.findIndex(w => {
+          if (!w.points || w.points.length < 2) return false;
+          for (let i = 0; i < w.points.length - 1; i++) {
+            const p1 = w.points[i];
+            const p2 = w.points[i + 1];
+            const dist = distToSegment(worldPos, p1, p2);
+            if (dist < 2.0) return true;
+          }
+          return false;
+        });
+        if (walkIdx !== -1) {
+          state.walkways.splice(walkIdx, 1);
+          renderCadWorld();
+          updateToolStatus('საფეხმავლო ბილიკი წაიშალა.');
+          return;
+        }
+
+        // Check if hit road
+        const roadIdx = state.roads.findIndex(r => {
+          if (!r.points || r.points.length < 2) return false;
+          for (let i = 0; i < r.points.length - 1; i++) {
+            const p1 = r.points[i];
+            const p2 = r.points[i + 1];
+            const dist = distToSegment(worldPos, p1, p2);
+            if (dist < 4.0) return true;
+          }
+          return false;
+        });
+        if (roadIdx !== -1) {
+          state.roads.splice(roadIdx, 1);
+          renderCadWorld();
+          updateToolStatus('გზა წაიშალა.');
+          return;
+        }
+
         return;
       }
 
@@ -1136,12 +1300,13 @@
         saveUndoSnapshot();
         state.trees.push({
           id: 'tree_' + Date.now(),
-          x: worldPos[0],
-          y: worldPos[1],
-          radius: 2.5 + Math.random() * 1.2
+          x: Math.round(worldPos[0] * 10) / 10,
+          y: Math.round(worldPos[1] * 10) / 10,
+          radius: 2.5 + Math.random() * 0.8
         });
         updateZoningCoefficientsUI();
         renderCadWorld();
+        updateToolStatus('დაირგო ხე (დიამეტრი ~5მ).');
         return;
       }
 
@@ -1150,13 +1315,13 @@
         saveUndoSnapshot();
         state.waterBodies.push({
           id: 'water_' + Date.now(),
-          x: worldPos[0],
-          y: worldPos[1],
+          x: Math.round(worldPos[0] * 10) / 10,
+          y: Math.round(worldPos[1] * 10) / 10,
           width: 10,
           length: 5
         });
         renderCadWorld();
-        updateToolStatus('განთავსდა საცურაო აუზი (10მ × 5მ)');
+        updateToolStatus('განთავსდა საცურაო აუზი (10მ × 5მ).');
         return;
       }
 
@@ -1165,24 +1330,55 @@
         saveUndoSnapshot();
         state.terraces.push({
           id: 'terrace_' + Date.now(),
-          x: worldPos[0],
-          y: worldPos[1],
+          x: Math.round(worldPos[0] * 10) / 10,
+          y: Math.round(worldPos[1] * 10) / 10,
           width: 12,
           length: 6
         });
         renderCadWorld();
-        updateToolStatus('განთავსდა ხის ტერასა (12მ × 6მ)');
+        updateToolStatus('განთავსდა ხის ტერასა (12მ × 6მ).');
         return;
       }
 
-      // 7. DRAW FOOTPRINT TOOL
+      // 7. WALKWAY / PATHWAY TOOL
+      if (state.activeTool === 'walkway') {
+        state.currentWalkwayPoints.push([Math.round(worldPos[0] * 10) / 10, Math.round(worldPos[1] * 10) / 10]);
+        renderInteractionLayer();
+        updateToolStatus(`ბილიკი: მონიშნულია ${state.currentWalkwayPoints.length} წერტილი (ორმაგი კლიკი ასრულებს).`);
+        return;
+      }
+
+      // 8. ROAD TOOL
+      if (state.activeTool === 'draw_road') {
+        state.currentRoadPoints.push([Math.round(worldPos[0] * 10) / 10, Math.round(worldPos[1] * 10) / 10]);
+        renderInteractionLayer();
+        updateToolStatus(`გზა (6.0მ): მონიშნულია ${state.currentRoadPoints.length} წერტილი (ორმაგი კლიკი ასრულებს).`);
+        return;
+      }
+
+      // 9. PARKING TOOL
+      if (state.activeTool === 'parking') {
+        saveUndoSnapshot();
+        state.parkingBays.push({
+          id: 'park_' + Date.now(),
+          center: [Math.round(worldPos[0] * 10) / 10, Math.round(worldPos[1] * 10) / 10],
+          width: 2.5,
+          length: 5.0,
+          rotation: 0
+        });
+        renderCadWorld();
+        updateToolStatus('განთავსდა ავტოსადგომის ადგილი (2.5×5.0მ).');
+        return;
+      }
+
+      // 10. DRAW FOOTPRINT TOOL
       if (state.activeTool === 'draw_footprint') {
         state.drawPoints.push(worldPos);
         renderInteractionLayer();
         return;
       }
 
-      // 8. RULER TOOL
+      // 11. RULER TOOL
       if (state.activeTool === 'ruler') {
         if (state.rulerPoints.length >= 2) state.rulerPoints = [];
         state.rulerPoints.push(worldPos);
@@ -1194,6 +1390,10 @@
     container.addEventListener('dblclick', () => {
       if (state.activeTool === 'draw_footprint' && state.drawPoints.length >= 3) {
         finishDrawnFootprint();
+      } else if (state.activeTool === 'walkway') {
+        finishWalkway();
+      } else if (state.activeTool === 'draw_road') {
+        finishRoad();
       }
     });
 
@@ -1303,6 +1503,16 @@
     return inside;
   }
 
+  function distToSegment(p, v, w) {
+    const l2 = (v[0] - w[0]) * (v[0] - w[0]) + (v[1] - w[1]) * (v[1] - w[1]);
+    if (l2 === 0) return Math.hypot(p[0] - v[0], p[1] - v[1]);
+    let t = ((p[0] - v[0]) * (w[0] - v[0]) + (p[1] - v[1]) * (w[1] - v[1])) / l2;
+    t = Math.max(0, Math.min(1, t));
+    const projX = v[0] + t * (w[0] - v[0]);
+    const projY = v[1] + t * (w[1] - v[1]);
+    return Math.hypot(p[0] - projX, p[1] - projY);
+  }
+
   function finishDrawnFootprint() {
     if (state.drawPoints.length < 3) return;
     saveUndoSnapshot();
@@ -1345,6 +1555,7 @@
     renderSetbackBuffer(pxToM);
     renderSubParcels(pxToM);
     renderRoads(pxToM);
+    renderWalkways(pxToM);
     renderParking(pxToM);
     renderWaterBodies(pxToM);
     renderTerraces(pxToM);
@@ -1372,7 +1583,7 @@
     `;
   }
 
-  // 2. Setback Buffer Layer (3.0m)
+  // 2. Setback Buffer Layer (სამეზობლო მიჯნა 1.5მ - 6.0მ)
   function renderSetbackBuffer(pxToM) {
     if (!els.setbackBoundaryLayer) return;
     if (!state.layers.setback || !state.boundaryMeters || state.boundaryMeters.length < 3) {
@@ -1419,53 +1630,132 @@
     }).join('');
   }
 
-  // 4. Driveways & Roads
+  // 4. Driveways & Roads (+ საავტომობილო გზა)
   function renderRoads(pxToM) {
     if (!els.roadsLayer) return;
-    if (!state.layers.roads || !state.boundaryMeters || state.boundaryMeters.length < 3) {
+    if (!state.layers.roads) {
       els.roadsLayer.innerHTML = '';
       return;
     }
 
-    const ys = state.boundaryMeters.map(p => p[1]);
-    const maxY = Math.max(...ys);
+    let html = '';
 
-    const roadW = 28;
-    const roadH = 6;
-    const rx = -roadW / 2;
-    const ry = maxY + 1;
+    // Default parcel entrance access road
+    if (state.boundaryMeters && state.boundaryMeters.length >= 3) {
+      const ys = state.boundaryMeters.map(p => p[1]);
+      const maxY = Math.max(...ys);
+      const roadW = 28;
+      const roadH = 6;
+      const rx = -roadW / 2;
+      const ry = maxY + 1;
 
-    els.roadsLayer.innerHTML = `
-      <g>
-        <rect x="${rx}" y="${ry}" width="${roadW}" height="${roadH}" fill="var(--road-fill)" stroke="#475569" stroke-width="${0.8 * pxToM}" rx="${1 * pxToM}"/>
-        <line x1="${rx}" y1="${ry + roadH / 2}" x2="${rx + roadW}" y2="${ry + roadH / 2}" stroke="#facc15" stroke-width="${0.6 * pxToM}" stroke-dasharray="${3 * pxToM}, ${3 * pxToM}"/>
-        <text x="0" y="${ry + roadH / 2 + 1.2 * pxToM}" text-anchor="middle" fill="#94a3b8" font-size="${8 * pxToM}" font-family="Inter, sans-serif" font-weight="600">მისასვლელი გზა (6.0მ)</text>
-      </g>
-    `;
+      html += `
+        <g>
+          <rect x="${rx}" y="${ry}" width="${roadW}" height="${roadH}" fill="var(--road-fill)" stroke="#475569" stroke-width="${0.8 * pxToM}" rx="${1 * pxToM}"/>
+          <line x1="${rx}" y1="${ry + roadH / 2}" x2="${rx + roadW}" y2="${ry + roadH / 2}" stroke="var(--road-stripe, #facc15)" stroke-width="${0.6 * pxToM}" stroke-dasharray="${3 * pxToM}, ${3 * pxToM}"/>
+          <text x="0" y="${ry + roadH / 2 + 1.2 * pxToM}" text-anchor="middle" fill="#94a3b8" font-size="${8 * pxToM}" font-family="Inter, sans-serif" font-weight="600">მისასვლელი გზა (6.0მ)</text>
+        </g>
+      `;
+    }
+
+    // User drawn roads
+    (state.roads || []).forEach(r => {
+      if (!r.points || r.points.length < 2) return;
+      const ptsStr = r.points.map(p => `${p[0]},${p[1]}`).join(' ');
+      const roadW = r.width || 6.0;
+
+      html += `
+        <g class="cursor-pointer" onclick="if(state.activeTool==='delete'){deleteRoad('${r.id}');}">
+          <polyline points="${ptsStr}" fill="none" stroke="var(--road-fill)" stroke-width="${roadW}" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
+          <polyline points="${ptsStr}" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="${roadW}" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="${ptsStr}" fill="none" stroke="var(--road-stripe, #facc15)" stroke-width="${Math.max(0.2, 0.6 * pxToM)}" stroke-dasharray="${4 * pxToM}, ${3 * pxToM}" stroke-linecap="round"/>
+          <polyline points="${ptsStr}" fill="none" stroke="transparent" stroke-width="${roadW + 2 * pxToM}" />
+        </g>
+      `;
+    });
+
+    els.roadsLayer.innerHTML = html;
   }
 
-  // 5. Parking Bays
+  function deleteRoad(id) {
+    saveUndoSnapshot();
+    state.roads = (state.roads || []).filter(r => r.id !== id);
+    renderCadWorld();
+    updateToolStatus('გზა წაიშალა.');
+  }
+
+  // 5. Walkways Layer (+ საფეხმავლო ბილიკი)
+  function renderWalkways(pxToM) {
+    if (!els.walkwaysLayer) return;
+    if (!state.layers.roads || !state.walkways || state.walkways.length === 0) {
+      els.walkwaysLayer.innerHTML = '';
+      return;
+    }
+
+    els.walkwaysLayer.innerHTML = state.walkways.map(w => {
+      if (!w.points || w.points.length < 2) return '';
+      const ptsStr = w.points.map(p => `${p[0]},${p[1]}`).join(' ');
+      const walkW = w.width || 1.8;
+
+      return `
+        <g class="cursor-pointer" onclick="if(state.activeTool==='delete'){deleteWalkway('${w.id}');}">
+          <!-- Outer border -->
+          <polyline points="${ptsStr}" fill="none" stroke="var(--walkway-stroke, #64748b)" stroke-width="${walkW + 0.3 * pxToM}" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+          <!-- Walkway Paver Body -->
+          <polyline points="${ptsStr}" fill="none" stroke="var(--walkway-fill, #94a3b8)" stroke-width="${walkW}" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- Dotted center paver seam -->
+          <polyline points="${ptsStr}" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="${0.4 * pxToM}" stroke-dasharray="${1.5 * pxToM}, ${1.5 * pxToM}" stroke-linecap="round"/>
+          <!-- Hit area for easy deletion -->
+          <polyline points="${ptsStr}" fill="none" stroke="transparent" stroke-width="${walkW + 3 * pxToM}"/>
+        </g>
+      `;
+    }).join('');
+  }
+
+  function deleteWalkway(id) {
+    saveUndoSnapshot();
+    state.walkways = (state.walkways || []).filter(w => w.id !== id);
+    renderCadWorld();
+    updateToolStatus('საფეხმავლო ბილიკი წაიშალა.');
+  }
+
+  // 6. Parking Bays (+ ავტოსადგომი)
   function renderParking(pxToM) {
     if (!els.parkingLayer) return;
-    if (!state.layers.roads || state.parkingBays.length === 0) {
+    if (!state.layers.roads || !state.parkingBays || state.parkingBays.length === 0) {
       els.parkingLayer.innerHTML = '';
       return;
     }
 
-    els.parkingLayer.innerHTML = state.parkingBays.map(p => `
-      <g class="cursor-pointer" onclick="if(state.activeTool==='delete'){deleteParking('${p.id}');}">
-        <rect x="${p.center[0] - p.width / 2}" y="${p.center[1] - p.length / 2}" width="${p.width}" height="${p.length}" fill="var(--parking-fill)" opacity="0.75" stroke="#ffffff" stroke-width="${0.5 * pxToM}" rx="${0.5 * pxToM}"/>
-        <text x="${p.center[0]}" y="${p.center[1] + 2.5 * pxToM}" text-anchor="middle" fill="#ffffff" font-size="${8 * pxToM}" font-weight="bold">P</text>
-      </g>
-    `).join('');
+    els.parkingLayer.innerHTML = state.parkingBays.map(p => {
+      const w = p.width || 2.5;
+      const l = p.length || 5.0;
+      const rot = p.rotation || 0;
+
+      return `
+        <g class="cursor-pointer" transform="rotate(${rot}, ${p.center[0]}, ${p.center[1]})" onclick="if(state.activeTool==='delete'){deleteParking('${p.id}');}">
+          <!-- Stall asphalt/paving surface -->
+          <rect x="${p.center[0] - w / 2}" y="${p.center[1] - l / 2}" width="${w}" height="${l}" fill="var(--parking-fill)" opacity="0.88" stroke="var(--parking-line, #ffffff)" stroke-width="${0.5 * pxToM}" rx="${0.4 * pxToM}"/>
+          <!-- Stall divider lines on sides -->
+          <line x1="${p.center[0] - w / 2}" y1="${p.center[1] - l / 2}" x2="${p.center[0] - w / 2}" y2="${p.center[1] + l / 2}" stroke="var(--parking-line, #ffffff)" stroke-width="${0.8 * pxToM}" />
+          <line x1="${p.center[0] + w / 2}" y1="${p.center[1] - l / 2}" x2="${p.center[0] + w / 2}" y2="${p.center[1] + l / 2}" stroke="var(--parking-line, #ffffff)" stroke-width="${0.8 * pxToM}" />
+          <!-- Wheel stop bar -->
+          <rect x="${p.center[0] - w / 2 + 0.3}" y="${p.center[1] + l / 2 - 0.7}" width="${w - 0.6}" height="${0.3}" fill="#cbd5e1" rx="${0.1}"/>
+          <!-- 'P' Badge -->
+          <circle cx="${p.center[0]}" cy="${p.center[1] - 0.5}" r="${1.2}" fill="rgba(15,23,42,0.6)"/>
+          <text x="${p.center[0]}" y="${p.center[1] - 0.5 + 2.5 * pxToM}" text-anchor="middle" fill="#ffffff" font-size="${7 * pxToM}" font-weight="bold" font-family="'JetBrains Mono', monospace">P</text>
+        </g>
+      `;
+    }).join('');
   }
 
   function deleteParking(id) {
     saveUndoSnapshot();
-    state.parkingBays = state.parkingBays.filter(p => p.id !== id);
+    state.parkingBays = (state.parkingBays || []).filter(p => p.id !== id);
     renderCadWorld();
     updateToolStatus('ავტოსადგომი წაიშალა.');
   }
+
 
   // 6. Water Bodies / Swimming Pools (+ აუზი)
   function renderWaterBodies(pxToM) {
@@ -1579,15 +1869,34 @@
     }
 
     const hatchId = state.activeStyle === 'classic' ? 'hatchBuildingClassic' : 'hatchBuildingBlueprint';
+    const setbackPoly = (state.boundaryMeters && state.boundaryMeters.length >= 3)
+      ? computeSetbackPolygon(state.boundaryMeters, state.setbackDistance)
+      : null;
 
     els.footprintsLayer.innerHTML = state.footprints.map(f => {
       const pts = f.vertices.map(p => `${p[0]},${p[1]}`).join(' ');
       const isSelected = f.id === state.selectedFootprintId;
 
-      const badgeW = 95 * pxToM;
+      // Check setback violation: does any vertex cross outside the setback zone?
+      let isSetbackViolated = false;
+      if (setbackPoly && setbackPoly.length >= 3) {
+        for (const v of f.vertices) {
+          if (!pointInPolygon(v, setbackPoly)) {
+            isSetbackViolated = true;
+            break;
+          }
+        }
+      }
+
+      const badgeW = (isSetbackViolated ? 115 : 95) * pxToM;
       const badgeH = 26 * pxToM;
       const cornerR = 4 * pxToM;
       const strokeW = isSelected ? Math.max(0.4, 2.0 * pxToM) : Math.max(0.3, 1.2 * pxToM);
+
+      let strokeColor = isSelected ? '#00f0ff' : 'var(--footprint-stroke)';
+      if (isSetbackViolated) {
+        strokeColor = '#ef4444';
+      }
 
       let rotationHandleSvg = '';
       if (isSelected) {
@@ -1604,16 +1913,17 @@
 
       return `
         <g class="cursor-pointer" onclick="handleFootprintClick('${f.id}')">
-          <polygon points="${pts}" fill="var(--footprint-fill)" stroke="${isSelected ? '#00f0ff' : 'var(--footprint-stroke)'}" stroke-width="${strokeW}" />
+          ${isSetbackViolated ? `<polygon points="${pts}" fill="none" stroke="#ef4444" stroke-width="${strokeW + 2 * pxToM}" stroke-dasharray="${3 * pxToM}, ${2 * pxToM}" opacity="0.8"/>` : ''}
+          <polygon points="${pts}" fill="var(--footprint-fill)" stroke="${strokeColor}" stroke-width="${strokeW}" />
           <polygon points="${pts}" fill="url(#${hatchId})" opacity="0.65" pointer-events="none" />
 
           ${rotationHandleSvg}
 
-          <circle cx="${f.center[0]}" cy="${f.center[1]}" r="${4.5 * pxToM}" fill="${isSelected ? '#00f0ff' : '#ffffff'}" stroke="#0a101d" stroke-width="${1 * pxToM}" />
+          <circle cx="${f.center[0]}" cy="${f.center[1]}" r="${4.5 * pxToM}" fill="${isSelected ? '#00f0ff' : (isSetbackViolated ? '#ef4444' : '#ffffff')}" stroke="#0a101d" stroke-width="${1 * pxToM}" />
 
-          <rect x="${f.center[0] - badgeW / 2}" y="${f.center[1] - badgeH / 2}" width="${badgeW}" height="${badgeH}" rx="${cornerR}" fill="rgba(8,13,26,0.92)" stroke="${isSelected ? '#00f0ff' : '#334155'}" stroke-width="${0.8 * pxToM}" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.5))" pointer-events="none" />
-          <text x="${f.center[0]}" y="${f.center[1] - 2 * pxToM}" text-anchor="middle" fill="#ffffff" font-size="${9 * pxToM}" font-weight="bold" font-family="Inter, sans-serif" pointer-events="none">${f.name}</text>
-          <text x="${f.center[0]}" y="${f.center[1] + 8 * pxToM}" text-anchor="middle" fill="${isSelected ? '#38bdf8' : '#94a3b8'}" font-size="${8 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="600" pointer-events="none">${f.areaSqm} მ² · ${f.floors}ს (H:${f.totalHeight}მ)</text>
+          <rect x="${f.center[0] - badgeW / 2}" y="${f.center[1] - badgeH / 2}" width="${badgeW}" height="${badgeH}" rx="${cornerR}" fill="rgba(8,13,26,0.92)" stroke="${isSetbackViolated ? '#ef4444' : (isSelected ? '#00f0ff' : '#334155')}" stroke-width="${0.8 * pxToM}" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.5))" pointer-events="none" />
+          <text x="${f.center[0]}" y="${f.center[1] - 2 * pxToM}" text-anchor="middle" fill="${isSetbackViolated ? '#f87171' : '#ffffff'}" font-size="${9 * pxToM}" font-weight="bold" font-family="Inter, sans-serif" pointer-events="none">${f.name} ${isSetbackViolated ? '⚠️ მიჯნა' : ''}</text>
+          <text x="${f.center[0]}" y="${f.center[1] + 8 * pxToM}" text-anchor="middle" fill="${isSelected ? '#38bdf8' : (isSetbackViolated ? '#fca5a5' : '#94a3b8')}" font-size="${8 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="600" pointer-events="none">${f.areaSqm} მ² · ${f.floors}ს (H:${f.totalHeight}მ)</text>
         </g>
       `;
     }).join('');
@@ -1703,6 +2013,19 @@
       els.interactionLayer.innerHTML = `
         <polyline points="${pts}" fill="none" stroke="#00f0ff" stroke-width="${1.5 * p2m}" stroke-dasharray="${3 * p2m}, ${2 * p2m}" />
         ${state.drawPoints.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${3 * p2m}" fill="#00f0ff"/>`).join('')}
+      `;
+    } else if (state.activeTool === 'walkway' && state.currentWalkwayPoints && state.currentWalkwayPoints.length > 0) {
+      const pts = state.currentWalkwayPoints.map(p => `${p[0]},${p[1]}`).join(' ');
+      els.interactionLayer.innerHTML = `
+        <polyline points="${pts}" fill="none" stroke="#2dd4bf" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="${3 * p2m}, ${2 * p2m}" />
+        ${state.currentWalkwayPoints.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${3.5 * p2m}" fill="#2dd4bf" stroke="#ffffff" stroke-width="${1 * p2m}"/>`).join('')}
+      `;
+    } else if (state.activeTool === 'draw_road' && state.currentRoadPoints && state.currentRoadPoints.length > 0) {
+      const pts = state.currentRoadPoints.map(p => `${p[0]},${p[1]}`).join(' ');
+      els.interactionLayer.innerHTML = `
+        <polyline points="${pts}" fill="none" stroke="#94a3b8" stroke-width="6.0" stroke-linecap="round" stroke-linejoin="round" opacity="0.6" />
+        <polyline points="${pts}" fill="none" stroke="#facc15" stroke-width="${1.2 * p2m}" stroke-dasharray="${3 * p2m}, ${2 * p2m}" />
+        ${state.currentRoadPoints.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${4 * p2m}" fill="#facc15" stroke="#ffffff" stroke-width="${1 * p2m}"/>`).join('')}
       `;
     } else if (state.activeTool === 'ruler' && state.rulerPoints.length === 2) {
       const p1 = state.rulerPoints[0];
@@ -1991,13 +2314,16 @@
         window.undoLastAction();
         return;
       }
-      if (e.key === ' ' || e.key === 'p') setCadActiveTool('pan');
-      if (e.key === 'e') setCadActiveTool('delete');
-      if (e.key === 's') setCadActiveTool('split');
-      if (e.key === 'b') setCadActiveTool('draw_footprint');
-      if (e.key === 't') setCadActiveTool('tree');
-      if (e.key === 'w') setCadActiveTool('water');
-      if (e.key === 'r') setCadActiveTool('ruler');
+      if (e.key === ' ' || e.key.toLowerCase() === 'v') setCadActiveTool('pan');
+      if (e.key.toLowerCase() === 'p') setCadActiveTool('parking');
+      if (e.key.toLowerCase() === 'e') setCadActiveTool('delete');
+      if (e.key.toLowerCase() === 's') setCadActiveTool('split');
+      if (e.key.toLowerCase() === 'b') setCadActiveTool('draw_footprint');
+      if (e.key.toLowerCase() === 't') setCadActiveTool('tree');
+      if (e.key.toLowerCase() === 'w') setCadActiveTool('water');
+      if (e.key.toLowerCase() === 'k') setCadActiveTool('walkway');
+      if (e.key.toLowerCase() === 'g') setCadActiveTool('draw_road');
+      if (e.key.toLowerCase() === 'r') setCadActiveTool('ruler');
       if (e.key === 'Escape') setCadActiveTool('pan');
     });
   }
