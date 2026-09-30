@@ -773,9 +773,14 @@
       position: absolute !important;
       top: calc(100% + 4px) !important;
       z-index: 99999 !important;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(56, 189, 248, 0.35) !important;
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(56, 189, 248, 0.35) !important;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      width: max-content !important;
+      min-width: 320px !important;
+      max-width: 450px !important;
+      white-space: normal !important;
+      box-sizing: border-box !important;
     }
 
     .cad-menu-popup.hidden {
@@ -1048,37 +1053,53 @@
             <span>შენობები</span>
             <i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
           </button>
-          <div id="menuBuildings" class="cad-menu-popup hidden absolute left-0 top-full mt-1 w-64 bg-[#0d1629] border border-[#243557] rounded-lg shadow-2xl py-1 z-50 text-xs">
-            <button type="button" onclick="activateFootprintStamp(); closeAllDropdowns();" class="w-full text-left px-3 py-2 text-sky-300 hover:bg-sky-500/20 hover:text-white flex items-center gap-2 font-bold">
-              <i class="fa-solid fa-stamp text-sky-400"></i> 🏢 სწრაფი ლაქის დასმა (დააკლიკეთ გეგმაზე) [B]
+          <div id="menuBuildings" class="cad-menu-popup hidden absolute left-0 top-full mt-1 min-w-[340px] max-w-md bg-[#0d1629] border border-[#243557] rounded-lg shadow-2xl py-1.5 z-50 text-xs">
+            <button type="button" onclick="setCadActiveTool('draw_rect_footprint'); closeAllDropdowns();" class="w-full text-left px-3.5 py-2 text-sky-300 hover:bg-sky-500/20 hover:text-white flex items-center justify-between gap-3 font-bold transition">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-vector-square text-sky-400"></i> ✏️ ლაქის მოხაზვა (მართკუთხედი)</span>
+              <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-400/30">Drag &amp; Draw</span>
             </button>
-            <button type="button" onclick="setCadActiveTool('draw_polygon'); closeAllDropdowns();" class="w-full text-left px-3 py-1.5 text-slate-200 hover:bg-sky-500/20 hover:text-white flex items-center gap-2">
-              <i class="fa-solid fa-draw-polygon text-purple-400"></i> ✏️ ლაქის ხელით მოხაზვა (პოლიგონი)
+            <button type="button" onclick="activateFootprintStamp(); closeAllDropdowns();" class="w-full text-left px-3.5 py-2 text-cyan-300 hover:bg-cyan-500/20 hover:text-white flex items-center justify-between gap-3 font-bold transition">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-stamp text-cyan-400"></i> 🏢 სწრაფი ლაქის დასმა (1-Click)</span>
+              <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">[B]</span>
             </button>
-            <div class="border-t border-white/10 my-1 px-3 py-0.5 text-[10px] text-slate-400 uppercase font-mono">ტიპოლოგიური შაბლონები:</div>
-            <button type="button" onclick="stampTemplate('rect'); closeAllDropdowns();" class="w-full text-left px-3 py-1.5 text-slate-200 hover:bg-sky-500/20 hover:text-white flex items-center gap-2">
-              <i class="fa-regular fa-square text-sky-400"></i> ▫️ მართკუთხა ბლოკი (15×12მ)
+            <button type="button" onclick="setCadActiveTool('draw_polygon'); closeAllDropdowns();" class="w-full text-left px-3.5 py-1.5 text-slate-200 hover:bg-sky-500/20 hover:text-white flex items-center justify-between gap-3 transition">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-draw-polygon text-purple-400"></i> 📐 პოლიგონის მოხაზვა (თავისუფალი)</span>
+              <span class="text-[10px] font-mono text-slate-400">მრავალკუთხა</span>
             </button>
-            <button type="button" onclick="stampTemplate('l_shape'); closeAllDropdowns();" class="w-full text-left px-3 py-1.5 text-slate-200 hover:bg-sky-500/20 hover:text-white flex items-center gap-2">
-              <i class="fa-solid fa-chart-gantt text-amber-400"></i> 📐 L-ფორმის კორპუსი (18×16მ)
+            <div class="border-t border-white/10 my-1 px-3 py-1 text-[10px] text-slate-400 uppercase font-mono tracking-wider">
+              დააკლიკეთ მყისიერად დასასმელად:
+            </div>
+            <button type="button" onclick="stampTemplate('rect'); closeAllDropdowns();" class="w-full text-left px-3.5 py-1.5 text-slate-200 hover:bg-sky-500/20 hover:text-white flex items-center justify-between gap-3 transition">
+              <span class="flex items-center gap-2"><i class="fa-regular fa-square text-sky-400"></i> ▫️ მართკუთხა ბლოკი (15×12მ)</span>
+              <span class="text-[10px] font-mono text-slate-400">4 სართ.</span>
             </button>
-            <button type="button" onclick="stampTemplate('u_shape'); closeAllDropdowns();" class="w-full text-left px-3 py-1.5 text-slate-200 hover:bg-sky-500/20 hover:text-white flex items-center gap-2">
-              <i class="fa-solid fa-cube text-emerald-400"></i> 🏙️ U-ფორმის შენობა ეზოთი (22×18მ)
+            <button type="button" onclick="stampTemplate('l_shape'); closeAllDropdowns();" class="w-full text-left px-3.5 py-1.5 text-slate-200 hover:bg-sky-500/20 hover:text-white flex items-center justify-between gap-3 transition">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-chart-gantt text-amber-400"></i> 📐 L-ფორმის კორპუსი (18×16მ)</span>
+              <span class="text-[10px] font-mono text-slate-400">5 სართ.</span>
             </button>
-            <button type="button" onclick="stampTemplate('tower'); closeAllDropdowns();" class="w-full text-left px-3 py-1.5 text-slate-200 hover:bg-sky-500/20 hover:text-white flex items-center gap-2">
-              <i class="fa-solid fa-building text-purple-400"></i> 🏢 კოშკი / ტაუერი (20×20მ, 16ს)
+            <button type="button" onclick="stampTemplate('u_shape'); closeAllDropdowns();" class="w-full text-left px-3.5 py-1.5 text-slate-200 hover:bg-sky-500/20 hover:text-white flex items-center justify-between gap-3 transition">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-cube text-emerald-400"></i> 🏙️ U-ფორმის შენობა ეზოთი (22×18მ)</span>
+              <span class="text-[10px] font-mono text-slate-400">6 სართ.</span>
             </button>
-            <button type="button" onclick="stampTemplate('villa'); closeAllDropdowns();" class="w-full text-left px-3 py-1.5 text-slate-200 hover:bg-sky-500/20 hover:text-white flex items-center gap-2">
-              <i class="fa-solid fa-house text-emerald-400"></i> 🏡 კერძო ვილა / სახლი (14×10მ, 2ს)
+            <button type="button" onclick="stampTemplate('tower'); closeAllDropdowns();" class="w-full text-left px-3.5 py-1.5 text-slate-200 hover:bg-sky-500/20 hover:text-white flex items-center justify-between gap-3 transition">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-building text-purple-400"></i> 🏢 კოშკი / ტაუერი (20×20მ)</span>
+              <span class="text-[10px] font-mono text-slate-400">16 სართ.</span>
             </button>
-            <button type="button" onclick="stampTemplate('apartment'); closeAllDropdowns();" class="w-full text-left px-3 py-1.5 text-slate-200 hover:bg-sky-500/20 hover:text-white flex items-center gap-2">
-              <i class="fa-solid fa-city text-cyan-400"></i> 🏬 საცხოვრებელი კორპუსი (30×14მ, 8ს)
+            <button type="button" onclick="stampTemplate('villa'); closeAllDropdowns();" class="w-full text-left px-3.5 py-1.5 text-slate-200 hover:bg-sky-500/20 hover:text-white flex items-center justify-between gap-3 transition">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-house text-emerald-400"></i> 🏡 კერძო ვილა / სახლი (14×10მ)</span>
+              <span class="text-[10px] font-mono text-slate-400">2 სართ.</span>
             </button>
-            <button type="button" onclick="stampTemplate('commercial'); closeAllDropdowns();" class="w-full text-left px-3 py-1.5 text-slate-200 hover:bg-sky-500/20 hover:text-white flex items-center gap-2">
-              <i class="fa-solid fa-store text-rose-400"></i> 🏪 კომერციული პავილიონი (12×8მ)
+            <button type="button" onclick="stampTemplate('apartment'); closeAllDropdowns();" class="w-full text-left px-3.5 py-1.5 text-slate-200 hover:bg-sky-500/20 hover:text-white flex items-center justify-between gap-3 transition">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-city text-cyan-400"></i> 🏬 საცხოვრებელი კორპუსი (30×14მ)</span>
+              <span class="text-[10px] font-mono text-slate-400">8 სართ.</span>
             </button>
-            <button type="button" onclick="setCadActiveTool('terrace'); closeAllDropdowns();" class="w-full text-left px-3 py-1.5 text-slate-200 hover:bg-sky-500/20 hover:text-white flex items-center gap-2 border-t border-white/10">
-              <i class="fa-solid fa-sun-plant-wilt text-amber-400"></i> 🪵 ხის ტერასა / ვერანდა (12×6მ)
+            <button type="button" onclick="stampTemplate('commercial'); closeAllDropdowns();" class="w-full text-left px-3.5 py-1.5 text-slate-200 hover:bg-sky-500/20 hover:text-white flex items-center justify-between gap-3 transition">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-store text-rose-400"></i> 🏪 კომერციული პავილიონი (12×8მ)</span>
+              <span class="text-[10px] font-mono text-slate-400">1 სართ.</span>
+            </button>
+            <button type="button" onclick="setCadActiveTool('terrace'); closeAllDropdowns();" class="w-full text-left px-3.5 py-1.5 text-slate-200 hover:bg-sky-500/20 hover:text-white flex items-center justify-between gap-3 border-t border-white/10 transition">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-sun-plant-wilt text-amber-400"></i> 🪵 ხის ტერასა / ვერანდა (12×6მ)</span>
+              <span class="text-[10px] font-mono text-slate-400">ეზო</span>
             </button>
           </div>
         </div>
@@ -1090,21 +1111,26 @@
             <span>ინფრასტრუქტურა</span>
             <i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
           </button>
-          <div id="menuInfrastructure" class="cad-menu-popup hidden absolute left-0 top-full mt-1 w-60 bg-[#0d1629] border border-[#243557] rounded-lg shadow-2xl py-1 z-50 text-xs">
-            <button type="button" onclick="setCadActiveTool('draw_road'); closeAllDropdowns();" class="w-full text-left px-3 py-2 text-slate-200 hover:bg-teal-500/20 hover:text-white flex items-center gap-2">
-              <i class="fa-solid fa-road text-slate-400"></i> 🛣️ საავტომობილო გზა (6.0მ) [G]
+          <div id="menuInfrastructure" class="cad-menu-popup hidden absolute left-0 top-full mt-1 min-w-[320px] max-w-md bg-[#0d1629] border border-[#243557] rounded-lg shadow-2xl py-1.5 z-50 text-xs">
+            <button type="button" onclick="setCadActiveTool('draw_road'); closeAllDropdowns();" class="w-full text-left px-3.5 py-2 text-slate-200 hover:bg-teal-500/20 hover:text-white flex items-center justify-between gap-3 transition">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-road text-slate-400"></i> 🛣️ საავტომობილო გზა (6.0მ)</span>
+              <span class="text-[10px] font-mono text-teal-300">[G]</span>
             </button>
-            <button type="button" onclick="setCadActiveTool('walkway'); closeAllDropdowns();" class="w-full text-left px-3 py-2 text-slate-200 hover:bg-teal-500/20 hover:text-white flex items-center gap-2">
-              <i class="fa-solid fa-shoe-prints text-teal-400"></i> 🚶 საფეხმავლო ბილიკი (1.8მ) [K]
+            <button type="button" onclick="setCadActiveTool('walkway'); closeAllDropdowns();" class="w-full text-left px-3.5 py-2 text-slate-200 hover:bg-teal-500/20 hover:text-white flex items-center justify-between gap-3 transition">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-shoe-prints text-teal-400"></i> 🚶 საფეხმავლო ბილიკი (1.8მ)</span>
+              <span class="text-[10px] font-mono text-teal-300">[K]</span>
             </button>
-            <button type="button" onclick="setCadActiveTool('bike_path'); closeAllDropdowns();" class="w-full text-left px-3 py-2 text-slate-200 hover:bg-teal-500/20 hover:text-white flex items-center gap-2">
-              <i class="fa-solid fa-bicycle text-emerald-400"></i> 🚴 ველობილიკი (2.0მ)
+            <button type="button" onclick="setCadActiveTool('bike_path'); closeAllDropdowns();" class="w-full text-left px-3.5 py-2 text-slate-200 hover:bg-teal-500/20 hover:text-white flex items-center justify-between gap-3 transition">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-bicycle text-emerald-400"></i> 🚴 ველობილიკი (2.0მ)</span>
+              <span class="text-[10px] font-mono text-emerald-300">2.0მ</span>
             </button>
-            <button type="button" onclick="setCadActiveTool('parking'); closeAllDropdowns();" class="w-full text-left px-3 py-2 text-slate-200 hover:bg-teal-500/20 hover:text-white flex items-center gap-2">
-              <i class="fa-solid fa-square-parking text-blue-400"></i> 🅿️ საპარკინგე ადგილი (2.5×5მ) [P]
+            <button type="button" onclick="setCadActiveTool('parking'); closeAllDropdowns();" class="w-full text-left px-3.5 py-2 text-slate-200 hover:bg-teal-500/20 hover:text-white flex items-center justify-between gap-3 transition">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-square-parking text-blue-400"></i> 🅿️ საპარკინგე ადგილი (2.5×5მ)</span>
+              <span class="text-[10px] font-mono text-blue-300">[P]</span>
             </button>
-            <button type="button" onclick="addParkingRow(); closeAllDropdowns();" class="w-full text-left px-3 py-2 text-slate-200 hover:bg-teal-500/20 hover:text-white flex items-center gap-2">
-              <i class="fa-solid fa-bars text-blue-400"></i> 🅿️ პარკინგის რიგი (5 ადგილიანი)
+            <button type="button" onclick="addParkingRow(); closeAllDropdowns();" class="w-full text-left px-3.5 py-2 text-slate-200 hover:bg-teal-500/20 hover:text-white flex items-center justify-between gap-3 transition">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-bars text-blue-400"></i> 🅿️ პარკინგის რიგი (5 ადგილი)</span>
+              <span class="text-[10px] font-mono text-blue-300">5 ბლოკი</span>
             </button>
           </div>
         </div>
@@ -1116,24 +1142,30 @@
             <span>გამწვანება &amp; ეზო</span>
             <i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
           </button>
-          <div id="menuLandscape" class="cad-menu-popup hidden absolute left-0 top-full mt-1 w-60 bg-[#0d1629] border border-[#243557] rounded-lg shadow-2xl py-1 z-50 text-xs">
-            <button type="button" onclick="setCadActiveTool('tree'); closeAllDropdowns();" class="w-full text-left px-3 py-2 text-slate-200 hover:bg-emerald-500/20 hover:text-white flex items-center gap-2">
-              <i class="fa-solid fa-tree text-emerald-400"></i> 🌳 ფოთლოვანი ხე (~5მ) [T]
+          <div id="menuLandscape" class="cad-menu-popup hidden absolute left-0 top-full mt-1 min-w-[320px] max-w-md bg-[#0d1629] border border-[#243557] rounded-lg shadow-2xl py-1.5 z-50 text-xs">
+            <button type="button" onclick="setCadActiveTool('tree'); closeAllDropdowns();" class="w-full text-left px-3.5 py-2 text-slate-200 hover:bg-emerald-500/20 hover:text-white flex items-center justify-between gap-3 transition">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-tree text-emerald-400"></i> 🌳 ფოთლოვანი ხე (~5მ)</span>
+              <span class="text-[10px] font-mono text-emerald-300">[T]</span>
             </button>
-            <button type="button" onclick="setCadActiveTool('pine_tree'); closeAllDropdowns();" class="w-full text-left px-3 py-2 text-slate-200 hover:bg-emerald-500/20 hover:text-white flex items-center gap-2">
-              <i class="fa-solid fa-tree-deciduous text-emerald-300"></i> 🌲 წიწვოვანი ხე (~3მ)
+            <button type="button" onclick="setCadActiveTool('pine_tree'); closeAllDropdowns();" class="w-full text-left px-3.5 py-2 text-slate-200 hover:bg-emerald-500/20 hover:text-white flex items-center justify-between gap-3 transition">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-tree-deciduous text-emerald-300"></i> 🌲 წიწვოვანი ხე (~3მ)</span>
+              <span class="text-[10px] font-mono text-emerald-300">მარადმწვანე</span>
             </button>
-            <button type="button" onclick="setCadActiveTool('hedge'); closeAllDropdowns();" class="w-full text-left px-3 py-2 text-slate-200 hover:bg-emerald-500/20 hover:text-white flex items-center gap-2">
-              <i class="fa-solid fa-leaf text-green-400"></i> 🌿 ბუჩქნარი / ცოცხალი ღობე
+            <button type="button" onclick="setCadActiveTool('hedge'); closeAllDropdowns();" class="w-full text-left px-3.5 py-2 text-slate-200 hover:bg-emerald-500/20 hover:text-white flex items-center justify-between gap-3 transition">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-leaf text-green-400"></i> 🌿 ბუჩქნარი / ცოცხალი ღობე</span>
+              <span class="text-[10px] font-mono text-green-300">ღობე</span>
             </button>
-            <button type="button" onclick="setCadActiveTool('water'); closeAllDropdowns();" class="w-full text-left px-3 py-2 text-slate-200 hover:bg-emerald-500/20 hover:text-white flex items-center gap-2">
-              <i class="fa-solid fa-water-ladder text-cyan-400"></i> 🏊 საცურაო აუზი (10×5მ) [W]
+            <button type="button" onclick="setCadActiveTool('water'); closeAllDropdowns();" class="w-full text-left px-3.5 py-2 text-slate-200 hover:bg-emerald-500/20 hover:text-white flex items-center justify-between gap-3 transition">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-water-ladder text-cyan-400"></i> 🏊 საცურაო აუზი (10×5მ)</span>
+              <span class="text-[10px] font-mono text-cyan-300">[W]</span>
             </button>
-            <button type="button" onclick="setCadActiveTool('fountain'); closeAllDropdowns();" class="w-full text-left px-3 py-2 text-slate-200 hover:bg-emerald-500/20 hover:text-white flex items-center gap-2">
-              <i class="fa-solid fa-circle-notch text-sky-400"></i> ⛲ დეკორატიული შადრევანი
+            <button type="button" onclick="setCadActiveTool('fountain'); closeAllDropdowns();" class="w-full text-left px-3.5 py-2 text-slate-200 hover:bg-emerald-500/20 hover:text-white flex items-center justify-between gap-3 transition">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-circle-notch text-sky-400"></i> ⛲ დეკორატიული შადრევანი</span>
+              <span class="text-[10px] font-mono text-sky-300">Ø5მ</span>
             </button>
-            <button type="button" onclick="autoPlantTrees(10); closeAllDropdowns();" class="w-full text-left px-3 py-2 text-emerald-300 hover:bg-emerald-500/20 hover:text-white flex items-center gap-2 font-bold border-t border-white/10">
-              <i class="fa-solid fa-wand-magic-sparkles text-emerald-400"></i> 🪄 პერიმეტრის ავტო-გამწვანება
+            <button type="button" onclick="autoPlantTrees(10); closeAllDropdowns();" class="w-full text-left px-3.5 py-2 text-emerald-300 hover:bg-emerald-500/20 hover:text-white flex items-center justify-between gap-3 font-bold border-t border-white/10 transition">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-wand-magic-sparkles text-emerald-400"></i> 🪄 პერიმეტრის ავტო-გამწვანება</span>
+              <span class="text-[10px] font-mono text-emerald-300">10 ხე</span>
             </button>
           </div>
         </div>
@@ -1145,28 +1177,37 @@
             <span>ნაკვეთი &amp; მიჯნა</span>
             <i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
           </button>
-          <div id="menuParcel" class="cad-menu-popup hidden absolute left-0 top-full mt-1 w-60 bg-[#0d1629] border border-[#243557] rounded-lg shadow-2xl py-1 z-50 text-xs">
-            <button type="button" onclick="setCadActiveTool('split'); closeAllDropdowns();" class="w-full text-left px-3 py-2 text-slate-200 hover:bg-amber-500/20 hover:text-white flex items-center gap-2">
-              <i class="fa-solid fa-scissors text-amber-400"></i> ✂️ ნაკვეთის დაყოფა (2 წერტილით) [S]
+          <div id="menuParcel" class="cad-menu-popup hidden absolute left-0 top-full mt-1 min-w-[320px] max-w-md bg-[#0d1629] border border-[#243557] rounded-lg shadow-2xl py-1.5 z-50 text-xs">
+            <button type="button" onclick="setCadActiveTool('split'); closeAllDropdowns();" class="w-full text-left px-3.5 py-2 text-slate-200 hover:bg-amber-500/20 hover:text-white flex items-center justify-between gap-3 transition">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-scissors text-amber-400"></i> ✂️ ნაკვეთის დაყოფა (2 წერტილით)</span>
+              <span class="text-[10px] font-mono text-amber-300">[S]</span>
             </button>
-            <button type="button" onclick="triggerMergeSubParcels(); closeAllDropdowns();" class="w-full text-left px-3 py-2 text-slate-200 hover:bg-amber-500/20 hover:text-white flex items-center gap-2">
-              <i class="fa-solid fa-object-ungroup text-emerald-400"></i> 🔗 დაყოფილის გაერთიანება
+            <button type="button" onclick="triggerMergeSubParcels(); closeAllDropdowns();" class="w-full text-left px-3.5 py-2 text-slate-200 hover:bg-amber-500/20 hover:text-white flex items-center justify-between gap-3 transition">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-object-ungroup text-emerald-400"></i> 🔗 დაყოფილის გაერთიანება</span>
+              <span class="text-[10px] font-mono text-emerald-300">სრული</span>
             </button>
-            <button type="button" onclick="setCadActiveTool('ruler'); closeAllDropdowns();" class="w-full text-left px-3 py-2 text-slate-200 hover:bg-amber-500/20 hover:text-white flex items-center gap-2">
-              <i class="fa-solid fa-ruler text-amber-400"></i> 📏 მანძილის გაზომვა [R]
+            <button type="button" onclick="setCadActiveTool('ruler'); closeAllDropdowns();" class="w-full text-left px-3.5 py-2 text-slate-200 hover:bg-amber-500/20 hover:text-white flex items-center justify-between gap-3 transition">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-ruler text-amber-400"></i> 📏 მანძილის გაზომვა</span>
+              <span class="text-[10px] font-mono text-amber-300">[R]</span>
             </button>
-            <div class="border-t border-white/10 my-1 px-3 py-0.5 text-[10px] text-slate-400 uppercase font-mono">სამეზობლო მიჯნა:</div>
-            <button type="button" onclick="setSetbackDistance(1.5); closeAllDropdowns();" class="w-full text-left px-3 py-1.5 text-slate-200 hover:bg-rose-500/20 hover:text-white flex items-center gap-2 font-mono">
-              🎯 1.5 მეტრი (მცირე შენობები)
+            <div class="border-t border-white/10 my-1 px-3 py-1 text-[10px] text-slate-400 uppercase font-mono tracking-wider">
+              სამეზობლო მიჯნის ნორმატივი:
+            </div>
+            <button type="button" onclick="setSetbackDistance(1.5); closeAllDropdowns();" class="w-full text-left px-3.5 py-1.5 text-slate-200 hover:bg-rose-500/20 hover:text-white flex items-center justify-between gap-3 transition">
+              <span>🎯 1.5 მეტრი (მცირე შენობები)</span>
+              <span class="text-[10px] font-mono text-rose-300">1.5მ</span>
             </button>
-            <button type="button" onclick="setSetbackDistance(3.0); closeAllDropdowns();" class="w-full text-left px-3 py-1.5 text-rose-300 font-bold hover:bg-rose-500/20 hover:text-white flex items-center gap-2 font-mono">
-              🎯 3.0 მეტრი (ნორმატივი)
+            <button type="button" onclick="setSetbackDistance(3.0); closeAllDropdowns();" class="w-full text-left px-3.5 py-1.5 text-rose-300 font-bold hover:bg-rose-500/20 hover:text-white flex items-center justify-between gap-3 transition">
+              <span>🎯 3.0 მეტრი (სტანდარტული ნორმატივი)</span>
+              <span class="text-[10px] font-mono text-rose-300">3.0მ</span>
             </button>
-            <button type="button" onclick="setSetbackDistance(5.0); closeAllDropdowns();" class="w-full text-left px-3 py-1.5 text-slate-200 hover:bg-rose-500/20 hover:text-white flex items-center gap-2 font-mono">
-              🎯 5.0 მეტრი
+            <button type="button" onclick="setSetbackDistance(5.0); closeAllDropdowns();" class="w-full text-left px-3.5 py-1.5 text-slate-200 hover:bg-rose-500/20 hover:text-white flex items-center justify-between gap-3 transition">
+              <span>🎯 5.0 მეტრი (გაზრდილი დაცვა)</span>
+              <span class="text-[10px] font-mono text-rose-300">5.0მ</span>
             </button>
-            <button type="button" onclick="setSetbackDistance(6.0); closeAllDropdowns();" class="w-full text-left px-3 py-1.5 text-slate-200 hover:bg-rose-500/20 hover:text-white flex items-center gap-2 font-mono">
-              🎯 6.0 მეტრი (მაღლივი / გზის მიჯნა)
+            <button type="button" onclick="setSetbackDistance(6.0); closeAllDropdowns();" class="w-full text-left px-3.5 py-1.5 text-slate-200 hover:bg-rose-500/20 hover:text-white flex items-center justify-between gap-3 transition">
+              <span>🎯 6.0 მეტრი (მაღლივი / გზის მიჯნა)</span>
+              <span class="text-[10px] font-mono text-rose-300">6.0მ</span>
             </button>
           </div>
         </div>
@@ -1236,7 +1277,7 @@
               <span class="hidden sm:inline">შრეები</span>
               <i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
             </button>
-            <div id="dropdownLayersMenu" class="cad-menu-popup hidden absolute right-0 top-full mt-1 w-52 bg-[#0d1629] border border-[#243557] rounded-lg shadow-2xl p-2 z-50 space-y-1.5 text-xs">
+            <div id="dropdownLayersMenu" class="cad-menu-popup hidden absolute right-0 top-full mt-1 min-w-[280px] max-w-xs bg-[#0d1629] border border-[#243557] rounded-lg shadow-2xl p-2.5 z-50 space-y-2 text-xs">
               <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
                 <input type="checkbox" id="chkLayerBoundary" checked onchange="toggleLayer('boundary', this.checked)" class="accent-sky-400">
                 <span>საკადასტრო საზღვარი</span>
