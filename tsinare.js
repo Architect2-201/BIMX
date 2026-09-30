@@ -423,7 +423,10 @@
       return [x, y];
     });
 
+    // Step 1: fast geometric fallback (immediate, synchronous)
     state.boundaryEdgeTypes = detectBoundaryEdgeTypes(state.boundaryMeters, state.roads);
+    // Step 2: async OSM refinement — overwrites with accurate road data once fetched
+    detectEdgeTypesFromOSM();
   }
 
   // --- Generate Default Building Footprint upon parcel load ---
@@ -598,6 +601,72 @@
   }
 
   // --- Boundary Edge Classification: Road/Public (0m setback) vs Neighbor (3.0m setback) ---
+  // Async: Queries OpenStreetMap for nearby roads and classifies each parcel edge automatically.
+  async function detectEdgeTypesFromOSM() {
+    if (!state.centroidLatLng || !state.boundaryMeters || state.boundaryMeters.length < 3) return;
+    const [cLat, cLng] = state.centroidLatLng;
+    const metersPerDegLat = 111132.954;
+    const metersPerDegLng = 111132.954 * Math.cos((cLat * Math.PI) / 180);
+
+    try {
+      // Query OSM Overpass for highways within 80m
+      const radius = 80;
+      const query = `[out:json][timeout:12];(way(around:${radius},${cLat},${cLng})[highway];);out geom;`;
+      const res = await fetch('https://overpass-api.de/api/interpreter', {
+        method: 'POST',
+        body: 'data=' + encodeURIComponent(query)
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+
+      // Convert OSM road geometry to local meter coordinates (same frame as boundaryMeters)
+      const roadSegments = [];
+      (data.elements || []).forEach(way => {
+        const geom = way.geometry || [];
+        for (let i = 0; i < geom.length - 1; i++) {
+          const p1 = [
+            (geom[i].lon - cLng) * metersPerDegLng,
+            -(geom[i].lat - cLat) * metersPerDegLat
+          ];
+          const p2 = [
+            (geom[i + 1].lon - cLng) * metersPerDegLng,
+            -(geom[i + 1].lat - cLat) * metersPerDegLat
+          ];
+          roadSegments.push([p1, p2]);
+        }
+      });
+
+      if (roadSegments.length === 0) return; // No OSM roads found — keep geometric fallback
+
+      // For each parcel edge, check distance from its midpoint to any road segment
+      const poly = state.boundaryMeters;
+      const n = poly.length;
+      const threshold = 14; // meters — edge midpoint within 14m of road centerline → road edge
+      const newTypes = new Array(n).fill('neighbor');
+
+      for (let i = 0; i < n; i++) {
+        const midX = (poly[i][0] + poly[(i + 1) % n][0]) / 2;
+        const midY = (poly[i][1] + poly[(i + 1) % n][1]) / 2;
+        for (const [r1, r2] of roadSegments) {
+          const d = distPointToSegment([midX, midY], r1, r2);
+          if (d < threshold) {
+            newTypes[i] = 'road';
+            break;
+          }
+        }
+      }
+
+      // Safety: if nothing was classified as road, keep geometric fallback
+      if (!newTypes.includes('road')) return;
+
+      state.boundaryEdgeTypes = newTypes;
+      renderCadWorld();
+      updateToolStatus('ავტომატურად გამოიგნა: OSM გზის მონაცემებით სამეზობლო მიჯნის შეზღუდვა განახლდა.');
+    } catch (e) {
+      console.warn('OSM edge detection failed, keeping geometric fallback.', e);
+    }
+  }
+
   function detectBoundaryEdgeTypes(polygon, roads = []) {
     if (!polygon || polygon.length < 3) return [];
     const n = polygon.length;
