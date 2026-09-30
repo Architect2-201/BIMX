@@ -70,6 +70,31 @@
     activeRoadWidth: 6.0,
     activeWalkwayWidth: 1.8,
     activeTreeRadius: 2.5,
+
+    // Precise CAD Drafting & Vector Geometry
+    cadLines: [], // [{ id, p1: [x,y], p2: [x,y], color }]
+    cadPolylines: [], // [{ id, points: [[x,y]...], isClosed, color }]
+    cadArcs: [], // [{ id, p1: [x,y], p2: [x,y], p3: [x,y], color }]
+    cadCircles: [], // [{ id, center: [x,y], radius, color }]
+    cadHatches: [], // [{ id, polygon: [[x,y]...], pattern: 'diagonal'|'cross'|'dots', color }]
+    cadFreehands: [], // [{ id, points: [[x,y]...], color }]
+
+    // Precision & Snapping Controls
+    osnapEnabled: true,
+    orthoEnabled: false,
+    activeSnap: null, // { point: [x,y], type: 'endpoint'|'midpoint'|'perpendicular'|'intersection' }
+    offsetDistance: 3.0,
+    offsetDual: true,
+    filletRadius: 2.0,
+    chamferDistance: 1.5,
+    cadDraftPoints: [], // Temporary points during line/polyline/arc/circle drawing
+    isFreehandDrawing: false,
+
+    // Footprint Contour Editing
+    footprintEditMode: true,
+    draggedVertexIdx: null,
+    draggedEdgeIdx: null,
+    atriumCutoutPoints: [],
     
     // Layer Visibility
     layers: {
@@ -80,6 +105,7 @@
       setbackLabels: false,
       dimensions: true,
       footprints: true,
+      cadDrafting: true,
       shadows: true,
       trees: true,
       water: true,
@@ -272,9 +298,22 @@
     els.treesLayer = document.getElementById('treesLayer');
     els.shadowsLayer = document.getElementById('shadowsLayer');
     els.footprintsLayer = document.getElementById('footprintsLayer');
+    els.cadDraftingLayer = document.getElementById('cadDraftingLayer');
     els.dimensionsLayer = document.getElementById('dimensionsLayer');
     els.nodesLayer = document.getElementById('nodesLayer');
     els.interactionLayer = document.getElementById('interactionLayer');
+
+    // CAD Precision, Snapping & Dynamic HUD Elements
+    els.cadDynamicHud = document.getElementById('cadDynamicHud');
+    els.hudCadLength = document.getElementById('hudCadLength');
+    els.hudCadAngle = document.getElementById('hudCadAngle');
+    els.cadOsnapTooltip = document.getElementById('cadOsnapTooltip');
+    els.btnToggleOsnap = document.getElementById('btnToggleOsnap');
+    els.btnToggleOrtho = document.getElementById('btnToggleOrtho');
+    els.quickOffsetDist = document.getElementById('quickOffsetDist');
+    els.chkOffsetDual = document.getElementById('chkOffsetDual');
+    els.quickFilletR = document.getElementById('quickFilletR');
+    els.quickChamferD = document.getElementById('quickChamferD');
 
     // HUD & Hints
     els.lblToolStatusHint = document.getElementById('lblToolStatusHint');
@@ -439,12 +478,16 @@
         state.rawCoordinates = data.coordinates;
         state.centroidLatLng = data.centroid || data.coordinates[0];
 
-        if (data.zoning && data.zoning.zoneCode) {
-          state.zone = data.zoning.zoneCode;
-          state.zoneName = data.zoning.zoneNameKa || data.zoning.mainZoneKa || data.zoning.zoneCode;
-          if (data.zoning.k1) state.k1Limit = data.zoning.k1;
-          if (data.zoning.k2) state.k2Limit = data.zoning.k2;
-          if (data.zoning.k3) state.k3Limit = data.zoning.k3;
+        if (data.zoning) {
+          state.zone = data.zoning.zoneCode || 'სზ-1';
+          state.zoneName = data.zoning.zoneNameKa || data.zoning.mainZoneKa || data.zoning.zoneCode || 'საცხოვრებელი ზონა';
+          if (data.zoning.k1 !== undefined && data.zoning.k1 !== null) state.k1Limit = parseFloat(data.zoning.k1);
+          if (data.zoning.k2 !== undefined && data.zoning.k2 !== null) state.k2Limit = parseFloat(data.zoning.k2);
+          if (data.zoning.k3 !== undefined && data.zoning.k3 !== null) state.k3Limit = parseFloat(data.zoning.k3);
+          state.manualZoningOverride = false;
+          if (els.inputK1Coeff) els.inputK1Coeff.value = state.k1Limit;
+          if (els.inputK2Coeff) els.inputK2Coeff.value = state.k2Limit;
+          if (els.inputK3Coeff) els.inputK3Coeff.value = state.k3Limit;
         }
 
         // Convert Geo [lat, lng] to Metric Cartesian [x, y]
@@ -1342,7 +1385,7 @@
     const k3Deficit = k3Balance < 0;
 
     // --- Update K-1 DOM ---
-    if (els.inputK1Coeff) els.inputK1Coeff.value = k1;
+    if (els.inputK1Coeff && document.activeElement !== els.inputK1Coeff) els.inputK1Coeff.value = k1;
     if (els.lblK1Allowed) els.lblK1Allowed.innerText = `${k1Allowed.toLocaleString()} მ²`;
     if (els.lblK1Used) els.lblK1Used.innerText = `${k1Used.toLocaleString()} მ² (${k1Percent}%)`;
     if (els.lblK1Remaining) {
@@ -1363,7 +1406,7 @@
     }
 
     // --- Update K-2 DOM ---
-    if (els.inputK2Coeff) els.inputK2Coeff.value = k2;
+    if (els.inputK2Coeff && document.activeElement !== els.inputK2Coeff) els.inputK2Coeff.value = k2;
     if (els.lblK2Allowed) els.lblK2Allowed.innerText = `${k2Allowed.toLocaleString()} მ²`;
     if (els.lblK2Used) els.lblK2Used.innerText = `${k2Used.toLocaleString()} მ² (${k2Percent}%)`;
     if (els.lblK2Remaining) {
@@ -1384,7 +1427,7 @@
     }
 
     // --- Update K-3 DOM ---
-    if (els.inputK3Coeff) els.inputK3Coeff.value = k3;
+    if (els.inputK3Coeff && document.activeElement !== els.inputK3Coeff) els.inputK3Coeff.value = k3;
     if (els.lblK3Required) els.lblK3Required.innerText = `${k3Required.toLocaleString()} მ²`;
     if (els.lblK3Actual) els.lblK3Actual.innerText = `${k3Actual.toLocaleString()} მ²`;
     if (els.lblK3Balance) {
@@ -1411,6 +1454,21 @@
 
     updateSelectedBuildingUI();
   }
+
+  // --- Real-time Manual Override Handler for K1, K2, K3 ---
+  window.updateZoningCoefficients = function () {
+    const k1Input = parseFloat(els.inputK1Coeff ? els.inputK1Coeff.value : state.k1Limit);
+    const k2Input = parseFloat(els.inputK2Coeff ? els.inputK2Coeff.value : state.k2Limit);
+    const k3Input = parseFloat(els.inputK3Coeff ? els.inputK3Coeff.value : state.k3Limit);
+
+    if (!isNaN(k1Input) && k1Input >= 0) state.k1Limit = Math.round(k1Input * 100) / 100;
+    if (!isNaN(k2Input) && k2Input >= 0) state.k2Limit = Math.round(k2Input * 100) / 100;
+    if (!isNaN(k3Input) && k3Input >= 0) state.k3Limit = Math.round(k3Input * 100) / 100;
+
+    state.manualZoningOverride = true;
+    updateZoningCoefficientsUI();
+    updateToolStatus(`კოეფიციენტები განახლდა: K1=${state.k1Limit}, K2=${state.k2Limit}, K3=${state.k3Limit}`);
+  };
 
   // --- Active Building UI updates (Two-Way Dual Slider & Numeric Sync) ---
   function updateSelectedBuildingUI() {
@@ -2082,6 +2140,13 @@
     state.currentRoadPoints = [];
     state.currentBikePathPoints = [];
     state.currentHedgePoints = [];
+    state.cadDraftPoints = [];
+    state.atriumCutoutPoints = [];
+    state.isFreehandDrawing = false;
+    state.activeSnap = null;
+
+    if (els.cadDynamicHud) els.cadDynamicHud.classList.add('hidden');
+    if (els.cadOsnapTooltip) els.cadOsnapTooltip.classList.add('hidden');
 
     document.querySelectorAll('.btn-cad-tool').forEach(btn => btn.classList.remove('btn-tool-active'));
     const btnMap = {
@@ -2099,7 +2164,19 @@
       'bike_path': 'toolBtnWalkway',
       'draw_road': 'toolBtnDrawRoad',
       'parking': 'toolBtnParking',
-      'ruler': 'toolBtnRuler'
+      'ruler': 'toolBtnRuler',
+      'draw_cad_line': 'btnCadDrawMenu',
+      'draw_cad_polyline': 'btnCadDrawMenu',
+      'draw_cad_arc': 'btnCadDrawMenu',
+      'draw_cad_circle': 'btnCadDrawMenu',
+      'draw_cad_hatch': 'btnCadDrawMenu',
+      'draw_cad_freehand': 'btnCadDrawMenu',
+      'cad_offset': 'btnCadModifyMenu',
+      'cad_trim': 'btnCadModifyMenu',
+      'cad_extend': 'btnCadModifyMenu',
+      'cad_mirror': 'btnCadModifyMenu',
+      'cad_array': 'btnCadModifyMenu',
+      'footprint_cutout': 'btnFootprintEditMenu'
     };
     if (btnMap[toolName]) {
       const btn = document.getElementById(btnMap[toolName]);
@@ -2118,7 +2195,7 @@
       'draw_rect_footprint': '✏️ ლაქის მოხაზვა: დააჭირეთ მაუსს და გადაატარეთ მართკუთხედის მოსახაზად, ხელის გაშვებით ლაქა დაჯდება ნაკვეთზე',
       'draw_polygon': 'ლაქის ხელით მოხაზვა: დააკლიკეთ წერტილების დასასმელად, ორმაგი კლიკით ასრულებს',
       'draw_footprint': 'ლაქის ხელით მოხაზვა: დააკლიკეთ წერტილების დასასმელად, ორმაგი კლიკით ასრულებს',
-      'delete': 'საშლელი: დააკლიკეთ ნებისმიერ ობიექტზე (შენობა, ხე, აუზი, ტერასა, გზა, ბილიკი, პარკინგი) მის წასაშლელად',
+      'delete': 'საშლელი: დააკლიკეთ ნებისმიერ ობიექტზე (შენობა, ხე, აუზი, ტერასა, გზა, ბილიკი, პარკინგი, CAD ხაზი) მის წასაშლელად',
       'split': 'ნაკვეთის დაყოფა: დააკლიკეთ ორ წერტილზე გამყოფი ხაზის გასავლებად',
       'tree': 'ფოთლოვანი ხე: დააკლიკეთ ნაკვეთის ნებისმიერ ადგილას ხის დასარგავად (Ø5მ)',
       'pine_tree': 'წიწვოვანი ხე: დააკლიკეთ ნაკვეთზე მარადმწვანე წიწვოვანი ხის დასარგავად (Ø3.5მ)',
@@ -2130,7 +2207,19 @@
       'bike_path': 'ველობილიკი: დააკლიკეთ წერტილების დასასმელად, ორმაგი კლიკი დაასრულებს (2.0მ)',
       'draw_road': 'საავტომობილო გზა: დააკლიკეთ წერტილების დასასმელად, ორმაგი კლიკი დაასრულებს (6.0მ)',
       'parking': 'ავტოსადგომი: დააკლიკეთ ნაკვეთზე საპარკინგე ადგილის განსათავსებლად (2.5×5მ)',
-      'ruler': 'საზომი: დააკლიკეთ ორ წერტილზე მანძილის გასაზომად'
+      'ruler': 'საზომი: დააკლიკეთ ორ წერტილზე მანძილის გასაზომად',
+      'draw_cad_line': '📏 ხაზი (Line): დააკლიკეთ დასაწყისს, შემდეგ ბოლოს ან შეიყვანეთ სიგრძე და კუთხე Dynamic HUD-ში [L]',
+      'draw_cad_polyline': '📐 პოლიხაზი (Polyline): დააკლიკეთ წერტილებს თანმიმდევრობით (Enter / ორმაგი კლიკი ასრულებს) [PL]',
+      'draw_cad_arc': '🏹 რკალი (3-Point Arc): დააკლიკეთ 3 წერტილს (საწყისი, გავლის წერტილი, ბოლო) [A]',
+      'draw_cad_circle': '⭕ წრე (Circle): დააკლიკეთ ცენტრს, შემდეგ მიუთითეთ რადიუსი (ან შეიყვანეთ HUD-ში) [C]',
+      'draw_cad_hatch': '▦ შტრიხი (Hatch): დააკლიკეთ მრავალკუთხა კონტურს არქიტექტურული შტრიხით დასაფარად [H]',
+      'draw_cad_freehand': '✍️ თავისუფალი კონტური: დააჭირეთ და თავისუფლად გადაატარეთ მაუსი ჩანახატის გასაკეთებლად',
+      'cad_offset': '↔️ პარალელური გადაწევა (Offset): დააკლიკეთ ხაზს ან გზის ღერძს მითითებული მანძილით კიდეების მისაღებად',
+      'cad_trim': '✂️ მოჭრა (Trim): დააკლიკეთ გადაკვეთის ზედმეტ სეგმენტზე მის ჩამოსაჭრელად [TR]',
+      'cad_extend': '➡️ გაგრძელება (Extend): დააკლიკეთ ხაზს უახლოეს საზღვრამდე გასაგრძელებლად [EX]',
+      'cad_mirror': '🪞 სარკისებური ასლი: დააკლიკეთ 2 წერტილს სარკის ღერძის გასავლებად [MI]',
+      'cad_array': '🔲 თანაბარი გამეორება (Array): დააკლიკეთ შენობას მის გასამრავლებლად თანაბარი ბიჯით [AR]',
+      'footprint_cutout': '🕳️ შიდა ეზოს / ატრიუმის ამოჭრა: დახაზეთ შიდა კონტური შენობის ლაქაში სიცარიელის ამოსაჭრელად'
     };
     updateToolStatus(hintMap[toolName] || '');
     renderInteractionLayer();
@@ -2739,6 +2828,88 @@
         renderInteractionLayer();
         return;
       }
+
+      // 12. CAD PRECISION DRAFTING TOOLS (LINE, POLYLINE, ARC, CIRCLE, HATCH, CUTOUT)
+      if (state.activeTool === 'draw_cad_line' || state.activeTool === 'draw_cad_polyline' || state.activeTool === 'draw_cad_arc' || state.activeTool === 'draw_cad_circle' || state.activeTool === 'draw_cad_hatch' || state.activeTool === 'footprint_cutout') {
+        let commitPt = [worldPos[0], worldPos[1]];
+        if (state.activeSnap) {
+          commitPt = [state.activeSnap.point[0], state.activeSnap.point[1]];
+        } else if (state.orthoEnabled && state.cadDraftPoints && state.cadDraftPoints.length > 0) {
+          const prev = state.cadDraftPoints[state.cadDraftPoints.length - 1];
+          const dx = Math.abs(worldPos[0] - prev[0]);
+          const dy = Math.abs(worldPos[1] - prev[1]);
+          if (dx > dy) {
+            commitPt = [worldPos[0], prev[1]];
+          } else {
+            commitPt = [prev[0], worldPos[1]];
+          }
+        }
+        handleCadCommitPoint(commitPt);
+        return;
+      }
+
+      // 13. CAD FREEHAND DRAWING
+      if (state.activeTool === 'draw_cad_freehand') {
+        saveUndoSnapshot();
+        state.isFreehandDrawing = true;
+        state.currentFreehandPoints = [worldPos];
+        renderInteractionLayer();
+        return;
+      }
+
+      // 14. CAD MODIFY TOOLS: OFFSET, TRIM, EXTEND
+      if (state.activeTool === 'cad_offset') {
+        let nearestTarget = null;
+        let minD = 999999;
+        (state.cadLines || []).forEach(l => {
+          const d = distPointToSegment(worldPos, l.p1, l.p2);
+          if (d < minD && d < 6.0) { minD = d; nearestTarget = l; }
+        });
+        (state.roads || []).forEach(r => {
+          if (r.points && r.points.length >= 2) {
+            for (let i = 0; i < r.points.length - 1; i++) {
+              const d = distPointToSegment(worldPos, r.points[i], r.points[i + 1]);
+              if (d < minD && d < 6.0) { minD = d; nearestTarget = r; }
+            }
+          }
+        });
+        if (nearestTarget) {
+          window.cadOffsetGeometry(nearestTarget, worldPos);
+        } else {
+          updateToolStatus('ოფსეტისთვის დააკლიკეთ CAD ხაზს ან გზას.');
+        }
+        return;
+      }
+
+      if (state.activeTool === 'cad_trim') {
+        let nearestLine = null;
+        let minD = 999999;
+        (state.cadLines || []).forEach(l => {
+          const d = distPointToSegment(worldPos, l.p1, l.p2);
+          if (d < minD && d < 4.0) { minD = d; nearestLine = l; }
+        });
+        if (nearestLine) {
+          window.cadTrimLine(nearestLine, worldPos);
+        } else {
+          updateToolStatus('მოსაჭრელად დააკლიკეთ CAD ხაზს.');
+        }
+        return;
+      }
+
+      if (state.activeTool === 'cad_extend') {
+        let nearestLine = null;
+        let minD = 999999;
+        (state.cadLines || []).forEach(l => {
+          const d = distPointToSegment(worldPos, l.p1, l.p2);
+          if (d < minD && d < 4.0) { minD = d; nearestLine = l; }
+        });
+        if (nearestLine) {
+          window.cadExtendLine(nearestLine, worldPos);
+        } else {
+          updateToolStatus('გასაგრძელებლად დააკლიკეთ CAD ხაზის ბოლოსთან.');
+        }
+        return;
+      }
     });
 
     container.addEventListener('dblclick', (e) => {
@@ -2753,6 +2924,12 @@
         finishRoad();
       } else if (state.activeTool === 'hedge') {
         finishHedge();
+      } else if (state.activeTool === 'draw_cad_polyline') {
+        window.finishCadPolyline();
+      } else if (state.activeTool === 'draw_cad_hatch') {
+        window.finishCadHatch();
+      } else if (state.activeTool === 'footprint_cutout') {
+        window.finishFootprintCutout();
       }
     });
 
@@ -2760,6 +2937,15 @@
       if ((state.activeTool === 'draw_footprint' || state.activeTool === 'draw_polygon') && state.drawPoints.length >= 3) {
         e.preventDefault();
         finishDrawnFootprint();
+      } else if (state.activeTool === 'draw_cad_polyline') {
+        e.preventDefault();
+        window.finishCadPolyline();
+      } else if (state.activeTool === 'draw_cad_hatch') {
+        e.preventDefault();
+        window.finishCadHatch();
+      } else if (state.activeTool === 'footprint_cutout') {
+        e.preventDefault();
+        window.finishFootprintCutout();
       }
     });
 
@@ -2768,13 +2954,85 @@
       const worldPos = screenToWorld(e.clientX, e.clientY);
       state.mouseWorldPos = worldPos;
 
+      // OSNAP Calculation for CAD drafting and drawing tools
+      if (state.osnapEnabled !== false && (
+        (state.activeTool && state.activeTool.startsWith('draw_cad_')) ||
+        state.activeTool === 'footprint_cutout' ||
+        state.activeTool === 'draw_footprint' ||
+        state.activeTool === 'draw_polygon' ||
+        state.activeTool === 'ruler'
+      )) {
+        state.activeSnap = findOsnap(worldPos);
+        if (state.activeSnap && els.cadOsnapTooltip) {
+          const pt = state.activeSnap.point;
+          const rect = els.cadSvgContainer.getBoundingClientRect();
+          const sx = pt[0] * state.zoomScale + state.panX + rect.left;
+          const sy = pt[1] * state.zoomScale + state.panY + rect.top;
+          els.cadOsnapTooltip.style.left = `${sx + 14}px`;
+          els.cadOsnapTooltip.style.top = `${sy - 10}px`;
+          const snapLabels = {
+            'endpoint': 'Endpoint (ბოლო □)',
+            'midpoint': 'Midpoint (შუა △)',
+            'intersection': 'Intersection (გადაკვეთა ✕)',
+            'perpendicular': 'Perpendicular (პერპენდიკულარი ∟)'
+          };
+          els.cadOsnapTooltip.innerText = snapLabels[state.activeSnap.type] || 'OSNAP წერტილი';
+          els.cadOsnapTooltip.classList.remove('hidden');
+        } else if (els.cadOsnapTooltip) {
+          els.cadOsnapTooltip.classList.add('hidden');
+        }
+      } else {
+        state.activeSnap = null;
+        if (els.cadOsnapTooltip) els.cadOsnapTooltip.classList.add('hidden');
+      }
+
+      // Dynamic HUD update (Length & Angle)
+      const hasCadDraftPoints = state.cadDraftPoints && state.cadDraftPoints.length > 0;
+      if (hasCadDraftPoints && (state.activeTool === 'draw_cad_line' || state.activeTool === 'draw_cad_polyline' || state.activeTool === 'draw_cad_circle')) {
+        const prevPt = state.cadDraftPoints[state.cadDraftPoints.length - 1];
+        let targetPt = state.activeSnap ? state.activeSnap.point : worldPos;
+        if (state.orthoEnabled && !state.activeSnap) {
+          const dx = Math.abs(targetPt[0] - prevPt[0]);
+          const dy = Math.abs(targetPt[1] - prevPt[1]);
+          if (dx > dy) targetPt = [targetPt[0], prevPt[1]];
+          else targetPt = [prevPt[0], targetPt[1]];
+        }
+        updateDynamicHud(e.clientX, e.clientY, prevPt, targetPt);
+      } else if (!hasCadDraftPoints && els.cadDynamicHud && !els.cadDynamicHud.classList.contains('hidden')) {
+        els.cadDynamicHud.classList.add('hidden');
+      }
+
+      // Freehand drawing drag
+      if (state.isFreehandDrawing && state.activeTool === 'draw_cad_freehand') {
+        state.currentFreehandPoints = state.currentFreehandPoints || [];
+        const lastPt = state.currentFreehandPoints[state.currentFreehandPoints.length - 1];
+        if (!lastPt || Math.hypot(worldPos[0] - lastPt[0], worldPos[1] - lastPt[1]) > 0.3) {
+          state.currentFreehandPoints.push([Math.round(worldPos[0] * 10) / 10, Math.round(worldPos[1] * 10) / 10]);
+          renderInteractionLayer();
+        }
+        return;
+      }
+
+      // Footprint vertex dragging
+      if (state.isDraggingCadVertex && state.draggedFpId != null && state.draggedVertexIdx != null) {
+        const fp = state.footprints.find(f => f.id === state.draggedFpId);
+        if (fp && fp.vertices && fp.vertices[state.draggedVertexIdx]) {
+          let newV = state.activeSnap ? state.activeSnap.point : worldPos;
+          fp.vertices[state.draggedVertexIdx] = [Math.round(newV[0] * 10) / 10, Math.round(newV[1] * 10) / 10];
+          fp.shape = 'freeform';
+          fp.areaSqm = Math.max(1, Math.round(calculatePolygonArea(fp.vertices) - (fp.holes || []).reduce((s, h) => s + calculatePolygonArea(h), 0)));
+          renderCadWorld();
+        }
+        return;
+      }
+
       if (state.isDrawingRect && state.activeTool === 'draw_rect_footprint') {
         state.drawRectCurrent = [worldPos[0], worldPos[1]];
         renderInteractionLayer();
         return;
       }
 
-      if (state.activeTool === 'stamp_footprint' || state.activeTool === 'draw_rect_footprint' || state.activeTool === 'draw_footprint' || state.activeTool === 'draw_polygon' || state.activeTool === 'walkway' || state.activeTool === 'bike_path' || state.activeTool === 'draw_road' || state.activeTool === 'hedge') {
+      if (state.activeTool === 'stamp_footprint' || state.activeTool === 'draw_rect_footprint' || state.activeTool === 'draw_footprint' || state.activeTool === 'draw_polygon' || state.activeTool === 'walkway' || state.activeTool === 'bike_path' || state.activeTool === 'draw_road' || state.activeTool === 'hedge' || (state.activeTool && state.activeTool.startsWith('draw_cad_')) || state.activeTool === 'footprint_cutout') {
         renderInteractionLayer();
       }
 
@@ -2831,6 +3089,31 @@
     });
 
     window.addEventListener('mouseup', (e) => {
+      if (state.isFreehandDrawing && state.activeTool === 'draw_cad_freehand') {
+        state.isFreehandDrawing = false;
+        if (state.currentFreehandPoints && state.currentFreehandPoints.length >= 2) {
+          saveUndoSnapshot();
+          state.cadFreehands.push({
+            id: 'cad_free_' + Date.now(),
+            points: [...state.currentFreehandPoints],
+            color: '#f43f5e'
+          });
+          updateToolStatus('თავისუფალი კონტური წარმატებით დაიტანა ნახაზზე.');
+        }
+        state.currentFreehandPoints = [];
+        renderCadWorld();
+        return;
+      }
+
+      if (state.isDraggingCadVertex) {
+        state.isDraggingCadVertex = false;
+        state.draggedFpId = null;
+        state.draggedVertexIdx = null;
+        updateSelectedBuildingUI();
+        updateZoningCoefficientsUI();
+        renderCadWorld();
+      }
+
       const wasDragging = state.isDraggingFootprint || state.isRotatingFootprint;
       state.isPanning = false;
       state.isDraggingFootprint = false;
@@ -3015,6 +3298,842 @@
   window.finishDrawnFootprint = finishDrawnFootprint;
 
   // =========================================================================
+  // --- PRECISE CAD DRAFTING & VECTOR GEOMETRY ENGINE ---
+  // =========================================================================
+
+  // Mathematical Geometry Helpers
+  function cadDist(p1, p2) {
+    return Math.hypot(p2[0] - p1[0], p2[1] - p1[1]);
+  }
+
+  function getLineLineIntersection(p1, p2, p3, p4) {
+    const d = (p1[0] - p2[0]) * (p3[1] - p4[1]) - (p1[1] - p2[1]) * (p3[0] - p4[0]);
+    if (Math.abs(d) < 1e-9) return null;
+    const t = ((p1[0] - p3[0]) * (p3[1] - p4[1]) - (p1[1] - p3[1]) * (p3[0] - p4[0])) / d;
+    const u = -((p1[0] - p2[0]) * (p1[1] - p3[1]) - (p1[1] - p2[1]) * (p1[0] - p3[0])) / d;
+    if (t >= -0.01 && t <= 1.01 && u >= -0.01 && u <= 1.01) {
+      return [p1[0] + t * (p2[0] - p1[0]), p1[1] + t * (p2[1] - p1[1])];
+    }
+    return null;
+  }
+
+  function filletCorner(prev, curr, next, r) {
+    const v1 = [prev[0] - curr[0], prev[1] - curr[1]];
+    const v2 = [next[0] - curr[0], next[1] - curr[1]];
+    const l1 = Math.hypot(v1[0], v1[1]);
+    const l2 = Math.hypot(v2[0], v2[1]);
+    if (l1 < 0.1 || l2 < 0.1) return [curr];
+    const u1 = [v1[0] / l1, v1[1] / l1];
+    const u2 = [v2[0] / l2, v2[1] / l2];
+    const dot = Math.max(-0.999, Math.min(0.999, u1[0] * u2[0] + u1[1] * u2[1]));
+    const angle = Math.acos(dot);
+    const halfAngle = angle / 2;
+    const t = r / Math.tan(halfAngle);
+    const maxT = Math.min(l1, l2) * 0.45;
+    const effT = Math.min(t, maxT);
+    const pA = [curr[0] + u1[0] * effT, curr[1] + u1[1] * effT];
+    const pB = [curr[0] + u2[0] * effT, curr[1] + u2[1] * effT];
+    const mid = [
+      0.25 * pA[0] + 0.5 * curr[0] + 0.25 * pB[0],
+      0.25 * pA[1] + 0.5 * curr[1] + 0.25 * pB[1]
+    ];
+    return [pA, mid, pB];
+  }
+
+  // --- Precision Magnetic OSNAP Engine (Endpoint, Midpoint, Intersection, Perpendicular) ---
+  function findOsnap(worldPos, excludePoint) {
+    if (!state.osnapEnabled) return null;
+    const pxToM = 1 / Math.max(0.001, state.zoomScale);
+    const snapThreshold = 18 * pxToM;
+    let bestSnap = null;
+    let minD = snapThreshold;
+
+    function testPoint(pt, type, name) {
+      if (!pt) return;
+      if (excludePoint && Math.hypot(pt[0] - excludePoint[0], pt[1] - excludePoint[1]) < 0.05) return;
+      const d = Math.hypot(worldPos[0] - pt[0], worldPos[1] - pt[1]);
+      if (d < minD) {
+        minD = d;
+        bestSnap = { point: [pt[0], pt[1]], type, name };
+      }
+    }
+
+    // 1. Check Endpoints & Vertices
+    (state.cadLines || []).forEach(l => {
+      testPoint(l.p1, 'endpoint', 'ბოლო წერტილი (Endpoint)');
+      testPoint(l.p2, 'endpoint', 'ბოლო წერტილი (Endpoint)');
+    });
+    (state.cadPolylines || []).forEach(pl => {
+      (pl.points || []).forEach(pt => testPoint(pt, 'endpoint', 'ბოლო წერტილი (Endpoint)'));
+    });
+    (state.cadArcs || []).forEach(a => {
+      testPoint(a.p1, 'endpoint', 'რკალის საწყისი');
+      testPoint(a.p2, 'endpoint', 'რკალის გავლა');
+      testPoint(a.p3, 'endpoint', 'რკალის ბოლო');
+    });
+    (state.cadCircles || []).forEach(c => testPoint(c.center, 'endpoint', 'წრის ცენტრი (Center)'));
+    (state.boundaryMeters || []).forEach((pt, i) => testPoint(pt, 'endpoint', `საზღვრის კუთხე #${i + 1}`));
+    (state.footprints || []).forEach(f => {
+      (f.vertices || []).forEach((v, vi) => testPoint(v, 'endpoint', `შენობის კუთხე #${vi + 1}`));
+      (f.holes || []).forEach(hole => hole.forEach(hv => testPoint(hv, 'endpoint', 'ეზოს/ატრიუმის კუთხე')));
+    });
+    (state.roads || []).forEach(r => (r.points || []).forEach(pt => testPoint(pt, 'endpoint', 'გზის წერტილი')));
+    (state.walkways || []).forEach(w => (w.points || []).forEach(pt => testPoint(pt, 'endpoint', 'ბილიკის წერტილი')));
+
+    // 2. Check Midpoints
+    function testSegmentMidpoint(a, b, label) {
+      if (!a || !b) return;
+      const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+      testPoint(mid, 'midpoint', label || 'შუა წერტილი (Midpoint)');
+    }
+    (state.cadLines || []).forEach(l => testSegmentMidpoint(l.p1, l.p2, 'ხაზის შუა წერტილი (Midpoint)'));
+    (state.cadPolylines || []).forEach(pl => {
+      const pts = pl.points || [];
+      for (let i = 0; i < pts.length - 1; i++) testSegmentMidpoint(pts[i], pts[i + 1], 'პოლიხაზის შუა წერტილი');
+    });
+    if (state.boundaryMeters && state.boundaryMeters.length >= 2) {
+      const n = state.boundaryMeters.length;
+      for (let i = 0; i < n; i++) testSegmentMidpoint(state.boundaryMeters[i], state.boundaryMeters[(i + 1) % n], 'საზღვრის გვერდის შუა');
+    }
+    (state.footprints || []).forEach(f => {
+      const vs = f.vertices || [];
+      for (let i = 0; i < vs.length; i++) testSegmentMidpoint(vs[i], vs[(i + 1) % vs.length], 'შენობის გვერდის შუა');
+    });
+
+    // 3. Check Intersections
+    const allSegments = [];
+    (state.cadLines || []).forEach(l => allSegments.push([l.p1, l.p2]));
+    (state.cadPolylines || []).forEach(pl => {
+      const pts = pl.points || [];
+      for (let i = 0; i < pts.length - 1; i++) allSegments.push([pts[i], pts[i + 1]]);
+    });
+    if (state.boundaryMeters) {
+      for (let i = 0; i < state.boundaryMeters.length; i++) {
+        allSegments.push([state.boundaryMeters[i], state.boundaryMeters[(i + 1) % state.boundaryMeters.length]]);
+      }
+    }
+    (state.footprints || []).forEach(f => {
+      const vs = f.vertices || [];
+      for (let i = 0; i < vs.length; i++) allSegments.push([vs[i], vs[(i + 1) % vs.length]]);
+    });
+
+    for (let i = 0; i < Math.min(60, allSegments.length); i++) {
+      for (let j = i + 1; j < Math.min(60, allSegments.length); j++) {
+        const inter = getLineLineIntersection(allSegments[i][0], allSegments[i][1], allSegments[j][0], allSegments[j][1]);
+        if (inter) testPoint(inter, 'intersection', 'გადაკვეთა (Intersection)');
+      }
+    }
+
+    // 4. Check Perpendicular (If drafting from an active start point)
+    const startPt = (state.cadDraftPoints && state.cadDraftPoints.length > 0) ? state.cadDraftPoints[state.cadDraftPoints.length - 1] : null;
+    if (startPt) {
+      allSegments.forEach(seg => {
+        const a = seg[0], b = seg[1];
+        const dx = b[0] - a[0], dy = b[1] - a[1];
+        const l2 = dx * dx + dy * dy;
+        if (l2 > 0.01) {
+          const t = ((startPt[0] - a[0]) * dx + (startPt[1] - a[1]) * dy) / l2;
+          if (t >= 0 && t <= 1) {
+            const perpPt = [a[0] + t * dx, a[1] + t * dy];
+            testPoint(perpPt, 'perpendicular', 'პერპენდიკულარი (Perpendicular ⟂)');
+          }
+        }
+      });
+    }
+
+    return bestSnap;
+  }
+
+  // --- Dynamic HUD near cursor ---
+  function updateDynamicHud(screenX, screenY, pStart, currentPoint) {
+    if (!els.cadDynamicHud) return;
+    const isDrafting = ['draw_cad_line', 'draw_cad_polyline', 'draw_cad_arc', 'draw_cad_circle', 'draw_cad_hatch', 'cad_offset', 'cad_mirror', 'footprint_cutout'].includes(state.activeTool);
+    if (!isDrafting || !pStart) {
+      els.cadDynamicHud.classList.add('hidden');
+      return;
+    }
+
+    const dx = currentPoint[0] - pStart[0];
+    const dy = -(currentPoint[1] - pStart[1]);
+    const length = Math.hypot(dx, dy);
+    let angleDeg = (Math.atan2(dy, dx) * 180) / Math.PI;
+    if (angleDeg < 0) angleDeg += 360;
+
+    els.cadDynamicHud.classList.remove('hidden');
+    const containerRect = els.cadCanvasWrapper.getBoundingClientRect();
+    const hudX = Math.min(containerRect.width - 240, Math.max(10, screenX - containerRect.left + 16));
+    const hudY = Math.min(containerRect.height - 60, Math.max(10, screenY - containerRect.top + 16));
+    els.cadDynamicHud.style.left = `${hudX}px`;
+    els.cadDynamicHud.style.top = `${hudY}px`;
+
+    if (els.hudCadLength && document.activeElement !== els.hudCadLength) {
+      els.hudCadLength.value = length.toFixed(2);
+    }
+    if (els.hudCadAngle && document.activeElement !== els.hudCadAngle) {
+      els.hudCadAngle.value = angleDeg.toFixed(1);
+    }
+  }
+
+  window.commitDynamicHudInput = function () {
+    const startPt = state.cadDraftPoints && state.cadDraftPoints.length > 0 ? state.cadDraftPoints[state.cadDraftPoints.length - 1] : null;
+    if (!startPt) return;
+
+    const len = parseFloat(els.hudCadLength ? els.hudCadLength.value : 0);
+    const ang = parseFloat(els.hudCadAngle ? els.hudCadAngle.value : 0);
+    if (isNaN(len) || len <= 0) return;
+
+    const rad = (ang * Math.PI) / 180;
+    const targetX = startPt[0] + len * Math.cos(rad);
+    const targetY = startPt[1] - len * Math.sin(rad);
+    const targetPoint = [Math.round(targetX * 100) / 100, Math.round(targetY * 100) / 100];
+
+    handleCadCommitPoint(targetPoint);
+  };
+
+  window.handleDynamicHudKey = function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      window.commitDynamicHudInput();
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      if (document.activeElement === els.hudCadLength && els.hudCadAngle) els.hudCadAngle.focus();
+      else if (els.hudCadLength) els.hudCadLength.focus();
+    }
+  };
+
+  window.toggleOsnap = function () {
+    state.osnapEnabled = !state.osnapEnabled;
+    if (els.btnToggleOsnap) {
+      if (state.osnapEnabled) {
+        els.btnToggleOsnap.className = 'h-8 px-2 rounded bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 text-xs font-mono font-bold flex items-center gap-1 transition';
+      } else {
+        els.btnToggleOsnap.className = 'h-8 px-2 rounded bg-[#162238] border border-[#243557] text-slate-400 text-xs font-mono font-bold flex items-center gap-1 transition';
+      }
+    }
+    updateToolStatus(state.osnapEnabled ? '🧲 OSNAP ჩაირთო (Endpoint, Midpoint, Intersection, Perpendicular)' : 'OSNAP გაითიშა');
+  };
+
+  window.toggleOrtho = function () {
+    state.orthoEnabled = !state.orthoEnabled;
+    if (els.btnToggleOrtho) {
+      if (state.orthoEnabled) {
+        els.btnToggleOrtho.className = 'h-8 px-2 rounded bg-sky-950/60 border border-sky-500/50 text-sky-300 text-xs font-mono font-bold flex items-center gap-1 transition';
+      } else {
+        els.btnToggleOrtho.className = 'h-8 px-2 rounded bg-[#162238] border border-[#243557] text-slate-300 hover:text-white text-xs font-mono font-bold flex items-center gap-1 transition';
+      }
+    }
+    updateToolStatus(state.orthoEnabled ? '📐 ORTHO ჩაირთო (0°, 90°, 180°, 270°)' : 'ORTHO გაითიშა');
+  };
+
+  // --- Point Commit for Precision CAD Drafting Tools ---
+  function handleCadCommitPoint(pt) {
+    saveUndoSnapshot();
+    if (state.activeTool === 'draw_cad_line') {
+      if (!state.cadDraftPoints || state.cadDraftPoints.length === 0) {
+        state.cadDraftPoints = [pt];
+        updateToolStatus('ხაზი: პირველი წერტილი დასმულია. დააკლიკეთ ან შეიყვანეთ ბოლო წერტილი.');
+      } else {
+        const p1 = state.cadDraftPoints[0];
+        state.cadLines.push({
+          id: 'cad_line_' + Date.now(),
+          p1: [p1[0], p1[1]],
+          p2: [pt[0], pt[1]],
+          color: '#38bdf8'
+        });
+        state.cadDraftPoints = [];
+        if (els.cadDynamicHud) els.cadDynamicHud.classList.add('hidden');
+        renderCadWorld();
+        updateToolStatus('ხაზი წარმატებით დაემატა CAD ნახაზზე.');
+      }
+    } else if (state.activeTool === 'draw_cad_polyline') {
+      state.cadDraftPoints.push(pt);
+      renderInteractionLayer();
+      updateToolStatus(`პოლიხაზი: მონიშნულია ${state.cadDraftPoints.length} წერტილი (Enter / ორმაგი კლიკი ასრულებს).`);
+    } else if (state.activeTool === 'draw_cad_arc') {
+      state.cadDraftPoints.push(pt);
+      if (state.cadDraftPoints.length === 3) {
+        state.cadArcs.push({
+          id: 'cad_arc_' + Date.now(),
+          p1: state.cadDraftPoints[0],
+          p2: state.cadDraftPoints[1],
+          p3: state.cadDraftPoints[2],
+          color: '#f59e0b'
+        });
+        state.cadDraftPoints = [];
+        if (els.cadDynamicHud) els.cadDynamicHud.classList.add('hidden');
+        renderCadWorld();
+        updateToolStatus('რკალი (3-Point Arc) დახაზულია.');
+      } else {
+        updateToolStatus(`რკალი: მონიშნულია წერტილი #${state.cadDraftPoints.length}.`);
+      }
+    } else if (state.activeTool === 'draw_cad_circle') {
+      if (!state.cadDraftPoints || state.cadDraftPoints.length === 0) {
+        state.cadDraftPoints = [pt];
+        updateToolStatus('წრე: ცენტრი დასმულია. მიუთითეთ რადიუსის წერტილი ან შეიყვანეთ HUD-ში.');
+      } else {
+        const center = state.cadDraftPoints[0];
+        const r = Math.hypot(pt[0] - center[0], pt[1] - center[1]);
+        state.cadCircles.push({
+          id: 'cad_circle_' + Date.now(),
+          center: center,
+          radius: Math.max(0.5, Math.round(r * 100) / 100),
+          color: '#10b981'
+        });
+        state.cadDraftPoints = [];
+        if (els.cadDynamicHud) els.cadDynamicHud.classList.add('hidden');
+        renderCadWorld();
+        updateToolStatus(`წრე (R=${r.toFixed(2)}მ) დახაზულია.`);
+      }
+    } else if (state.activeTool === 'draw_cad_hatch') {
+      state.cadDraftPoints.push(pt);
+      if (state.cadDraftPoints.length >= 3) {
+        renderInteractionLayer();
+      }
+    } else if (state.activeTool === 'footprint_cutout') {
+      state.atriumCutoutPoints.push(pt);
+      if (state.atriumCutoutPoints.length >= 3) {
+        const dStart = Math.hypot(pt[0] - state.atriumCutoutPoints[0][0], pt[1] - state.atriumCutoutPoints[0][1]);
+        if (dStart < 1.0 && state.atriumCutoutPoints.length > 3) {
+          state.atriumCutoutPoints.pop();
+          window.finishFootprintCutout();
+          return;
+        }
+      }
+      renderInteractionLayer();
+      updateToolStatus(`შიდა ეზო/ატრიუმი: მონიშნულია ${state.atriumCutoutPoints.length} წერტილი. ორმაგი კლიკი / Enter ასრულებს ამოჭრას.`);
+    }
+  }
+
+  window.finishCadPolyline = function () {
+    if (!state.cadDraftPoints || state.cadDraftPoints.length < 2) return;
+    saveUndoSnapshot();
+    state.cadPolylines.push({
+      id: 'cad_poly_' + Date.now(),
+      points: [...state.cadDraftPoints],
+      isClosed: false,
+      color: '#00e5ff'
+    });
+    state.cadDraftPoints = [];
+    if (els.cadDynamicHud) els.cadDynamicHud.classList.add('hidden');
+    renderCadWorld();
+    updateToolStatus('პოლიხაზი წარმატებით დაემატა.');
+  };
+
+  window.finishCadHatch = function () {
+    if (!state.cadDraftPoints || state.cadDraftPoints.length < 3) return;
+    saveUndoSnapshot();
+    state.cadHatches.push({
+      id: 'cad_hatch_' + Date.now(),
+      polygon: [...state.cadDraftPoints],
+      pattern: 'diagonal',
+      color: '#a855f7'
+    });
+    state.cadDraftPoints = [];
+    if (els.cadDynamicHud) els.cadDynamicHud.classList.add('hidden');
+    renderCadWorld();
+    updateToolStatus('არქიტექტურული შტრიხი დაიტანა ნახაზზე.');
+  };
+
+  // --- Parallel Offset (Offset) with Dual Road Centerline support ---
+  window.cadOffsetGeometry = function (targetLineOrRoad, clickWorldPos) {
+    saveUndoSnapshot();
+    const distM = state.offsetDistance || (els.quickOffsetDist ? parseFloat(els.quickOffsetDist.value) : 3.0) || 3.0;
+    const isDual = state.offsetDual;
+
+    let p1, p2;
+    if (targetLineOrRoad.p1 && targetLineOrRoad.p2) {
+      p1 = targetLineOrRoad.p1;
+      p2 = targetLineOrRoad.p2;
+    } else if (targetLineOrRoad.points && targetLineOrRoad.points.length >= 2) {
+      let nearestSeg = [targetLineOrRoad.points[0], targetLineOrRoad.points[1]];
+      let minD = 999999;
+      for (let i = 0; i < targetLineOrRoad.points.length - 1; i++) {
+        const d = distPointToSegment(clickWorldPos, targetLineOrRoad.points[i], targetLineOrRoad.points[i + 1]);
+        if (d < minD) {
+          minD = d;
+          nearestSeg = [targetLineOrRoad.points[i], targetLineOrRoad.points[i + 1]];
+        }
+      }
+      p1 = nearestSeg[0];
+      p2 = nearestSeg[1];
+    }
+
+    if (!p1 || !p2) return;
+    const dx = p2[0] - p1[0];
+    const dy = p2[1] - p1[1];
+    const len = Math.hypot(dx, dy);
+    if (len < 0.01) return;
+
+    const nx = -dy / len;
+    const ny = dx / len;
+
+    if (isDual) {
+      // Road Centerline -> Left & Right edges simultaneously!
+      state.cadLines.push({
+        id: 'offset_left_' + Date.now(),
+        p1: [p1[0] + nx * distM, p1[1] + ny * distM],
+        p2: [p2[0] + nx * distM, p2[1] + ny * distM],
+        color: '#38bdf8'
+      });
+      state.cadLines.push({
+        id: 'offset_right_' + (Date.now() + 1),
+        p1: [p1[0] - nx * distM, p1[1] - ny * distM],
+        p2: [p2[0] - nx * distM, p2[1] - ny * distM],
+        color: '#38bdf8'
+      });
+      renderCadWorld();
+      updateToolStatus(`გზის ღერძიდან ორივე მხარეს პარალელურად გატარდა კიდეები (±${distM}მ).`);
+    } else {
+      const vClick = [clickWorldPos[0] - p1[0], clickWorldPos[1] - p1[1]];
+      const side = (vClick[0] * nx + vClick[1] * ny) >= 0 ? 1 : -1;
+      state.cadLines.push({
+        id: 'offset_' + Date.now(),
+        p1: [p1[0] + nx * distM * side, p1[1] + ny * distM * side],
+        p2: [p2[0] + nx * distM * side, p2[1] + ny * distM * side],
+        color: '#38bdf8'
+      });
+      renderCadWorld();
+      updateToolStatus(`ხაზი პარალელურად გადაიწია ${distM} მეტრით.`);
+    }
+  };
+
+  // --- Trim Tool ---
+  window.cadTrimLine = function (line, clickWorldPos) {
+    saveUndoSnapshot();
+    const allSegs = [];
+    state.cadLines.filter(l => l.id !== line.id).forEach(l => allSegs.push([l.p1, l.p2]));
+    (state.boundaryMeters || []).forEach((pt, i, arr) => allSegs.push([pt, arr[(i + 1) % arr.length]]));
+
+    let nearestInter = null;
+    let minD = 999999;
+    allSegs.forEach(seg => {
+      const inter = getLineLineIntersection(line.p1, line.p2, seg[0], seg[1]);
+      if (inter) {
+        const d = Math.hypot(clickWorldPos[0] - inter[0], clickWorldPos[1] - inter[1]);
+        if (d < minD) {
+          minD = d;
+          nearestInter = inter;
+        }
+      }
+    });
+
+    if (nearestInter) {
+      const d1 = Math.hypot(clickWorldPos[0] - line.p1[0], clickWorldPos[1] - line.p1[1]);
+      const d2 = Math.hypot(clickWorldPos[0] - line.p2[0], clickWorldPos[1] - line.p2[1]);
+      if (d1 < d2) {
+        line.p1 = nearestInter;
+      } else {
+        line.p2 = nearestInter;
+      }
+      renderCadWorld();
+      updateToolStatus('ხაზის სეგმენტი გადაკვეთასთან მოიჭრა (Trim).');
+    } else {
+      updateToolStatus('მოჭრისთვის გადაკვეთის წერტილი ვერ მოიძებნა.');
+    }
+  };
+
+  // --- Extend Tool ---
+  window.cadExtendLine = function (line, clickWorldPos) {
+    saveUndoSnapshot();
+    const d1 = Math.hypot(clickWorldPos[0] - line.p1[0], clickWorldPos[1] - line.p1[1]);
+    const d2 = Math.hypot(clickWorldPos[0] - line.p2[0], clickWorldPos[1] - line.p2[1]);
+    const extendP2 = d2 <= d1;
+    const origin = extendP2 ? line.p1 : line.p2;
+    const tip = extendP2 ? line.p2 : line.p1;
+    const dx = tip[0] - origin[0];
+    const dy = tip[1] - origin[1];
+    const len = Math.hypot(dx, dy);
+    if (len < 0.01) return;
+    const dir = [dx / len, dy / len];
+    const farPt = [tip[0] + dir[0] * 500, tip[1] + dir[1] * 500];
+
+    const targets = [];
+    state.cadLines.filter(l => l.id !== line.id).forEach(l => targets.push([l.p1, l.p2]));
+    if (state.boundaryMeters) {
+      for (let i = 0; i < state.boundaryMeters.length; i++) {
+        targets.push([state.boundaryMeters[i], state.boundaryMeters[(i + 1) % state.boundaryMeters.length]]);
+      }
+    }
+
+    let nearestInter = null;
+    let minD = 999999;
+    targets.forEach(seg => {
+      const inter = getLineLineIntersection(tip, farPt, seg[0], seg[1]);
+      if (inter) {
+        const d = Math.hypot(inter[0] - tip[0], inter[1] - tip[1]);
+        if (d > 0.05 && d < minD) {
+          minD = d;
+          nearestInter = inter;
+        }
+      }
+    });
+
+    if (nearestInter) {
+      if (extendP2) line.p2 = nearestInter;
+      else line.p1 = nearestInter;
+      renderCadWorld();
+      updateToolStatus('ხაზი გაგრძელდა უახლოეს საზღვრამდე (Extend).');
+    } else {
+      updateToolStatus('გასაგრძელებლად წინ საზღვარი არ არსებობს.');
+    }
+  };
+
+  // --- Mirror Tool ---
+  window.cadMirrorSelected = function (pA, pB) {
+    saveUndoSnapshot();
+    const fp = state.footprints.find(f => f.id === state.selectedFootprintId);
+    if (!fp || !pA || !pB) return;
+
+    function mirrorPt(pt) {
+      const dx = pB[0] - pA[0], dy = pB[1] - pA[1];
+      const l2 = dx * dx + dy * dy;
+      if (l2 < 1e-6) return pt;
+      const t = ((pt[0] - pA[0]) * dx + (pt[1] - pA[1]) * dy) / l2;
+      const projX = pA[0] + t * dx;
+      const projY = pA[1] + t * dy;
+      return [2 * projX - pt[0], 2 * projY - pt[1]];
+    }
+
+    const mirroredVerts = fp.vertices.map(mirrorPt);
+    const mirroredCenter = mirrorPt(fp.center);
+    const newFp = {
+      ...fp,
+      id: 'fp_' + Date.now(),
+      name: fp.name + ' (სარკე)',
+      center: mirroredCenter,
+      vertices: mirroredVerts,
+      holes: (fp.holes || []).map(h => h.map(mirrorPt))
+    };
+    state.footprints.push(newFp);
+    state.selectedFootprintId = newFp.id;
+    updateSelectedBuildingUI();
+    updateZoningCoefficientsUI();
+    renderCadWorld();
+    updateToolStatus('შეიქმნა სარკისებური ასლი (Mirror).');
+  };
+
+  // --- Linear Array / Repeat Tool ---
+  window.cadArraySelected = function (count = 3, spacingM = 15) {
+    saveUndoSnapshot();
+    const fp = state.footprints.find(f => f.id === state.selectedFootprintId);
+    if (!fp) return;
+
+    for (let i = 1; i <= count; i++) {
+      const offset = i * spacingM;
+      const newVerts = fp.vertices.map(v => [v[0] + offset, v[1]]);
+      const newCenter = [fp.center[0] + offset, fp.center[1]];
+      state.footprints.push({
+        ...fp,
+        id: 'fp_arr_' + i + '_' + Date.now(),
+        name: `${fp.name} (ასლი #${i})`,
+        center: newCenter,
+        vertices: newVerts,
+        holes: (fp.holes || []).map(h => h.map(v => [v[0] + offset, v[1]]))
+      });
+    }
+    updateSelectedBuildingUI();
+    updateZoningCoefficientsUI();
+    renderCadWorld();
+    updateToolStatus(`შენობა გამრავლდა ${count}-ჯერ თანაბარი ბიჯით (${spacingM}მ).`);
+  };
+
+  // --- Helper: Convert polygon vertices and holes into SVG path d with fill-rule="evenodd" ---
+  function polygonToPathD(outerRing, holes = []) {
+    if (!outerRing || outerRing.length === 0) return '';
+    let d = 'M ' + outerRing.map(p => `${p[0]},${p[1]}`).join(' L ') + ' Z';
+    if (holes && holes.length > 0) {
+      holes.forEach(hole => {
+        if (hole && hole.length > 0) {
+          d += ' M ' + hole.map(p => `${p[0]},${p[1]}`).join(' L ') + ' Z';
+        }
+      });
+    }
+    return d;
+  }
+  window.polygonToPathD = polygonToPathD;
+
+  // --- Footprint Vertex Drag Handler ---
+  window.startCadVertexDrag = function (e, fpId, vertexIdx) {
+    if (e) {
+      if (e.stopPropagation) e.stopPropagation();
+      if (e.preventDefault) e.preventDefault();
+    }
+    if (e && e.altKey) {
+      window.deleteFootprintVertex(fpId, vertexIdx);
+      return;
+    }
+    saveUndoSnapshot();
+    state.isDraggingCadVertex = true;
+    state.draggedFpId = fpId;
+    state.draggedVertexIdx = vertexIdx;
+  };
+
+  // --- Footprint Vertex Mode Toggle ---
+  window.enableFootprintVertexMode = function () {
+    state.footprintEditMode = true;
+    updateToolStatus('🎯 კუთხეების რეჟიმი: გადააადგილეთ კუთხეები, დააკლიკეთ [+] ახალი კუთხის დასამატებლად ან Alt+კლიკი წასაშლელად.');
+    renderCadWorld();
+  };
+
+  // --- Corner Fillet (კუთხის მომრგვალება) ---
+  window.applyFootprintFillet = function (radiusParam) {
+    saveUndoSnapshot();
+    const fp = state.footprints.find(f => f.id === state.selectedFootprintId);
+    if (!fp || fp.vertices.length < 3) {
+      alert('გთხოვთ ჯერ აირჩიოთ შენობის ლაქა.');
+      return;
+    }
+    const r = radiusParam || state.filletRadius || (els.quickFilletR ? parseFloat(els.quickFilletR.value) : 2.0) || 2.0;
+
+    const vs = fp.vertices;
+    const n = vs.length;
+    const newVerts = [];
+
+    for (let i = 0; i < n; i++) {
+      const prev = vs[(i - 1 + n) % n];
+      const curr = vs[i];
+      const next = vs[(i + 1) % n];
+      const arcPts = filletCorner(prev, curr, next, r);
+      arcPts.forEach(p => newVerts.push(p));
+    }
+
+    fp.vertices = newVerts;
+    fp.shape = 'freeform';
+    fp.areaSqm = Math.max(1, Math.round(calculatePolygonArea(fp.vertices) - (fp.holes || []).reduce((s, h) => s + calculatePolygonArea(h), 0)));
+    updateSelectedBuildingUI();
+    updateZoningCoefficientsUI();
+    renderCadWorld();
+    updateToolStatus(`შენობის კუთხეები მომრგვალდა (R=${r}მ). ფართობი გადაითვალა: ${fp.areaSqm} მ²`);
+  };
+
+  // --- Corner Chamfer (კუთხის ჩამოჭრა) ---
+  window.applyFootprintChamfer = function (distParam) {
+    saveUndoSnapshot();
+    const fp = state.footprints.find(f => f.id === state.selectedFootprintId);
+    if (!fp || fp.vertices.length < 3) {
+      alert('გთხოვთ ჯერ აირჩიოთ შენობის ლაქა.');
+      return;
+    }
+    const d = distParam || state.chamferDistance || (els.quickChamferD ? parseFloat(els.quickChamferD.value) : 1.5) || 1.5;
+
+    const vs = fp.vertices;
+    const n = vs.length;
+    const newVerts = [];
+
+    for (let i = 0; i < n; i++) {
+      const prev = vs[(i - 1 + n) % n];
+      const curr = vs[i];
+      const next = vs[(i + 1) % n];
+
+      const v1 = [prev[0] - curr[0], prev[1] - curr[1]];
+      const v2 = [next[0] - curr[0], next[1] - curr[1]];
+      const l1 = Math.hypot(v1[0], v1[1]);
+      const l2 = Math.hypot(v2[0], v2[1]);
+      const effD = Math.min(d, Math.min(l1, l2) * 0.45);
+
+      const pA = [curr[0] + (v1[0] / l1) * effD, curr[1] + (v1[1] / l1) * effD];
+      const pB = [curr[0] + (v2[0] / l2) * effD, curr[1] + (v2[1] / l2) * effD];
+      newVerts.push(pA);
+      newVerts.push(pB);
+    }
+
+    fp.vertices = newVerts;
+    fp.shape = 'freeform';
+    fp.areaSqm = Math.max(1, Math.round(calculatePolygonArea(fp.vertices) - (fp.holes || []).reduce((s, h) => s + calculatePolygonArea(h), 0)));
+    updateSelectedBuildingUI();
+    updateZoningCoefficientsUI();
+    renderCadWorld();
+    updateToolStatus(`შენობის კუთხეები ჩამოიჭრა (D=${d}მ). ფართობი გადაითვალა: ${fp.areaSqm} მ²`);
+  };
+
+  // --- Boolean Union (კონტურების გაერთიანება) ---
+  window.booleanUnionFootprints = function () {
+    if (state.footprints.length < 2) {
+      alert('გასაერთიანებლად საჭიროა მინიმუმ 2 შენობის ლაქა.');
+      return;
+    }
+    saveUndoSnapshot();
+    const fp1 = state.footprints.find(f => f.id === state.selectedFootprintId) || state.footprints[0];
+    const fp2 = state.footprints.find(f => f.id !== fp1.id);
+    if (!fp1 || !fp2) return;
+
+    const combinedPts = [...fp1.vertices, ...fp2.vertices];
+    const cx = combinedPts.reduce((s, p) => s + p[0], 0) / combinedPts.length;
+    const cy = combinedPts.reduce((s, p) => s + p[1], 0) / combinedPts.length;
+    combinedPts.sort((a, b) => Math.atan2(a[1] - cy, a[0] - cx) - Math.atan2(b[1] - cy, b[0] - cx));
+
+    const cleanVerts = [];
+    combinedPts.forEach(p => {
+      if (cleanVerts.length === 0 || Math.hypot(p[0] - cleanVerts[cleanVerts.length - 1][0], p[1] - cleanVerts[cleanVerts.length - 1][1]) > 0.5) {
+        cleanVerts.push(p);
+      }
+    });
+
+    const unionArea = Math.round(calculatePolygonArea(cleanVerts));
+    fp1.name = `${fp1.name} + ${fp2.name} (გაერთიანებული)`;
+    fp1.vertices = cleanVerts;
+    fp1.center = [cx, cy];
+    fp1.shape = 'freeform';
+    fp1.areaSqm = unionArea;
+    fp1.holes = [...(fp1.holes || []), ...(fp2.holes || [])];
+
+    state.footprints = state.footprints.filter(f => f.id !== fp2.id);
+    state.selectedFootprintId = fp1.id;
+    updateSelectedBuildingUI();
+    updateZoningCoefficientsUI();
+    renderCadWorld();
+    updateToolStatus(`შენობები გაერთიანდა ერთიან კონტურად (${unionArea} მ²).`);
+  };
+
+  // --- Courtyard / Atrium Void Cutout (შიგნით ამოჭრა ეზო, ატრიუმი) ---
+  window.finishFootprintCutout = function () {
+    const fp = state.footprints.find(f => f.id === state.selectedFootprintId) || state.footprints[0];
+    if (!fp) {
+      alert('გთხოვთ ჯერ აირჩიოთ შენობის ლაქა, რომელშიც გსურთ ეზოს ან ატრიუმის ამოჭრა.');
+      state.atriumCutoutPoints = [];
+      return;
+    }
+
+    if (state.atriumCutoutPoints.length < 3) {
+      alert('ატრიუმის ამოსაჭრელად მონიშნეთ მინიმუმ 3 წერტილი შენობის შიგნით.');
+      state.atriumCutoutPoints = [];
+      return;
+    }
+
+    saveUndoSnapshot();
+    fp.holes = fp.holes || [];
+    fp.holes.push([...state.atriumCutoutPoints]);
+    state.atriumCutoutPoints = [];
+
+    const outerArea = calculatePolygonArea(fp.vertices);
+    const holesArea = fp.holes.reduce((sum, h) => sum + calculatePolygonArea(h), 0);
+    fp.areaSqm = Math.max(1, Math.round(outerArea - holesArea));
+
+    setCadActiveTool('pan');
+    updateSelectedBuildingUI();
+    updateZoningCoefficientsUI();
+    renderCadWorld();
+    updateToolStatus(`ამოიჭრა შიდა ეზო/ატრიუმი (${Math.round(holesArea)} მ²). შენობის განაშენიანების ფართობი შემცირდა: ${fp.areaSqm} მ²`);
+  };
+
+  // --- Add Corner Vertex ([+] on edge handle click) ---
+  window.insertVertexAtEdge = function (e, fpId, edgeIdx) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    saveUndoSnapshot();
+    const fp = state.footprints.find(f => f.id === fpId);
+    if (!fp) return;
+
+    const vs = fp.vertices;
+    const p1 = vs[edgeIdx];
+    const p2 = vs[(edgeIdx + 1) % vs.length];
+    const mid = [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2];
+
+    vs.splice(edgeIdx + 1, 0, mid);
+    fp.shape = 'freeform';
+    fp.areaSqm = Math.max(1, Math.round(calculatePolygonArea(fp.vertices) - (fp.holes || []).reduce((s, h) => s + calculatePolygonArea(h), 0)));
+
+    renderCadWorld();
+    updateToolStatus(`დაემატა ახალი კუთხე #${edgeIdx + 2}. გადააადგილეთ მაუსით.`);
+  };
+
+  // --- Delete Corner Vertex (Alt+Click or right click) ---
+  window.deleteFootprintVertex = function (fpId, vertexIdx) {
+    saveUndoSnapshot();
+    const fp = state.footprints.find(f => f.id === fpId);
+    if (!fp || fp.vertices.length <= 3) {
+      alert('მრავალკუთხედს უნდა ჰქონდეს მინიმუმ 3 კუთხე!');
+      return;
+    }
+
+    fp.vertices.splice(vertexIdx, 1);
+    fp.shape = 'freeform';
+    fp.areaSqm = Math.max(1, Math.round(calculatePolygonArea(fp.vertices) - (fp.holes || []).reduce((s, h) => s + calculatePolygonArea(h), 0)));
+
+    renderCadWorld();
+    updateZoningCoefficientsUI();
+    updateToolStatus(`კუთხე #${vertexIdx + 1} წაიშალა. ფართობი გადაითვალა: ${fp.areaSqm} მ²`);
+  };
+
+  // --- Parallel Edge Offset/Move (გვერდის პარალელური გადაწევა) ---
+  window.moveFootprintEdgeParallel = function (fpId, edgeIdx, distM) {
+    saveUndoSnapshot();
+    const fp = state.footprints.find(f => f.id === fpId);
+    if (!fp) return;
+
+    const vs = fp.vertices;
+    const n = vs.length;
+    const p1 = vs[edgeIdx];
+    const p2 = vs[(edgeIdx + 1) % n];
+
+    const dx = p2[0] - p1[0];
+    const dy = p2[1] - p1[1];
+    const len = Math.hypot(dx, dy);
+    if (len < 0.01) return;
+
+    const nx = -dy / len;
+    const ny = dx / len;
+
+    vs[edgeIdx] = [p1[0] + nx * distM, p1[1] + ny * distM];
+    vs[(edgeIdx + 1) % n] = [p2[0] + nx * distM, p2[1] + ny * distM];
+
+    fp.shape = 'freeform';
+    fp.areaSqm = Math.max(1, Math.round(calculatePolygonArea(fp.vertices) - (fp.holes || []).reduce((s, h) => s + calculatePolygonArea(h), 0)));
+    renderCadWorld();
+    updateZoningCoefficientsUI();
+    updateToolStatus(`გვერდი #${edgeIdx + 1} გადაიწია პარალელურად (${distM > 0 ? '+' : ''}${distM.toFixed(1)}მ).`);
+  };
+
+  // --- Render CAD Vector Drafting Layer ---
+  function renderCadDrafting(pxToM) {
+    if (!els.cadDraftingLayer) return;
+    if (!state.layers.cadDrafting) {
+      els.cadDraftingLayer.innerHTML = '';
+      return;
+    }
+
+    const sw = Math.max(0.3, 1.8 * pxToM);
+    let svg = '';
+
+    // 1. Lines
+    (state.cadLines || []).forEach(l => {
+      svg += `<line x1="${l.p1[0]}" y1="${l.p1[1]}" x2="${l.p2[0]}" y2="${l.p2[1]}" stroke="${l.color || '#38bdf8'}" stroke-width="${sw}" stroke-linecap="round"/>`;
+      svg += `<circle cx="${l.p1[0]}" cy="${l.p1[1]}" r="${2.5 * pxToM}" fill="#38bdf8"/>`;
+      svg += `<circle cx="${l.p2[0]}" cy="${l.p2[1]}" r="${2.5 * pxToM}" fill="#38bdf8"/>`;
+    });
+
+    // 2. Polylines
+    (state.cadPolylines || []).forEach(pl => {
+      const pts = (pl.points || []).map(p => `${p[0]},${p[1]}`).join(' ');
+      svg += `<polyline points="${pts}" fill="${pl.isClosed ? 'rgba(56, 189, 248, 0.15)' : 'none'}" stroke="${pl.color || '#00e5ff'}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"/>`;
+    });
+
+    // 3. Arcs
+    (state.cadArcs || []).forEach(a => {
+      svg += `<path d="M ${a.p1[0]},${a.p1[1]} Q ${a.p2[0]},${a.p2[1]} ${a.p3[0]},${a.p3[1]}" fill="none" stroke="${a.color || '#f59e0b'}" stroke-width="${sw}"/>`;
+    });
+
+    // 4. Circles
+    (state.cadCircles || []).forEach(c => {
+      svg += `<circle cx="${c.center[0]}" cy="${c.center[1]}" r="${c.radius}" fill="none" stroke="${c.color || '#10b981'}" stroke-width="${sw}"/>`;
+      svg += `<circle cx="${c.center[0]}" cy="${c.center[1]}" r="${2.5 * pxToM}" fill="#10b981"/>`;
+    });
+
+    // 5. Hatches
+    (state.cadHatches || []).forEach(h => {
+      const pts = (h.polygon || []).map(p => `${p[0]},${p[1]}`).join(' ');
+      svg += `<polygon points="${pts}" fill="url(#hatchBuildingClassic)" stroke="${h.color || '#a855f7'}" stroke-width="${1.2 * pxToM}"/>`;
+    });
+
+    // 6. Freehands
+    (state.cadFreehands || []).forEach(f => {
+      const pts = (f.points || []).map(p => `${p[0]},${p[1]}`).join(' ');
+      svg += `<polyline points="${pts}" fill="none" stroke="${f.color || '#f43f5e'}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"/>`;
+    });
+
+    els.cadDraftingLayer.innerHTML = svg;
+  }
+
+  // =========================================================================
   // --- ARCHITECTURAL RENDER PIPELINE WITH SCREEN-SCALED GRAPHICS ---
   // =========================================================================
   function renderCadWorld() {
@@ -3036,6 +4155,7 @@
     renderShadows();
     renderTrees(pxToM);
     renderFootprints(pxToM);
+    renderCadDrafting(pxToM);
     renderDimensions(pxToM);
     renderNodes(pxToM);
     renderInteractionLayer(pxToM);
@@ -3646,8 +4766,8 @@
       : null;
 
     els.footprintsLayer.innerHTML = state.footprints.map(f => {
-      const pts = f.vertices.map(p => `${p[0]},${p[1]}`).join(' ');
       const isSelected = f.id === state.selectedFootprintId;
+      const pathD = polygonToPathD(f.vertices, f.holes);
 
       // Check setback violation: does building violate neighbor boundary setback?
       // In Georgian building code (დადგენილება №41), 3.0m setback is required ONLY on neighbor boundaries.
@@ -3695,13 +4815,49 @@
         `;
       }
 
+      // Vertex & Edge Handles for interactive contour editing
+      let handlesSvg = '';
+      if (isSelected) {
+        const vs = f.vertices || [];
+        const nVs = vs.length;
+        vs.forEach((v, i) => {
+          const nextV = vs[(i + 1) % nVs];
+          const mid = [(v[0] + nextV[0]) / 2, (v[1] + nextV[1]) / 2];
+
+          // Corner vertex handle (square ■)
+          handlesSvg += `
+            <rect x="${v[0] - 4.5 * pxToM}" y="${v[1] - 4.5 * pxToM}" width="${9 * pxToM}" height="${9 * pxToM}" fill="#00f0ff" stroke="#080d1a" stroke-width="${1.2 * pxToM}" class="cursor-move" onmousedown="window.startCadVertexDrag(event, '${f.id}', ${i})" title="კუთხე #${i + 1} (გადააადგილეთ / Alt+კლიკი წასაშლელად)" />
+          `;
+
+          // Edge midpoint [+] handle (circle ○)
+          handlesSvg += `
+            <g class="cursor-pointer" onclick="window.insertVertexAtEdge(event, '${f.id}', ${i})" title="ახალი კუთხის დამატება ამ გვერდზე [+]">
+              <circle cx="${mid[0]}" cy="${mid[1]}" r="${4.5 * pxToM}" fill="#0284c7" stroke="#ffffff" stroke-width="${1 * pxToM}" />
+              <text x="${mid[0]}" y="${mid[1] + 3 * pxToM}" text-anchor="middle" fill="#ffffff" font-size="${7 * pxToM}" font-weight="bold" pointer-events="none">+</text>
+            </g>
+          `;
+        });
+
+        // Courtyard/Atrium holes rendering
+        if (f.holes && f.holes.length > 0) {
+          f.holes.forEach((h, hIdx) => {
+            const hPts = h.map(p => `${p[0]},${p[1]}`).join(' ');
+            handlesSvg += `<polygon points="${hPts}" fill="rgba(15, 23, 42, 0.85)" stroke="#ef4444" stroke-width="${1.5 * pxToM}" stroke-dasharray="${3 * pxToM}, ${2 * pxToM}" pointer-events="none" />`;
+            h.forEach((hv, hvi) => {
+              handlesSvg += `<circle cx="${hv[0]}" cy="${hv[1]}" r="${3.5 * pxToM}" fill="#ef4444" stroke="#ffffff" stroke-width="${0.8 * pxToM}" pointer-events="none"/>`;
+            });
+          });
+        }
+      }
+
       return `
         <g class="cursor-pointer" onclick="handleFootprintClick('${f.id}')">
-          ${isSetbackViolated ? `<polygon points="${pts}" fill="none" stroke="#ef4444" stroke-width="${strokeW + 2 * pxToM}" stroke-dasharray="${3 * pxToM}, ${2 * pxToM}" opacity="0.8"/>` : ''}
-          <polygon points="${pts}" fill="var(--footprint-fill)" stroke="${strokeColor}" stroke-width="${strokeW}" />
-          <polygon points="${pts}" fill="url(#${hatchId})" opacity="0.65" pointer-events="none" />
+          ${isSetbackViolated ? `<path d="${pathD}" fill-rule="evenodd" fill="none" stroke="#ef4444" stroke-width="${strokeW + 2 * pxToM}" stroke-dasharray="${3 * pxToM}, ${2 * pxToM}" opacity="0.8"/>` : ''}
+          <path d="${pathD}" fill-rule="evenodd" fill="var(--footprint-fill)" stroke="${strokeColor}" stroke-width="${strokeW}" />
+          <path d="${pathD}" fill-rule="evenodd" fill="url(#${hatchId})" opacity="0.65" pointer-events="none" />
 
           ${rotationHandleSvg}
+          ${handlesSvg}
 
           <circle cx="${f.center[0]}" cy="${f.center[1]}" r="${4.5 * pxToM}" fill="${isSelected ? '#00f0ff' : (isSetbackViolated ? '#ef4444' : '#ffffff')}" stroke="#0a101d" stroke-width="${1 * pxToM}" />
 
@@ -3933,8 +5089,125 @@
         <circle cx="${p2[0]}" cy="${p2[1]}" r="${3.5 * p2m}" fill="#f59e0b"/>
         <text x="${(p1[0] + p2[0]) / 2}" y="${(p1[1] + p2[1]) / 2 - 4 * p2m}" text-anchor="middle" fill="#f59e0b" font-size="${10 * p2m}" font-weight="bold">${dist.toFixed(2)} მ</text>
       `;
+    } else if (state.activeTool === 'draw_cad_line' && state.cadDraftPoints && state.cadDraftPoints.length === 1) {
+      const p0 = state.cadDraftPoints[0];
+      let p1 = state.activeSnap ? state.activeSnap.point : (state.mouseWorldPos || p0);
+      if (state.orthoEnabled && !state.activeSnap) {
+        const dx = Math.abs(p1[0] - p0[0]);
+        const dy = Math.abs(p1[1] - p0[1]);
+        if (dx > dy) p1 = [p1[0], p0[1]];
+        else p1 = [p0[0], p1[1]];
+      }
+      const dist = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]);
+      const deg = Math.round(((Math.atan2(p1[1] - p0[1], p1[0] - p0[0]) * 180) / Math.PI + 360) % 360);
+      els.interactionLayer.innerHTML = `
+        <line x1="${p0[0]}" y1="${p0[1]}" x2="${p1[0]}" y2="${p1[1]}" stroke="#38bdf8" stroke-width="${1.8 * p2m}" stroke-dasharray="${3 * p2m}, ${2 * p2m}" pointer-events="none" />
+        <circle cx="${p0[0]}" cy="${p0[1]}" r="${4 * p2m}" fill="#38bdf8" stroke="#ffffff" stroke-width="${1 * p2m}" />
+        <circle cx="${p1[0]}" cy="${p1[1]}" r="${3.5 * p2m}" fill="#00f0ff" stroke="#ffffff" stroke-width="${0.8 * p2m}" />
+        <rect x="${(p0[0] + p1[0]) / 2 - 45 * p2m}" y="${(p0[1] + p1[1]) / 2 - 20 * p2m}" width="${90 * p2m}" height="${16 * p2m}" rx="${3 * p2m}" fill="rgba(8,13,26,0.92)" stroke="#38bdf8" stroke-width="${0.8 * p2m}" pointer-events="none"/>
+        <text x="${(p0[0] + p1[0]) / 2}" y="${(p0[1] + p1[1]) / 2 - 8 * p2m}" text-anchor="middle" fill="#38bdf8" font-size="${8.5 * p2m}" font-family="'JetBrains Mono', monospace" font-weight="bold" pointer-events="none">L: ${dist.toFixed(2)}მ ∠${deg}°</text>
+      `;
+    } else if (state.activeTool === 'draw_cad_polyline' && state.cadDraftPoints && state.cadDraftPoints.length > 0) {
+      const lastP = state.cadDraftPoints[state.cadDraftPoints.length - 1];
+      let curMouse = state.activeSnap ? state.activeSnap.point : (state.mouseWorldPos || lastP);
+      if (state.orthoEnabled && !state.activeSnap) {
+        const dx = Math.abs(curMouse[0] - lastP[0]);
+        const dy = Math.abs(curMouse[1] - lastP[1]);
+        if (dx > dy) curMouse = [curMouse[0], lastP[1]];
+        else curMouse = [lastP[0], curMouse[1]];
+      }
+      const pts = state.cadDraftPoints.map(p => `${p[0]},${p[1]}`).join(' ');
+      const dist = Math.hypot(curMouse[0] - lastP[0], curMouse[1] - lastP[1]);
+      els.interactionLayer.innerHTML = `
+        <polyline points="${pts}" fill="none" stroke="#00e5ff" stroke-width="${1.8 * p2m}" pointer-events="none" />
+        <line x1="${lastP[0]}" y1="${lastP[1]}" x2="${curMouse[0]}" y2="${curMouse[1]}" stroke="#00e5ff" stroke-width="${1.8 * p2m}" stroke-dasharray="${3 * p2m}, ${2 * p2m}" pointer-events="none" />
+        ${state.cadDraftPoints.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${3.5 * p2m}" fill="#00e5ff" stroke="#ffffff" stroke-width="${0.8 * p2m}" pointer-events="none"/>`).join('')}
+        <circle cx="${curMouse[0]}" cy="${curMouse[1]}" r="${3.5 * p2m}" fill="#00f0ff" stroke="#ffffff" stroke-width="${0.8 * p2m}" />
+        <rect x="${curMouse[0] + 10 * p2m}" y="${curMouse[1] - 18 * p2m}" width="${65 * p2m}" height="${15 * p2m}" rx="${3 * p2m}" fill="rgba(8,13,26,0.92)" stroke="#00e5ff" stroke-width="${0.8 * p2m}" pointer-events="none"/>
+        <text x="${curMouse[0] + 42.5 * p2m}" y="${curMouse[1] - 7 * p2m}" text-anchor="middle" fill="#00e5ff" font-size="${8 * p2m}" font-family="'JetBrains Mono', monospace" font-weight="bold" pointer-events="none">${dist.toFixed(2)}მ</text>
+      `;
+    } else if (state.activeTool === 'draw_cad_arc' && state.cadDraftPoints && state.cadDraftPoints.length > 0) {
+      const curMouse = state.activeSnap ? state.activeSnap.point : (state.mouseWorldPos || state.cadDraftPoints[0]);
+      if (state.cadDraftPoints.length === 1) {
+        const p1 = state.cadDraftPoints[0];
+        els.interactionLayer.innerHTML = `
+          <line x1="${p1[0]}" y1="${p1[1]}" x2="${curMouse[0]}" y2="${curMouse[1]}" stroke="#f59e0b" stroke-width="${1.8 * p2m}" stroke-dasharray="${3 * p2m}, ${2 * p2m}" pointer-events="none" />
+          <circle cx="${p1[0]}" cy="${p1[1]}" r="${4 * p2m}" fill="#f59e0b" stroke="#ffffff" stroke-width="${1 * p2m}" />
+          <circle cx="${curMouse[0]}" cy="${curMouse[1]}" r="${3.5 * p2m}" fill="#f59e0b" stroke="#ffffff" stroke-width="${0.8 * p2m}" />
+        `;
+      } else if (state.cadDraftPoints.length === 2) {
+        const p1 = state.cadDraftPoints[0];
+        const p2 = state.cadDraftPoints[1];
+        const p3 = curMouse;
+        els.interactionLayer.innerHTML = `
+          <path d="M ${p1[0]} ${p1[1]} Q ${p2[0]} ${p2[1]} ${p3[0]} ${p3[1]}" fill="none" stroke="#f59e0b" stroke-width="${2 * p2m}" stroke-dasharray="${4 * p2m}, ${2 * p2m}" pointer-events="none" />
+          <circle cx="${p1[0]}" cy="${p1[1]}" r="${3.5 * p2m}" fill="#f59e0b" />
+          <circle cx="${p2[0]}" cy="${p2[1]}" r="${3.5 * p2m}" fill="#f59e0b" />
+          <circle cx="${p3[0]}" cy="${p3[1]}" r="${3.5 * p2m}" fill="#f59e0b" />
+        `;
+      }
+    } else if (state.activeTool === 'draw_cad_circle' && state.cadDraftPoints && state.cadDraftPoints.length === 1) {
+      const center = state.cadDraftPoints[0];
+      const curMouse = state.activeSnap ? state.activeSnap.point : (state.mouseWorldPos || center);
+      const r = Math.max(0.5, Math.hypot(curMouse[0] - center[0], curMouse[1] - center[1]));
+      els.interactionLayer.innerHTML = `
+        <circle cx="${center[0]}" cy="${center[1]}" r="${r}" fill="rgba(16, 185, 129, 0.15)" stroke="#10b981" stroke-width="${1.8 * p2m}" stroke-dasharray="${4 * p2m}, ${3 * p2m}" pointer-events="none" />
+        <line x1="${center[0]}" y1="${center[1]}" x2="${curMouse[0]}" y2="${curMouse[1]}" stroke="#10b981" stroke-width="${1.2 * p2m}" stroke-dasharray="${2 * p2m}, ${2 * p2m}" pointer-events="none" />
+        <circle cx="${center[0]}" cy="${center[1]}" r="${4 * p2m}" fill="#10b981" stroke="#ffffff" stroke-width="${1 * p2m}" />
+        <rect x="${(center[0] + curMouse[0]) / 2 - 35 * p2m}" y="${(center[1] + curMouse[1]) / 2 - 18 * p2m}" width="${70 * p2m}" height="${16 * p2m}" rx="${3 * p2m}" fill="rgba(8,13,26,0.92)" stroke="#10b981" stroke-width="${0.8 * p2m}" pointer-events="none"/>
+        <text x="${(center[0] + curMouse[0]) / 2}" y="${(center[1] + curMouse[1]) / 2 - 6 * p2m}" text-anchor="middle" fill="#10b981" font-size="${8.5 * p2m}" font-family="'JetBrains Mono', monospace" font-weight="bold" pointer-events="none">R: ${r.toFixed(2)}მ</text>
+      `;
+    } else if (state.activeTool === 'draw_cad_hatch' && state.cadDraftPoints && state.cadDraftPoints.length > 0) {
+      const curMouse = state.activeSnap ? state.activeSnap.point : (state.mouseWorldPos || state.cadDraftPoints[0]);
+      const pts = [...state.cadDraftPoints, curMouse].map(p => `${p[0]},${p[1]}`).join(' ');
+      els.interactionLayer.innerHTML = `
+        <polygon points="${pts}" fill="rgba(168, 85, 247, 0.2)" stroke="#a855f7" stroke-width="${1.8 * p2m}" stroke-dasharray="${3 * p2m}, ${2 * p2m}" pointer-events="none" />
+        ${state.cadDraftPoints.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${3.5 * p2m}" fill="#a855f7" stroke="#ffffff" stroke-width="${0.8 * p2m}" pointer-events="none"/>`).join('')}
+      `;
+    } else if (state.activeTool === 'footprint_cutout' && state.atriumCutoutPoints && state.atriumCutoutPoints.length > 0) {
+      const curMouse = state.activeSnap ? state.activeSnap.point : (state.mouseWorldPos || state.atriumCutoutPoints[0]);
+      const pts = [...state.atriumCutoutPoints, curMouse].map(p => `${p[0]},${p[1]}`).join(' ');
+      const area = state.atriumCutoutPoints.length >= 2 ? Math.round(calculatePolygonArea([...state.atriumCutoutPoints, curMouse])) : 0;
+      els.interactionLayer.innerHTML = `
+        <polygon points="${pts}" fill="rgba(239, 68, 68, 0.25)" stroke="#ef4444" stroke-width="${2 * p2m}" stroke-dasharray="${4 * p2m}, ${2 * p2m}" pointer-events="none" />
+        ${state.atriumCutoutPoints.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${3.5 * p2m}" fill="#ef4444" stroke="#ffffff" stroke-width="${0.8 * p2m}" pointer-events="none"/>`).join('')}
+        ${area > 0 ? `
+          <rect x="${curMouse[0] + 10 * p2m}" y="${curMouse[1] - 20 * p2m}" width="${120 * p2m}" height="${17 * p2m}" rx="${3 * p2m}" fill="rgba(8,13,26,0.95)" stroke="#ef4444" stroke-width="${0.8 * p2m}" pointer-events="none"/>
+          <text x="${curMouse[0] + 70 * p2m}" y="${curMouse[1] - 8 * p2m}" text-anchor="middle" fill="#ef4444" font-size="${8.5 * p2m}" font-family="'JetBrains Mono', monospace" font-weight="bold" pointer-events="none">✂️ ამოჭრა: ~${area} მ²</text>
+        ` : ''}
+      `;
+    } else if (state.isFreehandDrawing && state.currentFreehandPoints && state.currentFreehandPoints.length > 1) {
+      const pts = state.currentFreehandPoints.map(p => `${p[0]},${p[1]}`).join(' ');
+      els.interactionLayer.innerHTML = `
+        <polyline points="${pts}" fill="none" stroke="#f43f5e" stroke-width="${2 * p2m}" stroke-linecap="round" stroke-linejoin="round" pointer-events="none" />
+      `;
     } else {
       els.interactionLayer.innerHTML = '';
+    }
+
+    // Render OSNAP target marker icon on top
+    if (state.activeSnap) {
+      const sp = state.activeSnap.point;
+      const st = state.activeSnap.type;
+      let snapIconSvg = '';
+      if (st === 'endpoint') {
+        snapIconSvg = `<rect x="${sp[0] - 5 * p2m}" y="${sp[1] - 5 * p2m}" width="${10 * p2m}" height="${10 * p2m}" fill="none" stroke="#facc15" stroke-width="${2 * p2m}"/>`;
+      } else if (st === 'midpoint') {
+        const pA = `${sp[0]},${sp[1] - 6 * p2m}`;
+        const pB = `${sp[0] - 5 * p2m},${sp[1] + 4 * p2m}`;
+        const pC = `${sp[0] + 5 * p2m},${sp[1] + 4 * p2m}`;
+        snapIconSvg = `<polygon points="${pA} ${pB} ${pC}" fill="none" stroke="#00f0ff" stroke-width="${2 * p2m}"/>`;
+      } else if (st === 'intersection') {
+        snapIconSvg = `
+          <line x1="${sp[0] - 5 * p2m}" y1="${sp[1] - 5 * p2m}" x2="${sp[0] + 5 * p2m}" y2="${sp[1] + 5 * p2m}" stroke="#f97316" stroke-width="${2 * p2m}"/>
+          <line x1="${sp[0] - 5 * p2m}" y1="${sp[1] + 5 * p2m}" x2="${sp[0] + 5 * p2m}" y2="${sp[1] - 5 * p2m}" stroke="#f97316" stroke-width="${2 * p2m}"/>
+        `;
+      } else if (st === 'perpendicular') {
+        snapIconSvg = `
+          <polyline points="${sp[0] - 6 * p2m},${sp[1]} ${sp[0]},${sp[1]} ${sp[0]},${sp[1] - 6 * p2m}" fill="none" stroke="#22c55e" stroke-width="${2 * p2m}"/>
+        `;
+      }
+      els.interactionLayer.innerHTML += `<g pointer-events="none">${snapIconSvg}</g>`;
     }
   }
 
@@ -4359,14 +5632,44 @@
         window.undoLastAction();
         return;
       }
+      if (e.key === 'F3') {
+        e.preventDefault();
+        window.toggleOsnap();
+        return;
+      }
+      if (e.key === 'F8') {
+        e.preventDefault();
+        window.toggleOrtho();
+        return;
+      }
       if (e.key === 'Enter') {
         if ((state.activeTool === 'draw_footprint' || state.activeTool === 'draw_polygon') && state.drawPoints.length >= 3) {
           e.preventDefault();
           finishDrawnFootprint();
           return;
         }
+        if (state.activeTool === 'draw_cad_polyline') {
+          e.preventDefault();
+          window.finishCadPolyline();
+          return;
+        }
+        if (state.activeTool === 'draw_cad_hatch') {
+          e.preventDefault();
+          window.finishCadHatch();
+          return;
+        }
+        if (state.activeTool === 'footprint_cutout') {
+          e.preventDefault();
+          window.finishFootprintCutout();
+          return;
+        }
       }
       if (e.key === ' ' || e.key.toLowerCase() === 'v') setCadActiveTool('pan');
+      if (e.key.toLowerCase() === 'l') setCadActiveTool('draw_cad_line');
+      if (e.key.toLowerCase() === 'c') setCadActiveTool('draw_cad_circle');
+      if (e.key.toLowerCase() === 'a') setCadActiveTool('draw_cad_arc');
+      if (e.key.toLowerCase() === 'o') setCadActiveTool('cad_offset');
+      if (e.key.toLowerCase() === 'x') setCadActiveTool('cad_trim');
       if (e.key.toLowerCase() === 'p') setCadActiveTool('parking');
       if (e.key.toLowerCase() === 'e') setCadActiveTool('delete');
       if (e.key.toLowerCase() === 's') setCadActiveTool('split');
@@ -4378,7 +5681,12 @@
       if (e.key.toLowerCase() === 'r') setCadActiveTool('ruler');
       if (e.key === 'Escape') {
         state.drawPoints = [];
+        state.cadDraftPoints = [];
+        state.atriumCutoutPoints = [];
+        state.isFreehandDrawing = false;
+        if (els.cadDynamicHud) els.cadDynamicHud.classList.add('hidden');
         setCadActiveTool('pan');
+        renderCadWorld();
       }
     });
   }
