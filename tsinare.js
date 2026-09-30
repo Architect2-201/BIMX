@@ -2,17 +2,22 @@
  * tsinare.js — BIMX Architectural 2D Masterplan & CAD Studio Engine (წინარე)
  * --------------------------------------------------------------------------
  * Features:
- * - High-precision screen-independent CAD rendering (no overlapping text or giant handles)
- * - 5 Distinct Architectural Presentation Styles (Classic White, Royal Blueprint, Presentation Landscape, Satellite, Dark OLED)
+ * - Direct Cadastral Search with live NAPR API Integration across Georgia
+ * - Complete Object Deletion (Eraser Tool, Keyboard Delete/Backspace, Trash Buttons)
+ * - Undo/Redo System (Ctrl+Z and Undo Button)
+ * - 8 Architectural Visual Styles (Classic White, Royal Blueprint, Presentation, Satellite, Dark OLED, Vintage Sepia, Greyscale Mono, Resort Aqua)
  * - True Working Architectural Scale (M 1:100, 1:200, 1:500, 1:1000, 1:2000) & Dynamic Graphic Scale Bar
- * - Parcel Subdivision (ნაკვეთის დაყოფა) & Merge (გაერთიანება)
- * - Parametric Building Resizing (Width/Length) & Free Rotation (0°-360°)
+ * - Parametric Building Resizing (Width/Length), Free Rotation (0°-360°), and Rename
  * - Preset Building Typologies (Rectangular, L-Shape, U-Shape Courtyard, Tower)
- * - Tree & Landscaping Placer (ხეები/გამწვანება) with Dynamic K-3 Greenery Contribution
- * - Architectural Dimension Strings with 45° CAD Ticks and Pill Badges
- * - Interactive Sun Insolation & Real-Time Shadow Projection
- * - Comprehensive Layer Visibility Controls (შრეების მართვა)
- * - Official Dossier PDF Export with Georgian Unicode Font & AutoCAD DXF Export
+ * - Landscaping & Greenery Tool (+ ხეები) with Dynamic K-3 Area Calculations
+ * - Water Features & Swimming Pools (+ აუზი / წყალი)
+ * - Wooden Terraces & Patios (+ ტერასა)
+ * - Paved Pedestrian Walkways (+ ბილიკი)
+ * - Road & Driveway with Fire Truck Access (6.0m)
+ * - Parking Bays Placement & Norms
+ * - Layer Visibility Controls (შრეების მართვა)
+ * - Sun Insolation & Real-Time Shadow Projection
+ * - Export to Official PDF Dossier, AutoCAD DXF, and High-Res PNG Image
  */
 
 (function () {
@@ -41,9 +46,12 @@
     
     // 2D Masterplan Elements
     subParcels: [], // [{ id, name, polygon: [[x,y]...], areaSqm, color }]
-    footprints: [], // [{ id, name, width, length, rotation, floors, floorHeight, totalHeight, functionType, center: [x,y], vertices: [[x,y]...], areaSqm }]
+    footprints: [], // [{ id, name, shape, width, length, rotation, floors, floorHeight, totalHeight, functionType, center: [x,y], vertices: [[x,y]...], areaSqm }]
     selectedFootprintId: null,
     trees: [], // [{ id, x, y, radius }]
+    waterBodies: [], // [{ id, x, y, width: 10, length: 5 }]
+    terraces: [], // [{ id, x, y, width: 12, length: 6 }]
+    walkways: [], // [{ id, points: [[x,y]...] }]
     roads: [], // [{ id, points: [[x,y]...], width: 6 }]
     parkingBays: [], // [{ id, center: [x,y], width: 2.5, length: 5 }]
     setbackDistance: 3.0,
@@ -56,8 +64,9 @@
       footprints: true,
       shadows: true,
       trees: true,
+      water: true,
       roads: true,
-      nodes: false // default false to prevent clutter!
+      nodes: false
     },
 
     // CAD Canvas Viewport Transform
@@ -68,21 +77,25 @@
     panStart: { x: 0, y: 0 },
     
     // Tools & Modes
-    activeTool: 'pan', // 'pan', 'split', 'draw_footprint', 'tree', 'draw_road', 'ruler'
-    activeStyle: 'blueprint', // 'blueprint', 'classic', 'presentation', 'satellite', 'dark'
+    activeTool: 'pan', // 'pan', 'delete', 'split', 'draw_footprint', 'tree', 'water', 'terrace', 'walkway', 'draw_road', 'ruler'
+    activeStyle: 'blueprint', // 'blueprint', 'classic', 'presentation', 'satellite', 'dark', 'sepia', 'mono', 'aqua'
     sunAzimuth: 135, // degrees
     
     // Interactive Transformations
     drawPoints: [],
     splitLine: [],
     rulerPoints: [],
+    walkwayPoints: [],
     isDraggingFootprint: false,
     isRotatingFootprint: false,
     draggedFootprintId: null,
     dragStartPos: { x: 0, y: 0 },
     dragStartCenter: [0, 0],
     rotateStartAngle: 0,
-    footprintInitialRot: 0
+    footprintInitialRot: 0,
+
+    // Undo Stack
+    undoStack: []
   };
 
   // DOM Elements Cache
@@ -106,6 +119,7 @@
   });
 
   function cacheDomElements() {
+    els.cadastralSearchForm = document.getElementById('cadastralSearchForm');
     els.cadastralInput = document.getElementById('cadastralInput');
     els.btnSearchCadastral = document.getElementById('btnSearchCadastral');
     els.lblCadastralCode = document.getElementById('lblCadastralCode');
@@ -130,7 +144,10 @@
     els.cadastralBoundaryLayer = document.getElementById('cadastralBoundaryLayer');
     els.setbackBoundaryLayer = document.getElementById('setbackBoundaryLayer');
     els.roadsLayer = document.getElementById('roadsLayer');
+    els.walkwaysLayer = document.getElementById('walkwaysLayer');
     els.parkingLayer = document.getElementById('parkingLayer');
+    els.waterLayer = document.getElementById('waterLayer');
+    els.terracesLayer = document.getElementById('terracesLayer');
     els.treesLayer = document.getElementById('treesLayer');
     els.shadowsLayer = document.getElementById('shadowsLayer');
     els.footprintsLayer = document.getElementById('footprintsLayer');
@@ -147,6 +164,7 @@
     els.sliderSunAzimuth = document.getElementById('sliderSunAzimuth');
     els.lblSunAzimuthVal = document.getElementById('lblSunAzimuthVal');
     els.selCadScale = document.getElementById('selCadScale');
+    els.lblActiveStyleName = document.getElementById('lblActiveStyleName');
 
     // Zoning Metric Elements
     els.inputK1Coeff = document.getElementById('inputK1Coeff');
@@ -166,7 +184,7 @@
     els.lblPlantedTreesCount = document.getElementById('lblPlantedTreesCount');
 
     // Active Building Controls
-    els.lblSelectedBuildingName = document.getElementById('lblSelectedBuildingName');
+    els.txtBuildingName = document.getElementById('txtBuildingName');
     els.sliderBuildingWidth = document.getElementById('sliderBuildingWidth');
     els.lblBuildingWidthVal = document.getElementById('lblBuildingWidthVal');
     els.sliderBuildingLength = document.getElementById('sliderBuildingLength');
@@ -181,11 +199,52 @@
     els.lblSetbackDistVal = document.getElementById('lblSetbackDistVal');
     els.lblFootprintsCount = document.getElementById('lblFootprintsCount');
     els.lstBuildingsContainer = document.getElementById('lstBuildingsContainer');
+
+    // Bind form submit event
+    if (els.cadastralSearchForm) {
+      els.cadastralSearchForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        triggerCadastralSearch();
+      });
+    }
   }
+
+  // --- Snapshot for Undo ---
+  function saveUndoSnapshot() {
+    state.undoStack.push({
+      footprints: JSON.parse(JSON.stringify(state.footprints)),
+      trees: JSON.parse(JSON.stringify(state.trees)),
+      waterBodies: JSON.parse(JSON.stringify(state.waterBodies)),
+      terraces: JSON.parse(JSON.stringify(state.terraces)),
+      parkingBays: JSON.parse(JSON.stringify(state.parkingBays)),
+      subParcels: JSON.parse(JSON.stringify(state.subParcels))
+    });
+    if (state.undoStack.length > 30) state.undoStack.shift();
+  }
+
+  window.undoLastAction = function () {
+    if (state.undoStack.length > 0) {
+      const snap = state.undoStack.pop();
+      state.footprints = snap.footprints;
+      state.trees = snap.trees;
+      state.waterBodies = snap.waterBodies;
+      state.terraces = snap.terraces;
+      state.parkingBays = snap.parkingBays;
+      state.subParcels = snap.subParcels;
+
+      if (!state.footprints.some(f => f.id === state.selectedFootprintId)) {
+        state.selectedFootprintId = state.footprints[0] ? state.footprints[0].id : null;
+      }
+      updateSelectedBuildingUI();
+      updateZoningCoefficientsUI();
+      renderCadWorld();
+      updateToolStatus('ბოლო მოქმედება გაუქმდა (Undo).');
+    }
+  };
 
   // --- Nationwide NAPR Parcel Retrieval ---
   async function triggerCadastralSearch(codeOverride) {
-    const rawCode = (codeOverride || els.cadastralInput.value || '').trim();
+    const rawCode = (codeOverride || (els.cadastralInput ? els.cadastralInput.value : '') || '').trim();
     if (!rawCode) return;
 
     if (els.btnSearchCadastral) {
@@ -226,6 +285,8 @@
         // Reset elements & create default footprint & sample landscaping
         state.subParcels = [];
         state.trees = [];
+        state.waterBodies = [];
+        state.terraces = [];
         generateDefaultFootprint();
         generateDefaultLandscaping();
 
@@ -260,6 +321,9 @@
     }
   }
 
+  // EXPOSE GLOBALLY FOR INLINE FORM & BUTTONS
+  window.triggerCadastralSearch = triggerCadastralSearch;
+
   window.loadCadastralSample = function (code) {
     if (els.cadastralInput) els.cadastralInput.value = code;
     triggerCadastralSearch(code);
@@ -277,7 +341,7 @@
 
     state.boundaryMeters = coordsLatLng.map(c => {
       const x = (c[1] - avgLng) * metersPerDegLng;
-      const y = -(c[0] - avgLat) * metersPerDegLat; // Inverted Y for SVG CAD (North is Up)
+      const y = -(c[0] - avgLat) * metersPerDegLat;
       return [x, y];
     });
   }
@@ -314,7 +378,6 @@
     const minX = Math.min(...xs), maxX = Math.max(...xs);
     const minY = Math.min(...ys), maxY = Math.max(...ys);
 
-    // Place 4 decorative landscaping trees near corners inside setback
     const offsets = [
       [minX + 6, minY + 6],
       [maxX - 6, minY + 6],
@@ -363,7 +426,6 @@
         [-halfW, halfH]
       ];
     } else {
-      // standard rectangle or tower
       const halfW = w / 2, halfH = h / 2;
       localVerts = [
         [-halfW, -halfH],
@@ -401,6 +463,7 @@
 
   // --- Add a new preset building footprint ---
   window.addPresetFootprint = function (shapeType) {
+    saveUndoSnapshot();
     const nextNum = state.footprints.length + 1;
     const offset = (nextNum - 1) * 7;
     let w = 15, h = 12;
@@ -416,13 +479,28 @@
     renderCadWorld();
   };
 
+  // --- DELETE CURRENT SELECTED OBJECT ---
+  window.deleteSelectedObject = function () {
+    if (!state.selectedFootprintId) return;
+    saveUndoSnapshot();
+    state.footprints = state.footprints.filter(f => f.id !== state.selectedFootprintId);
+    state.selectedFootprintId = state.footprints[0] ? state.footprints[0].id : null;
+    updateSelectedBuildingUI();
+    updateZoningCoefficientsUI();
+    renderCadWorld();
+    updateToolStatus('შენობა წაიშალა.');
+  };
+
   // --- Clear all footprints (ცარიელი ნაკვეთი) ---
   window.clearAllFootprints = function () {
-    if (confirm('გსურთ ყველა შენობის ლაქის და ხის წაშლა?')) {
+    if (confirm('გსურთ ყველა შენობის ლაქის, ხის და ობიექტის წაშლა?')) {
+      saveUndoSnapshot();
       state.footprints = [];
       state.trees = [];
+      state.waterBodies = [];
+      state.terraces = [];
       state.parkingBays = [];
-      state.roads = [];
+      state.subParcels = [];
       state.selectedFootprintId = null;
       updateSelectedBuildingUI();
       updateZoningCoefficientsUI();
@@ -467,6 +545,7 @@
   // --- Parcel Subdivision Algorithm (ნაკვეთის დაყოფა) ---
   function splitParcelByLine(p1, p2) {
     if (!state.boundaryMeters || state.boundaryMeters.length < 3) return;
+    saveUndoSnapshot();
 
     const A = p2[1] - p1[1];
     const B = p1[0] - p2[0];
@@ -515,6 +594,7 @@
   // Merge sub-parcels back
   window.triggerMergeSubParcels = function () {
     if (state.subParcels.length > 0) {
+      saveUndoSnapshot();
       state.subParcels = [];
       renderCadWorld();
       updateToolStatus('ნაკვეთები გაერთიანდა ერთიან საწყის საზღვარში.');
@@ -536,6 +616,7 @@
   // --- Add Parking Bays ---
   window.addParkingBays = function () {
     if (!state.boundaryMeters || state.boundaryMeters.length < 3) return;
+    saveUndoSnapshot();
     const ys = state.boundaryMeters.map(p => p[1]);
     const maxY = Math.max(...ys);
 
@@ -606,6 +687,7 @@
 
     if (fp) {
       if (els.lblSelectedBuildingName) els.lblSelectedBuildingName.innerText = fp.name;
+      if (els.txtBuildingName) els.txtBuildingName.value = fp.name;
       if (els.sliderBuildingWidth) els.sliderBuildingWidth.value = fp.width;
       if (els.lblBuildingWidthVal) els.lblBuildingWidthVal.innerText = `${fp.width.toFixed(1)} მ`;
       if (els.sliderBuildingLength) els.sliderBuildingLength.value = fp.length;
@@ -637,6 +719,14 @@
     }
   }
 
+  window.renameSelectedBuilding = function (name) {
+    const fp = state.footprints.find(f => f.id === state.selectedFootprintId);
+    if (!fp) return;
+    fp.name = name.trim() || 'შენობა';
+    if (els.lblSelectedBuildingName) els.lblSelectedBuildingName.innerText = fp.name;
+    renderCadWorld();
+  };
+
   window.selectFootprint = function (id) {
     state.selectedFootprintId = id;
     updateSelectedBuildingUI();
@@ -644,10 +734,12 @@
   };
 
   window.deleteFootprint = function (id) {
+    saveUndoSnapshot();
     state.footprints = state.footprints.filter(f => f.id !== id);
     if (state.selectedFootprintId === id) {
       state.selectedFootprintId = state.footprints[0] ? state.footprints[0].id : null;
     }
+    updateSelectedBuildingUI();
     updateZoningCoefficientsUI();
     renderCadWorld();
   };
@@ -687,6 +779,7 @@
     const floors = parseInt(val, 10) || 1;
     const fp = state.footprints.find(f => f.id === state.selectedFootprintId);
     if (fp) {
+      saveUndoSnapshot();
       fp.floors = floors;
       fp.totalHeight = Math.round((fp.floors * fp.floorHeight + 0.8) * 10) / 10;
       updateZoningCoefficientsUI();
@@ -697,6 +790,7 @@
   window.setFloorHeight = function (h) {
     const fp = state.footprints.find(f => f.id === state.selectedFootprintId);
     if (fp) {
+      saveUndoSnapshot();
       fp.floorHeight = parseFloat(h) || 3.0;
       fp.totalHeight = Math.round((fp.floors * fp.floorHeight + 0.8) * 10) / 10;
       updateZoningCoefficientsUI();
@@ -773,7 +867,18 @@
     a.click();
   };
 
-  // --- 5 Visual Plan Styles Selector ---
+  // --- 8 Visual Plan Styles Selector ---
+  const styleNamesMap = {
+    'classic': '🏛️ არქიტექტურული თეთრი',
+    'blueprint': '📐 Royal Blueprint',
+    'presentation': '🌿 გენგეგმა',
+    'satellite': '🛰️ სატელიტი',
+    'dark': '🌑 OLED Dark CAD',
+    'sepia': '📜 ვინტაჟური პერგამენტი',
+    'mono': '🏙️ მონოქრომული',
+    'aqua': '💧 აკვა-გენგეგმა'
+  };
+
   window.setDrawingStyle = function (styleName) {
     state.activeStyle = styleName;
     const wrapper = els.cadCanvasWrapper;
@@ -781,13 +886,8 @@
       wrapper.className = `flex-1 relative overflow-hidden style-${styleName}`;
     }
 
-    document.querySelectorAll('.style-choice-btn').forEach(btn => {
-      btn.className = 'style-choice-btn px-2 py-1 rounded text-[11px] font-semibold text-slate-300 hover:text-white transition';
-    });
-
-    const activeBtn = document.getElementById(`styleBtn${styleName.charAt(0).toUpperCase() + styleName.slice(1)}`);
-    if (activeBtn) {
-      activeBtn.className = 'style-choice-btn active px-2 py-1 rounded text-[11px] font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/40 transition';
+    if (els.lblActiveStyleName) {
+      els.lblActiveStyleName.innerText = styleNamesMap[styleName] || styleName;
     }
 
     renderCadWorld();
@@ -804,10 +904,8 @@
     if (!scaleStr) return;
     const ratio = parseInt(scaleStr.replace('1:', '').replace('M', '').trim(), 10) || 500;
     
-    // Convert architectural scale to pixels per meter (assuming 96 DPI screen)
     state.zoomScale = METERS_TO_PIXELS_REAL / ratio;
 
-    // Recenter canvas on centroid
     if (state.boundaryMeters && state.boundaryMeters.length >= 3) {
       const xs = state.boundaryMeters.map(p => p[0]);
       const ys = state.boundaryMeters.map(p => p[1]);
@@ -822,15 +920,12 @@
     updateToolStatus(`არჩეულია მასშტაბი M 1:${ratio}`);
   };
 
-  // Update Dynamic Graphic Scale Bar on Zoom
   function updateGraphicScaleBar() {
     if (!els.lblGraphicScaleUnit || !els.lblCurrentScaleRatio) return;
 
-    // Calculate approximate architectural scale ratio
     const currentRatio = Math.round(METERS_TO_PIXELS_REAL / Math.max(0.001, state.zoomScale));
     els.lblCurrentScaleRatio.innerText = `M 1:${currentRatio}`;
 
-    // Update dropdown if close to standard
     if (els.selCadScale) {
       const standards = [100, 200, 500, 1000, 2000];
       const closest = standards.reduce((prev, curr) => Math.abs(curr - currentRatio) < Math.abs(prev - currentRatio) ? curr : prev);
@@ -839,12 +934,9 @@
       }
     }
 
-    // Determine scale bar total metric length (e.g. 5m, 10m, 20m, 50m, 100m)
-    // Target 100-140 pixels total bar width
     const targetPx = 110;
     const rawMeters = targetPx / Math.max(0.001, state.zoomScale);
     
-    // Round to clean architectural number
     let cleanMeters = 20;
     if (rawMeters < 3) cleanMeters = 2;
     else if (rawMeters < 8) cleanMeters = 5;
@@ -861,9 +953,7 @@
 
     for (let i = 1; i <= 4; i++) {
       const seg = document.getElementById(`scaleSegment${i}`);
-      if (seg) {
-        seg.style.width = `${segWidthPx}px`;
-      }
+      if (seg) seg.style.width = `${segWidthPx}px`;
     }
   }
 
@@ -873,13 +963,18 @@
     state.drawPoints = [];
     state.splitLine = [];
     state.rulerPoints = [];
+    state.walkwayPoints = [];
 
     document.querySelectorAll('.btn-cad-tool').forEach(btn => btn.classList.remove('btn-tool-active'));
     const btnMap = {
       'pan': 'toolBtnPan',
+      'delete': 'toolBtnDelete',
       'split': 'toolBtnSplit',
       'draw_footprint': 'toolBtnDrawFootprint',
       'tree': 'toolBtnTree',
+      'water': 'toolBtnWater',
+      'terrace': 'toolBtnTerrace',
+      'walkway': 'toolBtnWalkway',
       'draw_road': 'toolBtnDrawRoad',
       'ruler': 'toolBtnRuler'
     };
@@ -889,15 +984,20 @@
     }
 
     if (els.cadSvgContainer) {
+      els.cadSvgContainer.classList.remove('mode-pan', 'mode-delete');
       if (toolName === 'pan') els.cadSvgContainer.classList.add('mode-pan');
-      else els.cadSvgContainer.classList.remove('mode-pan');
+      else if (toolName === 'delete') els.cadSvgContainer.classList.add('mode-delete');
     }
 
     const hintMap = {
       'pan': 'არჩევა და გადაადგილება: დააკლიკეთ შენობას გადასაადგილებლად',
+      'delete': 'საშლელი: დააკლიკეთ ნებისმიერ ობიექტზე (შენობა, ხე, აუზი, გზა) მის წასაშლელად',
       'split': 'ნაკვეთის დაყოფა: დააკლიკეთ ორ წერტილზე გამყოფი ხაზის გასავლებად',
       'draw_footprint': 'ლაქის დახაზვა: დააკლიკეთ წერტილების დასასმელად, ორმაგი კლიკი ასრულებს',
       'tree': 'გამწვანება: დააკლიკეთ ნაკვეთის ნებისმიერ ზონაში ხის დასარგავად',
+      'water': 'აუზი: დააკლიკეთ ნაკვეთზე საცურაო აუზის განსათავსებლად',
+      'terrace': 'ტერასა: დააკლიკეთ ნაკვეთზე ხის ტერასის / დეკის განსათავსებლად',
+      'walkway': 'ბილიკი: დააკლიკეთ წერტილების დასასმელად, ორმაგი კლიკი ასრულებს',
       'draw_road': 'გზის დახაზვა: დააკლიკეთ გზის ტრაექტორიის მოსანიშნად',
       'ruler': 'საზომი: დააკლიკეთ ორ წერტილზე მანძილის გასაზომად'
     };
@@ -914,7 +1014,6 @@
     const container = els.cadSvgContainer;
     if (!container) return;
 
-    // Pan & Zoom via Wheel
     container.addEventListener('wheel', (e) => {
       e.preventDefault();
       const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
@@ -933,11 +1032,68 @@
     container.addEventListener('mousedown', (e) => {
       const worldPos = screenToWorld(e.clientX, e.clientY);
 
-      // Pan Tool or Middle Mouse Button or Space
+      // 1. ERASER TOOL MODE (DELETE ON CLICK)
+      if (state.activeTool === 'delete') {
+        saveUndoSnapshot();
+        // Check if hit building
+        const hitFp = checkFootprintHit(worldPos);
+        if (hitFp) {
+          state.footprints = state.footprints.filter(f => f.id !== hitFp.id);
+          if (state.selectedFootprintId === hitFp.id) {
+            state.selectedFootprintId = state.footprints[0] ? state.footprints[0].id : null;
+          }
+          updateSelectedBuildingUI();
+          updateZoningCoefficientsUI();
+          renderCadWorld();
+          updateToolStatus(`შენობა "${hitFp.name}" წაიშალა.`);
+          return;
+        }
+
+        // Check if hit tree
+        const treeIdx = state.trees.findIndex(t => Math.hypot(worldPos[0] - t.x, worldPos[1] - t.y) < (t.radius || 3.0));
+        if (treeIdx !== -1) {
+          state.trees.splice(treeIdx, 1);
+          updateZoningCoefficientsUI();
+          renderCadWorld();
+          updateToolStatus('ხე წაიშალა.');
+          return;
+        }
+
+        // Check if hit water body
+        const waterIdx = state.waterBodies.findIndex(w => Math.abs(worldPos[0] - w.x) < w.width / 2 && Math.abs(worldPos[1] - w.y) < w.length / 2);
+        if (waterIdx !== -1) {
+          state.waterBodies.splice(waterIdx, 1);
+          renderCadWorld();
+          updateToolStatus('აუზი წაიშალა.');
+          return;
+        }
+
+        // Check if hit terrace
+        const terraceIdx = state.terraces.findIndex(t => Math.abs(worldPos[0] - t.x) < t.width / 2 && Math.abs(worldPos[1] - t.y) < t.length / 2);
+        if (terraceIdx !== -1) {
+          state.terraces.splice(terraceIdx, 1);
+          renderCadWorld();
+          updateToolStatus('ტერასა წაიშალა.');
+          return;
+        }
+
+        // Check if hit parking
+        const parkIdx = state.parkingBays.findIndex(p => Math.hypot(worldPos[0] - p.center[0], worldPos[1] - p.center[1]) < 3);
+        if (parkIdx !== -1) {
+          state.parkingBays.splice(parkIdx, 1);
+          renderCadWorld();
+          updateToolStatus('ავტოსადგომი წაიშალა.');
+          return;
+        }
+        return;
+      }
+
+      // 2. PAN TOOL MODE
       if (state.activeTool === 'pan' || e.button === 1 || e.spaceKey) {
-        // Check if clicking on Footprint Rotate Handle
+        // Rotate Handle check
         const rotTarget = checkRotationHandleHit(worldPos);
         if (rotTarget) {
+          saveUndoSnapshot();
           state.isRotatingFootprint = true;
           state.draggedFootprintId = rotTarget.id;
           state.rotateStartAngle = Math.atan2(worldPos[1] - rotTarget.center[1], worldPos[0] - rotTarget.center[0]);
@@ -945,9 +1101,10 @@
           return;
         }
 
-        // Check if clicking inside a Footprint to drag
+        // Footprint Drag check
         const hitFp = checkFootprintHit(worldPos);
         if (hitFp) {
+          saveUndoSnapshot();
           state.isDraggingFootprint = true;
           state.draggedFootprintId = hitFp.id;
           state.selectedFootprintId = hitFp.id;
@@ -958,13 +1115,12 @@
           return;
         }
 
-        // Otherwise canvas pan
         state.isPanning = true;
         state.panStart = { x: e.clientX - state.panX, y: e.clientY - state.panY };
         return;
       }
 
-      // Parcel Splitting Tool
+      // 3. SPLIT PARCEL TOOL
       if (state.activeTool === 'split') {
         state.splitLine.push(worldPos);
         if (state.splitLine.length === 2) {
@@ -975,8 +1131,9 @@
         return;
       }
 
-      // Tree Planting Tool
+      // 4. TREE PLANTING TOOL
       if (state.activeTool === 'tree') {
+        saveUndoSnapshot();
         state.trees.push({
           id: 'tree_' + Date.now(),
           x: worldPos[0],
@@ -988,14 +1145,44 @@
         return;
       }
 
-      // Draw Footprint Tool
+      // 5. WATER / POOL TOOL
+      if (state.activeTool === 'water') {
+        saveUndoSnapshot();
+        state.waterBodies.push({
+          id: 'water_' + Date.now(),
+          x: worldPos[0],
+          y: worldPos[1],
+          width: 10,
+          length: 5
+        });
+        renderCadWorld();
+        updateToolStatus('განთავსდა საცურაო აუზი (10მ × 5მ)');
+        return;
+      }
+
+      // 6. TERRACE / DECK TOOL
+      if (state.activeTool === 'terrace') {
+        saveUndoSnapshot();
+        state.terraces.push({
+          id: 'terrace_' + Date.now(),
+          x: worldPos[0],
+          y: worldPos[1],
+          width: 12,
+          length: 6
+        });
+        renderCadWorld();
+        updateToolStatus('განთავსდა ხის ტერასა (12მ × 6მ)');
+        return;
+      }
+
+      // 7. DRAW FOOTPRINT TOOL
       if (state.activeTool === 'draw_footprint') {
         state.drawPoints.push(worldPos);
         renderInteractionLayer();
         return;
       }
 
-      // Ruler Tool
+      // 8. RULER TOOL
       if (state.activeTool === 'ruler') {
         if (state.rulerPoints.length >= 2) state.rulerPoints = [];
         state.rulerPoints.push(worldPos);
@@ -1004,7 +1191,6 @@
       }
     });
 
-    // Double Click to finish freehand footprint
     container.addEventListener('dblclick', () => {
       if (state.activeTool === 'draw_footprint' && state.drawPoints.length >= 3) {
         finishDrawnFootprint();
@@ -1013,14 +1199,12 @@
 
     // Mouse Move
     window.addEventListener('mousemove', (e) => {
-      const rect = container.getBoundingClientRect();
       const worldPos = screenToWorld(e.clientX, e.clientY);
 
       if (els.lblMouseCoords) {
         els.lblMouseCoords.innerText = `X: ${worldPos[0].toFixed(1)}მ | Y: ${(-worldPos[1]).toFixed(1)}მ`;
       }
 
-      // Panning Canvas
       if (state.isPanning) {
         state.panX = e.clientX - state.panStart.x;
         state.panY = e.clientY - state.panStart.y;
@@ -1028,7 +1212,6 @@
         return;
       }
 
-      // Rotating Footprint
       if (state.isRotatingFootprint && state.draggedFootprintId) {
         const fp = state.footprints.find(f => f.id === state.draggedFootprintId);
         if (fp) {
@@ -1041,7 +1224,6 @@
         return;
       }
 
-      // Dragging Footprint
       if (state.isDraggingFootprint && state.draggedFootprintId) {
         const fp = state.footprints.find(f => f.id === state.draggedFootprintId);
         if (fp) {
@@ -1060,7 +1242,6 @@
       }
     });
 
-    // Mouse Up
     window.addEventListener('mouseup', () => {
       state.isPanning = false;
       state.isDraggingFootprint = false;
@@ -1080,7 +1261,7 @@
       els.worldGroup.setAttribute('transform', `translate(${state.panX}, ${state.panY}) scale(${state.zoomScale})`);
     }
     updateGraphicScaleBar();
-    renderCadWorld(); // re-render to update crisp screen-relative sizes!
+    renderCadWorld();
   }
 
   function checkFootprintHit(worldPos) {
@@ -1089,11 +1270,8 @@
 
     for (let i = state.footprints.length - 1; i >= 0; i--) {
       const fp = state.footprints[i];
-      // Check center handle
       const dCenter = Math.hypot(worldPos[0] - fp.center[0], worldPos[1] - fp.center[1]);
       if (dCenter < 8 * pxToM) return fp;
-
-      // Check inside polygon
       if (pointInPolygon(worldPos, fp.vertices, hitTolerance)) return fp;
     }
     return null;
@@ -1104,7 +1282,6 @@
     const fp = state.footprints.find(f => f.id === state.selectedFootprintId);
     if (!fp) return null;
 
-    // Rotation handle is positioned along rotation vector above center
     const stemDist = (fp.length / 2) + (16 * pxToM);
     const rad = ((fp.rotation - 90) * Math.PI) / 180;
     const handleX = fp.center[0] + Math.cos(rad) * stemDist;
@@ -1128,6 +1305,7 @@
 
   function finishDrawnFootprint() {
     if (state.drawPoints.length < 3) return;
+    saveUndoSnapshot();
     const area = calculatePolygonArea(state.drawPoints);
     const cx = state.drawPoints.reduce((s, p) => s + p[0], 0) / state.drawPoints.length;
     const cy = state.drawPoints.reduce((s, p) => s + p[1], 0) / state.drawPoints.length;
@@ -1168,6 +1346,8 @@
     renderSubParcels(pxToM);
     renderRoads(pxToM);
     renderParking(pxToM);
+    renderWaterBodies(pxToM);
+    renderTerraces(pxToM);
     renderShadows();
     renderTrees(pxToM);
     renderFootprints(pxToM);
@@ -1247,7 +1427,6 @@
       return;
     }
 
-    // Place entrance road connecting smoothly at the bottom-most boundary edge
     const ys = state.boundaryMeters.map(p => p[1]);
     const maxY = Math.max(...ys);
 
@@ -1274,14 +1453,73 @@
     }
 
     els.parkingLayer.innerHTML = state.parkingBays.map(p => `
-      <g>
+      <g class="cursor-pointer" onclick="if(state.activeTool==='delete'){deleteParking('${p.id}');}">
         <rect x="${p.center[0] - p.width / 2}" y="${p.center[1] - p.length / 2}" width="${p.width}" height="${p.length}" fill="var(--parking-fill)" opacity="0.75" stroke="#ffffff" stroke-width="${0.5 * pxToM}" rx="${0.5 * pxToM}"/>
         <text x="${p.center[0]}" y="${p.center[1] + 2.5 * pxToM}" text-anchor="middle" fill="#ffffff" font-size="${8 * pxToM}" font-weight="bold">P</text>
       </g>
     `).join('');
   }
 
-  // 6. 2D Shadow Projection
+  function deleteParking(id) {
+    saveUndoSnapshot();
+    state.parkingBays = state.parkingBays.filter(p => p.id !== id);
+    renderCadWorld();
+    updateToolStatus('ავტოსადგომი წაიშალა.');
+  }
+
+  // 6. Water Bodies / Swimming Pools (+ აუზი)
+  function renderWaterBodies(pxToM) {
+    if (!els.waterLayer) return;
+    if (!state.layers.water || state.waterBodies.length === 0) {
+      els.waterLayer.innerHTML = '';
+      return;
+    }
+
+    els.waterLayer.innerHTML = state.waterBodies.map(w => `
+      <g class="cursor-pointer" onclick="if(state.activeTool==='delete'){deleteWaterBody('${w.id}');}">
+        <!-- Pool Coping stone border -->
+        <rect x="${w.x - w.width / 2 - 0.8}" y="${w.y - w.length / 2 - 0.8}" width="${w.width + 1.6}" height="${w.length + 1.6}" fill="#e2e8f0" stroke="#94a3b8" stroke-width="${0.6 * pxToM}" rx="${1 * pxToM}"/>
+        <!-- Water Body -->
+        <rect x="${w.x - w.width / 2}" y="${w.y - w.length / 2}" width="${w.width}" height="${w.length}" fill="var(--water-fill)" opacity="0.85" rx="${0.5 * pxToM}"/>
+        <!-- Water Pattern overlay -->
+        <rect x="${w.x - w.width / 2}" y="${w.y - w.length / 2}" width="${w.width}" height="${w.length}" fill="url(#hatchWaterWaves)" opacity="0.6"/>
+        <text x="${w.x}" y="${w.y + 2.5 * pxToM}" text-anchor="middle" fill="#ffffff" font-size="${8 * pxToM}" font-weight="bold" font-family="'JetBrains Mono', monospace">აუზი ${w.width}×${w.length}მ</text>
+      </g>
+    `).join('');
+  }
+
+  function deleteWaterBody(id) {
+    saveUndoSnapshot();
+    state.waterBodies = state.waterBodies.filter(w => w.id !== id);
+    renderCadWorld();
+    updateToolStatus('აუზი წაიშალა.');
+  }
+
+  // 7. Terraces & Decks (+ ტერასა)
+  function renderTerraces(pxToM) {
+    if (!els.terracesLayer) return;
+    if (state.terraces.length === 0) {
+      els.terracesLayer.innerHTML = '';
+      return;
+    }
+
+    els.terracesLayer.innerHTML = state.terraces.map(t => `
+      <g class="cursor-pointer" onclick="if(state.activeTool==='delete'){deleteTerrace('${t.id}');}">
+        <rect x="${t.x - t.width / 2}" y="${t.y - t.length / 2}" width="${t.width}" height="${t.length}" fill="var(--terrace-fill)" stroke="#b45309" stroke-width="${0.8 * pxToM}" rx="${0.8 * pxToM}"/>
+        <rect x="${t.x - t.width / 2}" y="${t.y - t.length / 2}" width="${t.width}" height="${t.length}" fill="url(#hatchTerraceWood)" opacity="0.7"/>
+        <text x="${t.x}" y="${t.y + 2 * pxToM}" text-anchor="middle" fill="#78350f" font-size="${8 * pxToM}" font-weight="bold" font-family="Inter, sans-serif">ტერასა ${t.width}×${t.length}მ</text>
+      </g>
+    `).join('');
+  }
+
+  function deleteTerrace(id) {
+    saveUndoSnapshot();
+    state.terraces = state.terraces.filter(t => t.id !== id);
+    renderCadWorld();
+    updateToolStatus('ტერასა წაიშალა.');
+  }
+
+  // 8. 2D Shadow Projection
   function renderShadows() {
     if (!els.shadowsLayer) return;
     if (!state.layers.shadows) {
@@ -1298,11 +1536,11 @@
       const sy = Math.sin(rad) * sLen;
 
       const shadowPoly = f.vertices.map(v => `${v[0] + sx},${v[1] + sy}`).join(' ');
-      return `<polygon points="${shadowPoly}" fill="rgba(0,0,0,0.35)" filter="blur(1px)" />`;
+      return `<polygon points="${shadowPoly}" fill="rgba(0,0,0,0.32)" />`;
     }).join('');
   }
 
-  // 7. Trees & Landscaping (+ ხეები)
+  // 9. Trees & Landscaping (+ ხეები)
   function renderTrees(pxToM) {
     if (!els.treesLayer) return;
     if (!state.layers.trees || state.trees.length === 0) {
@@ -1314,21 +1552,25 @@
       const r = t.radius || 2.8;
       const branchR = r * 0.7;
       return `
-        <g class="cursor-pointer">
-          <!-- Ambient shadow -->
-          <circle cx="${t.x + 0.6}" cy="${t.y + 0.6}" r="${r}" fill="rgba(0,0,0,0.22)"/>
-          <!-- Outer Foliage -->
-          <circle cx="${t.x}" cy="${t.y}" r="${r}" fill="var(--tree-fill)" opacity="0.85" stroke="#15803d" stroke-width="${0.6 * pxToM}"/>
-          <!-- Inner Decorative Crown -->
+        <g class="cursor-pointer" onclick="if(state.activeTool==='delete'){deleteTree('${t.id}');}">
+          <circle cx="${t.x + 0.5}" cy="${t.y + 0.5}" r="${r}" fill="rgba(0,0,0,0.2)"/>
+          <circle cx="${t.x}" cy="${t.y}" r="${r}" fill="var(--tree-fill)" opacity="0.88" stroke="#15803d" stroke-width="${0.6 * pxToM}"/>
           <circle cx="${t.x}" cy="${t.y}" r="${branchR}" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="${0.5 * pxToM}" stroke-dasharray="${1.5 * pxToM}, ${1.5 * pxToM}"/>
-          <!-- Trunk -->
           <circle cx="${t.x}" cy="${t.y}" r="${0.6 * pxToM}" fill="#78350f"/>
         </g>
       `;
     }).join('');
   }
 
-  // 8. Building Footprints Layer (With Sleek Screen-Scaled Architectural Badges & Transform Handles)
+  function deleteTree(id) {
+    saveUndoSnapshot();
+    state.trees = state.trees.filter(t => t.id !== id);
+    updateZoningCoefficientsUI();
+    renderCadWorld();
+    updateToolStatus('ხე წაიშალა.');
+  }
+
+  // 10. Building Footprints Layer
   function renderFootprints(pxToM) {
     if (!els.footprintsLayer) return;
     if (!state.layers.footprints) {
@@ -1342,13 +1584,11 @@
       const pts = f.vertices.map(p => `${p[0]},${p[1]}`).join(' ');
       const isSelected = f.id === state.selectedFootprintId;
 
-      // Badge Dimensions in Screen Pixels
       const badgeW = 95 * pxToM;
       const badgeH = 26 * pxToM;
       const cornerR = 4 * pxToM;
       const strokeW = isSelected ? Math.max(0.4, 2.0 * pxToM) : Math.max(0.3, 1.2 * pxToM);
 
-      // Rotation Handle Setup (only for selected building)
       let rotationHandleSvg = '';
       if (isSelected) {
         const stemDist = (f.length / 2) + (16 * pxToM);
@@ -1357,25 +1597,20 @@
         const hy = f.center[1] + Math.sin(rad) * stemDist;
 
         rotationHandleSvg = `
-          <!-- Rotation Stem & Knob -->
           <line x1="${f.center[0]}" y1="${f.center[1]}" x2="${hx}" y2="${hy}" stroke="#f59e0b" stroke-width="${1 * pxToM}" stroke-dasharray="${2 * pxToM}, ${2 * pxToM}" />
           <circle cx="${hx}" cy="${hy}" r="${4.5 * pxToM}" fill="#f59e0b" stroke="#ffffff" stroke-width="${1 * pxToM}" class="cursor-grab" title="დაატრიალეთ შენობა" />
         `;
       }
 
       return `
-        <g class="cursor-pointer" onclick="selectFootprint('${f.id}')">
-          <!-- Footprint Base Polygon -->
+        <g class="cursor-pointer" onclick="handleFootprintClick('${f.id}')">
           <polygon points="${pts}" fill="var(--footprint-fill)" stroke="${isSelected ? '#00f0ff' : 'var(--footprint-stroke)'}" stroke-width="${strokeW}" />
-          <!-- Architectural Diagonal Hatching -->
           <polygon points="${pts}" fill="url(#${hatchId})" opacity="0.65" pointer-events="none" />
 
           ${rotationHandleSvg}
 
-          <!-- Center Drag Handle Knob -->
           <circle cx="${f.center[0]}" cy="${f.center[1]}" r="${4.5 * pxToM}" fill="${isSelected ? '#00f0ff' : '#ffffff'}" stroke="#0a101d" stroke-width="${1 * pxToM}" />
 
-          <!-- High-Contrast Sleek Floating Callout Badge -->
           <rect x="${f.center[0] - badgeW / 2}" y="${f.center[1] - badgeH / 2}" width="${badgeW}" height="${badgeH}" rx="${cornerR}" fill="rgba(8,13,26,0.92)" stroke="${isSelected ? '#00f0ff' : '#334155'}" stroke-width="${0.8 * pxToM}" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.5))" pointer-events="none" />
           <text x="${f.center[0]}" y="${f.center[1] - 2 * pxToM}" text-anchor="middle" fill="#ffffff" font-size="${9 * pxToM}" font-weight="bold" font-family="Inter, sans-serif" pointer-events="none">${f.name}</text>
           <text x="${f.center[0]}" y="${f.center[1] + 8 * pxToM}" text-anchor="middle" fill="${isSelected ? '#38bdf8' : '#94a3b8'}" font-size="${8 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="600" pointer-events="none">${f.areaSqm} მ² · ${f.floors}ს (H:${f.totalHeight}მ)</text>
@@ -1384,7 +1619,15 @@
     }).join('');
   }
 
-  // 9. Architectural Dimension Strings (With 45° CAD Ticks and Non-Overlapping Pills)
+  function handleFootprintClick(id) {
+    if (state.activeTool === 'delete') {
+      deleteFootprint(id);
+      return;
+    }
+    selectFootprint(id);
+  }
+
+  // 11. Architectural Dimension Strings
   function renderDimensions(pxToM) {
     if (!els.dimensionsLayer) return;
     if (!state.layers.dimensions || !state.boundaryMeters || state.boundaryMeters.length < 3) {
@@ -1401,13 +1644,11 @@
       const p2 = poly[(i + 1) % n];
       const dist = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]);
 
-      // Skip microscopic edges to prevent text overlapping
       if (dist < 2.5) continue;
 
       const midX = (p1[0] + p2[0]) / 2;
       const midY = (p1[1] + p2[1]) / 2;
 
-      // Normal offset
       const dx = p2[0] - p1[0];
       const dy = p2[1] - p1[1];
       const nx = -dy / dist;
@@ -1423,7 +1664,6 @@
 
       dimSvg += `
         <g>
-          <!-- Dimension Badge Pill -->
           <rect x="${tx - pillW / 2}" y="${ty - pillH / 2}" width="${pillW}" height="${pillH}" rx="${2.5 * pxToM}" fill="var(--canvas-bg)" stroke="var(--grid-major)" stroke-width="${0.6 * pxToM}" opacity="0.95" />
           <text x="${tx}" y="${ty + 3.5 * pxToM}" text-anchor="middle" fill="var(--text-color)" font-size="${8.5 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">${textStr}</text>
         </g>
@@ -1432,7 +1672,7 @@
     els.dimensionsLayer.innerHTML = dimSvg;
   }
 
-  // 10. Node Numbers Layer (Optional Toggle to prevent clutter)
+  // 12. Node Numbers Layer
   function renderNodes(pxToM) {
     if (!els.nodesLayer) return;
     if (!state.layers.nodes || !state.boundaryMeters) {
@@ -1449,7 +1689,7 @@
     `).join('');
   }
 
-  // 11. Temporary Interaction Layer
+  // 13. Temporary Interaction Layer
   function renderInteractionLayer(pxToM) {
     if (!els.interactionLayer) return;
     const p2m = pxToM || (1 / Math.max(0.001, state.zoomScale));
@@ -1634,7 +1874,14 @@
         canvas.width = 1800;
         canvas.height = 1200;
         const ctx = canvas.getContext('2d');
-        ctx.fillStyle = state.activeStyle === 'classic' ? '#fbfcfd' : (state.activeStyle === 'presentation' ? '#f2f8f4' : '#071329');
+        const bgMap = {
+          'classic': '#fdfdfd',
+          'presentation': '#f1f8f3',
+          'sepia': '#f8f3e6',
+          'mono': '#e2e8f0',
+          'aqua': '#e0f2fe'
+        };
+        ctx.fillStyle = bgMap[state.activeStyle] || '#071329';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         DOMURL.revokeObjectURL(url);
@@ -1650,15 +1897,52 @@
     }
   };
 
+  // --- High-Res PNG Image Export ---
+  window.exportTsinarePng = function () {
+    const svgEl = document.getElementById('cadSvgStage');
+    if (!svgEl) return;
+
+    const svgData = new XMLSerializer().serializeToString(svgEl);
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const DOMURL = window.URL || window.webkitURL || window;
+    const url = DOMURL.createObjectURL(svgBlob);
+
+    const img = new Image();
+    img.onload = function () {
+      const canvas = document.createElement('canvas');
+      canvas.width = 2400;
+      canvas.height = 1600;
+      const ctx = canvas.getContext('2d');
+      const bgMap = {
+        'classic': '#fdfdfd',
+        'presentation': '#f1f8f3',
+        'sepia': '#f8f3e6',
+        'mono': '#e2e8f0',
+        'aqua': '#e0f2fe'
+      };
+      ctx.fillStyle = bgMap[state.activeStyle] || '#071329';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      DOMURL.revokeObjectURL(url);
+
+      const a = document.createElement('a');
+      a.href = canvas.toDataURL('image/png');
+      a.download = `BIMX_Tsinare_${state.cadastralCode}.png`;
+      a.click();
+    };
+    img.src = url;
+  };
+
   // --- AutoCAD DXF Export ---
   window.exportTsinareDxf = function () {
     let dxf = "0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1009\n0\nENDSEC\n";
-    dxf += "0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nLAYER\n70\n6\n";
+    dxf += "0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nLAYER\n70\n7\n";
     dxf += "0\nLAYER\n2\nCADASTRAL_BOUNDARY\n70\n0\n62\n1\n6\nCONTINUOUS\n";
     dxf += "0\nLAYER\n2\nSETBACK_BUFFER\n70\n0\n62\n6\n6\nDASHED\n";
     dxf += "0\nLAYER\n2\nBUILDING_FOOTPRINTS\n70\n0\n62\n4\n6\nCONTINUOUS\n";
     dxf += "0\nLAYER\n2\nSUBDIVISION_PARCELS\n70\n0\n62\n3\n6\nCONTINUOUS\n";
     dxf += "0\nLAYER\n2\nTREES_GREENERY\n70\n0\n62\n2\n6\nCONTINUOUS\n";
+    dxf += "0\nLAYER\n2\nWATER_BODIES\n70\n0\n62\n5\n6\nCONTINUOUS\n";
     dxf += "0\nLAYER\n2\nROADS\n70\n0\n62\n8\n6\nCONTINUOUS\n";
     dxf += "0\nENDTAB\n0\nENDSEC\n";
     dxf += "0\nSECTION\n2\nENTITIES\n";
@@ -1692,13 +1976,27 @@
     a.click();
   };
 
+  // Keyboard Shortcuts: Delete, Undo, Tool shortcuts
   function setupEventListeners() {
     window.addEventListener('keydown', (e) => {
       if (e.target && ['input', 'select', 'textarea'].includes(e.target.tagName.toLowerCase())) return;
+
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        window.deleteSelectedObject();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        window.undoLastAction();
+        return;
+      }
       if (e.key === ' ' || e.key === 'p') setCadActiveTool('pan');
+      if (e.key === 'e') setCadActiveTool('delete');
       if (e.key === 's') setCadActiveTool('split');
       if (e.key === 'b') setCadActiveTool('draw_footprint');
       if (e.key === 't') setCadActiveTool('tree');
+      if (e.key === 'w') setCadActiveTool('water');
       if (e.key === 'r') setCadActiveTool('ruler');
       if (e.key === 'Escape') setCadActiveTool('pan');
     });

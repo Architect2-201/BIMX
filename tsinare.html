@@ -95,8 +95,32 @@
     .cad-canvas-container.mode-pan:active {
       cursor: grabbing;
     }
+    .cad-canvas-container.mode-delete {
+      cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="%23f43f5e"><path d="M19 4h-3.5l-1-1h-5l-1 1H5v2h14M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12z"/></svg>') 10 10, crosshair;
+    }
 
-    /* 5 Professional Drawing Styles */
+    /* =========================================================================
+       8 PRO ARCHITECTURAL DRAWING STYLES
+       ========================================================================= */
+    /* 1. Classic White Technical */
+    .style-classic {
+      --canvas-bg: #fdfdfd;
+      --grid-line: rgba(15, 23, 42, 0.04);
+      --grid-major: rgba(15, 23, 42, 0.10);
+      --parcel-fill: rgba(241, 245, 249, 0.75);
+      --parcel-stroke: #0f172a;
+      --setback-stroke: #dc2626;
+      --footprint-fill: #f8fafc;
+      --footprint-stroke: #0f172a;
+      --text-color: #0f172a;
+      --road-fill: #f1f5f9;
+      --parking-fill: #94a3b8;
+      --tree-fill: #22c55e;
+      --water-fill: #38bdf8;
+      --terrace-fill: #fde68a;
+    }
+
+    /* 2. Royal Blueprint */
     .style-blueprint {
       --canvas-bg: #071329;
       --grid-line: rgba(56, 189, 248, 0.12);
@@ -106,45 +130,33 @@
       --setback-stroke: #f43f5e;
       --footprint-fill: rgba(14, 165, 233, 0.35);
       --footprint-stroke: #ffffff;
-      --footprint-wall: #0284c7;
       --text-color: #38bdf8;
       --road-fill: #1e293b;
       --parking-fill: #0369a1;
       --tree-fill: #10b981;
+      --water-fill: #06b6d4;
+      --terrace-fill: #d97706;
     }
 
-    .style-classic {
-      --canvas-bg: #fbfcfd;
-      --grid-line: rgba(15, 23, 42, 0.04);
-      --grid-major: rgba(15, 23, 42, 0.10);
-      --parcel-fill: rgba(241, 245, 249, 0.7);
-      --parcel-stroke: #0f172a;
-      --setback-stroke: #dc2626;
-      --footprint-fill: #f8fafc;
-      --footprint-stroke: #0f172a;
-      --footprint-wall: #1e293b;
-      --text-color: #0f172a;
-      --road-fill: #f1f5f9;
-      --parking-fill: #94a3b8;
-      --tree-fill: #22c55e;
-    }
-
+    /* 3. Landscape Masterplan */
     .style-presentation {
-      --canvas-bg: #f2f8f4;
+      --canvas-bg: #f1f8f3;
       --grid-line: rgba(22, 101, 52, 0.05);
       --grid-major: rgba(22, 101, 52, 0.12);
       --parcel-fill: #dcfce7;
       --parcel-stroke: #15803d;
       --setback-stroke: #ef4444;
-      --footprint-fill: #ffedd5;
+      --footprint-fill: #fed7aa;
       --footprint-stroke: #ea580c;
-      --footprint-wall: #9a3412;
       --text-color: #1e293b;
       --road-fill: #cbd5e1;
       --parking-fill: #60a5fa;
       --tree-fill: #16a34a;
+      --water-fill: #0ea5e9;
+      --terrace-fill: #fcd34d;
     }
 
+    /* 4. Satellite Ortho */
     .style-satellite {
       --canvas-bg: #091018;
       --grid-line: rgba(255, 255, 255, 0.04);
@@ -154,13 +166,15 @@
       --setback-stroke: #f43f5e;
       --footprint-fill: rgba(56, 189, 248, 0.35);
       --footprint-stroke: #ffffff;
-      --footprint-wall: #38bdf8;
       --text-color: #fef08a;
       --road-fill: #334155;
       --parking-fill: #0284c7;
       --tree-fill: #4ade80;
+      --water-fill: #0284c7;
+      --terrace-fill: #eab308;
     }
 
+    /* 5. Dark OLED CAD */
     .style-dark {
       --canvas-bg: #05080f;
       --grid-line: rgba(255, 255, 255, 0.03);
@@ -170,11 +184,66 @@
       --setback-stroke: #f43f5e;
       --footprint-fill: rgba(168, 85, 247, 0.25);
       --footprint-stroke: #c084fc;
-      --footprint-wall: #9333ea;
       --text-color: #e2e8f0;
       --road-fill: #1e293b;
       --parking-fill: #6366f1;
       --tree-fill: #34d399;
+      --water-fill: #06b6d4;
+      --terrace-fill: #b45309;
+    }
+
+    /* 6. Vintage Sepia Parchment (ვინტაჟური პერგამენტი) */
+    .style-sepia {
+      --canvas-bg: #f8f3e6;
+      --grid-line: rgba(120, 53, 15, 0.05);
+      --grid-major: rgba(120, 53, 15, 0.12);
+      --parcel-fill: rgba(254, 243, 199, 0.5);
+      --parcel-stroke: #78350f;
+      --setback-stroke: #b91c1c;
+      --footprint-fill: #fef3c7;
+      --footprint-stroke: #451a03;
+      --text-color: #451a03;
+      --road-fill: #e7e0cc;
+      --parking-fill: #a8a29e;
+      --tree-fill: #65a30d;
+      --water-fill: #38bdf8;
+      --terrace-fill: #d97706;
+    }
+
+    /* 7. Urban Greyscale / Mono */
+    .style-mono {
+      --canvas-bg: #e2e8f0;
+      --grid-line: rgba(0, 0, 0, 0.05);
+      --grid-major: rgba(0, 0, 0, 0.12);
+      --parcel-fill: #f8fafc;
+      --parcel-stroke: #1e293b;
+      --setback-stroke: #475569;
+      --footprint-fill: #cbd5e1;
+      --footprint-stroke: #0f172a;
+      --text-color: #0f172a;
+      --road-fill: #94a3b8;
+      --parking-fill: #64748b;
+      --tree-fill: #475569;
+      --water-fill: #64748b;
+      --terrace-fill: #94a3b8;
+    }
+
+    /* 8. Luxury Resort Aqua (აკვა-გენგეგმა) */
+    .style-aqua {
+      --canvas-bg: #e0f2fe;
+      --grid-line: rgba(3, 105, 161, 0.06);
+      --grid-major: rgba(3, 105, 161, 0.14);
+      --parcel-fill: #ecfdf5;
+      --parcel-stroke: #0284c7;
+      --setback-stroke: #f43f5e;
+      --footprint-fill: #ffffff;
+      --footprint-stroke: #0369a1;
+      --text-color: #0c4a6e;
+      --road-fill: #bae6fd;
+      --parking-fill: #38bdf8;
+      --tree-fill: #059669;
+      --water-fill: #0284c7;
+      --terrace-fill: #fcd34d;
     }
 
     /* Metric Gauge Gradient Animation */
@@ -224,7 +293,7 @@
 
     <!-- Central Cadastral Search Bar -->
     <div class="flex-1 max-w-2xl mx-2">
-      <form id="cadastralSearchForm" class="relative flex items-center" onsubmit="event.preventDefault(); triggerCadastralSearch();">
+      <form id="cadastralSearchForm" class="relative flex items-center">
         <div class="relative w-full">
           <i class="fa-solid fa-location-crosshairs absolute left-3.5 top-1/2 -translate-y-1/2 text-sky-400 text-sm"></i>
           <input 
@@ -268,6 +337,18 @@
       >
         <i class="fa-solid fa-file-pdf text-sm"></i>
         <span class="hidden sm:inline">PDF ექსპორტი</span>
+      </button>
+
+      <!-- Action: Export PNG Screenshot -->
+      <button 
+        type="button" 
+        id="btnExportPng" 
+        onclick="exportTsinarePng()" 
+        class="h-9 px-3 bg-[#16233d] hover:bg-[#1e2f52] border border-[#263a63] text-slate-200 hover:text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95"
+        title="ნახაზის HD PNG სურათად ჩამოტვირთვა"
+      >
+        <i class="fa-solid fa-image text-emerald-400 text-xs"></i>
+        <span class="hidden md:inline">PNG</span>
       </button>
 
       <!-- Action: Export CAD DXF -->
@@ -436,6 +517,28 @@
             <span class="hidden sm:inline">არჩევა</span>
           </button>
 
+          <!-- Eraser Tool (საშლელი - წაშლა დაკლიკებით) -->
+          <button 
+            type="button" 
+            id="toolBtnDelete" 
+            onclick="setCadActiveTool('delete')" 
+            class="btn-cad-tool h-8 px-2.5 rounded-md bg-[#162238] border border-[#243557] text-xs font-medium flex items-center gap-1.5 hover:bg-rose-900/40 text-rose-300 transition"
+            title="საშლელი: დააკლიკეთ ნებისმიერ ობიექტზე (შენობა, ხე, გზა, აუზი) მის წასაშლელად [E]"
+          >
+            <i class="fa-solid fa-eraser text-rose-400 text-xs"></i>
+            <span>საშლელი</span>
+          </button>
+
+          <!-- Undo Button -->
+          <button 
+            type="button" 
+            onclick="undoLastAction()" 
+            class="h-8 px-2 rounded-md bg-[#162238] border border-[#243557] text-xs font-medium flex items-center gap-1 hover:bg-[#1e2f4f] text-slate-300 transition"
+            title="გაუქმება (Undo) [Ctrl+Z]"
+          >
+            <i class="fa-solid fa-rotate-left text-xs"></i>
+          </button>
+
           <div class="h-5 w-px bg-slate-700/60 mx-0.5"></div>
 
           <!-- 1. Parcel Subdivision / Split Tool (ნაკვეთის დაყოფა) -->
@@ -444,7 +547,7 @@
             id="toolBtnSplit" 
             onclick="setCadActiveTool('split')" 
             class="btn-cad-tool h-8 px-2.5 rounded-md bg-[#162238] border border-[#243557] text-xs font-medium flex items-center gap-1.5 hover:bg-[#1e2f4f] text-amber-300 transition"
-            title="ნაკვეთის დაყოფა (დააკლიკეთ ორ წერტილზე გასაყოფად)"
+            title="ნაკვეთის დაყოფა (დააკლიკეთ ორ წერტილზე გასაყოფად) [S]"
           >
             <i class="fa-solid fa-scissors text-amber-400 text-xs"></i>
             <span>დაყოფა</span>
@@ -470,7 +573,7 @@
             id="toolBtnDrawFootprint" 
             onclick="setCadActiveTool('draw_footprint')" 
             class="btn-cad-tool h-8 px-2.5 rounded-md bg-[#162238] border border-[#243557] text-xs font-medium flex items-center gap-1.5 hover:bg-[#1e2f4f] text-sky-300 transition"
-            title="შენობის ლაქის თავისუფალი დახაზვა წერტილებით"
+            title="შენობის ლაქის თავისუფალი დახაზვა წერტილებით [B]"
           >
             <i class="fa-solid fa-pen-ruler text-sky-400 text-xs"></i>
             <span>+ ლაქა</span>
@@ -487,7 +590,7 @@
               <span>შაბლონი</span>
               <i class="fa-solid fa-chevron-down text-[9px] text-slate-400"></i>
             </button>
-            <div class="absolute left-0 top-full mt-1 w-44 bg-[#0d1629] border border-[#243557] rounded-lg shadow-2xl py-1 z-30 hidden group-hover:block">
+            <div class="absolute left-0 top-full mt-1 w-48 bg-[#0d1629] border border-[#243557] rounded-lg shadow-2xl py-1 z-30 hidden group-hover:block">
               <button type="button" onclick="addPresetFootprint('rect')" class="w-full text-left px-3 py-1.5 text-xs text-slate-200 hover:bg-sky-500/20 hover:text-white flex items-center gap-2">
                 <i class="fa-regular fa-square text-sky-400"></i> მართკუთხა (15×12მ)
               </button>
@@ -509,13 +612,49 @@
             id="toolBtnTree" 
             onclick="setCadActiveTool('tree')" 
             class="btn-cad-tool h-8 px-2 rounded-md bg-[#162238] border border-[#243557] text-xs font-medium flex items-center gap-1 hover:bg-[#1e2f4f] text-emerald-300 transition"
-            title="ხეებისა და გამწვანების განთავსება ნაკვეთზე (ზრდის K-3 ბალანსს)"
+            title="ხეებისა და გამწვანების განთავსება ნაკვეთზე [T]"
           >
             <i class="fa-solid fa-tree text-emerald-400 text-xs"></i>
             <span class="hidden md:inline">+ ხეები</span>
           </button>
 
-          <!-- 6. Draw Road / Driveway (გზა) -->
+          <!-- 6. Water Body / Pool (+ აუზი / წყალი) -->
+          <button 
+            type="button" 
+            id="toolBtnWater" 
+            onclick="setCadActiveTool('water')" 
+            class="btn-cad-tool h-8 px-2 rounded-md bg-[#162238] border border-[#243557] text-xs font-medium flex items-center gap-1 hover:bg-[#1e2f4f] text-cyan-300 transition"
+            title="საცურაო აუზის ან დეკორატიული წყლის ობიექტის განთავსება [W]"
+          >
+            <i class="fa-solid fa-water-ladder text-cyan-400 text-xs"></i>
+            <span class="hidden md:inline">+ აუზი</span>
+          </button>
+
+          <!-- 7. Terrace / Deck (+ ტერასა) -->
+          <button 
+            type="button" 
+            id="toolBtnTerrace" 
+            onclick="setCadActiveTool('terrace')" 
+            class="btn-cad-tool h-8 px-2 rounded-md bg-[#162238] border border-[#243557] text-xs font-medium flex items-center gap-1 hover:bg-[#1e2f4f] text-amber-300 transition"
+            title="ხის ტერასის ან ღია მოსასვენებელი ზონის განთავსება"
+          >
+            <i class="fa-solid fa-sun-plant-wilt text-amber-400 text-xs"></i>
+            <span class="hidden lg:inline">+ ტერასა</span>
+          </button>
+
+          <!-- 8. Walkway / Pathway (+ ბილიკი) -->
+          <button 
+            type="button" 
+            id="toolBtnWalkway" 
+            onclick="setCadActiveTool('walkway')" 
+            class="btn-cad-tool h-8 px-2 rounded-md bg-[#162238] border border-[#243557] text-xs font-medium flex items-center gap-1 hover:bg-[#1e2f4f] text-slate-300 transition"
+            title="მოკირწყლული საფეხმავლო ბილიკის დახაზვა"
+          >
+            <i class="fa-solid fa-shoe-prints text-slate-400 text-xs"></i>
+            <span class="hidden lg:inline">+ ბილიკი</span>
+          </button>
+
+          <!-- 9. Draw Road (გზა) -->
           <button 
             type="button" 
             id="toolBtnDrawRoad" 
@@ -527,7 +666,7 @@
             <span class="hidden md:inline">+ გზა</span>
           </button>
 
-          <!-- 7. Parking Tool (ავტოსადგომები) -->
+          <!-- 10. Parking Tool (ავტოსადგომები) -->
           <button 
             type="button" 
             id="toolBtnAddParking" 
@@ -536,19 +675,19 @@
             title="ავტოსადგომების ზოლის განთავსება"
           >
             <i class="fa-solid fa-square-parking text-blue-400 text-xs"></i>
-            <span class="hidden lg:inline">პარკინგი</span>
+            <span class="hidden xl:inline">პარკინგი</span>
           </button>
 
-          <!-- 8. Ruler Tool (საზომი) -->
+          <!-- 11. Ruler Tool (საზომი) -->
           <button 
             type="button" 
             id="toolBtnRuler" 
             onclick="setCadActiveTool('ruler')" 
             class="btn-cad-tool h-8 px-2 rounded-md bg-[#162238] border border-[#243557] text-xs font-medium flex items-center gap-1 hover:bg-[#1e2f4f] text-slate-300 transition"
-            title="ორ წერტილს შორის მანძილის გაზომვა მეტრებში"
+            title="ორ წერტილს შორის მანძილის გაზომვა მეტრებში [R]"
           >
             <i class="fa-solid fa-ruler text-amber-400 text-xs"></i>
-            <span class="hidden lg:inline">საზომი</span>
+            <span class="hidden xl:inline">საზომი</span>
           </button>
 
           <!-- Clear Button -->
@@ -556,9 +695,9 @@
             type="button" 
             onclick="clearAllFootprints()" 
             class="btn-cad-tool h-8 px-2 rounded-md bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/40 text-rose-300 text-xs font-medium flex items-center gap-1 transition"
-            title="ნაკვეთის გასუფთავება"
+            title="ნაკვეთის სრული გასუფთავება"
           >
-            <i class="fa-solid fa-eraser text-xs"></i>
+            <i class="fa-solid fa-trash-can text-xs"></i>
           </button>
         </div>
 
@@ -598,6 +737,10 @@
                 <span>ხეები &amp; გამწვანება</span>
               </label>
               <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
+                <input type="checkbox" id="chkLayerWater" checked onchange="toggleLayer('water', this.checked)" class="accent-cyan-400">
+                <span>აუზები &amp; წყალი</span>
+              </label>
+              <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
                 <input type="checkbox" id="chkLayerRoads" checked onchange="toggleLayer('roads', this.checked)" class="accent-blue-400">
                 <span>გზები &amp; პარკინგი</span>
               </label>
@@ -608,62 +751,39 @@
             </div>
           </div>
 
-          <!-- 5 Visual Styles Selector -->
-          <div class="flex items-center gap-1 bg-[#121d33] p-0.5 rounded-lg border border-[#213254]">
-            <!-- 1. Technical Classic -->
-            <button 
-              type="button" 
-              onclick="setDrawingStyle('classic')" 
-              id="styleBtnClassic" 
-              class="style-choice-btn px-2 py-1 rounded text-[11px] font-semibold text-slate-300 hover:text-white transition"
-              title="არქიტექტურული თეთრი ტექნიკური ნახაზი"
-            >
-              🏛️ არქიტექტურული
+          <!-- 8 Visual Styles Selector (Dropdown + Quick Buttons) -->
+          <div class="relative group">
+            <button type="button" class="h-8 px-2.5 rounded-md bg-[#121d33] border border-[#213254] text-xs font-semibold text-slate-200 hover:text-white flex items-center gap-1.5">
+              <i class="fa-solid fa-palette text-amber-400 text-xs"></i>
+              <span id="lblActiveStyleName">📐 Blueprint</span>
+              <i class="fa-solid fa-chevron-down text-[9px] text-slate-400"></i>
             </button>
-
-            <!-- 2. Blueprint -->
-            <button 
-              type="button" 
-              onclick="setDrawingStyle('blueprint')" 
-              id="styleBtnBlueprint" 
-              class="style-choice-btn active px-2 py-1 rounded text-[11px] font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/40 transition"
-              title="ლურჯი საინჟინრო Blueprint"
-            >
-              📐 Blueprint
-            </button>
-
-            <!-- 3. Presentation -->
-            <button 
-              type="button" 
-              onclick="setDrawingStyle('presentation')" 
-              id="styleBtnPresentation" 
-              class="style-choice-btn px-2 py-1 rounded text-[11px] font-semibold text-slate-300 hover:text-white transition"
-              title="ფერადი ლანდშაფტური გენგეგმა"
-            >
-              🌿 გენგეგმა
-            </button>
-
-            <!-- 4. Satellite -->
-            <button 
-              type="button" 
-              onclick="setDrawingStyle('satellite')" 
-              id="styleBtnSatellite" 
-              class="style-choice-btn px-2 py-1 rounded text-[11px] font-semibold text-slate-300 hover:text-white transition"
-              title="სატელიტური ორთოფოტო ჰიბრიდი"
-            >
-              🛰️ სატელიტი
-            </button>
-
-            <!-- 5. Dark OLED -->
-            <button 
-              type="button" 
-              onclick="setDrawingStyle('dark')" 
-              id="styleBtnDark" 
-              class="style-choice-btn px-2 py-1 rounded text-[11px] font-semibold text-slate-300 hover:text-white transition"
-              title="თანამედროვე Dark Minimal CAD"
-            >
-              🌑 მუქი
-            </button>
+            <div class="absolute right-0 top-full mt-1 w-56 bg-[#0d1629] border border-[#243557] rounded-lg shadow-2xl py-1 z-30 hidden group-hover:block text-xs">
+              <button type="button" onclick="setDrawingStyle('classic')" class="w-full text-left px-3 py-1.5 text-slate-200 hover:bg-white/10 flex items-center gap-2">
+                🏛️ <span>არქიტექტურული თეთრი</span>
+              </button>
+              <button type="button" onclick="setDrawingStyle('blueprint')" class="w-full text-left px-3 py-1.5 text-slate-200 hover:bg-white/10 flex items-center gap-2">
+                📐 <span>Royal Blueprint (ლურჯი)</span>
+              </button>
+              <button type="button" onclick="setDrawingStyle('presentation')" class="w-full text-left px-3 py-1.5 text-slate-200 hover:bg-white/10 flex items-center gap-2">
+                🌿 <span>ლანდშაფტური გენგეგმა</span>
+              </button>
+              <button type="button" onclick="setDrawingStyle('satellite')" class="w-full text-left px-3 py-1.5 text-slate-200 hover:bg-white/10 flex items-center gap-2">
+                🛰️ <span>სატელიტი / ორთოფოტო</span>
+              </button>
+              <button type="button" onclick="setDrawingStyle('dark')" class="w-full text-left px-3 py-1.5 text-slate-200 hover:bg-white/10 flex items-center gap-2">
+                🌑 <span>OLED Dark CAD</span>
+              </button>
+              <button type="button" onclick="setDrawingStyle('sepia')" class="w-full text-left px-3 py-1.5 text-slate-200 hover:bg-white/10 flex items-center gap-2">
+                📜 <span>ვინტაჟური პერგამენტი</span>
+              </button>
+              <button type="button" onclick="setDrawingStyle('mono')" class="w-full text-left px-3 py-1.5 text-slate-200 hover:bg-white/10 flex items-center gap-2">
+                🏙️ <span>მონოქრომული ნაცრისფერი</span>
+              </button>
+              <button type="button" onclick="setDrawingStyle('aqua')" class="w-full text-left px-3 py-1.5 text-slate-200 hover:bg-white/10 flex items-center gap-2">
+                💧 <span>აკვა-გენგეგმა (Resort)</span>
+              </button>
+            </div>
           </div>
 
           <!-- Real Functional Architectural Scale Selector -->
@@ -705,12 +825,11 @@
               <pattern id="hatchBuildingBlueprint" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
                 <line x1="0" y1="0" x2="0" y2="8" stroke="rgba(255,255,255,0.22)" stroke-width="1" />
               </pattern>
-              <pattern id="hatchGrassPresentation" width="16" height="16" patternUnits="userSpaceOnUse">
-                <circle cx="4" cy="4" r="1" fill="rgba(22,101,52,0.15)"/>
-                <circle cx="12" cy="12" r="1.2" fill="rgba(22,101,52,0.12)"/>
+              <pattern id="hatchTerraceWood" width="6" height="12" patternUnits="userSpaceOnUse">
+                <rect width="6" height="12" fill="none" stroke="rgba(180,83,9,0.3)" stroke-width="0.8"/>
               </pattern>
-              <pattern id="hatchPaverRoad" width="10" height="6" patternUnits="userSpaceOnUse">
-                <rect width="10" height="6" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
+              <pattern id="hatchWaterWaves" width="16" height="8" patternUnits="userSpaceOnUse">
+                <path d="M 0 4 Q 4 1, 8 4 T 16 4" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.7"/>
               </pattern>
             </defs>
 
@@ -732,8 +851,17 @@
               <!-- Driveways and Roads Layer -->
               <g id="roadsLayer"></g>
 
+              <!-- Walkways Layer -->
+              <g id="walkwaysLayer"></g>
+
               <!-- Parking Layer -->
               <g id="parkingLayer"></g>
+
+              <!-- Water / Swimming Pools Layer -->
+              <g id="waterLayer"></g>
+
+              <!-- Terraces & Decks Layer -->
+              <g id="terracesLayer"></g>
 
               <!-- Trees & Landscaping Layer -->
               <g id="treesLayer"></g>
@@ -937,9 +1065,23 @@
             <span class="font-bold text-white text-xs flex items-center gap-1.5">
               <i class="fa-solid fa-building text-sky-400"></i> შენობის პარამეტრები
             </span>
-            <span id="lblSelectedBuildingName" class="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">
-              შენობა 1
-            </span>
+            <div class="flex items-center gap-1.5">
+              <button type="button" onclick="deleteSelectedObject()" class="px-2 py-0.5 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-[10px] font-semibold flex items-center gap-1" title="მონიშნული შენობის წაშლა [Delete]">
+                <i class="fa-solid fa-trash-can text-[9px]"></i> წაშლა
+              </button>
+            </div>
+          </div>
+
+          <!-- Building Rename Input -->
+          <div>
+            <label class="block text-slate-400 text-[10px] mb-0.5">დასახელება:</label>
+            <input 
+              type="text" 
+              id="txtBuildingName" 
+              oninput="renameSelectedBuilding(this.value)" 
+              value="შენობა 1 (ბლოკი A)"
+              class="w-full bg-[#0b1222] border border-white/10 rounded px-2 py-1 text-xs text-white outline-none focus:border-sky-400 font-semibold"
+            >
           </div>
 
           <!-- Dimension Resizers (სიგანე W & სიგრძე L) -->
@@ -1088,6 +1230,6 @@
   </div>
 
   <!-- Core JavaScript Logic -->
-  <script src="tsinare.js?v=20260930_1045"></script>
+  <script src="tsinare.js?v=20260930_1055"></script>
 </body>
 </html>
