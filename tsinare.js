@@ -579,38 +579,86 @@
     }
   };
 
-  // --- Setback Line Buffer (სამეზობლო მიჯნა 3.0მ) ---
+  // --- Setback Line Buffer (სამეზობლო მიჯნა 1.5მ - 6.0მ) - ყოველთვის საკადასტრო საზღვრის შიგნით ---
   function computeSetbackPolygon(polygon, offsetDist) {
     if (!polygon || polygon.length < 3) return [];
     const n = polygon.length;
-    const inset = [];
-    for (let i = 0; i < n; i++) {
-      const prev = polygon[(i - 1 + n) % n];
-      const curr = polygon[i];
-      const next = polygon[(i + 1) % n];
+    if (offsetDist <= 0) return polygon.map(p => [p[0], p[1]]);
 
-      let v1x = curr[0] - prev[0];
-      let v1y = curr[1] - prev[1];
-      const l1 = Math.hypot(v1x, v1y) || 1;
-      v1x /= l1; v1y /= l1;
-
-      let v2x = next[0] - curr[0];
-      let v2y = next[1] - curr[1];
-      const l2 = Math.hypot(v2x, v2y) || 1;
-      v2x /= l2; v2y /= l2;
-
-      const n1x = -v1y; const n1y = v1x;
-      const n2x = -v2y; const n2y = v2x;
-
-      const bisectorX = n1x + n2x;
-      const bisectorY = n1y + n2y;
-      const blen = Math.hypot(bisectorX, bisectorY) || 1;
-
-      const px = curr[0] + (bisectorX / blen) * offsetDist;
-      const py = curr[1] + (bisectorY / blen) * offsetDist;
-      inset.push([px, py]);
+    function getSignedArea(pts) {
+      let a = 0;
+      for (let i = 0; i < pts.length; i++) {
+        const p0 = pts[i];
+        const p1 = pts[(i + 1) % pts.length];
+        a += (p0[0] * p1[1] - p1[0] * p0[1]);
+      }
+      return a / 2;
     }
-    return inset;
+
+    const origSignedArea = getSignedArea(polygon);
+    const origArea = Math.abs(origSignedArea);
+    if (origArea < 1e-4) return [];
+
+    function computeWithOrientation(orient) {
+      const inset = [];
+      for (let i = 0; i < n; i++) {
+        const prev = polygon[(i - 1 + n) % n];
+        const curr = polygon[i];
+        const next = polygon[(i + 1) % n];
+
+        let v1x = curr[0] - prev[0];
+        let v1y = curr[1] - prev[1];
+        const l1 = Math.hypot(v1x, v1y) || 1;
+        v1x /= l1; v1y /= l1;
+
+        let v2x = next[0] - curr[0];
+        let v2y = next[1] - curr[1];
+        const l2 = Math.hypot(v2x, v2y) || 1;
+        v2x /= l2; v2y /= l2;
+
+        const n1x = -v1y * orient;
+        const n1y = v1x * orient;
+        const n2x = -v2y * orient;
+        const n2y = v2x * orient;
+
+        const bisectorX = n1x + n2x;
+        const bisectorY = n1y + n2y;
+        const blen = Math.hypot(bisectorX, bisectorY);
+
+        if (blen < 1e-4) {
+          inset.push([curr[0] + n1x * offsetDist, curr[1] + n1y * offsetDist]);
+          continue;
+        }
+
+        const cosHalf = (n1x * bisectorX + n1y * bisectorY) / blen;
+        let distOnBisector = offsetDist;
+        if (Math.abs(cosHalf) > 0.05) {
+          distOnBisector = offsetDist / cosHalf;
+        }
+        if (Math.abs(distOnBisector) > 2.5 * offsetDist) {
+          distOnBisector = Math.sign(distOnBisector) * 2.5 * offsetDist;
+        }
+
+        const px = curr[0] + (bisectorX / blen) * distOnBisector;
+        const py = curr[1] + (bisectorY / blen) * distOnBisector;
+        inset.push([px, py]);
+      }
+      return inset;
+    }
+
+    let orient = origSignedArea >= 0 ? 1 : -1;
+    let candidate = computeWithOrientation(orient);
+    let candArea = Math.abs(getSignedArea(candidate));
+
+    // FAILSAFE: If candidate area is larger than original, it was pushed OUTSIDE.
+    // Invert orientation so it is strictly INSIDE the parcel boundary.
+    if (candArea >= origArea) {
+      orient = -orient;
+      candidate = computeWithOrientation(orient);
+      candArea = Math.abs(getSignedArea(candidate));
+    }
+
+    return candidate;
   }
 
   // --- Parcel Subdivision Algorithm (ნაკვეთის დაყოფა) ---
