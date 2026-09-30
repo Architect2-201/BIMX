@@ -48,13 +48,27 @@
     subParcels: [], // [{ id, name, polygon: [[x,y]...], areaSqm, color }]
     footprints: [], // [{ id, name, shape, width, length, rotation, floors, floorHeight, totalHeight, functionType, center: [x,y], vertices: [[x,y]...], areaSqm, isViolatingSetback }]
     selectedFootprintId: null,
-    trees: [], // [{ id, x, y, radius }]
+    trees: [], // [{ id, x, y, radius, treeType }]
     waterBodies: [], // [{ id, x, y, width: 10, length: 5 }]
     terraces: [], // [{ id, x, y, width: 12, length: 6 }]
     walkways: [], // [{ id, points: [[x,y]...], width: 1.8 }]
     roads: [], // [{ id, points: [[x,y]...], width: 6.0 }]
+    bikePaths: [], // [{ id, points: [[x,y]...], width: 2.0 }]
+    hedges: [], // [{ id, points: [[x,y]...], width: 1.0 }]
+    fountains: [], // [{ id, x, y, radius: 2.5 }]
     parkingBays: [], // [{ id, center: [x,y], width: 2.5, length: 5.0, rotation: 0 }]
     setbackDistance: 3.0,
+    
+    // Quick / Stamp parameters
+    stampWidth: 15,
+    stampLength: 12,
+    stampFloors: 4,
+    stampShape: 'rect',
+    stampFn: 'residential',
+    stampName: 'შენობა',
+    activeRoadWidth: 6.0,
+    activeWalkwayWidth: 1.8,
+    activeTreeRadius: 2.5,
     
     // Layer Visibility
     layers: {
@@ -79,8 +93,8 @@
     panStart: { x: 0, y: 0 },
     
     // Tools & Modes
-    activeTool: 'pan', // 'pan', 'delete', 'split', 'draw_footprint', 'tree', 'water', 'terrace', 'walkway', 'draw_road', 'parking', 'ruler'
-    activeStyle: 'blueprint', // 16 styles
+    activeTool: 'pan', // 'pan', 'stamp_footprint', 'delete', 'split', 'draw_footprint', 'tree', 'pine_tree', 'hedge', 'water', 'fountain', 'terrace', 'walkway', 'bike_path', 'draw_road', 'parking', 'ruler'
+    activeStyle: 'blueprint', // 24 styles
     sunAzimuth: 135, // degrees
     
     // Interactive Transformations
@@ -89,6 +103,9 @@
     rulerPoints: [],
     currentWalkwayPoints: [],
     currentRoadPoints: [],
+    currentBikePathPoints: [],
+    currentHedgePoints: [],
+    mouseWorldPos: null,
     isDraggingFootprint: false,
     isRotatingFootprint: false,
     draggedFootprintId: null,
@@ -148,8 +165,11 @@
     els.setbackBoundaryLayer = document.getElementById('setbackBoundaryLayer');
     els.roadsLayer = document.getElementById('roadsLayer');
     els.walkwaysLayer = document.getElementById('walkwaysLayer');
+    els.bikePathsLayer = document.getElementById('bikePathsLayer');
+    els.hedgesLayer = document.getElementById('hedgesLayer');
     els.parkingLayer = document.getElementById('parkingLayer');
     els.waterLayer = document.getElementById('waterLayer');
+    els.fountainsLayer = document.getElementById('fountainsLayer');
     els.terracesLayer = document.getElementById('terracesLayer');
     els.treesLayer = document.getElementById('treesLayer');
     els.shadowsLayer = document.getElementById('shadowsLayer');
@@ -175,33 +195,66 @@
     els.lblK1Allowed = document.getElementById('lblK1Allowed');
     els.lblK1Used = document.getElementById('lblK1Used');
     els.lblK1Remaining = document.getElementById('lblK1Remaining');
+    els.lblK1Alert = document.getElementById('lblK1Alert');
 
     els.inputK2Coeff = document.getElementById('inputK2Coeff');
     els.barK2Progress = document.getElementById('barK2Progress');
     els.lblK2Allowed = document.getElementById('lblK2Allowed');
     els.lblK2Used = document.getElementById('lblK2Used');
     els.lblK2Remaining = document.getElementById('lblK2Remaining');
+    els.lblK2Alert = document.getElementById('lblK2Alert');
 
     els.inputK3Coeff = document.getElementById('inputK3Coeff');
+    els.barK3Progress = document.getElementById('barK3Progress');
     els.lblK3Required = document.getElementById('lblK3Required');
+    els.lblK3Actual = document.getElementById('lblK3Actual');
+    els.lblK3Balance = document.getElementById('lblK3Balance');
+    els.lblHardscapeTotal = document.getElementById('lblHardscapeTotal');
+    els.lblOpenGround = document.getElementById('lblOpenGround');
     els.lblPlantedTreesCount = document.getElementById('lblPlantedTreesCount');
+    els.lblK3Alert = document.getElementById('lblK3Alert');
 
     // Active Building Controls
     els.txtBuildingName = document.getElementById('txtBuildingName');
     els.sliderBuildingWidth = document.getElementById('sliderBuildingWidth');
     els.lblBuildingWidthVal = document.getElementById('lblBuildingWidthVal');
+    els.inputNumBuildingWidth = document.getElementById('inputNumBuildingWidth');
     els.sliderBuildingLength = document.getElementById('sliderBuildingLength');
     els.lblBuildingLengthVal = document.getElementById('lblBuildingLengthVal');
+    els.inputNumBuildingLength = document.getElementById('inputNumBuildingLength');
+    els.inputNumBuildingArea = document.getElementById('inputNumBuildingArea');
     els.sliderBuildingRotation = document.getElementById('sliderBuildingRotation');
     els.lblBuildingRotationVal = document.getElementById('lblBuildingRotationVal');
+    els.inputNumBuildingRotation = document.getElementById('inputNumBuildingRotation');
     els.sliderFloors = document.getElementById('sliderFloors');
     els.lblFloorsCountVal = document.getElementById('lblFloorsCountVal');
+    els.inputNumBuildingFloors = document.getElementById('inputNumBuildingFloors');
     els.lblFloorHeightVal = document.getElementById('lblFloorHeightVal');
+    els.inputNumFloorHeight = document.getElementById('inputNumFloorHeight');
     els.lblTotalHeightVal = document.getElementById('lblTotalHeightVal');
     els.selBuildingFunction = document.getElementById('selBuildingFunction');
     els.lblSetbackDistVal = document.getElementById('lblSetbackDistVal');
     els.lblFootprintsCount = document.getElementById('lblFootprintsCount');
     els.lstBuildingsContainer = document.getElementById('lstBuildingsContainer');
+
+    // CAD Dock: Quick parameters (Row 2)
+    els.quickBldW = document.getElementById('quickBldW');
+    els.quickBldL = document.getElementById('quickBldL');
+    els.quickBldFloors = document.getElementById('quickBldFloors');
+    els.quickRoadW = document.getElementById('quickRoadW');
+    els.quickWalkW = document.getElementById('quickWalkW');
+    els.quickSetbackNum = document.getElementById('quickSetbackNum');
+    els.quickTreeDiam = document.getElementById('quickTreeDiam');
+
+    // Sidebar: Site & Infrastructure parameters
+    els.inputSiteSetbackDist = document.getElementById('inputSiteSetbackDist');
+    els.inputSiteRoadWidth = document.getElementById('inputSiteRoadWidth');
+    els.inputSiteWalkWidth = document.getElementById('inputSiteWalkWidth');
+    els.inputSiteTreeDiam = document.getElementById('inputSiteTreeDiam');
+    els.inputSitePoolW = document.getElementById('inputSitePoolW');
+    els.inputSitePoolL = document.getElementById('inputSitePoolL');
+    els.inputSiteTerraceW = document.getElementById('inputSiteTerraceW');
+    els.inputSiteTerraceL = document.getElementById('inputSiteTerraceL');
 
     // Bind form submit event
     if (els.cadastralSearchForm) {
@@ -221,6 +274,9 @@
       terraces: JSON.parse(JSON.stringify(state.terraces)),
       walkways: JSON.parse(JSON.stringify(state.walkways || [])),
       roads: JSON.parse(JSON.stringify(state.roads || [])),
+      bikePaths: JSON.parse(JSON.stringify(state.bikePaths || [])),
+      hedges: JSON.parse(JSON.stringify(state.hedges || [])),
+      fountains: JSON.parse(JSON.stringify(state.fountains || [])),
       parkingBays: JSON.parse(JSON.stringify(state.parkingBays)),
       subParcels: JSON.parse(JSON.stringify(state.subParcels)),
       setbackDistance: state.setbackDistance
@@ -237,6 +293,9 @@
       state.terraces = snap.terraces || [];
       state.walkways = snap.walkways || [];
       state.roads = snap.roads || [];
+      state.bikePaths = snap.bikePaths || [];
+      state.hedges = snap.hedges || [];
+      state.fountains = snap.fountains || [];
       state.parkingBays = snap.parkingBays || [];
       state.subParcels = snap.subParcels || [];
       if (snap.setbackDistance) state.setbackDistance = snap.setbackDistance;
@@ -640,56 +699,145 @@
     updateToolStatus('განთავსდა 5 საპარკინგე ადგილი (2.5მ × 5.0მ)');
   };
 
-  // --- Real-time K1, K2, K3 Calculations ---
+  // --- Real-time K1, K2, K3 Calculations (ყველა ჩარევა აისახება კოეფიციენტებზე) ---
   function updateZoningCoefficientsUI() {
     const parcelArea = state.officialAreaSqm || state.geometricAreaSqm || 1;
     const k1 = state.k1Limit;
     const k2 = state.k2Limit;
     const k3 = state.k3Limit;
 
-    // Total footprint ground area (K1 Used)
-    const k1Used = state.footprints.reduce((sum, f) => sum + (f.areaSqm || 0), 0);
+    // 1. K-1 (განაშენიანების ფართობი - შენობების ლაქები)
+    const k1Used = Math.round(state.footprints.reduce((sum, f) => sum + (f.areaSqm || 0), 0));
     const k1Allowed = Math.round(parcelArea * k1);
-    const k1Remaining = Math.max(0, k1Allowed - k1Used);
-    const k1Percent = Math.min(100, Math.round((k1Used / k1Allowed) * 100)) || 0;
+    const k1Diff = k1Allowed - k1Used;
+    const k1Remaining = Math.max(0, k1Diff);
+    const k1Percent = k1Allowed > 0 ? Math.min(100, Math.round((k1Used / k1Allowed) * 100)) : 0;
+    const k1Over = k1Used > k1Allowed;
 
-    // Total gross floor area (K2 Used)
-    const k2Used = state.footprints.reduce((sum, f) => sum + ((f.areaSqm || 0) * (f.floors || 1)), 0);
+    // 2. K-2 (განაშენიანების ინტენსივობა - საერთო ფართობი GFA)
+    const k2Used = Math.round(state.footprints.reduce((sum, f) => sum + ((f.areaSqm || 0) * (f.floors || 1)), 0));
     const k2Allowed = Math.round(parcelArea * k2);
-    const k2Remaining = Math.max(0, k2Allowed - k2Used);
-    const k2Percent = Math.min(100, Math.round((k2Used / k2Allowed) * 100)) || 0;
+    const k2Diff = k2Allowed - k2Used;
+    const k2Remaining = Math.max(0, k2Diff);
+    const k2Percent = k2Allowed > 0 ? Math.min(100, Math.round((k2Used / k2Allowed) * 100)) : 0;
+    const k2Over = k2Used > k2Allowed;
 
-    // K3 Required green area & Planted trees contribution
-    const k3Required = Math.round(parcelArea * k3);
+    // 3. K-3 (გამწვანება და ღია ეზო - მყარი საფარის გამოკლება)
+    const roadsArea = (state.roads || []).reduce((sum, r) => {
+      if (!r.points || r.points.length < 2) return sum;
+      let len = 0;
+      for (let i = 0; i < r.points.length - 1; i++) len += Math.hypot(r.points[i+1][0] - r.points[i][0], r.points[i+1][1] - r.points[i][1]);
+      return sum + len * (r.width || 6.0);
+    }, 0);
+
+    const walkwaysArea = (state.walkways || []).reduce((sum, w) => {
+      if (!w.points || w.points.length < 2) return sum;
+      let len = 0;
+      for (let i = 0; i < w.points.length - 1; i++) len += Math.hypot(w.points[i+1][0] - w.points[i][0], w.points[i+1][1] - w.points[i][1]);
+      return sum + len * (w.width || 1.8);
+    }, 0);
+
+    const bikePathsArea = (state.bikePaths || []).reduce((sum, b) => {
+      if (!b.points || b.points.length < 2) return sum;
+      let len = 0;
+      for (let i = 0; i < b.points.length - 1; i++) len += Math.hypot(b.points[i+1][0] - b.points[i][0], b.points[i+1][1] - b.points[i][1]);
+      return sum + len * (b.width || 2.0);
+    }, 0);
+
+    const parkingArea = (state.parkingBays || []).length * 12.5; // 2.5×5.0მ = 12.5 მ²
+    const terracesArea = (state.terraces || []).reduce((sum, t) => sum + (t.width || 12) * (t.length || 6), 0);
+    const waterArea = (state.waterBodies || []).reduce((sum, w) => sum + (w.width || 10) * (w.length || 5), 0);
+    const fountainsArea = (state.fountains || []).reduce((sum, f) => sum + Math.PI * (f.radius || 2.5) * (f.radius || 2.5), 0);
+
+    const totalHardscape = Math.round(k1Used + roadsArea + walkwaysArea + bikePathsArea + parkingArea + terracesArea + waterArea + fountainsArea);
+    const openGround = Math.max(0, Math.round(parcelArea - totalHardscape));
+
     const treesCanopyArea = Math.round(state.trees.reduce((sum, t) => sum + Math.PI * (t.radius || 2.5) * (t.radius || 2.5), 0));
+    const hedgesArea = Math.round((state.hedges || []).reduce((sum, h) => {
+      if (!h.points || h.points.length < 2) return sum;
+      let len = 0;
+      for (let i = 0; i < h.points.length - 1; i++) len += Math.hypot(h.points[i+1][0] - h.points[i][0], h.points[i+1][1] - h.points[i][1]);
+      return sum + len * (h.width || 1.0);
+    }, 0));
 
-    // Update DOM
+    const k3Required = Math.round(parcelArea * k3);
+    const k3Actual = Math.round(openGround + Math.min(openGround * 0.35, treesCanopyArea * 0.4 + hedgesArea));
+    const k3Balance = k3Actual - k3Required;
+    const k3Percent = k3Required > 0 ? Math.min(100, Math.round((k3Actual / k3Required) * 100)) : 100;
+    const k3Deficit = k3Balance < 0;
+
+    // --- Update K-1 DOM ---
     if (els.inputK1Coeff) els.inputK1Coeff.value = k1;
     if (els.lblK1Allowed) els.lblK1Allowed.innerText = `${k1Allowed.toLocaleString()} მ²`;
     if (els.lblK1Used) els.lblK1Used.innerText = `${k1Used.toLocaleString()} მ² (${k1Percent}%)`;
-    if (els.lblK1Remaining) els.lblK1Remaining.innerText = `${k1Remaining.toLocaleString()} მ²`;
+    if (els.lblK1Remaining) {
+      els.lblK1Remaining.innerText = k1Over ? `+${(k1Used - k1Allowed).toLocaleString()} მ²` : `${k1Remaining.toLocaleString()} მ²`;
+      els.lblK1Remaining.className = `text-xs font-bold ${k1Over ? 'text-rose-400' : 'text-emerald-300'}`;
+    }
     if (els.barK1Progress) {
-      els.barK1Progress.style.width = `${k1Percent}%`;
-      els.barK1Progress.className = `h-full metric-bar-fill ${k1Used > k1Allowed ? 'bg-rose-500' : 'bg-gradient-to-r from-sky-500 to-cyan-400'}`;
+      els.barK1Progress.style.width = `${Math.min(100, k1Percent)}%`;
+      els.barK1Progress.className = `h-full metric-bar-fill ${k1Over ? 'bg-rose-500' : 'bg-gradient-to-r from-sky-500 to-cyan-400'}`;
+    }
+    if (els.lblK1Alert) {
+      if (k1Over) {
+        els.lblK1Alert.classList.remove('hidden');
+        els.lblK1Alert.innerText = `⚠️ K-1 გადაჭარბებულია: +${(k1Used - k1Allowed).toLocaleString()} მ²`;
+      } else {
+        els.lblK1Alert.classList.add('hidden');
+      }
     }
 
+    // --- Update K-2 DOM ---
     if (els.inputK2Coeff) els.inputK2Coeff.value = k2;
     if (els.lblK2Allowed) els.lblK2Allowed.innerText = `${k2Allowed.toLocaleString()} მ²`;
     if (els.lblK2Used) els.lblK2Used.innerText = `${k2Used.toLocaleString()} მ² (${k2Percent}%)`;
-    if (els.lblK2Remaining) els.lblK2Remaining.innerText = `${k2Remaining.toLocaleString()} მ²`;
+    if (els.lblK2Remaining) {
+      els.lblK2Remaining.innerText = k2Over ? `+${(k2Used - k2Allowed).toLocaleString()} მ²` : `${k2Remaining.toLocaleString()} მ²`;
+      els.lblK2Remaining.className = `text-xs font-bold ${k2Over ? 'text-rose-400' : 'text-emerald-300'}`;
+    }
     if (els.barK2Progress) {
-      els.barK2Progress.style.width = `${k2Percent}%`;
-      els.barK2Progress.className = `h-full metric-bar-fill ${k2Used > k2Allowed ? 'bg-rose-500' : 'bg-gradient-to-r from-purple-500 to-pink-500'}`;
+      els.barK2Progress.style.width = `${Math.min(100, k2Percent)}%`;
+      els.barK2Progress.className = `h-full metric-bar-fill ${k2Over ? 'bg-rose-500' : 'bg-gradient-to-r from-purple-500 to-pink-500'}`;
+    }
+    if (els.lblK2Alert) {
+      if (k2Over) {
+        els.lblK2Alert.classList.remove('hidden');
+        els.lblK2Alert.innerText = `⚠️ K-2 ინტენსივობა გადაჭარბებულია: +${(k2Used - k2Allowed).toLocaleString()} მ² (GFA)`;
+      } else {
+        els.lblK2Alert.classList.add('hidden');
+      }
     }
 
+    // --- Update K-3 DOM ---
     if (els.inputK3Coeff) els.inputK3Coeff.value = k3;
     if (els.lblK3Required) els.lblK3Required.innerText = `${k3Required.toLocaleString()} მ²`;
-    if (els.lblPlantedTreesCount) els.lblPlantedTreesCount.innerText = `${state.trees.length} ხე (~${treesCanopyArea} მ²)`;
+    if (els.lblK3Actual) els.lblK3Actual.innerText = `${k3Actual.toLocaleString()} მ²`;
+    if (els.lblK3Balance) {
+      els.lblK3Balance.innerText = k3Balance >= 0 ? `+${k3Balance.toLocaleString()} მ²` : `-${Math.abs(k3Balance).toLocaleString()} მ²`;
+      els.lblK3Balance.className = `text-xs font-bold ${k3Deficit ? 'text-rose-400' : 'text-emerald-400'}`;
+    }
+    if (els.barK3Progress) {
+      els.barK3Progress.style.width = `${k3Percent}%`;
+      els.barK3Progress.className = `h-full metric-bar-fill ${k3Deficit ? 'bg-amber-500' : 'bg-gradient-to-r from-emerald-500 to-green-400'}`;
+    }
+    if (els.lblHardscapeTotal) els.lblHardscapeTotal.innerText = `${totalHardscape.toLocaleString()} მ²`;
+    if (els.lblOpenGround) els.lblOpenGround.innerText = `${openGround.toLocaleString()} მ²`;
+    if (els.lblPlantedTreesCount) {
+      els.lblPlantedTreesCount.innerText = `${state.trees.length} ხე (~${treesCanopyArea} მ²)`;
+    }
+    if (els.lblK3Alert) {
+      if (k3Deficit) {
+        els.lblK3Alert.classList.remove('hidden');
+        els.lblK3Alert.innerText = `⚠️ გამწვანების დეფიციტი: -${Math.abs(k3Balance).toLocaleString()} მ² (დარგეთ ხეები ან შეამცირეთ საფარი)`;
+      } else {
+        els.lblK3Alert.classList.add('hidden');
+      }
+    }
 
     updateSelectedBuildingUI();
   }
 
-  // --- Active Building UI updates ---
+  // --- Active Building UI updates (Two-Way Dual Slider & Numeric Sync) ---
   function updateSelectedBuildingUI() {
     const fp = state.footprints.find(f => f.id === state.selectedFootprintId) || state.footprints[0];
     if (els.lblFootprintsCount) els.lblFootprintsCount.innerText = state.footprints.length;
@@ -697,15 +845,36 @@
     if (fp) {
       if (els.lblSelectedBuildingName) els.lblSelectedBuildingName.innerText = fp.name;
       if (els.txtBuildingName) els.txtBuildingName.value = fp.name;
+      
+      // Width
       if (els.sliderBuildingWidth) els.sliderBuildingWidth.value = fp.width;
       if (els.lblBuildingWidthVal) els.lblBuildingWidthVal.innerText = `${fp.width.toFixed(1)} მ`;
+      if (els.inputNumBuildingWidth) els.inputNumBuildingWidth.value = fp.width.toFixed(1);
+      if (els.quickBldW) els.quickBldW.value = fp.width.toFixed(1);
+
+      // Length
       if (els.sliderBuildingLength) els.sliderBuildingLength.value = fp.length;
       if (els.lblBuildingLengthVal) els.lblBuildingLengthVal.innerText = `${fp.length.toFixed(1)} მ`;
+      if (els.inputNumBuildingLength) els.inputNumBuildingLength.value = fp.length.toFixed(1);
+      if (els.quickBldL) els.quickBldL.value = fp.length.toFixed(1);
+
+      // Area
+      if (els.inputNumBuildingArea) els.inputNumBuildingArea.value = fp.areaSqm;
+
+      // Rotation
       if (els.sliderBuildingRotation) els.sliderBuildingRotation.value = fp.rotation;
       if (els.lblBuildingRotationVal) els.lblBuildingRotationVal.innerText = `${fp.rotation}°`;
+      if (els.inputNumBuildingRotation) els.inputNumBuildingRotation.value = fp.rotation;
+
+      // Floors
       if (els.sliderFloors) els.sliderFloors.value = fp.floors;
       if (els.lblFloorsCountVal) els.lblFloorsCountVal.innerText = fp.floors;
+      if (els.inputNumBuildingFloors) els.inputNumBuildingFloors.value = fp.floors;
+      if (els.quickBldFloors) els.quickBldFloors.value = fp.floors;
+
+      // Heights
       if (els.lblFloorHeightVal) els.lblFloorHeightVal.innerText = fp.floorHeight.toFixed(1) + ' მ';
+      if (els.inputNumFloorHeight) els.inputNumFloorHeight.value = fp.floorHeight.toFixed(1);
       if (els.lblTotalHeightVal) els.lblTotalHeightVal.innerText = fp.totalHeight.toFixed(1);
       if (els.selBuildingFunction) els.selBuildingFunction.value = fp.functionType || 'residential';
     }
@@ -714,7 +883,7 @@
       els.lstBuildingsContainer.innerHTML = state.footprints.map(f => `
         <div onclick="selectFootprint('${f.id}')" class="p-2 rounded border cursor-pointer transition flex items-center justify-between ${f.id === state.selectedFootprintId ? 'bg-sky-500/15 border-sky-400 text-white' : 'bg-[#0e1628] border-white/5 text-slate-300 hover:bg-[#142038]'}">
           <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
+            <span class="w-2.5 h-2.5 rounded-full ${f.id === state.selectedFootprintId ? 'bg-sky-400' : 'bg-slate-500'}"></span>
             <div>
               <div class="font-bold text-[11px]">${f.name}</div>
               <div class="text-[10px] text-slate-400 font-mono">${f.width}×${f.length}მ | ${f.floors} სართ. | ${f.areaSqm} მ²</div>
@@ -753,10 +922,14 @@
     renderCadWorld();
   };
 
-  // Parametric Resizing (W & L)
+  // Parametric Resizing (W & L) with Dual Input Synchronization
   window.updateBuildingDimensions = function (wVal, lVal) {
     const fp = state.footprints.find(f => f.id === state.selectedFootprintId);
-    if (!fp) return;
+    if (!fp) {
+      if (wVal !== null) state.stampWidth = parseFloat(wVal) || 15;
+      if (lVal !== null) state.stampLength = parseFloat(lVal) || 12;
+      return;
+    }
 
     if (wVal !== null) fp.width = parseFloat(wVal) || fp.width;
     if (lVal !== null) fp.length = parseFloat(lVal) || fp.length;
@@ -765,8 +938,33 @@
     fp.vertices = newFp.vertices;
     fp.areaSqm = newFp.areaSqm;
 
+    // Sync dual controls
+    if (els.inputNumBuildingWidth) els.inputNumBuildingWidth.value = fp.width.toFixed(1);
+    if (els.sliderBuildingWidth) els.sliderBuildingWidth.value = fp.width;
+    if (els.lblBuildingWidthVal) els.lblBuildingWidthVal.innerText = `${fp.width.toFixed(1)} მ`;
+    if (els.quickBldW) els.quickBldW.value = fp.width.toFixed(1);
+
+    if (els.inputNumBuildingLength) els.inputNumBuildingLength.value = fp.length.toFixed(1);
+    if (els.sliderBuildingLength) els.sliderBuildingLength.value = fp.length;
+    if (els.lblBuildingLengthVal) els.lblBuildingLengthVal.innerText = `${fp.length.toFixed(1)} მ`;
+    if (els.quickBldL) els.quickBldL.value = fp.length.toFixed(1);
+
+    if (els.inputNumBuildingArea) els.inputNumBuildingArea.value = fp.areaSqm;
+
     updateZoningCoefficientsUI();
     renderCadWorld();
+  };
+
+  // Manual Ground Area Input (ფართობის ხელით შეყვანა)
+  window.updateBuildingByArea = function (areaVal) {
+    const targetArea = parseFloat(areaVal);
+    if (!targetArea || targetArea <= 0) return;
+    const fp = state.footprints.find(f => f.id === state.selectedFootprintId);
+    if (!fp) return;
+
+    // Maintain aspect ratio or adjust length
+    const newLength = Math.max(3, Math.round((targetArea / fp.width) * 10) / 10);
+    window.updateBuildingDimensions(null, newLength);
   };
 
   // Rotation Control
@@ -780,58 +978,139 @@
     const newFp = createFootprintObject(fp.name, fp.shape, fp.width, fp.length, fp.rotation, fp.center[0], fp.center[1], fp.floors, fp.floorHeight, fp.functionType);
     fp.vertices = newFp.vertices;
 
-    updateSelectedBuildingUI();
+    if (els.inputNumBuildingRotation) els.inputNumBuildingRotation.value = fp.rotation;
+    if (els.sliderBuildingRotation) els.sliderBuildingRotation.value = fp.rotation;
+    if (els.lblBuildingRotationVal) els.lblBuildingRotationVal.innerText = `${fp.rotation}°`;
+
     renderCadWorld();
   };
 
-  window.updateBuildingFloors = function (val) {
-    const floors = parseInt(val, 10) || 1;
-    const fp = state.footprints.find(f => f.id === state.selectedFootprintId);
-    if (fp) {
-      saveUndoSnapshot();
-      fp.floors = floors;
-      fp.totalHeight = Math.round((fp.floors * fp.floorHeight + 0.8) * 10) / 10;
-      updateZoningCoefficientsUI();
-      renderCadWorld();
-    }
-  };
-
-  window.setFloorHeight = function (h) {
-    const fp = state.footprints.find(f => f.id === state.selectedFootprintId);
-    if (fp) {
-      saveUndoSnapshot();
-      fp.floorHeight = parseFloat(h) || 3.0;
-      fp.totalHeight = Math.round((fp.floors * fp.floorHeight + 0.8) * 10) / 10;
-      updateZoningCoefficientsUI();
-      renderCadWorld();
-    }
-  };
-
-  window.updateBuildingFunction = function (func) {
-    const fp = state.footprints.find(f => f.id === state.selectedFootprintId);
-    if (fp) {
-      fp.functionType = func;
-    }
-  };
-
+  // Setback distance
   window.setSetbackDistance = function (dist) {
-    state.setbackDistance = parseFloat(dist) || 3.0;
-    if (els.lblSetbackDistVal) els.lblSetbackDistVal.innerText = `${state.setbackDistance.toFixed(1)} მ`;
+    const d = parseFloat(dist);
+    if (!d || d < 0) return;
+    saveUndoSnapshot();
+    state.setbackDistance = d;
+    if (els.lblSetbackDistVal) els.lblSetbackDistVal.innerText = `${d.toFixed(1)} მ`;
+    if (els.quickSetbackNum) els.quickSetbackNum.value = d;
+    if (els.inputSiteSetbackDist) els.inputSiteSetbackDist.value = d;
+    renderCadWorld();
+    updateToolStatus(`სამეზობლო მიჯნა განისაზღვრა: ${d} მეტრი.`);
+  };
+
+  // Quick CAD Parameter Helpers
+  window.applyQuickBuildingDim = function () {
+    const w = els.quickBldW ? parseFloat(els.quickBldW.value) : null;
+    const l = els.quickBldL ? parseFloat(els.quickBldL.value) : null;
+    if (w !== null) state.stampWidth = w;
+    if (l !== null) state.stampLength = l;
+    window.updateBuildingDimensions(w, l);
+  };
+
+  window.applyQuickBuildingFloors = function () {
+    const fl = els.quickBldFloors ? parseInt(els.quickBldFloors.value, 10) : 4;
+    state.stampFloors = fl;
+    window.updateBuildingFloors(fl);
+  };
+
+  window.applyQuickRoadWidth = function (w) {
+    const val = parseFloat(w) || 6.0;
+    state.activeRoadWidth = val;
+    if (els.quickRoadW) els.quickRoadW.value = val;
+    if (els.inputSiteRoadWidth) els.inputSiteRoadWidth.value = val;
+    (state.roads || []).forEach(r => r.width = val);
+    updateZoningCoefficientsUI();
     renderCadWorld();
   };
 
-  window.updateZoningCoefficients = function () {
-    if (els.inputK1Coeff) state.k1Limit = parseFloat(els.inputK1Coeff.value) || 0.5;
-    if (els.inputK2Coeff) state.k2Limit = parseFloat(els.inputK2Coeff.value) || 2.5;
-    if (els.inputK3Coeff) state.k3Limit = parseFloat(els.inputK3Coeff.value) || 0.2;
+  window.applyQuickWalkwayWidth = function (w) {
+    const val = parseFloat(w) || 1.8;
+    state.activeWalkwayWidth = val;
+    if (els.quickWalkW) els.quickWalkW.value = val;
+    if (els.inputSiteWalkWidth) els.inputSiteWalkWidth.value = val;
+    (state.walkways || []).forEach(wk => wk.width = val);
     updateZoningCoefficientsUI();
+    renderCadWorld();
+  };
+
+  window.applyQuickTreeDiam = function (d) {
+    const diam = parseFloat(d) || 5.0;
+    state.activeTreeRadius = diam / 2;
+    if (els.quickTreeDiam) els.quickTreeDiam.value = diam;
+    if (els.inputSiteTreeDiam) els.inputSiteTreeDiam.value = diam;
+    state.trees.forEach(t => {
+      if (t.treeType !== 'pine') t.radius = state.activeTreeRadius;
+    });
+    updateZoningCoefficientsUI();
+    renderCadWorld();
   };
 
   window.resetZoningToDefaults = function () {
     state.k1Limit = 0.5;
     state.k2Limit = 2.5;
     state.k3Limit = 0.2;
+    if (els.inputK1Coeff) els.inputK1Coeff.value = 0.5;
+    if (els.inputK2Coeff) els.inputK2Coeff.value = 2.5;
+    if (els.inputK3Coeff) els.inputK3Coeff.value = 0.2;
     updateZoningCoefficientsUI();
+    updateToolStatus('კოეფიციენტები განულდა ზონის ნორმატივებზე (K1=0.5, K2=2.5, K3=0.2).');
+  };
+
+  window.updateBuildingFloors = function (floors) {
+    const fl = parseInt(floors, 10);
+    if (!fl || fl < 1) return;
+    const fp = state.footprints.find(f => f.id === state.selectedFootprintId);
+    if (!fp) {
+      state.stampFloors = fl;
+      return;
+    }
+    fp.floors = fl;
+    fp.totalHeight = Math.round((fl * (fp.floorHeight || 3.0) + 0.8) * 10) / 10;
+    if (els.sliderFloors) els.sliderFloors.value = fl;
+    if (els.lblFloorsCountVal) els.lblFloorsCountVal.innerText = fl;
+    if (els.inputNumBuildingFloors) els.inputNumBuildingFloors.value = fl;
+    if (els.quickBldFloors) els.quickBldFloors.value = fl;
+    if (els.lblTotalHeightVal) els.lblTotalHeightVal.innerText = fp.totalHeight.toFixed(1);
+    updateZoningCoefficientsUI();
+    renderCadWorld();
+  };
+
+  window.setFloorHeight = function (height) {
+    const h = parseFloat(height);
+    if (!h || h <= 0) return;
+    const fp = state.footprints.find(f => f.id === state.selectedFootprintId);
+    if (!fp) return;
+    fp.floorHeight = h;
+    fp.totalHeight = Math.round((fp.floors * h + 0.8) * 10) / 10;
+    if (els.lblFloorHeightVal) els.lblFloorHeightVal.innerText = `${h.toFixed(1)} მ`;
+    if (els.inputNumFloorHeight) els.inputNumFloorHeight.value = h.toFixed(1);
+    if (els.lblTotalHeightVal) els.lblTotalHeightVal.innerText = fp.totalHeight.toFixed(1);
+    renderCadWorld();
+  };
+
+  window.updateBuildingFunction = function (type) {
+    const fp = state.footprints.find(f => f.id === state.selectedFootprintId);
+    if (fp) fp.functionType = type;
+    state.stampFn = type;
+    renderCadWorld();
+  };
+
+  window.updatePoolParams = function (w, l) {
+    state.waterBodies.forEach(wb => {
+      if (w !== null && w !== undefined) wb.width = parseFloat(w) || wb.width;
+      if (l !== null && l !== undefined) wb.length = parseFloat(l) || wb.length;
+    });
+    updateZoningCoefficientsUI();
+    renderCadWorld();
+  };
+
+  window.updateTerraceParams = function (w, l) {
+    state.terraces.forEach(tr => {
+      if (w !== null && w !== undefined) tr.width = parseFloat(w) || tr.width;
+      if (l !== null && l !== undefined) tr.length = parseFloat(l) || tr.length;
+    });
+    updateZoningCoefficientsUI();
+    renderCadWorld();
   };
 
   // --- Cadastral Sidebar UI Updates ---
@@ -876,7 +1155,7 @@
     a.click();
   };
 
-  // --- 16 Architectural Visual Styles Map ---
+  // --- 24 Architectural Visual Styles Map ---
   const styleNamesMap = {
     'blueprint': '📐 Royal Blueprint (ლურჯი)',
     'classic': '🏛️ არქიტექტურული თეთრი',
@@ -893,7 +1172,15 @@
     'sunset': '🌅 ოქროს საათი',
     'slate': '🪨 ფიქალი & სპილენძი',
     'pastel': '🎨 თანამედროვე პასტელი',
-    'graph': '📐 მილიმეტრული ბადე'
+    'graph': '📐 მილიმეტრული ბადე',
+    'nordic': '⚪ მინიმალისტური თეთრი',
+    'zen': '🏯 იაპონური ზენ / Muji',
+    'bauhaus': '🏛️ ბაუჰაუსი (Modernist)',
+    'sketch': '✏️ ფანქრის ესკიზი',
+    'desert': '🏜️ უდაბნოს ქვიშა / ვილა',
+    'concrete': '🏭 ურბანული ბეტონი',
+    'emerald': '💎 ზურმუხტისფერი ლუქსი',
+    'nightglow': '🌙 ღამის განათება'
   };
 
   window.setDrawingStyle = function (styleName) {
@@ -917,57 +1204,25 @@
     renderCadWorld();
   };
 
-  // --- Dropdown Menu Toggle Helpers (No sticky hover states) ---
-  window.togglePresetMenu = function (e) {
+  // --- Ribbon Dropdown Menu Toggle Helpers ---
+  window.toggleDropdownMenu = function (menuId, e) {
     if (e) e.stopPropagation();
-    const pm = document.getElementById('dropdownPresetMenu');
-    if (pm) pm.classList.toggle('hidden');
-    const lm = document.getElementById('dropdownLayersMenu');
-    if (lm) lm.classList.add('hidden');
+    const target = document.getElementById(menuId);
+    document.querySelectorAll('.cad-menu-popup').forEach(p => {
+      if (p !== target) p.classList.add('hidden');
+    });
+    if (target) target.classList.toggle('hidden');
   };
 
-  window.toggleLayersMenu = function (e) {
-    if (e) e.stopPropagation();
-    const lm = document.getElementById('dropdownLayersMenu');
-    if (lm) lm.classList.toggle('hidden');
-    const pm = document.getElementById('dropdownPresetMenu');
-    if (pm) pm.classList.add('hidden');
+  window.closeAllDropdowns = function () {
+    document.querySelectorAll('.cad-menu-popup').forEach(p => p.classList.add('hidden'));
   };
 
   window.addEventListener('click', (e) => {
-    const pm = document.getElementById('dropdownPresetMenu');
-    if (pm && !e.target.closest('#btnPresetMenuTrigger') && !e.target.closest('#dropdownPresetMenu')) {
-      pm.classList.add('hidden');
-    }
-    const lm = document.getElementById('dropdownLayersMenu');
-    if (lm && !e.target.closest('#btnLayersMenuTrigger') && !e.target.closest('#dropdownLayersMenu')) {
-      lm.classList.add('hidden');
+    if (!e.target.closest('.cad-menu-popup') && !e.target.closest('[id^="btn"][id$="Menu"]') && !e.target.closest('#btnLayersMenuTrigger') && !e.target.closest('#btnPresetMenuTrigger')) {
+      window.closeAllDropdowns();
     }
   });
-
-  // --- Setback Distance Adjustment (სამეზობლო მიჯნები) ---
-  window.setSetbackDistance = function (dist) {
-    saveUndoSnapshot();
-    state.setbackDistance = parseFloat(dist) || 3.0;
-    
-    if (els.lblSetbackDistVal) els.lblSetbackDistVal.innerText = `${state.setbackDistance.toFixed(1)} მ`;
-    const badge = document.getElementById('lblSetbackDistBadge');
-    if (badge) badge.innerText = `${state.setbackDistance.toFixed(1)} მ`;
-
-    // Update quick buttons UI
-    document.querySelectorAll('.btn-setback-quick').forEach(btn => {
-      const match = btn.innerText.includes(`${state.setbackDistance.toFixed(1)}მ`) || 
-                    (state.setbackDistance === 3.0 && btn.innerText.includes('3.0მ'));
-      if (match) {
-        btn.className = 'btn-setback-quick px-2 py-0.5 rounded text-[10px] font-mono bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold transition';
-      } else {
-        btn.className = 'btn-setback-quick px-2 py-0.5 rounded text-[10px] font-mono text-slate-300 hover:text-white hover:bg-white/10 transition';
-      }
-    });
-
-    renderCadWorld();
-    updateToolStatus(`სამეზობლო მიჯნის ზღვარი: ${state.setbackDistance.toFixed(1)} მეტრი`);
-  };
 
   // --- REAL ARCHITECTURAL SCALE CONTROLS ---
   window.changeCadScale = function (scaleStr) {
@@ -1035,6 +1290,8 @@
     state.rulerPoints = [];
     state.currentWalkwayPoints = [];
     state.currentRoadPoints = [];
+    state.currentBikePathPoints = [];
+    state.currentHedgePoints = [];
 
     document.querySelectorAll('.btn-cad-tool').forEach(btn => btn.classList.remove('btn-tool-active'));
     const btnMap = {
@@ -1042,10 +1299,13 @@
       'delete': 'toolBtnDelete',
       'split': 'toolBtnSplit',
       'draw_footprint': 'toolBtnDrawFootprint',
+      'draw_polygon': 'toolBtnDrawFootprint',
       'tree': 'toolBtnTree',
+      'pine_tree': 'toolBtnTree',
       'water': 'toolBtnWater',
       'terrace': 'toolBtnTerrace',
       'walkway': 'toolBtnWalkway',
+      'bike_path': 'toolBtnWalkway',
       'draw_road': 'toolBtnDrawRoad',
       'parking': 'toolBtnParking',
       'ruler': 'toolBtnRuler'
@@ -1063,14 +1323,20 @@
 
     const hintMap = {
       'pan': 'არჩევა და გადაადგილება: დააკლიკეთ შენობას გადასაადგილებლად ან როტაციისთვის',
+      'stamp_footprint': `🏢 შენობის ლაქის დასმა: დააკლიკეთ ნაკვეთის ნებისმიერ ადგილას (${state.stampWidth || 15}×${state.stampLength || 12}მ)`,
+      'draw_polygon': 'ლაქის ხელით მოხაზვა: დააკლიკეთ წერტილების დასასმელად, ორმაგი კლიკით ასრულებს',
+      'draw_footprint': 'ლაქის ხელით მოხაზვა: დააკლიკეთ წერტილების დასასმელად, ორმაგი კლიკით ასრულებს',
       'delete': 'საშლელი: დააკლიკეთ ნებისმიერ ობიექტზე (შენობა, ხე, აუზი, ტერასა, გზა, ბილიკი, პარკინგი) მის წასაშლელად',
       'split': 'ნაკვეთის დაყოფა: დააკლიკეთ ორ წერტილზე გამყოფი ხაზის გასავლებად',
-      'draw_footprint': 'ლაქის დახაზვა: დააკლიკეთ წერტილების დასასმელად, ორმაგი კლიკით ასრულებს',
-      'tree': 'გამწვანება: დააკლიკეთ ნაკვეთის ნებისმიერ ადგილას ხის დასარგავად',
+      'tree': 'ფოთლოვანი ხე: დააკლიკეთ ნაკვეთის ნებისმიერ ადგილას ხის დასარგავად (Ø5მ)',
+      'pine_tree': 'წიწვოვანი ხე: დააკლიკეთ ნაკვეთზე მარადმწვანე წიწვოვანი ხის დასარგავად (Ø3.5მ)',
+      'hedge': 'ბუჩქნარი / ცოცხალი ღობე: დააკლიკეთ წერტილების დასასმელად, ორმაგი კლიკი დაასრულებს',
       'water': 'აუზი: დააკლიკეთ ნაკვეთზე საცურაო აუზის განსათავსებლად',
+      'fountain': 'დეკორატიული შადრევანი: დააკლიკეთ ნაკვეთზე შადრევნის განსათავსებლად (Ø5მ)',
       'terrace': 'ტერასა: დააკლიკეთ ნაკვეთზე ხის ტერასის / დეკის განსათავსებლად',
-      'walkway': 'ბილიკი: დააკლიკეთ წერტილების დასასმელად, ორმაგი კლიკი დაასრულებს',
-      'draw_road': 'გზა: დააკლიკეთ წერტილების დასასმელად, ორმაგი კლიკი დაასრულებს (6.0მ)',
+      'walkway': 'საფეხმავლო ბილიკი: დააკლიკეთ წერტილების დასასმელად, ორმაგი კლიკი დაასრულებს (1.8მ)',
+      'bike_path': 'ველობილიკი: დააკლიკეთ წერტილების დასასმელად, ორმაგი კლიკი დაასრულებს (2.0მ)',
+      'draw_road': 'საავტომობილო გზა: დააკლიკეთ წერტილების დასასმელად, ორმაგი კლიკი დაასრულებს (6.0მ)',
       'parking': 'ავტოსადგომი: დააკლიკეთ ნაკვეთზე საპარკინგე ადგილის განსათავსებლად (2.5×5მ)',
       'ruler': 'საზომი: დააკლიკეთ ორ წერტილზე მანძილის გასაზომად'
     };
@@ -1082,18 +1348,147 @@
     if (els.lblToolStatusHint) els.lblToolStatusHint.innerText = text;
   }
 
-  // --- Walkway & Road Finish Helpers ---
+  // --- Footprint Stamp Activation & Templates ---
+  window.activateFootprintStamp = function (shape = 'rect', name = 'შენობა') {
+    state.stampShape = shape;
+    state.stampName = name;
+    if (els.inputNumBuildingWidth && els.inputNumBuildingLength) {
+      state.stampWidth = parseFloat(els.inputNumBuildingWidth.value) || state.stampWidth || 15;
+      state.stampLength = parseFloat(els.inputNumBuildingLength.value) || state.stampLength || 12;
+    }
+    if (els.inputNumBuildingFloors) {
+      state.stampFloors = parseInt(els.inputNumBuildingFloors.value, 10) || state.stampFloors || 4;
+    }
+    setCadActiveTool('stamp_footprint');
+  };
+
+  window.stampTemplate = function (type) {
+    if (type === 'rect') {
+      state.stampShape = 'rect';
+      state.stampWidth = 15;
+      state.stampLength = 12;
+      state.stampFloors = 4;
+      state.stampFn = 'residential';
+      state.stampName = 'მართკუთხა ბლოკი';
+    } else if (type === 'l_shape') {
+      state.stampShape = 'l_shape';
+      state.stampWidth = 18;
+      state.stampLength = 16;
+      state.stampFloors = 5;
+      state.stampFn = 'residential';
+      state.stampName = 'L-კორპუსი';
+    } else if (type === 'u_shape') {
+      state.stampShape = 'u_shape';
+      state.stampWidth = 22;
+      state.stampLength = 18;
+      state.stampFloors = 6;
+      state.stampFn = 'residential';
+      state.stampName = 'U-შენობა';
+    } else if (type === 'tower') {
+      state.stampShape = 'rect';
+      state.stampWidth = 20;
+      state.stampLength = 20;
+      state.stampFloors = 16;
+      state.stampFn = 'residential';
+      state.stampName = 'საცხოვრებელი კოშკი';
+    } else if (type === 'villa') {
+      state.stampShape = 'rect';
+      state.stampWidth = 14;
+      state.stampLength = 10;
+      state.stampFloors = 2;
+      state.stampFn = 'residential';
+      state.stampName = 'კერძო ვილა';
+    } else if (type === 'apartment') {
+      state.stampShape = 'rect';
+      state.stampWidth = 30;
+      state.stampLength = 14;
+      state.stampFloors = 8;
+      state.stampFn = 'residential';
+      state.stampName = 'საცხოვრებელი კორპუსი';
+    } else if (type === 'commercial') {
+      state.stampShape = 'rect';
+      state.stampWidth = 12;
+      state.stampLength = 8;
+      state.stampFloors = 1;
+      state.stampFn = 'commercial';
+      state.stampName = 'კომერციული პავილიონი';
+    }
+
+    if (els.inputNumBuildingWidth) els.inputNumBuildingWidth.value = state.stampWidth;
+    if (els.inputNumBuildingLength) els.inputNumBuildingLength.value = state.stampLength;
+    if (els.inputNumBuildingFloors) els.inputNumBuildingFloors.value = state.stampFloors;
+    if (els.quickBldW) els.quickBldW.value = state.stampWidth;
+    if (els.quickBldL) els.quickBldL.value = state.stampLength;
+    if (els.quickBldFloors) els.quickBldFloors.value = state.stampFloors;
+
+    setCadActiveTool('stamp_footprint');
+  };
+
+  window.addParkingRow = function () {
+    saveUndoSnapshot();
+    const cx = state.centerPoint ? state.centerPoint[0] : 0;
+    const cy = state.centerPoint ? state.centerPoint[1] + 10 : 0;
+    const count = 5;
+    const stallW = 2.5;
+    const startX = cx - ((count - 1) * stallW) / 2;
+
+    for (let i = 0; i < count; i++) {
+      state.parkingBays.push({
+        id: 'park_' + Date.now() + '_' + i,
+        center: [Math.round((startX + i * stallW) * 10) / 10, Math.round(cy * 10) / 10],
+        width: 2.5,
+        length: 5.0,
+        rotation: 0
+      });
+    }
+    updateZoningCoefficientsUI();
+    renderCadWorld();
+    updateToolStatus('განთავსდა 5-ადგილიანი პარკინგის რიგი.');
+  };
+
+  // --- Walkway, Road, Bike Path & Hedge Finish Helpers ---
   function finishWalkway() {
     if (state.currentWalkwayPoints.length >= 2) {
       saveUndoSnapshot();
       state.walkways.push({
         id: 'walk_' + Date.now(),
         points: [...state.currentWalkwayPoints],
-        width: 1.8
+        width: state.activeWalkwayWidth || 1.8
       });
       state.currentWalkwayPoints = [];
+      updateZoningCoefficientsUI();
       renderCadWorld();
       updateToolStatus('საფეხმავლო ბილიკი დაემატა.');
+    }
+  }
+
+  function finishBikePath() {
+    if (state.currentBikePathPoints && state.currentBikePathPoints.length >= 2) {
+      saveUndoSnapshot();
+      state.bikePaths.push({
+        id: 'bike_' + Date.now(),
+        points: [...state.currentBikePathPoints],
+        width: 2.0
+      });
+      state.currentBikePathPoints = [];
+      updateZoningCoefficientsUI();
+      renderCadWorld();
+      updateToolStatus('ველობილიკი (2.0მ) დაემატა.');
+    }
+  }
+
+  function finishHedge() {
+    if (state.currentHedgePoints && state.currentHedgePoints.length >= 2) {
+      saveUndoSnapshot();
+      state.hedges.push({
+        id: 'hedge_' + Date.now(),
+        points: [...state.currentHedgePoints],
+        width: 1.0
+      });
+      state.currentHedgePoints = [];
+      updateZoningCoefficientsUI();
+      renderCadWorld();
+      updateToolStatus('ცოცხალი ღობე / ბუჩქნარი დაემატა.');
     }
   }
 
@@ -1103,11 +1498,12 @@
       state.roads.push({
         id: 'road_' + Date.now(),
         points: [...state.currentRoadPoints],
-        width: 6.0
+        width: state.activeRoadWidth || 6.0
       });
       state.currentRoadPoints = [];
+      updateZoningCoefficientsUI();
       renderCadWorld();
-      updateToolStatus('საავტომობილო გზა (6.0მ) დაემატა.');
+      updateToolStatus('საავტომობილო გზა დაემატა.');
     }
   }
 
@@ -1249,6 +1645,73 @@
           return;
         }
 
+        // Check if hit bike path
+        const bikeIdx = (state.bikePaths || []).findIndex(b => {
+          if (!b.points || b.points.length < 2) return false;
+          for (let i = 0; i < b.points.length - 1; i++) {
+            if (distToSegment(worldPos, b.points[i], b.points[i + 1]) < 2.0) return true;
+          }
+          return false;
+        });
+        if (bikeIdx !== -1) {
+          state.bikePaths.splice(bikeIdx, 1);
+          updateZoningCoefficientsUI();
+          renderCadWorld();
+          updateToolStatus('ველობილიკი წაიშალა.');
+          return;
+        }
+
+        // Check if hit hedge
+        const hedgeIdx = (state.hedges || []).findIndex(h => {
+          if (!h.points || h.points.length < 2) return false;
+          for (let i = 0; i < h.points.length - 1; i++) {
+            if (distToSegment(worldPos, h.points[i], h.points[i + 1]) < 1.5) return true;
+          }
+          return false;
+        });
+        if (hedgeIdx !== -1) {
+          state.hedges.splice(hedgeIdx, 1);
+          updateZoningCoefficientsUI();
+          renderCadWorld();
+          updateToolStatus('ცოცხალი ღობე წაიშალა.');
+          return;
+        }
+
+        // Check if hit fountain
+        const fountIdx = (state.fountains || []).findIndex(f => Math.hypot(worldPos[0] - f.x, worldPos[1] - f.y) < (f.radius || 2.5));
+        if (fountIdx !== -1) {
+          state.fountains.splice(fountIdx, 1);
+          updateZoningCoefficientsUI();
+          renderCadWorld();
+          updateToolStatus('შადრევანი წაიშალა.');
+          return;
+        }
+
+        return;
+      }
+
+      // STAMP BUILDING FOOTPRINT MODE (1-CLICK DIRECT PLACEMENT)
+      if (state.activeTool === 'stamp_footprint' || state.activeTool === 'add_footprint') {
+        saveUndoSnapshot();
+        const nextNum = state.footprints.length + 1;
+        const shape = state.stampShape || 'rect';
+        const w = state.stampWidth || (els.inputNumBuildingWidth ? parseFloat(els.inputNumBuildingWidth.value) : 15) || 15;
+        const l = state.stampLength || (els.inputNumBuildingLength ? parseFloat(els.inputNumBuildingLength.value) : 12) || 12;
+        const floors = state.stampFloors || (els.inputNumBuildingFloors ? parseInt(els.inputNumBuildingFloors.value, 10) : 4) || 4;
+        const flH = (els.inputNumFloorHeight ? parseFloat(els.inputNumFloorHeight.value) : 3.0) || 3.0;
+        const name = state.stampName || `შენობა ${nextNum}`;
+        const fn = state.stampFn || 'residential';
+        const cx = Math.round(worldPos[0] * 10) / 10;
+        const cy = Math.round(worldPos[1] * 10) / 10;
+
+        const newFp = createFootprintObject(name, shape, w, l, 0, cx, cy, floors, flH, fn);
+        state.footprints.push(newFp);
+        state.selectedFootprintId = newFp.id;
+        setCadActiveTool('pan');
+        updateSelectedBuildingUI();
+        updateZoningCoefficientsUI();
+        renderCadWorld();
+        updateToolStatus(`შენობა "${name}" (${w}×${l}მ, ${floors} სართ.) განთავსდა გეგმაზე.`);
         return;
       }
 
@@ -1298,15 +1761,57 @@
       // 4. TREE PLANTING TOOL
       if (state.activeTool === 'tree') {
         saveUndoSnapshot();
+        const r = (state.activeTreeRadius || 2.5);
         state.trees.push({
           id: 'tree_' + Date.now(),
           x: Math.round(worldPos[0] * 10) / 10,
           y: Math.round(worldPos[1] * 10) / 10,
-          radius: 2.5 + Math.random() * 0.8
+          radius: r,
+          treeType: 'deciduous'
         });
         updateZoningCoefficientsUI();
         renderCadWorld();
-        updateToolStatus('დაირგო ხე (დიამეტრი ~5მ).');
+        updateToolStatus(`დაირგო ფოთლოვანი ხე (დიამეტრი ${(r * 2).toFixed(1)}მ).`);
+        return;
+      }
+
+      // 4b. PINE TREE TOOL
+      if (state.activeTool === 'pine_tree') {
+        saveUndoSnapshot();
+        const r = 1.8;
+        state.trees.push({
+          id: 'tree_' + Date.now(),
+          x: Math.round(worldPos[0] * 10) / 10,
+          y: Math.round(worldPos[1] * 10) / 10,
+          radius: r,
+          treeType: 'pine'
+        });
+        updateZoningCoefficientsUI();
+        renderCadWorld();
+        updateToolStatus(`დაირგო წიწვოვანი ხე (დიამეტრი ${(r * 2).toFixed(1)}მ).`);
+        return;
+      }
+
+      // 4c. HEDGE TOOL
+      if (state.activeTool === 'hedge') {
+        state.currentHedgePoints.push([Math.round(worldPos[0] * 10) / 10, Math.round(worldPos[1] * 10) / 10]);
+        renderInteractionLayer();
+        updateToolStatus(`ცოცხალი ღობე: მონიშნულია ${state.currentHedgePoints.length} წერტილი (ორმაგი კლიკი ასრულებს).`);
+        return;
+      }
+
+      // 4d. FOUNTAIN TOOL
+      if (state.activeTool === 'fountain') {
+        saveUndoSnapshot();
+        state.fountains.push({
+          id: 'fount_' + Date.now(),
+          x: Math.round(worldPos[0] * 10) / 10,
+          y: Math.round(worldPos[1] * 10) / 10,
+          radius: 2.5
+        });
+        updateZoningCoefficientsUI();
+        renderCadWorld();
+        updateToolStatus('განთავსდა დეკორატიული შადრევანი (Ø5მ).');
         return;
       }
 
@@ -1348,11 +1853,19 @@
         return;
       }
 
+      // 7b. BIKE PATH TOOL
+      if (state.activeTool === 'bike_path') {
+        state.currentBikePathPoints.push([Math.round(worldPos[0] * 10) / 10, Math.round(worldPos[1] * 10) / 10]);
+        renderInteractionLayer();
+        updateToolStatus(`ველობილიკი (2.0მ): მონიშნულია ${state.currentBikePathPoints.length} წერტილი (ორმაგი კლიკი ასრულებს).`);
+        return;
+      }
+
       // 8. ROAD TOOL
       if (state.activeTool === 'draw_road') {
         state.currentRoadPoints.push([Math.round(worldPos[0] * 10) / 10, Math.round(worldPos[1] * 10) / 10]);
         renderInteractionLayer();
-        updateToolStatus(`გზა (6.0მ): მონიშნულია ${state.currentRoadPoints.length} წერტილი (ორმაგი კლიკი ასრულებს).`);
+        updateToolStatus(`გზა: მონიშნულია ${state.currentRoadPoints.length} წერტილი (ორმაგი კლიკი ასრულებს).`);
         return;
       }
 
@@ -1371,8 +1884,8 @@
         return;
       }
 
-      // 10. DRAW FOOTPRINT TOOL
-      if (state.activeTool === 'draw_footprint') {
+      // 10. DRAW FOOTPRINT / POLYGON TOOL
+      if (state.activeTool === 'draw_footprint' || state.activeTool === 'draw_polygon') {
         state.drawPoints.push(worldPos);
         renderInteractionLayer();
         return;
@@ -1388,18 +1901,27 @@
     });
 
     container.addEventListener('dblclick', () => {
-      if (state.activeTool === 'draw_footprint' && state.drawPoints.length >= 3) {
+      if ((state.activeTool === 'draw_footprint' || state.activeTool === 'draw_polygon') && state.drawPoints.length >= 3) {
         finishDrawnFootprint();
       } else if (state.activeTool === 'walkway') {
         finishWalkway();
+      } else if (state.activeTool === 'bike_path') {
+        finishBikePath();
       } else if (state.activeTool === 'draw_road') {
         finishRoad();
+      } else if (state.activeTool === 'hedge') {
+        finishHedge();
       }
     });
 
     // Mouse Move
     window.addEventListener('mousemove', (e) => {
       const worldPos = screenToWorld(e.clientX, e.clientY);
+      state.mouseWorldPos = worldPos;
+
+      if (state.activeTool === 'stamp_footprint' || state.activeTool === 'draw_footprint' || state.activeTool === 'draw_polygon' || state.activeTool === 'walkway' || state.activeTool === 'bike_path' || state.activeTool === 'draw_road' || state.activeTool === 'hedge') {
+        renderInteractionLayer();
+      }
 
       if (els.lblMouseCoords) {
         els.lblMouseCoords.innerText = `X: ${worldPos[0].toFixed(1)}მ | Y: ${(-worldPos[1]).toFixed(1)}მ`;
@@ -1556,8 +2078,11 @@
     renderSubParcels(pxToM);
     renderRoads(pxToM);
     renderWalkways(pxToM);
+    renderBikePaths(pxToM);
+    renderHedges(pxToM);
     renderParking(pxToM);
     renderWaterBodies(pxToM);
+    renderFountains(pxToM);
     renderTerraces(pxToM);
     renderShadows();
     renderTrees(pxToM);
@@ -1715,8 +2240,73 @@
   function deleteWalkway(id) {
     saveUndoSnapshot();
     state.walkways = (state.walkways || []).filter(w => w.id !== id);
+    updateZoningCoefficientsUI();
     renderCadWorld();
     updateToolStatus('საფეხმავლო ბილიკი წაიშალა.');
+  }
+
+  // 5b. Bike Paths (+ ველობილიკი)
+  function renderBikePaths(pxToM) {
+    if (!els.bikePathsLayer) return;
+    if (!state.layers.roads || !state.bikePaths || state.bikePaths.length === 0) {
+      els.bikePathsLayer.innerHTML = '';
+      return;
+    }
+
+    els.bikePathsLayer.innerHTML = state.bikePaths.map(b => {
+      if (!b.points || b.points.length < 2) return '';
+      const ptsStr = b.points.map(p => `${p[0]},${p[1]}`).join(' ');
+      const bikeW = b.width || 2.0;
+
+      return `
+        <g class="cursor-pointer" onclick="if(state.activeTool==='delete'){deleteBikePath('${b.id}');}">
+          <polyline points="${ptsStr}" fill="none" stroke="#047857" stroke-width="${bikeW + 0.3 * pxToM}" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+          <polyline points="${ptsStr}" fill="none" stroke="#10b981" stroke-width="${bikeW}" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="${ptsStr}" fill="none" stroke="#ffffff" stroke-width="${0.4 * pxToM}" stroke-dasharray="${2 * pxToM}, ${2 * pxToM}" stroke-linecap="round"/>
+          <polyline points="${ptsStr}" fill="none" stroke="transparent" stroke-width="${bikeW + 3 * pxToM}"/>
+        </g>
+      `;
+    }).join('');
+  }
+
+  function deleteBikePath(id) {
+    saveUndoSnapshot();
+    state.bikePaths = (state.bikePaths || []).filter(b => b.id !== id);
+    updateZoningCoefficientsUI();
+    renderCadWorld();
+    updateToolStatus('ველობილიკი წაიშალა.');
+  }
+
+  // 5c. Hedges & Living Fences (+ ცოცხალი ღობე)
+  function renderHedges(pxToM) {
+    if (!els.hedgesLayer) return;
+    if (!state.layers.trees || !state.hedges || state.hedges.length === 0) {
+      els.hedgesLayer.innerHTML = '';
+      return;
+    }
+
+    els.hedgesLayer.innerHTML = state.hedges.map(h => {
+      if (!h.points || h.points.length < 2) return '';
+      const ptsStr = h.points.map(p => `${p[0]},${p[1]}`).join(' ');
+      const hedgeW = h.width || 1.2;
+
+      return `
+        <g class="cursor-pointer" onclick="if(state.activeTool==='delete'){deleteHedge('${h.id}');}">
+          <polyline points="${ptsStr}" fill="none" stroke="#14532d" stroke-width="${hedgeW + 0.3 * pxToM}" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="${ptsStr}" fill="none" stroke="#22c55e" stroke-width="${hedgeW}" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="${ptsStr}" fill="none" stroke="#86efac" stroke-width="${hedgeW * 0.45}" stroke-dasharray="${1.5 * pxToM}, ${1.5 * pxToM}" stroke-linecap="round"/>
+          <polyline points="${ptsStr}" fill="none" stroke="transparent" stroke-width="${hedgeW + 3 * pxToM}"/>
+        </g>
+      `;
+    }).join('');
+  }
+
+  function deleteHedge(id) {
+    saveUndoSnapshot();
+    state.hedges = (state.hedges || []).filter(h => h.id !== id);
+    updateZoningCoefficientsUI();
+    renderCadWorld();
+    updateToolStatus('ცოცხალი ღობე წაიშალა.');
   }
 
   // 6. Parking Bays (+ ავტოსადგომი)
@@ -1781,8 +2371,44 @@
   function deleteWaterBody(id) {
     saveUndoSnapshot();
     state.waterBodies = state.waterBodies.filter(w => w.id !== id);
+    updateZoningCoefficientsUI();
     renderCadWorld();
     updateToolStatus('აუზი წაიშალა.');
+  }
+
+  // 6b. Decorative Fountains (+ დეკორატიული შადრევანი)
+  function renderFountains(pxToM) {
+    if (!els.fountainsLayer) return;
+    if (!state.layers.water || !state.fountains || state.fountains.length === 0) {
+      els.fountainsLayer.innerHTML = '';
+      return;
+    }
+
+    els.fountainsLayer.innerHTML = state.fountains.map(f => {
+      const r = f.radius || 2.5;
+      return `
+        <g class="cursor-pointer" onclick="if(state.activeTool==='delete'){deleteFountain('${f.id}');}">
+          <!-- Outer basin ring -->
+          <circle cx="${f.x}" cy="${f.y}" r="${r + 0.4}" fill="#e2e8f0" stroke="#64748b" stroke-width="${0.7 * pxToM}"/>
+          <!-- Water basin -->
+          <circle cx="${f.x}" cy="${f.y}" r="${r}" fill="#0284c7" opacity="0.85"/>
+          <!-- Ripples -->
+          <circle cx="${f.x}" cy="${f.y}" r="${r * 0.65}" fill="none" stroke="#38bdf8" stroke-width="${0.5 * pxToM}" stroke-dasharray="${2 * pxToM}, ${1.5 * pxToM}"/>
+          <circle cx="${f.x}" cy="${f.y}" r="${r * 0.35}" fill="none" stroke="#e0f2fe" stroke-width="${0.5 * pxToM}"/>
+          <!-- Center Jet nozzle -->
+          <circle cx="${f.x}" cy="${f.y}" r="${0.8 * pxToM}" fill="#ffffff"/>
+          <text x="${f.x}" y="${f.y + r + 2.5 * pxToM}" text-anchor="middle" fill="#38bdf8" font-size="${7.5 * pxToM}" font-family="Inter, sans-serif" font-weight="600">შადრევანი</text>
+        </g>
+      `;
+    }).join('');
+  }
+
+  function deleteFountain(id) {
+    saveUndoSnapshot();
+    state.fountains = (state.fountains || []).filter(f => f.id !== id);
+    updateZoningCoefficientsUI();
+    renderCadWorld();
+    updateToolStatus('შადრევანი წაიშალა.');
   }
 
   // 7. Terraces & Decks (+ ტერასა)
@@ -1840,6 +2466,26 @@
 
     els.treesLayer.innerHTML = state.trees.map(t => {
       const r = t.radius || 2.8;
+      const isPine = t.treeType === 'pine';
+
+      if (isPine) {
+        // Conifer / Pine: 8-point geometric spruce polygon with deep forest green
+        const points = [];
+        const nPoints = 8;
+        for (let i = 0; i < nPoints * 2; i++) {
+          const angle = (i * Math.PI) / nPoints - Math.PI / 2;
+          const currR = (i % 2 === 0) ? r : r * 0.55;
+          points.push(`${t.x + Math.cos(angle) * currR},${t.y + Math.sin(angle) * currR}`);
+        }
+        return `
+          <g class="cursor-pointer" onclick="if(state.activeTool==='delete'){deleteTree('${t.id}');}">
+            <polygon points="${points.join(' ')}" fill="#14532d" opacity="0.9" stroke="#052e16" stroke-width="${0.7 * pxToM}"/>
+            <circle cx="${t.x}" cy="${t.y}" r="${r * 0.3}" fill="#166534" stroke="#86efac" stroke-width="${0.4 * pxToM}"/>
+            <circle cx="${t.x}" cy="${t.y}" r="${0.5 * pxToM}" fill="#78350f"/>
+          </g>
+        `;
+      }
+
       const branchR = r * 0.7;
       return `
         <g class="cursor-pointer" onclick="if(state.activeTool==='delete'){deleteTree('${t.id}');}">
@@ -2004,11 +2650,32 @@
     if (!els.interactionLayer) return;
     const p2m = pxToM || (1 / Math.max(0.001, state.zoomScale));
 
+    if (state.activeTool === 'stamp_footprint' && state.mouseWorldPos) {
+      const w = state.stampWidth || (els.inputNumBuildingWidth ? parseFloat(els.inputNumBuildingWidth.value) : 15) || 15;
+      const l = state.stampLength || (els.inputNumBuildingLength ? parseFloat(els.inputNumBuildingLength.value) : 12) || 12;
+      const floors = state.stampFloors || (els.inputNumBuildingFloors ? parseInt(els.inputNumBuildingFloors.value, 10) : 4) || 4;
+      const cx = state.mouseWorldPos[0];
+      const cy = state.mouseWorldPos[1];
+      const rx = cx - w / 2;
+      const ry = cy - l / 2;
+
+      els.interactionLayer.innerHTML = `
+        <g pointer-events="none">
+          <rect x="${rx}" y="${ry}" width="${w}" height="${l}" fill="rgba(0, 240, 255, 0.18)" stroke="#00f0ff" stroke-width="${1.5 * p2m}" stroke-dasharray="${4 * p2m}, ${3 * p2m}"/>
+          <circle cx="${cx}" cy="${cy}" r="${4 * p2m}" fill="#00f0ff" stroke="#080d1a" stroke-width="${1 * p2m}"/>
+          <rect x="${cx - 50 * p2m}" y="${ry - 18 * p2m}" width="${100 * p2m}" height="${15 * p2m}" rx="${3 * p2m}" fill="rgba(8,13,26,0.9)" stroke="#00f0ff" stroke-width="${0.7 * p2m}"/>
+          <text x="${cx}" y="${ry - 7 * p2m}" text-anchor="middle" fill="#00f0ff" font-size="${8.5 * p2m}" font-weight="bold" font-family="'JetBrains Mono', monospace">${w}მ × ${l}მ · ${(w * l).toFixed(0)} მ² (${floors}ს)</text>
+          <text x="${cx}" y="${cy + 14 * p2m}" text-anchor="middle" fill="#ffffff" font-size="${8 * p2m}" font-family="Inter, sans-serif" font-weight="600">დააკლიკეთ დასასმელად</text>
+        </g>
+      `;
+      return;
+    }
+
     if (state.activeTool === 'split' && state.splitLine.length === 1) {
       els.interactionLayer.innerHTML = `
         <circle cx="${state.splitLine[0][0]}" cy="${state.splitLine[0][1]}" r="${4 * p2m}" fill="#f59e0b" stroke="#ffffff" stroke-width="${1 * p2m}" />
       `;
-    } else if (state.activeTool === 'draw_footprint' && state.drawPoints.length > 0) {
+    } else if ((state.activeTool === 'draw_footprint' || state.activeTool === 'draw_polygon') && state.drawPoints.length > 0) {
       const pts = state.drawPoints.map(p => `${p[0]},${p[1]}`).join(' ');
       els.interactionLayer.innerHTML = `
         <polyline points="${pts}" fill="none" stroke="#00f0ff" stroke-width="${1.5 * p2m}" stroke-dasharray="${3 * p2m}, ${2 * p2m}" />
@@ -2017,13 +2684,25 @@
     } else if (state.activeTool === 'walkway' && state.currentWalkwayPoints && state.currentWalkwayPoints.length > 0) {
       const pts = state.currentWalkwayPoints.map(p => `${p[0]},${p[1]}`).join(' ');
       els.interactionLayer.innerHTML = `
-        <polyline points="${pts}" fill="none" stroke="#2dd4bf" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="${3 * p2m}, ${2 * p2m}" />
+        <polyline points="${pts}" fill="none" stroke="#2dd4bf" stroke-width="${state.activeWalkwayWidth || 1.8}" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="${3 * p2m}, ${2 * p2m}" />
         ${state.currentWalkwayPoints.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${3.5 * p2m}" fill="#2dd4bf" stroke="#ffffff" stroke-width="${1 * p2m}"/>`).join('')}
+      `;
+    } else if (state.activeTool === 'bike_path' && state.currentBikePathPoints && state.currentBikePathPoints.length > 0) {
+      const pts = state.currentBikePathPoints.map(p => `${p[0]},${p[1]}`).join(' ');
+      els.interactionLayer.innerHTML = `
+        <polyline points="${pts}" fill="none" stroke="#10b981" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="${3 * p2m}, ${2 * p2m}" />
+        ${state.currentBikePathPoints.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${3.5 * p2m}" fill="#10b981" stroke="#ffffff" stroke-width="${1 * p2m}"/>`).join('')}
+      `;
+    } else if (state.activeTool === 'hedge' && state.currentHedgePoints && state.currentHedgePoints.length > 0) {
+      const pts = state.currentHedgePoints.map(p => `${p[0]},${p[1]}`).join(' ');
+      els.interactionLayer.innerHTML = `
+        <polyline points="${pts}" fill="none" stroke="#22c55e" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="${2 * p2m}, ${2 * p2m}" />
+        ${state.currentHedgePoints.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${3 * p2m}" fill="#22c55e" stroke="#ffffff" stroke-width="${1 * p2m}"/>`).join('')}
       `;
     } else if (state.activeTool === 'draw_road' && state.currentRoadPoints && state.currentRoadPoints.length > 0) {
       const pts = state.currentRoadPoints.map(p => `${p[0]},${p[1]}`).join(' ');
       els.interactionLayer.innerHTML = `
-        <polyline points="${pts}" fill="none" stroke="#94a3b8" stroke-width="6.0" stroke-linecap="round" stroke-linejoin="round" opacity="0.6" />
+        <polyline points="${pts}" fill="none" stroke="#94a3b8" stroke-width="${state.activeRoadWidth || 6.0}" stroke-linecap="round" stroke-linejoin="round" opacity="0.6" />
         <polyline points="${pts}" fill="none" stroke="#facc15" stroke-width="${1.2 * p2m}" stroke-dasharray="${3 * p2m}, ${2 * p2m}" />
         ${state.currentRoadPoints.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${4 * p2m}" fill="#facc15" stroke="#ffffff" stroke-width="${1 * p2m}"/>`).join('')}
       `;
@@ -2283,6 +2962,10 @@
     addPolyline('SETBACK_BUFFER', computeSetbackPolygon(state.boundaryMeters, state.setbackDistance));
     state.subParcels.forEach(sp => addPolyline('SUBDIVISION_PARCELS', sp.polygon));
     state.footprints.forEach(fp => addPolyline('BUILDING_FOOTPRINTS', fp.vertices));
+    (state.roads || []).forEach(r => addPolyline('ROADS', r.points));
+    (state.walkways || []).forEach(w => addPolyline('WALKWAYS', w.points));
+    (state.bikePaths || []).forEach(b => addPolyline('BIKE_PATHS', b.points));
+    (state.hedges || []).forEach(h => addPolyline('HEDGES', h.points));
 
     // Trees as Circles
     state.trees.forEach(t => {
@@ -2318,7 +3001,7 @@
       if (e.key.toLowerCase() === 'p') setCadActiveTool('parking');
       if (e.key.toLowerCase() === 'e') setCadActiveTool('delete');
       if (e.key.toLowerCase() === 's') setCadActiveTool('split');
-      if (e.key.toLowerCase() === 'b') setCadActiveTool('draw_footprint');
+      if (e.key.toLowerCase() === 'b') activateFootprintStamp();
       if (e.key.toLowerCase() === 't') setCadActiveTool('tree');
       if (e.key.toLowerCase() === 'w') setCadActiveTool('water');
       if (e.key.toLowerCase() === 'k') setCadActiveTool('walkway');
