@@ -1240,9 +1240,14 @@
             <span class="text-slate-300 font-semibold text-xs flex items-center gap-1.5">
               <i class="fa-solid fa-draw-polygon text-sky-400"></i> კუთხის წერტილები (<span id="lblCornerCount">0</span>)
             </span>
-            <button type="button" onclick="exportCoordinatesCsv()" class="text-sky-400 hover:text-sky-300 text-[10px] font-mono">
-              CSV Export
-            </button>
+            <div class="flex items-center gap-1.5">
+              <button type="button" onclick="exportCoordinatesCsv('revit')" title="Autodesk Revit Points File (UTM 38N - მეტრებში, უსათაურო X,Y,Z წერტილები Toposurface / Toposolid-ისთვის)" class="px-2 py-0.5 bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 text-blue-300 rounded text-[10px] font-medium transition flex items-center gap-1">
+                <i class="fa-solid fa-cube text-[9px]"></i> Revit CSV
+              </button>
+              <button type="button" onclick="exportCoordinatesCsv('gps')" title="WGS-84 GPS კოორდინატები (Lat, Lon)" class="text-sky-400 hover:text-sky-300 text-[10px] font-mono px-1.5 py-0.5">
+                GPS CSV
+              </button>
+            </div>
           </div>
           <div class="max-h-36 overflow-y-auto border border-white/5 rounded">
             <table class="w-full text-[10px] font-mono text-left">
@@ -1556,6 +1561,10 @@
               <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
                 <input type="checkbox" id="chkLayerSetback" checked onchange="toggleLayer('setback', this.checked)" class="accent-rose-400">
                 <span>სამეზობლო მიჯნა</span>
+              </label>
+              <label class="flex items-center gap-2 text-slate-400 cursor-pointer hover:text-slate-200 pl-4 text-[11px] bg-white/[0.02] py-0.5 rounded">
+                <input type="checkbox" id="chkLayerSetbackLabels" onchange="toggleLayer('setbackLabels', this.checked)" class="accent-rose-400">
+                <span>🏷️ მიჯნის წარწერები &amp; ბეჯები</span>
               </label>
               <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
                 <input type="checkbox" id="chkLayerDimensions" checked onchange="toggleLayer('dimensions', this.checked)" class="accent-amber-400">
@@ -2346,6 +2355,6 @@
   </div>
 
   <!-- Core JavaScript Logic -->
-  <script src="tsinare.js?v=20260930_1548"></script>
+  <script src="tsinare.js?v=20260930_1605"></script>
 </body>
 </html>

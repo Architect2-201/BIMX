@@ -77,6 +77,7 @@
       neighborhood: true,
       boundary: true,
       setback: true,
+      setbackLabels: false,
       dimensions: true,
       footprints: true,
       shadows: true,
@@ -1769,14 +1770,64 @@
     if (els.lblCornerCount) els.lblCornerCount.innerText = state.rawCoordinates.length;
 
     if (els.tblCoordinatesBody) {
-      els.tblCoordinatesBody.innerHTML = state.rawCoordinates.map((c, i) => `
-        <tr class="hover:bg-white/5">
-          <td class="p-1 font-bold text-sky-400">#${i + 1}</td>
-          <td class="p-1">${c[0].toFixed(6)}</td>
-          <td class="p-1">${c[1].toFixed(6)}</td>
-        </tr>
-      `).join('');
+      els.tblCoordinatesBody.innerHTML = state.rawCoordinates.map((c, i) => {
+        const utm = latLonToUtm38N(c[0], c[1]);
+        return `
+          <tr class="hover:bg-white/5 cursor-default transition" title="UTM 38N: X=${utm.easting.toFixed(2)}მ (Easting), Y=${utm.northing.toFixed(2)}მ (Northing)">
+            <td class="p-1 font-bold text-sky-400">#${i + 1}</td>
+            <td class="p-1">${c[0].toFixed(6)}</td>
+            <td class="p-1">${c[1].toFixed(6)}</td>
+          </tr>
+        `;
+      }).join('');
     }
+  }
+
+  // Geodetic Conversion: WGS84 Lat/Lon -> UTM Zone 38N (EPSG:32638, Official Georgian Geodetic Projection)
+  function latLonToUtm38N(lat, lon) {
+    const a = 6378137.0; // WGS84 semi-major axis
+    const f = 1 / 298.257223563; // flattening
+    const b = a * (1 - f);
+    const e2 = (a * a - b * b) / (a * a);
+    const ep2 = (a * a - b * b) / (b * b);
+    const k0 = 0.9996; // UTM scale factor
+    const lon0 = 45.0; // Central meridian for UTM Zone 38N (42°E to 48°E, Georgia)
+
+    const phi = lat * Math.PI / 180.0;
+    const lambda = lon * Math.PI / 180.0;
+    const lambda0 = lon0 * Math.PI / 180.0;
+
+    const N = a / Math.sqrt(1 - e2 * Math.sin(phi) * Math.sin(phi));
+    const T = Math.tan(phi) * Math.tan(phi);
+    const C = ep2 * Math.cos(phi) * Math.cos(phi);
+    const A = Math.cos(phi) * (lambda - lambda0);
+
+    // Meridional arc M
+    const M = a * (
+      (1 - e2 / 4 - 3 * e2 * e2 / 64 - 5 * e2 * e2 * e2 / 256) * phi
+      - (3 * e2 / 8 + 3 * e2 * e2 / 32 + 45 * e2 * e2 * e2 / 1024) * Math.sin(2 * phi)
+      + (15 * e2 * e2 / 256 + 45 * e2 * e2 * e2 / 1024) * Math.sin(4 * phi)
+      - (35 * e2 * e2 * e2 / 3072) * Math.sin(6 * phi)
+    );
+
+    const easting = 500000.0 + k0 * N * (
+      A + (1 - T + C) * Math.pow(A, 3) / 6
+      + (5 - 18 * T + T * T + 72 * C - 58 * ep2) * Math.pow(A, 5) / 120
+    );
+
+    const northing = k0 * (
+      M + N * Math.tan(phi) * (
+        A * A / 2
+        + (5 - T + 9 * C + 4 * C * C) * Math.pow(A, 4) / 24
+        + (61 - 58 * T + T * T + 600 * C - 330 * ep2) * Math.pow(A, 6) / 720
+      )
+    );
+
+    return { easting, northing };
+  }
+
+  if (els.tblCoordinatesBody) {
+    // updated dynamically in updateCadastralSidebarUI
   }
 
   window.copyCadastralCode = function () {
@@ -1785,17 +1836,60 @@
     });
   };
 
-  window.exportCoordinatesCsv = function () {
-    let csv = "Index,Latitude,Longitude\n";
-    state.rawCoordinates.forEach((c, i) => {
-      csv += `${i + 1},${c[0]},${c[1]}\n`;
-    });
+  /**
+   * Export Cadastral Boundary Points to CSV:
+   * 1. 'revit' (Default): Pure numeric X,Y,Z in meters (UTM 38N / EPSG:32638) with NO text header.
+   *    Directly importable in Autodesk Revit -> Massing & Site -> Toposurface / Toposolid -> Specify Points File.
+   * 2. 'gps': WGS84 Lat/Lon with full column headers for GIS and spreadsheet software.
+   */
+  window.exportCoordinatesCsv = function (format = 'revit') {
+    if (!state.rawCoordinates || state.rawCoordinates.length === 0) {
+      alert('კოორდინატები არ არის ჩატვირთული. გთხოვთ ჯერ მოიძიოთ ნაკვეთი.');
+      return;
+    }
+
+    let csv = '';
+    let filename = '';
+    const safeCode = (state.cadastralCode || 'parcel').replace(/[^\w.-]/g, '_');
+
+    if (format === 'revit' || format === 'revit_utm') {
+      // Autodesk Revit Points File (Specify Points File for Toposurface / Toposolid)
+      // STRICT REQUIREMENT: Comma-delimited numeric lines: X,Y,Z in meters with NO text header!
+      // Any text header in Revit causes "Point file does not contain valid data" error.
+      state.rawCoordinates.forEach((c) => {
+        const utm = latLonToUtm38N(c[0], c[1]);
+        csv += `${utm.easting.toFixed(3)},${utm.northing.toFixed(3)},0.000\r\n`;
+      });
+      filename = `Revit_UTM38N_${safeCode}.csv`;
+    } else if (format === 'revit_local') {
+      // Local origin relative coordinates (meters, no text header)
+      if (state.boundaryMeters && state.boundaryMeters.length > 0) {
+        state.boundaryMeters.forEach((pt) => {
+          csv += `${pt[0].toFixed(3)},${pt[1].toFixed(3)},0.000\r\n`;
+        });
+      }
+      filename = `Revit_Local_${safeCode}.csv`;
+    } else {
+      // Standard GPS / GIS CSV with descriptive headers
+      csv = "Index,Latitude,Longitude,UTM_X_Easting,UTM_Y_Northing,Elevation_M\r\n";
+      state.rawCoordinates.forEach((c, i) => {
+        const utm = latLonToUtm38N(c[0], c[1]);
+        csv += `${i + 1},${c[0].toFixed(7)},${c[1].toFixed(7)},${utm.easting.toFixed(3)},${utm.northing.toFixed(3)},0.000\r\n`;
+      });
+      filename = `Coordinates_GPS_${safeCode}.csv`;
+    }
+
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Coordinates_${state.cadastralCode}.csv`;
+    a.download = filename;
+    document.body.appendChild(a);
     a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
   };
 
   // --- Architectural Visual Styles Map (30+ Styles including Real Engineering Drawing Plots) ---
@@ -3083,32 +3177,34 @@
     const n = poly.length;
     const types = state.boundaryEdgeTypes || [];
 
-    // Edge boundary badges for toggle between road and neighbor
+    // Edge boundary badges for toggle between road and neighbor (only if setbackLabels layer is enabled)
     let edgeBadgesSvg = '';
-    for (let i = 0; i < n; i++) {
-      const p1 = poly[i];
-      const p2 = poly[(i + 1) % n];
-      const dist = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]);
-      if (dist < 3.5) continue; // Skip very small segments to avoid clutter
+    if (state.layers.setbackLabels) {
+      for (let i = 0; i < n; i++) {
+        const p1 = poly[i];
+        const p2 = poly[(i + 1) % n];
+        const dist = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]);
+        if (dist < 3.5) continue; // Skip very small segments to avoid clutter
 
-      const midX = (p1[0] + p2[0]) / 2;
-      const midY = (p1[1] + p2[1]) / 2;
-      const isRoad = types[i] === 'road';
+        const midX = (p1[0] + p2[0]) / 2;
+        const midY = (p1[1] + p2[1]) / 2;
+        const isRoad = types[i] === 'road';
 
-      const tagText = isRoad ? '🚗 გზა (0მ)' : `🏡 მიჯნა (${state.setbackDistance}მ)`;
-      const badgeW = (isRoad ? 55 : 62) * pxToM;
-      const badgeH = 14 * pxToM;
-      const bg = isRoad ? 'rgba(16, 185, 129, 0.92)' : 'rgba(30, 41, 59, 0.88)';
-      const stroke = isRoad ? '#34d399' : 'rgba(244, 63, 94, 0.7)';
-      const textColor = '#ffffff';
+        const tagText = isRoad ? '🚗 გზა (0მ)' : `🏡 მიჯნა (${state.setbackDistance}მ)`;
+        const badgeW = (isRoad ? 55 : 62) * pxToM;
+        const badgeH = 14 * pxToM;
+        const bg = isRoad ? 'rgba(16, 185, 129, 0.92)' : 'rgba(30, 41, 59, 0.88)';
+        const stroke = isRoad ? '#34d399' : 'rgba(244, 63, 94, 0.7)';
+        const textColor = '#ffffff';
 
-      edgeBadgesSvg += `
-        <g class="cursor-pointer" onclick="toggleBoundaryEdgeType(${i})" style="cursor: pointer;">
-          <title>საზღვარი №${i + 1}: ${isRoad ? 'საგზაო/საზოგადოებრივი (მიჯნა 0მ)' : 'სამეზობლო მიჯნა (' + state.setbackDistance + 'მ)'} - დააწკაპუნეთ ტიპის შესაცვლელად</title>
-          <rect x="${midX - badgeW / 2}" y="${midY - badgeH / 2}" width="${badgeW}" height="${badgeH}" rx="${3 * pxToM}" fill="${bg}" stroke="${stroke}" stroke-width="${0.7 * pxToM}" />
-          <text x="${midX}" y="${midY + 3.5 * pxToM}" text-anchor="middle" fill="${textColor}" font-size="${7.2 * pxToM}" font-family="Inter, sans-serif" font-weight="600">${tagText}</text>
-        </g>
-      `;
+        edgeBadgesSvg += `
+          <g class="cursor-pointer" onclick="toggleBoundaryEdgeType(${i})" style="cursor: pointer;">
+            <title>საზღვარი №${i + 1}: ${isRoad ? 'საგზაო/საზოგადოებრივი (მიჯნა 0მ)' : 'სამეზობლო მიჯნა (' + state.setbackDistance + 'მ)'} - დააწკაპუნეთ ტიპის შესაცვლელად</title>
+            <rect x="${midX - badgeW / 2}" y="${midY - badgeH / 2}" width="${badgeW}" height="${badgeH}" rx="${3 * pxToM}" fill="${bg}" stroke="${stroke}" stroke-width="${0.7 * pxToM}" />
+            <text x="${midX}" y="${midY + 3.5 * pxToM}" text-anchor="middle" fill="${textColor}" font-size="${7.2 * pxToM}" font-family="Inter, sans-serif" font-weight="600">${tagText}</text>
+          </g>
+        `;
+      }
     }
 
     els.cadastralBoundaryLayer.innerHTML = `
