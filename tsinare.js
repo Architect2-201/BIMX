@@ -28,22 +28,22 @@
 
   // --- Central Studio State ---
   const state = {
-    cadastralCode: '01.14.11.059.039',
-    address: 'ქალაქი თბილისი, გიორგი შატბერაშვილის ქუჩა, N 5',
-    officialAreaSqm: 820,
-    geometricAreaSqm: 819,
-    landType: 'არასასოფლო-სამეურნეო',
-    ownershipType: 'თანასაკუთრება',
-    owners: ['შპს "მონოლით გრუპ"'],
-    zone: 'სზ-6',
-    zoneName: 'საცხოვრებელი ზონა 6',
+    cadastralCode: '',
+    address: '—',
+    officialAreaSqm: 0,
+    geometricAreaSqm: 0,
+    landType: '—',
+    ownershipType: '—',
+    owners: [],
+    zone: '—',
+    zoneName: '—',
     k1Limit: 0.5,
     k2Limit: 2.5,
     k3Limit: 0.2,
     rawCoordinates: [], // [lat, lng] array from NAPR
     boundaryMeters: [], // [[x, y], ...] in metric coordinates relative to centroid
     boundaryEdgeTypes: [], // ['neighbor', 'road', ...] for each edge i -> (i+1)%n
-    centroidLatLng: [41.7049, 44.7751],
+    centroidLatLng: [42.0, 43.85], // Center of Georgia
     
     // 2D Masterplan Elements
     subParcels: [], // [{ id, name, polygon: [[x,y]...], areaSqm, color }]
@@ -127,9 +127,96 @@
   // DOM Elements Cache
   const els = {};
 
+  // Leaflet Map & GIS Layer Instance
+  let tsinareMap = null;
+  let parcelPolygonLayer = null;
+
+  function initGeorgiaLeafletMap() {
+    if (typeof L === 'undefined') {
+      console.warn('[Tsinare] Leaflet library not loaded yet');
+      return;
+    }
+    const mapContainer = document.getElementById('tsinareLeafletMap');
+    if (!mapContainer || tsinareMap) return;
+
+    // Center of Georgia: 42.0° N, 43.85° E, zoom 7.5
+    tsinareMap = L.map('tsinareLeafletMap', {
+      center: [42.0, 43.85],
+      zoom: 7.5,
+      zoomControl: false,
+      attributionControl: false,
+      minZoom: 6,
+      maxZoom: 20
+    });
+
+    // High-resolution satellite basemap (Esri World Imagery)
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 19,
+      maxNativeZoom: 19
+    }).addTo(tsinareMap);
+
+    // CartoDB Voyager English/Georgian labels & roads overlay
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', {
+      subdomains: 'abcd',
+      maxZoom: 20
+    }).addTo(tsinareMap);
+  }
+
+  function showGeorgiaOverviewState() {
+    // Reset state to empty clean slate
+    state.cadastralCode = '';
+    state.address = '—';
+    state.officialAreaSqm = 0;
+    state.geometricAreaSqm = 0;
+    state.landType = '—';
+    state.ownershipType = '—';
+    state.owners = [];
+    state.zone = '—';
+    state.zoneName = '—';
+    state.rawCoordinates = [];
+    state.boundaryMeters = [];
+    state.boundaryEdgeTypes = [];
+    state.footprints = [];
+    state.selectedFootprintId = null;
+    state.trees = [];
+    state.waterBodies = [];
+    state.terraces = [];
+    state.walkways = [];
+    state.roads = [];
+    state.bikePaths = [];
+    state.hedges = [];
+    state.fountains = [];
+    state.parkingBays = [];
+    state.subParcels = [];
+
+    if (els.cadastralInput) els.cadastralInput.value = '';
+    if (els.georgiaOverviewOverlay) els.georgiaOverviewOverlay.style.display = 'flex';
+    if (els.cadSvgContainer) els.cadSvgContainer.style.display = 'none';
+
+    if (tsinareMap) {
+      tsinareMap.setView([42.0, 43.85], 7.5);
+      if (parcelPolygonLayer) {
+        tsinareMap.removeLayer(parcelPolygonLayer);
+        parcelPolygonLayer = null;
+      }
+    }
+
+    if (els.naprStatusBadge) {
+      els.naprStatusBadge.innerText = 'მზადაა';
+      els.naprStatusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30';
+    }
+
+    updateCadastralSidebarUI();
+    updateZoningCoefficientsUI();
+    updateSelectedBuildingUI();
+    updateToolStatus('საიტი მზადაა. ჩაწერეთ საკადასტრო კოდი საქართველოს რუკაზე მოსაძებნად.');
+  }
+  window.showGeorgiaOverviewState = showGeorgiaOverviewState;
+
   // --- Initializer ---
   document.addEventListener('DOMContentLoaded', () => {
     cacheDomElements();
+    initGeorgiaLeafletMap();
     initCadCanvas();
     setupEventListeners();
     
@@ -140,7 +227,7 @@
       if (els.cadastralInput) els.cadastralInput.value = codeParam;
       triggerCadastralSearch(codeParam);
     } else {
-      triggerCadastralSearch('01.14.11.059.039');
+      showGeorgiaOverviewState();
     }
   });
 
@@ -163,6 +250,8 @@
 
     // Canvas & Stage
     els.cadCanvasWrapper = document.getElementById('cadCanvasWrapper');
+    els.tsinareLeafletMap = document.getElementById('tsinareLeafletMap');
+    els.georgiaOverviewOverlay = document.getElementById('georgiaOverviewOverlay');
     els.cadSvgContainer = document.getElementById('cadSvgContainer');
     els.cadSvgStage = document.getElementById('cadSvgStage');
     els.worldGroup = document.getElementById('worldGroup');
@@ -368,10 +457,35 @@
         generateDefaultFootprint();
         generateDefaultLandscaping();
 
+        // Reveal CAD SVG Container and hide Georgia overview HUD
+        if (els.georgiaOverviewOverlay) els.georgiaOverviewOverlay.style.display = 'none';
+        if (els.cadSvgContainer) els.cadSvgContainer.style.display = 'block';
+
+        // Animate Leaflet map flyTo parcel centroid
+        if (tsinareMap && state.centroidLatLng) {
+          if (parcelPolygonLayer) {
+            tsinareMap.removeLayer(parcelPolygonLayer);
+          }
+          const latLngs = state.rawCoordinates.map(c => [c[0], c[1]]);
+          parcelPolygonLayer = L.polygon(latLngs, {
+            color: '#00e5ff',
+            weight: 3.5,
+            fillColor: '#38bdf8',
+            fillOpacity: 0.25,
+            dashArray: '5, 5'
+          }).addTo(tsinareMap);
+
+          tsinareMap.flyTo(state.centroidLatLng, 18, {
+            duration: 2.2,
+            easeLinearity: 0.25
+          });
+        }
+
         updateCadastralSidebarUI();
         updateZoningCoefficientsUI();
         cadZoomReset();
         renderCadWorld();
+        updateToolStatus(`მოიძებნა ნაკვეთი ${state.cadastralCode} (${state.officialAreaSqm} მ²). გენგეგმის სტუდია მზადაა სამუშაოდ.`);
 
         if (els.naprStatusBadge) {
           els.naprStatusBadge.innerText = 'NAPR VERIFIED';
@@ -1127,6 +1241,40 @@
 
   // --- Real-time K1, K2, K3 Calculations (ყველა ჩარევა აისახება კოეფიციენტებზე) ---
   function updateZoningCoefficientsUI() {
+    if (!state.cadastralCode || !state.officialAreaSqm) {
+      if (els.lblK1Allowed) els.lblK1Allowed.innerText = '—';
+      if (els.lblK1Used) els.lblK1Used.innerText = '—';
+      if (els.lblK1Remaining) {
+        els.lblK1Remaining.innerText = '—';
+        els.lblK1Remaining.className = 'text-xs font-bold text-slate-400';
+      }
+      if (els.barK1Progress) els.barK1Progress.style.width = '0%';
+      if (els.lblK1Alert) els.lblK1Alert.classList.add('hidden');
+
+      if (els.lblK2Allowed) els.lblK2Allowed.innerText = '—';
+      if (els.lblK2Used) els.lblK2Used.innerText = '—';
+      if (els.lblK2Remaining) {
+        els.lblK2Remaining.innerText = '—';
+        els.lblK2Remaining.className = 'text-xs font-bold text-slate-400';
+      }
+      if (els.barK2Progress) els.barK2Progress.style.width = '0%';
+      if (els.lblK2Alert) els.lblK2Alert.classList.add('hidden');
+
+      if (els.lblK3Required) els.lblK3Required.innerText = '—';
+      if (els.lblK3Actual) els.lblK3Actual.innerText = '—';
+      if (els.lblK3Balance) {
+        els.lblK3Balance.innerText = '—';
+        els.lblK3Balance.className = 'text-xs font-bold text-slate-400';
+      }
+      if (els.barK3Progress) els.barK3Progress.style.width = '0%';
+      if (els.lblHardscapeTotal) els.lblHardscapeTotal.innerText = '—';
+      if (els.lblOpenGround) els.lblOpenGround.innerText = '—';
+      if (els.lblPlantedTreesCount) els.lblPlantedTreesCount.innerText = '0 ხე';
+      if (els.lblK3Alert) els.lblK3Alert.classList.add('hidden');
+      updateSelectedBuildingUI();
+      return;
+    }
+
     const parcelArea = state.officialAreaSqm || state.geometricAreaSqm || 1;
     const k1 = state.k1Limit;
     const k2 = state.k2Limit;
@@ -1303,23 +1451,49 @@
       if (els.inputNumFloorHeight) els.inputNumFloorHeight.value = fp.floorHeight.toFixed(1);
       if (els.lblTotalHeightVal) els.lblTotalHeightVal.innerText = fp.totalHeight.toFixed(1);
       if (els.selBuildingFunction) els.selBuildingFunction.value = fp.functionType || 'residential';
+    } else {
+      if (els.lblSelectedBuildingName) els.lblSelectedBuildingName.innerText = '—';
+      if (els.txtBuildingName) els.txtBuildingName.value = '';
+      if (els.sliderBuildingWidth) els.sliderBuildingWidth.value = 15;
+      if (els.lblBuildingWidthVal) els.lblBuildingWidthVal.innerText = '0.0 მ';
+      if (els.inputNumBuildingWidth) els.inputNumBuildingWidth.value = '0.0';
+      if (els.quickBldW) els.quickBldW.value = '0.0';
+      if (els.sliderBuildingLength) els.sliderBuildingLength.value = 12;
+      if (els.lblBuildingLengthVal) els.lblBuildingLengthVal.innerText = '0.0 მ';
+      if (els.inputNumBuildingLength) els.inputNumBuildingLength.value = '0.0';
+      if (els.quickBldL) els.quickBldL.value = '0.0';
+      if (els.inputNumBuildingArea) els.inputNumBuildingArea.value = '0';
+      if (els.sliderBuildingRotation) els.sliderBuildingRotation.value = 0;
+      if (els.lblBuildingRotationVal) els.lblBuildingRotationVal.innerText = '0°';
+      if (els.inputNumBuildingRotation) els.inputNumBuildingRotation.value = '0';
+      if (els.sliderFloors) els.sliderFloors.value = 1;
+      if (els.lblFloorsCountVal) els.lblFloorsCountVal.innerText = '0';
+      if (els.inputNumBuildingFloors) els.inputNumBuildingFloors.value = '0';
+      if (els.quickBldFloors) els.quickBldFloors.value = '0';
+      if (els.lblFloorHeightVal) els.lblFloorHeightVal.innerText = '0.0 მ';
+      if (els.inputNumFloorHeight) els.inputNumFloorHeight.value = '0.0';
+      if (els.lblTotalHeightVal) els.lblTotalHeightVal.innerText = '0.0';
     }
 
     if (els.lstBuildingsContainer) {
-      els.lstBuildingsContainer.innerHTML = state.footprints.map(f => `
-        <div onclick="selectFootprint('${f.id}')" class="p-2 rounded border cursor-pointer transition flex items-center justify-between ${f.id === state.selectedFootprintId ? 'bg-sky-500/15 border-sky-400 text-white' : 'bg-[#0e1628] border-white/5 text-slate-300 hover:bg-[#142038]'}">
-          <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full ${f.id === state.selectedFootprintId ? 'bg-sky-400' : 'bg-slate-500'}"></span>
-            <div>
-              <div class="font-bold text-[11px]">${f.name}</div>
-              <div class="text-[10px] text-slate-400 font-mono">${f.width}×${f.length}მ | ${f.floors} სართ. | ${f.areaSqm} მ²</div>
+      if (state.footprints.length === 0) {
+        els.lstBuildingsContainer.innerHTML = '<div class="p-3 text-center text-xs text-slate-500">შენობები არ არის დამატებული</div>';
+      } else {
+        els.lstBuildingsContainer.innerHTML = state.footprints.map(f => `
+          <div onclick="selectFootprint('${f.id}')" class="p-2 rounded border cursor-pointer transition flex items-center justify-between ${f.id === state.selectedFootprintId ? 'bg-sky-500/15 border-sky-400 text-white' : 'bg-[#0e1628] border-white/5 text-slate-300 hover:bg-[#142038]'}">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full ${f.id === state.selectedFootprintId ? 'bg-sky-400' : 'bg-slate-500'}"></span>
+              <div>
+                <div class="font-bold text-[11px]">${f.name}</div>
+                <div class="text-[10px] text-slate-400 font-mono">${f.width}×${f.length}მ | ${f.floors} სართ. | ${f.areaSqm} მ²</div>
+              </div>
             </div>
+            <button type="button" onclick="event.stopPropagation(); deleteFootprint('${f.id}')" class="text-slate-400 hover:text-rose-400 p-1" title="წაშლა">
+              <i class="fa-solid fa-trash-can text-[10px]"></i>
+            </button>
           </div>
-          <button type="button" onclick="event.stopPropagation(); deleteFootprint('${f.id}')" class="text-slate-400 hover:text-rose-400 p-1" title="წაშლა">
-            <i class="fa-solid fa-trash-can text-[10px]"></i>
-          </button>
-        </div>
-      `).join('');
+        `).join('');
+      }
     }
   }
 
@@ -1567,6 +1741,23 @@
 
   // --- Cadastral Sidebar UI Updates ---
   function updateCadastralSidebarUI() {
+    if (!state.cadastralCode) {
+      if (els.lblCadastralCode) els.lblCadastralCode.innerText = '—';
+      if (els.lblAddress) els.lblAddress.innerText = '—';
+      if (els.lblOfficialArea) els.lblOfficialArea.innerText = '—';
+      if (els.lblGeometricArea) els.lblGeometricArea.innerText = '—';
+      if (els.lblLandType) els.lblLandType.innerText = '—';
+      if (els.lblOwnershipType) els.lblOwnershipType.innerText = '—';
+      if (els.lblOwnersList) els.lblOwnersList.innerText = '—';
+      if (els.lblZoneBadge) els.lblZoneBadge.innerText = '—';
+      if (els.lblZoneDescription) els.lblZoneDescription.innerText = '—';
+      if (els.lblCornerCount) els.lblCornerCount.innerText = '0';
+      if (els.tblCoordinatesBody) {
+        els.tblCoordinatesBody.innerHTML = '<tr><td colspan="3" class="p-3 text-center text-slate-500 font-sans">მონაცემები არ არის</td></tr>';
+      }
+      return;
+    }
+
     if (els.lblCadastralCode) els.lblCadastralCode.innerText = state.cadastralCode;
     if (els.lblAddress) els.lblAddress.innerText = state.address;
     if (els.lblOfficialArea) els.lblOfficialArea.innerText = state.officialAreaSqm.toLocaleString();

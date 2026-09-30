@@ -48,6 +48,10 @@
     };
   </script>
 
+  <!-- Leaflet GIS Map Library -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
   <!-- jsPDF & Georgian Font Data for Official Reports -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -1068,7 +1072,7 @@
             type="text" 
             id="cadastralInput" 
             placeholder="შეიყვანეთ საკადასტრო კოდი (მაგ: 01.14.11.059.039 ან 72.13.12.125)..." 
-            value="01.14.11.059.039"
+            value=""
             autocomplete="off"
             class="w-full bg-[#111a2e] border border-[#243557] focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg py-2 pl-10 pr-24 text-xs sm:text-sm font-mono text-white placeholder-slate-400 outline-none transition-all shadow-inner"
           >
@@ -1088,7 +1092,11 @@
     <div class="flex items-center gap-2 min-w-max">
       <!-- Quick Demo Parcel Selector -->
       <div class="hidden xl:flex items-center gap-1 bg-[#111a2e] p-1 rounded-lg border border-[#1f2e4d]">
-        <span class="text-[11px] font-mono text-slate-400 px-1.5">სატესტო:</span>
+        <button type="button" onclick="showGeorgiaOverviewState()" class="px-2 py-0.5 text-[11px] font-mono rounded bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 font-semibold transition flex items-center gap-1" title="მთლიანი საქართველოს რუკაზე დაბრუნება">
+          <i class="fa-solid fa-earth-europe text-[10px]"></i> რუკა
+        </button>
+        <div class="h-3 w-px bg-slate-700/60 mx-0.5"></div>
+        <span class="text-[11px] font-mono text-slate-400 px-1">სატესტო:</span>
         <button type="button" onclick="loadCadastralSample('01.14.11.059.039')" class="px-2 py-0.5 text-[11px] font-mono rounded bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition">თბილისი</button>
         <button type="button" onclick="loadCadastralSample('72.13.12.125')" class="px-2 py-0.5 text-[11px] font-mono rounded bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition">მცხეთა</button>
         <button type="button" onclick="loadCadastralSample('20.42.05.011')" class="px-2 py-0.5 text-[11px] font-mono rounded bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition">ქობულეთი</button>
@@ -1155,8 +1163,8 @@
           <i class="fa-solid fa-id-card text-sky-400 text-sm"></i>
           <h2 class="text-xs font-bold uppercase tracking-wider text-slate-200">საკადასტრო პასპორტი</h2>
         </div>
-        <span id="naprStatusBadge" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-          NAPR VERIFIED
+        <span id="naprStatusBadge" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">
+          მზადაა
         </span>
       </div>
 
@@ -1171,16 +1179,16 @@
               <i class="fa-regular fa-copy"></i> კოპირება
             </button>
           </div>
-          <div id="lblCadastralCode" class="font-mono text-sm sm:text-base font-bold text-white tracking-wide">
-            01.14.11.059.039
+          <div id="lblCadastralCode" class="font-mono text-sm sm:text-base font-bold text-slate-400 tracking-wide">
+            —
           </div>
         </div>
 
         <!-- Address -->
         <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254]">
           <div class="text-slate-400 text-[11px] mb-1">რეგისტრირებული მისამართი:</div>
-          <div id="lblAddress" class="font-medium text-slate-200 leading-snug">
-            ქალაქი თბილისი, გიორგი შატბერაშვილის ქუჩა, N 5
+          <div id="lblAddress" class="font-medium text-slate-400 leading-snug">
+            —
           </div>
         </div>
 
@@ -1189,14 +1197,14 @@
           <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254]">
             <div class="text-slate-400 text-[10px] uppercase font-mono">რეგისტრირებული:</div>
             <div class="flex items-baseline gap-1 mt-0.5">
-              <span id="lblOfficialArea" class="font-mono text-base sm:text-lg font-extrabold text-sky-400">820</span>
+              <span id="lblOfficialArea" class="font-mono text-base sm:text-lg font-extrabold text-sky-400">—</span>
               <span class="text-xs text-slate-400 font-mono">მ²</span>
             </div>
           </div>
           <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254]">
             <div class="text-slate-400 text-[10px] uppercase font-mono">გეომეტრიული:</div>
             <div class="flex items-baseline gap-1 mt-0.5">
-              <span id="lblGeometricArea" class="font-mono text-base sm:text-lg font-extrabold text-slate-200">819</span>
+              <span id="lblGeometricArea" class="font-mono text-base sm:text-lg font-extrabold text-slate-400">—</span>
               <span class="text-xs text-slate-400 font-mono">მ²</span>
             </div>
           </div>
@@ -1206,16 +1214,16 @@
         <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254] space-y-2">
           <div class="flex items-center justify-between border-b border-white/5 pb-1">
             <span class="text-slate-400">მიწის სტატუსი:</span>
-            <span id="lblLandType" class="font-semibold text-slate-200 font-mono">არასასოფლო-სამეურნეო</span>
+            <span id="lblLandType" class="font-semibold text-slate-400 font-mono">—</span>
           </div>
           <div class="flex items-center justify-between border-b border-white/5 pb-1">
             <span class="text-slate-400">საკუთრების ფორმა:</span>
-            <span id="lblOwnershipType" class="font-semibold text-slate-200">თანასაკუთრება</span>
+            <span id="lblOwnershipType" class="font-semibold text-slate-400">—</span>
           </div>
           <div>
             <div class="text-slate-400 text-[11px] mb-1">მესაკუთრე(ები):</div>
-            <div id="lblOwnersList" class="font-medium text-slate-200 bg-[#0c1424] p-1.5 rounded border border-white/5 leading-tight">
-              შპს "მონოლით გრუპ"
+            <div id="lblOwnersList" class="font-medium text-slate-400 bg-[#0c1424] p-1.5 rounded border border-white/5 leading-tight">
+              —
             </div>
           </div>
         </div>
@@ -1224,12 +1232,12 @@
         <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254]">
           <div class="flex items-center justify-between mb-1.5">
             <span class="text-slate-400">ურბანული ზონა:</span>
-            <span id="lblZoneBadge" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-              სზ-6 (საცხოვრებელი)
+            <span id="lblZoneBadge" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-500/20 text-slate-400 border border-slate-500/30">
+              მოლოდინის რეჟიმი
             </span>
           </div>
-          <p id="lblZoneDescription" class="text-[11px] text-slate-300 leading-relaxed">
-            საცხოვრებელი ზონა 6 — მაღალი ინტენსივობის განაშენიანების არეალი. ნებადართულია მრავალბინიანი საცხოვრებელი კორპუსები.
+          <p id="lblZoneDescription" class="text-[11px] text-slate-400 leading-relaxed">
+            ნაკვეთის მოძიების შემდეგ გამოჩნდება ოფიციალური ფუნქციური ზონა და რეგლამენტი.
           </p>
         </div>
 
@@ -1237,7 +1245,7 @@
         <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254]">
           <div class="flex items-center justify-between mb-1.5">
             <span class="text-slate-300 font-semibold text-xs flex items-center gap-1.5">
-              <i class="fa-solid fa-draw-polygon text-sky-400"></i> კუთხის წერტილები (<span id="lblCornerCount">15</span>)
+              <i class="fa-solid fa-draw-polygon text-sky-400"></i> კუთხის წერტილები (<span id="lblCornerCount">0</span>)
             </span>
             <button type="button" onclick="exportCoordinatesCsv()" class="text-sky-400 hover:text-sky-300 text-[10px] font-mono">
               CSV Export
@@ -1252,8 +1260,8 @@
                   <th class="p-1">Longitude (X)</th>
                 </tr>
               </thead>
-              <tbody id="tblCoordinatesBody" class="divide-y divide-white/5 text-slate-300">
-                <!-- Dynamically populated rows -->
+              <tbody id="tblCoordinatesBody" class="divide-y divide-white/5 text-slate-400">
+                <tr><td colspan="3" class="text-center py-4 text-slate-500 font-sans">მონაცემები არ არის ჩატვირთული</td></tr>
               </tbody>
             </table>
           </div>
@@ -1653,11 +1661,43 @@
 
       </div>
 
-      <!-- Main Interactive 2D Vector CAD Stage -->
+      <!-- Main Interactive 2D Vector CAD Stage & Geographic GIS Stage -->
       <div class="flex-1 relative overflow-hidden style-blueprint" id="cadCanvasWrapper">
         
+        <!-- Live GIS Map Container (Whole Georgia on startup) -->
+        <div id="tsinareLeafletMap" class="absolute inset-0 w-full h-full z-0"></div>
+
+        <!-- Georgia Overview Guidance HUD Card (Visible when starting clean) -->
+        <div id="georgiaOverviewOverlay" class="absolute inset-0 flex items-center justify-center pointer-events-none z-20 transition-all duration-500">
+          <div class="pointer-events-auto bg-[#0a101d]/90 backdrop-blur-xl border border-sky-500/30 shadow-2xl shadow-sky-500/10 rounded-2xl p-6 max-w-lg mx-4 text-center space-y-4">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-sky-600 to-cyan-400 flex items-center justify-center mx-auto shadow-lg shadow-sky-500/30">
+              <i class="fa-solid fa-map-location-dot text-white text-2xl"></i>
+            </div>
+            <div>
+              <h2 class="text-base sm:text-lg font-bold text-white tracking-wide">საქართველოს საკადასტრო სივრცე</h2>
+              <p class="text-xs text-slate-300 mt-1.5 leading-relaxed">
+                ჩაწერეთ ნებისმიერი საკადასტრო კოდი ზედა საძიებო ველში ან აირჩიეთ სატესტო რეგიონი ნაკვეთზე გადასაფრენად:
+              </p>
+            </div>
+            <div class="flex flex-wrap items-center justify-center gap-2 pt-1">
+              <button type="button" onclick="loadCadastralSample('01.14.11.059.039')" class="px-3 py-1.5 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 font-mono text-xs font-semibold transition active:scale-95 flex items-center gap-1.5">
+                <i class="fa-solid fa-building text-[10px]"></i> თბილისი (ვაკე)
+              </button>
+              <button type="button" onclick="loadCadastralSample('72.13.12.125')" class="px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 font-mono text-xs font-semibold transition active:scale-95 flex items-center gap-1.5">
+                <i class="fa-solid fa-mountain text-[10px]"></i> მცხეთა
+              </button>
+              <button type="button" onclick="loadCadastralSample('20.42.05.011')" class="px-3 py-1.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 font-mono text-xs font-semibold transition active:scale-95 flex items-center gap-1.5">
+                <i class="fa-solid fa-umbrella-beach text-[10px]"></i> ქობულეთი
+              </button>
+              <button type="button" onclick="loadCadastralSample('74.04.11.025')" class="px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 font-mono text-xs font-semibold transition active:scale-95 flex items-center gap-1.5">
+                <i class="fa-solid fa-tree text-[10px]"></i> ყაზბეგი
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- Live SVG Stage Container -->
-        <div id="cadSvgContainer" class="cad-canvas-container">
+        <div id="cadSvgContainer" class="cad-canvas-container absolute inset-0 w-full h-full z-10" style="display: none;">
           <svg id="cadSvgStage" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <!-- Grid Patterns -->
@@ -2311,7 +2351,7 @@
         <!-- List of Buildings in Masterplan -->
         <div class="bg-[#121c33] p-3 rounded-lg border border-[#213254]">
           <div class="flex items-center justify-between mb-2">
-            <span class="font-bold text-slate-200 text-xs">შენობების ჩამონათვალი (<span id="lblFootprintsCount">1</span>)</span>
+            <span class="font-bold text-slate-200 text-xs">შენობების ჩამონათვალი (<span id="lblFootprintsCount">0</span>)</span>
             <button type="button" onclick="addPresetFootprint('rect')" class="text-sky-400 hover:text-sky-300 text-[11px] font-semibold flex items-center gap-1">
               <i class="fa-solid fa-plus text-[10px]"></i> დამატება
             </button>
@@ -2327,6 +2367,6 @@
   </div>
 
   <!-- Core JavaScript Logic -->
-  <script src="tsinare.js?v=20260930_1525"></script>
+  <script src="tsinare.js?v=20260930_1545"></script>
 </body>
 </html>
