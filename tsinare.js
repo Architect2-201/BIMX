@@ -603,8 +603,8 @@
     const n = polygon.length;
     const types = new Array(n).fill('neighbor');
 
-    // 1. Entrance / Street Frontage Detection:
-    // In Georgian urban practice, the parcel access road is at the main entrance / south side (highest Y in SVG)
+    // 1. Find the edge(s) closest to the southernmost point (highest Y in SVG/meter space)
+    //    These are typically the street frontage edges.
     let bestRoadEdgeIdx = 0;
     let maxEdgeY = -Infinity;
     for (let i = 0; i < n; i++) {
@@ -631,6 +631,11 @@
           }
         }
       });
+    }
+
+    // 3. Safety: ensure at least 1 edge is road (prevents all-neighbor setback loop)
+    if (!types.includes('road')) {
+      types[bestRoadEdgeIdx] = 'road';
     }
 
     return types;
@@ -876,7 +881,9 @@
   // Backward-compatible setback polygon calculation
   function computeSetbackPolygon(polygon, offsetDist) {
     if (!polygon || polygon.length < 3) return [];
-    const types = state.boundaryEdgeTypes || new Array(polygon.length).fill('neighbor');
+    const types = (state.boundaryEdgeTypes && state.boundaryEdgeTypes.length === polygon.length)
+      ? state.boundaryEdgeTypes
+      : detectBoundaryEdgeTypes(polygon, state.roads);
     const res = computeNeighborSetbackPolylines(polygon, types, offsetDist);
     return res.insetVertices || [];
   }
@@ -2717,7 +2724,7 @@
     els.topographyReliefLayer.innerHTML = html;
   }
 
-  // 0b. Neighboring Parcels & Neighboring Buildings Layer (სამეზობლო ნაკვეთები & შენობები)
+  // 0b. Neighboring Buildings Layer (სამეზობლო შენობები)
   function renderNeighborhoodContext(pxToM) {
     if (!els.neighborhoodContextLayer) return;
     if (!state.layers.neighborhood || !state.boundaryMeters || state.boundaryMeters.length < 3) {
@@ -2725,82 +2732,46 @@
       return;
     }
 
-    const baseCode = state.cadastralCode || '01.14.11.059.039';
-    const parts = baseCode.split('.');
-    const lastNum = parseInt(parts[parts.length - 1], 10) || 39;
-    const prefix = parts.slice(0, parts.length - 1).join('.');
-
-    const neighborParcels = buildAdjacentNeighborParcels(state.boundaryMeters, state.boundaryEdgeTypes, 28);
-    if (!neighborParcels || neighborParcels.length === 0) {
-      els.neighborhoodContextLayer.innerHTML = '';
-      return;
-    }
+    const xs = state.boundaryMeters.map(p => p[0]);
+    const ys = state.boundaryMeters.map(p => p[1]);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
 
     let html = '';
-    const offsets = [1, 2, -1, -2, 3, -3, 4, -4];
 
-    neighborParcels.forEach((np, idx) => {
-      const codeNum = Math.max(1, lastNum + (offsets[idx % offsets.length] || (idx + 1)));
-      const code = `${prefix}.${String(codeNum).padStart(3, '0')}`;
-      const ptsStr = np.polygon.map(p => `${p[0]},${p[1]}`).join(' ');
-      const strokeW = Math.max(0.25, 1.0 * pxToM);
-      const dash = `${6 * pxToM}, ${4 * pxToM}`;
+    // Surrounding Existing Buildings (სამეზობლო შენობები) — no parcels, no dim lines
+    const neighborBuildings = [
+      { name: 'მეზობელი №40', heightM: 9.5, floors: 3, bx: maxX + 20, by: cy - 8,    w: 16, l: 12, rot:  12 },
+      { name: 'მეზობელი №38', heightM: 6.8, floors: 2, bx: minX - 20, by: cy + 5,    w: 14, l: 10, rot: -18 },
+      { name: 'მეზობელი №41', heightM: 3.5, floors: 1, bx: cx + 10,   by: minY - 22, w: 12, l:  8, rot:   5 }
+    ];
 
-      // Subtle, muted aesthetic fill and stroke (different color from main parcel)
+    neighborBuildings.forEach(nb => {
+      const rad = (nb.rot * Math.PI) / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+      const hw = nb.w / 2;
+      const hl = nb.l / 2;
+
+      const corners = [
+        [-hw, -hl], [hw, -hl], [hw, hl], [-hw, hl]
+      ].map(([x, y]) => [
+        nb.bx + x * cos - y * sin,
+        nb.by + x * sin + y * cos
+      ]);
+
+      const ptsStr = corners.map(p => `${p[0]},${p[1]}`).join(' ');
+      const strokeW = Math.max(0.3, 1.3 * pxToM);
+
       html += `
-        <!-- Neighbor Parcel Polygon -->
-        <polygon points="${ptsStr}" fill="var(--neighbor-fill, rgba(148, 163, 184, 0.08))" stroke="var(--neighbor-stroke, rgba(100, 116, 139, 0.45))" stroke-width="${strokeW}" stroke-dasharray="${dash}" opacity="0.9" />
-      `;
-
-      // Cadastral number badge inside neighbor parcel (strictly outside our parcel)
-      const badgeW = 95 * pxToM;
-      const badgeH = 22 * pxToM;
-      html += `
-        <g transform="translate(${np.center[0]}, ${np.center[1]})">
-          <rect x="${-badgeW / 2}" y="${-badgeH / 2}" width="${badgeW}" height="${badgeH}" rx="${3 * pxToM}" fill="rgba(15,23,42,0.88)" stroke="var(--neighbor-stroke, #64748b)" stroke-width="${0.7 * pxToM}" />
-          <text x="0" y="${-1 * pxToM}" text-anchor="middle" fill="#ffffff" font-size="${8 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">${code}</text>
-          <text x="0" y="${7.5 * pxToM}" text-anchor="middle" fill="#94a3b8" font-size="${6.5 * pxToM}" font-family="Inter, sans-serif">სამეზობლო ნაკვეთი (${np.areaSqm} მ²)</text>
+        <g>
+          <polygon points="${ptsStr}" fill="var(--neighbor-bldg, rgba(148,163,184,0.35))" stroke="var(--neighbor-bldg-stroke, #475569)" stroke-width="${strokeW}" stroke-linejoin="round" />
+          <text x="${nb.bx}" y="${nb.by - 1 * pxToM}" text-anchor="middle" fill="#ffffff" font-size="${7.5 * pxToM}" font-family="Inter, sans-serif" font-weight="bold">${nb.name}</text>
+          <text x="${nb.bx}" y="${nb.by + 7 * pxToM}" text-anchor="middle" fill="#cbd5e1" font-size="${6.5 * pxToM}" font-family="Inter, sans-serif">H: ${nb.heightM}მ (${nb.floors}ს)</text>
         </g>
       `;
-
-      // Existing Neighbor Building (optional 1 building per neighbor lot, up to 2 buildings total)
-      if (idx < 2 && np.sharedChain && np.sharedChain.length >= 2) {
-        const midSharedX = (np.sharedChain[0][0] + np.sharedChain[np.sharedChain.length - 1][0]) / 2;
-        const midSharedY = (np.sharedChain[0][1] + np.sharedChain[np.sharedChain.length - 1][1]) / 2;
-        const bldgX = midSharedX + (np.center[0] - midSharedX) * 0.75;
-        const bldgY = midSharedY + (np.center[1] - midSharedY) * 0.75;
-
-        const bW = 12;
-        const bL = 8;
-        const bH = idx === 0 ? 8.5 : 6.0;
-        const floors = idx === 0 ? 2 : 2;
-        const bldgName = `მეზობელი №${codeNum}`;
-
-        const hw = bW / 2;
-        const hl = bL / 2;
-        const corners = [
-          [bldgX - hw, bldgY - hl],
-          [bldgX + hw, bldgY - hl],
-          [bldgX + hw, bldgY + hl],
-          [bldgX - hw, bldgY + hl]
-        ];
-        const bPtsStr = corners.map(p => `${p[0]},${p[1]}`).join(' ');
-        const distToBound = Math.max(3.2, Math.round(Math.hypot(bldgX - midSharedX, bldgY - midSharedY) * 10) / 10);
-
-        html += `
-          <g>
-            <polygon points="${bPtsStr}" fill="var(--neighbor-bldg, rgba(148,163,184,0.35))" stroke="var(--neighbor-bldg-stroke, #475569)" stroke-width="${Math.max(0.3, 1.2 * pxToM)}" stroke-linejoin="round" />
-            <text x="${bldgX}" y="${bldgY - 1 * pxToM}" text-anchor="middle" fill="#ffffff" font-size="${7 * pxToM}" font-family="Inter, sans-serif" font-weight="bold">${bldgName}</text>
-            <text x="${bldgX}" y="${bldgY + 6.5 * pxToM}" text-anchor="middle" fill="#cbd5e1" font-size="${6 * pxToM}" font-family="Inter, sans-serif">H: ${bH}მ (${floors}ს)</text>
-
-            <!-- Setback line from neighbor building to boundary -->
-            <line x1="${bldgX}" y1="${bldgY}" x2="${midSharedX}" y2="${midSharedY}" stroke="#f43f5e" stroke-width="${0.7 * pxToM}" stroke-dasharray="${2 * pxToM}, ${2 * pxToM}" opacity="0.8" />
-            <circle cx="${midSharedX}" cy="${midSharedY}" r="${1.4 * pxToM}" fill="#f43f5e"/>
-            <rect x="${(bldgX + midSharedX) / 2 - 13 * pxToM}" y="${(bldgY + midSharedY) / 2 - 5 * pxToM}" width="${26 * pxToM}" height="${10 * pxToM}" rx="${2 * pxToM}" fill="rgba(10,16,28,0.85)" stroke="#f43f5e" stroke-width="${0.5 * pxToM}"/>
-            <text x="${(bldgX + midSharedX) / 2}" y="${(bldgY + midSharedY) / 2 + 2.5 * pxToM}" text-anchor="middle" fill="#f43f5e" font-size="${6 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">↔ ${distToBound}მ</text>
-          </g>
-        `;
-      }
     });
 
     els.neighborhoodContextLayer.innerHTML = html;
