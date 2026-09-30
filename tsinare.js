@@ -408,8 +408,28 @@
   };
 
   // Convert WGS-84 [lat, lng] to Metric Cartesian (Meters) centered on centroid
-  function convertGeoToMetric(coordsLatLng) {
-    if (!coordsLatLng || coordsLatLng.length < 3) return;
+  function convertGeoToMetric(rawCoords) {
+    if (!rawCoords || rawCoords.length < 3) return;
+
+    // Sanitize coords: remove consecutive duplicates and duplicate closing point
+    const coordsLatLng = [];
+    for (let i = 0; i < rawCoords.length; i++) {
+      const p = rawCoords[i];
+      if (coordsLatLng.length > 0) {
+        const prev = coordsLatLng[coordsLatLng.length - 1];
+        if (Math.hypot(p[0] - prev[0], p[1] - prev[1]) < 1e-5) continue;
+      }
+      coordsLatLng.push(p);
+    }
+    if (coordsLatLng.length > 2) {
+      const first = coordsLatLng[0];
+      const last = coordsLatLng[coordsLatLng.length - 1];
+      if (Math.hypot(first[0] - last[0], first[1] - last[1]) < 1e-5) {
+        coordsLatLng.pop();
+      }
+    }
+    if (coordsLatLng.length < 3) return;
+
     const avgLat = coordsLatLng.reduce((sum, c) => sum + c[0], 0) / coordsLatLng.length;
     const avgLng = coordsLatLng.reduce((sum, c) => sum + c[1], 0) / coordsLatLng.length;
     state.centroidLatLng = [avgLat, avgLng];
@@ -601,69 +621,95 @@
   }
 
   // --- Boundary Edge Classification: Road/Public (0m setback) vs Neighbor (3.0m setback) ---
-  // Async: Queries OpenStreetMap for nearby roads and classifies each parcel edge automatically.
+  // Async: Queries OpenStreetMap Overpass API for nearby streets/roads and classifies each parcel edge.
   async function detectEdgeTypesFromOSM() {
     if (!state.centroidLatLng || !state.boundaryMeters || state.boundaryMeters.length < 3) return;
     const [cLat, cLng] = state.centroidLatLng;
     const metersPerDegLat = 111132.954;
     const metersPerDegLng = 111132.954 * Math.cos((cLat * Math.PI) / 180);
 
-    try {
-      // Query OSM Overpass for highways within 80m
-      const radius = 80;
-      const query = `[out:json][timeout:12];(way(around:${radius},${cLat},${cLng})[highway];);out geom;`;
-      const res = await fetch('https://overpass-api.de/api/interpreter', {
-        method: 'POST',
-        body: 'data=' + encodeURIComponent(query)
-      });
-      if (!res.ok) return;
-      const data = await res.json();
+    const endpoints = [
+      'https://overpass-api.de/api/interpreter',
+      'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter'
+    ];
 
-      // Convert OSM road geometry to local meter coordinates (same frame as boundaryMeters)
-      const roadSegments = [];
-      (data.elements || []).forEach(way => {
-        const geom = way.geometry || [];
-        for (let i = 0; i < geom.length - 1; i++) {
-          const p1 = [
-            (geom[i].lon - cLng) * metersPerDegLng,
-            -(geom[i].lat - cLat) * metersPerDegLat
-          ];
-          const p2 = [
-            (geom[i + 1].lon - cLng) * metersPerDegLng,
-            -(geom[i + 1].lat - cLat) * metersPerDegLat
-          ];
-          roadSegments.push([p1, p2]);
-        }
-      });
+    const radius = 70;
+    const query = `[out:json][timeout:8];(way(around:${radius},${cLat},${cLng})[highway];);out geom;`;
 
-      if (roadSegments.length === 0) return; // No OSM roads found — keep geometric fallback
+    for (const ep of endpoints) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4500);
 
-      // For each parcel edge, check distance from its midpoint to any road segment
-      const poly = state.boundaryMeters;
-      const n = poly.length;
-      const threshold = 14; // meters — edge midpoint within 14m of road centerline → road edge
-      const newTypes = new Array(n).fill('neighbor');
+        const res = await fetch(ep, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'Accept': 'application/json, */*'
+          },
+          body: 'data=' + encodeURIComponent(query),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
 
-      for (let i = 0; i < n; i++) {
-        const midX = (poly[i][0] + poly[(i + 1) % n][0]) / 2;
-        const midY = (poly[i][1] + poly[(i + 1) % n][1]) / 2;
-        for (const [r1, r2] of roadSegments) {
-          const d = distPointToSegment([midX, midY], r1, r2);
-          if (d < threshold) {
-            newTypes[i] = 'road';
-            break;
+        if (!res.ok) continue;
+        const text = await res.text();
+        if (!text || text.trim().startsWith('<')) continue; // Guard against XML/HTML error responses
+        const data = JSON.parse(text);
+
+        // Convert OSM road geometry to local meter coordinates (same frame as boundaryMeters)
+        const roadSegments = [];
+        (data.elements || []).forEach(way => {
+          const hw = way.tags ? way.tags.highway : '';
+          if (hw === 'steps') return; // ignore outdoor staircases
+          const geom = way.geometry || [];
+          for (let i = 0; i < geom.length - 1; i++) {
+            const p1 = [
+              (geom[i].lon - cLng) * metersPerDegLng,
+              -(geom[i].lat - cLat) * metersPerDegLat
+            ];
+            const p2 = [
+              (geom[i + 1].lon - cLng) * metersPerDegLng,
+              -(geom[i + 1].lat - cLat) * metersPerDegLat
+            ];
+            roadSegments.push({ p1, p2, name: (way.tags && (way.tags.name || way.tags.highway)) || 'გზა' });
+          }
+        });
+
+        if (roadSegments.length === 0) continue;
+
+        const poly = state.boundaryMeters;
+        const n = poly.length;
+        const threshold = 12.0; // 12 meters from road centerline
+        const newTypes = new Array(n).fill('neighbor');
+        let roadCount = 0;
+
+        for (let i = 0; i < n; i++) {
+          const midX = (poly[i][0] + poly[(i + 1) % n][0]) / 2;
+          const midY = (poly[i][1] + poly[(i + 1) % n][1]) / 2;
+          for (const seg of roadSegments) {
+            const d = distPointToSegment([midX, midY], seg.p1, seg.p2);
+            if (d <= threshold) {
+              newTypes[i] = 'road';
+              roadCount++;
+              break;
+            }
           }
         }
+
+        // Safety: ensure at least 1 edge is recognized as road
+        if (roadCount === 0) {
+          continue; // Try next endpoint or keep geometric fallback
+        }
+
+        state.boundaryEdgeTypes = newTypes;
+        renderCadWorld();
+        updateToolStatus(`ავტომატურად ამოცნობილია ${roadCount} საგზაო/საზოგადოებრივი კიდე (0მ) და ${n - roadCount} სამეზობლო მიჯნა (${state.setbackDistance}მ).`);
+        return; // Successfully updated from OSM
+      } catch (e) {
+        // Continue to next endpoint
       }
-
-      // Safety: if nothing was classified as road, keep geometric fallback
-      if (!newTypes.includes('road')) return;
-
-      state.boundaryEdgeTypes = newTypes;
-      renderCadWorld();
-      updateToolStatus('ავტომატურად გამოიგნა: OSM გზის მონაცემებით სამეზობლო მიჯნის შეზღუდვა განახლდა.');
-    } catch (e) {
-      console.warn('OSM edge detection failed, keeping geometric fallback.', e);
     }
   }
 
@@ -672,8 +718,7 @@
     const n = polygon.length;
     const types = new Array(n).fill('neighbor');
 
-    // 1. Find the edge(s) closest to the southernmost point (highest Y in SVG/meter space)
-    //    These are typically the street frontage edges.
+    // 1. Find edge closest to the street frontage (maximum Y in SVG coordinate space)
     let bestRoadEdgeIdx = 0;
     let maxEdgeY = -Infinity;
     for (let i = 0; i < n; i++) {
@@ -685,7 +730,7 @@
     }
     types[bestRoadEdgeIdx] = 'road';
 
-    // 2. Cross-reference with user-drawn or system roads
+    // 2. Cross-reference with user-drawn roads
     if (roads && roads.length > 0) {
       roads.forEach(r => {
         if (!r.points || r.points.length < 2) return;
@@ -702,7 +747,6 @@
       });
     }
 
-    // 3. Safety: ensure at least 1 edge is road (prevents all-neighbor setback loop)
     if (!types.includes('road')) {
       types[bestRoadEdgeIdx] = 'road';
     }
@@ -720,8 +764,8 @@
     updateToolStatus(`საზღვარი №${edgeIdx + 1} შეიცვალა: ${typeKa}`);
   };
 
-  // --- Boundary-Aware Neighbor Setback Polylines (დადგენილება №41) ---
-  // სამეზობლო მიჯნის შეზღუდვა მოქმედებს მხოლოდ სამეზობლო საზღვრებზე (3.0მ). გზის/საზოგადოებრივ მხარეს = 0მ.
+  // --- Robust Boundary-Aware Neighbor Setback Polylines (დადგენილება №41) ---
+  // სამეზობლო მიჯნის შეზღუდვა (3.0მ) მოქმედებს მხოლოდ სამეზობლო საზღვრებზე. საგზაო მხარეს = 0მ.
   function computeNeighborSetbackPolylines(polygon, edgeTypes, defaultDist) {
     if (!polygon || polygon.length < 3) return { polylines: [], insetVertices: [] };
     const n = polygon.length;
@@ -737,13 +781,12 @@
     }
     const orient = signedArea >= 0 ? 1 : -1;
 
-    const lines = [];
+    // Compute inward normal and shifted line for each edge
+    const edgeNormals = [];
+    const edgeOffsets = [];
     for (let i = 0; i < n; i++) {
       const p1 = polygon[i];
       const p2 = polygon[(i + 1) % n];
-      const isNeighbor = edgeTypes[i] !== 'road';
-      const dist = isNeighbor ? defaultDist : 0;
-
       let dx = p2[0] - p1[0];
       let dy = p2[1] - p1[1];
       const len = Math.hypot(dx, dy) || 1;
@@ -752,31 +795,67 @@
 
       const nx = -dy * orient;
       const ny = dx * orient;
+      const isNeighbor = edgeTypes[i] !== 'road';
+      const dist = isNeighbor ? defaultDist : 0;
 
-      lines.push({
+      edgeNormals.push({ nx, ny, dx, dy, len, isNeighbor });
+      edgeOffsets.push({
         p1: [p1[0] + nx * dist, p1[1] + ny * dist],
         p2: [p2[0] + nx * dist, p2[1] + ny * dist],
-        dx, dy, nx, ny, dist, isNeighbor
+        dist,
+        isNeighbor
       });
     }
 
-    function intersectLines(l1, l2) {
-      const x1 = l1.p1[0], y1 = l1.p1[1];
-      const x2 = l1.p2[0], y2 = l1.p2[1];
-      const x3 = l2.p1[0], y3 = l2.p1[1];
-      const x4 = l2.p2[0], y4 = l2.p2[1];
-
-      const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-      if (Math.abs(denom) < 1e-5) return [x2, y2];
-      const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom;
-      return [x1 + t * (x2 - x1), y1 + t * (y2 - y1)];
-    }
-
+    // Robust vertex intersection with collinear handling and miter clamping
     const insetVertices = [];
     for (let i = 0; i < n; i++) {
-      const prevLine = lines[(i - 1 + n) % n];
-      const currLine = lines[i];
-      insetVertices.push(intersectLines(prevLine, currLine));
+      const prevIdx = (i - 1 + n) % n;
+      const lPrev = edgeOffsets[prevIdx];
+      const lCurr = edgeOffsets[i];
+      const origVertex = polygon[i];
+
+      // Check if edges are nearly parallel or collinear
+      const dot = edgeNormals[prevIdx].dx * edgeNormals[i].dx + edgeNormals[prevIdx].dy * edgeNormals[i].dy;
+      const cross = edgeNormals[prevIdx].dx * edgeNormals[i].dy - edgeNormals[prevIdx].dy * edgeNormals[i].dx;
+
+      let pt;
+      if (Math.abs(cross) < 0.05 || dot > 0.99) {
+        // Parallel / collinear: offset along the average normal
+        const avgNx = (edgeNormals[prevIdx].nx + edgeNormals[i].nx) / 2;
+        const avgNy = (edgeNormals[prevIdx].ny + edgeNormals[i].ny) / 2;
+        const anLen = Math.hypot(avgNx, avgNy) || 1;
+        const avgDist = (lPrev.dist + lCurr.dist) / 2;
+        pt = [origVertex[0] + (avgNx / anLen) * avgDist, origVertex[1] + (avgNy / anLen) * avgDist];
+      } else {
+        // General 2D line intersection
+        const x1 = lPrev.p1[0], y1 = lPrev.p1[1];
+        const x2 = lPrev.p2[0], y2 = lPrev.p2[1];
+        const x3 = lCurr.p1[0], y3 = lCurr.p1[1];
+        const x4 = lCurr.p2[0], y4 = lCurr.p2[1];
+        const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+
+        if (Math.abs(denom) < 1e-4) {
+          pt = [lCurr.p1[0], lCurr.p1[1]];
+        } else {
+          const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom;
+          pt = [x1 + t * (x2 - x1), y1 + t * (y2 - y1)];
+        }
+      }
+
+      // CRITICAL SAFETY CLAMP: Inset vertex MUST NOT exceed 2.2 * setback distance from boundary vertex!
+      // This completely prevents collinear/sharp angle spikes from projecting off into the distance.
+      const maxMiter = Math.max(defaultDist * 2.2, 6.5);
+      const distFromOrig = Math.hypot(pt[0] - origVertex[0], pt[1] - origVertex[1]);
+      if (distFromOrig > maxMiter) {
+        const avgNx = (edgeNormals[prevIdx].nx + edgeNormals[i].nx) / 2;
+        const avgNy = (edgeNormals[prevIdx].ny + edgeNormals[i].ny) / 2;
+        const anLen = Math.hypot(avgNx, avgNy) || 1;
+        const clampDist = Math.max(lPrev.dist, lCurr.dist);
+        pt = [origVertex[0] + (avgNx / anLen) * clampDist, origVertex[1] + (avgNy / anLen) * clampDist];
+      }
+
+      insetVertices.push(pt);
     }
 
     // Extract contiguous neighbor setback polylines
@@ -2793,57 +2872,10 @@
     els.topographyReliefLayer.innerHTML = html;
   }
 
-  // 0b. Neighboring Buildings Layer (სამეზობლო შენობები)
+  // 0b. Neighboring Buildings Layer (სამეზობლო ნაკვეთები წაშლილია მომხმარებლის მოთხოვნით)
   function renderNeighborhoodContext(pxToM) {
     if (!els.neighborhoodContextLayer) return;
-    if (!state.layers.neighborhood || !state.boundaryMeters || state.boundaryMeters.length < 3) {
-      els.neighborhoodContextLayer.innerHTML = '';
-      return;
-    }
-
-    const xs = state.boundaryMeters.map(p => p[0]);
-    const ys = state.boundaryMeters.map(p => p[1]);
-    const minX = Math.min(...xs), maxX = Math.max(...xs);
-    const minY = Math.min(...ys), maxY = Math.max(...ys);
-    const cx = (minX + maxX) / 2;
-    const cy = (minY + maxY) / 2;
-
-    let html = '';
-
-    // Surrounding Existing Buildings (სამეზობლო შენობები) — no parcels, no dim lines
-    const neighborBuildings = [
-      { name: 'მეზობელი №40', heightM: 9.5, floors: 3, bx: maxX + 20, by: cy - 8,    w: 16, l: 12, rot:  12 },
-      { name: 'მეზობელი №38', heightM: 6.8, floors: 2, bx: minX - 20, by: cy + 5,    w: 14, l: 10, rot: -18 },
-      { name: 'მეზობელი №41', heightM: 3.5, floors: 1, bx: cx + 10,   by: minY - 22, w: 12, l:  8, rot:   5 }
-    ];
-
-    neighborBuildings.forEach(nb => {
-      const rad = (nb.rot * Math.PI) / 180;
-      const cos = Math.cos(rad);
-      const sin = Math.sin(rad);
-      const hw = nb.w / 2;
-      const hl = nb.l / 2;
-
-      const corners = [
-        [-hw, -hl], [hw, -hl], [hw, hl], [-hw, hl]
-      ].map(([x, y]) => [
-        nb.bx + x * cos - y * sin,
-        nb.by + x * sin + y * cos
-      ]);
-
-      const ptsStr = corners.map(p => `${p[0]},${p[1]}`).join(' ');
-      const strokeW = Math.max(0.3, 1.3 * pxToM);
-
-      html += `
-        <g>
-          <polygon points="${ptsStr}" fill="var(--neighbor-bldg, rgba(148,163,184,0.35))" stroke="var(--neighbor-bldg-stroke, #475569)" stroke-width="${strokeW}" stroke-linejoin="round" />
-          <text x="${nb.bx}" y="${nb.by - 1 * pxToM}" text-anchor="middle" fill="#ffffff" font-size="${7.5 * pxToM}" font-family="Inter, sans-serif" font-weight="bold">${nb.name}</text>
-          <text x="${nb.bx}" y="${nb.by + 7 * pxToM}" text-anchor="middle" fill="#cbd5e1" font-size="${6.5 * pxToM}" font-family="Inter, sans-serif">H: ${nb.heightM}მ (${nb.floors}ს)</text>
-        </g>
-      `;
-    });
-
-    els.neighborhoodContextLayer.innerHTML = html;
+    els.neighborhoodContextLayer.innerHTML = '';
   }
 
   // 1. Cadastral Boundary Layer
