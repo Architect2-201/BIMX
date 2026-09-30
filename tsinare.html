@@ -54,12 +54,6 @@
   <script src="assets/fonts/georgian-font-data.js"></script>
 
   <style>
-    /* Custom Styling for High-Precision 2D CAD Workspace */
-    :root {
-      --cad-grid-color: rgba(56, 189, 248, 0.08);
-      --cad-grid-major: rgba(56, 189, 248, 0.16);
-    }
-
     body {
       background-color: #060a12;
       color: #f1f5f9;
@@ -102,61 +96,85 @@
       cursor: grabbing;
     }
 
-    /* Styles Themes for Drawing (Blueprint / Classic / Presentation / Satellite) */
+    /* 5 Professional Drawing Styles */
     .style-blueprint {
-      --canvas-bg: #091326;
+      --canvas-bg: #071329;
       --grid-line: rgba(56, 189, 248, 0.12);
-      --grid-major: rgba(56, 189, 248, 0.22);
-      --parcel-fill: rgba(14, 165, 233, 0.07);
+      --grid-major: rgba(56, 189, 248, 0.28);
+      --parcel-fill: rgba(14, 165, 233, 0.08);
       --parcel-stroke: #00f0ff;
       --setback-stroke: #f43f5e;
-      --footprint-fill: rgba(56, 189, 248, 0.35);
+      --footprint-fill: rgba(14, 165, 233, 0.35);
       --footprint-stroke: #ffffff;
+      --footprint-wall: #0284c7;
       --text-color: #38bdf8;
       --road-fill: #1e293b;
-      --parking-fill: #0284c7;
+      --parking-fill: #0369a1;
+      --tree-fill: #10b981;
     }
 
     .style-classic {
-      --canvas-bg: #ffffff;
-      --grid-line: rgba(0, 0, 0, 0.05);
-      --grid-major: rgba(0, 0, 0, 0.12);
-      --parcel-fill: rgba(0, 0, 0, 0.02);
+      --canvas-bg: #fbfcfd;
+      --grid-line: rgba(15, 23, 42, 0.04);
+      --grid-major: rgba(15, 23, 42, 0.10);
+      --parcel-fill: rgba(241, 245, 249, 0.7);
       --parcel-stroke: #0f172a;
       --setback-stroke: #dc2626;
-      --footprint-fill: #e2e8f0;
+      --footprint-fill: #f8fafc;
       --footprint-stroke: #0f172a;
+      --footprint-wall: #1e293b;
       --text-color: #0f172a;
       --road-fill: #f1f5f9;
-      --parking-fill: #64748b;
+      --parking-fill: #94a3b8;
+      --tree-fill: #22c55e;
     }
 
     .style-presentation {
-      --canvas-bg: #f4f7f6;
-      --grid-line: rgba(16, 185, 129, 0.08);
-      --grid-major: rgba(16, 185, 129, 0.18);
+      --canvas-bg: #f2f8f4;
+      --grid-line: rgba(22, 101, 52, 0.05);
+      --grid-major: rgba(22, 101, 52, 0.12);
       --parcel-fill: #dcfce7;
       --parcel-stroke: #15803d;
       --setback-stroke: #ef4444;
-      --footprint-fill: #f97316;
-      --footprint-stroke: #c2410c;
+      --footprint-fill: #ffedd5;
+      --footprint-stroke: #ea580c;
+      --footprint-wall: #9a3412;
       --text-color: #1e293b;
       --road-fill: #cbd5e1;
-      --parking-fill: #3b82f6;
+      --parking-fill: #60a5fa;
+      --tree-fill: #16a34a;
     }
 
     .style-satellite {
-      --canvas-bg: #070d14;
-      --grid-line: rgba(255, 255, 255, 0.05);
-      --grid-major: rgba(255, 255, 255, 0.12);
-      --parcel-fill: rgba(234, 179, 8, 0.12);
+      --canvas-bg: #091018;
+      --grid-line: rgba(255, 255, 255, 0.04);
+      --grid-major: rgba(255, 255, 255, 0.09);
+      --parcel-fill: rgba(250, 204, 21, 0.12);
       --parcel-stroke: #facc15;
       --setback-stroke: #f43f5e;
-      --footprint-fill: rgba(239, 68, 68, 0.4);
+      --footprint-fill: rgba(56, 189, 248, 0.35);
       --footprint-stroke: #ffffff;
+      --footprint-wall: #38bdf8;
       --text-color: #fef08a;
       --road-fill: #334155;
       --parking-fill: #0284c7;
+      --tree-fill: #4ade80;
+    }
+
+    .style-dark {
+      --canvas-bg: #05080f;
+      --grid-line: rgba(255, 255, 255, 0.03);
+      --grid-major: rgba(56, 189, 248, 0.15);
+      --parcel-fill: rgba(56, 189, 248, 0.05);
+      --parcel-stroke: #38bdf8;
+      --setback-stroke: #f43f5e;
+      --footprint-fill: rgba(168, 85, 247, 0.25);
+      --footprint-stroke: #c084fc;
+      --footprint-wall: #9333ea;
+      --text-color: #e2e8f0;
+      --road-fill: #1e293b;
+      --parking-fill: #6366f1;
+      --tree-fill: #34d399;
     }
 
     /* Metric Gauge Gradient Animation */
@@ -187,7 +205,7 @@
   <!-- =========================================================================
        1. TOP APP BAR / HEADER & CADASTRAL SEARCH
        ========================================================================= -->
-  <header class="h-16 flex-none bg-[#0a101d]/90 backdrop-blur-xl border-b border-[#1f2e4d] px-4 flex items-center justify-between z-30 gap-3">
+  <header class="h-16 flex-none bg-[#0a101d]/95 backdrop-blur-xl border-b border-[#1f2e4d] px-4 flex items-center justify-between z-30 gap-3">
     <!-- Brand & Page Title -->
     <div class="flex items-center gap-3 min-w-max">
       <a href="index.html" class="flex items-center gap-2 group" title="BIMX Studio მთავარი">
@@ -280,10 +298,10 @@
     <!-- =======================================================================
          LEFT PANEL: CADASTRAL DATA & OFFICIAL PASSPORT
          ======================================================================= -->
-    <aside id="leftCadastralSidebar" class="w-80 sm:w-96 flex-none bg-[#0a101d] border-r border-[#1f2e4d] flex flex-col overflow-y-auto z-20 transition-all duration-300">
+    <aside id="leftCadastralSidebar" class="w-72 sm:w-80 flex-none bg-[#0a101d] border-r border-[#1f2e4d] flex flex-col overflow-y-auto z-20 transition-all duration-300">
       
       <!-- Panel Header -->
-      <div class="p-3.5 border-b border-[#1f2e4d] flex items-center justify-between bg-[#0e1628]">
+      <div class="p-3 border-b border-[#1f2e4d] flex items-center justify-between bg-[#0e1628]">
         <div class="flex items-center gap-2">
           <i class="fa-solid fa-id-card text-sky-400 text-sm"></i>
           <h2 class="text-xs font-bold uppercase tracking-wider text-slate-200">საკადასტრო პასპორტი</h2>
@@ -294,23 +312,23 @@
       </div>
 
       <!-- Cadastral Details List -->
-      <div class="p-4 space-y-3.5 text-xs">
+      <div class="p-3 space-y-3 text-xs">
         
         <!-- Cadastral Code Card -->
-        <div class="bg-[#121c33] p-3 rounded-lg border border-[#213254]">
+        <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254]">
           <div class="flex items-center justify-between mb-1">
             <span class="text-slate-400 text-[11px]">საკადასტრო კოდი:</span>
             <button type="button" onclick="copyCadastralCode()" class="text-sky-400 hover:text-sky-300 text-[10px] flex items-center gap-1 font-mono">
               <i class="fa-regular fa-copy"></i> კოპირება
             </button>
           </div>
-          <div id="lblCadastralCode" class="font-mono text-base font-bold text-white tracking-wide">
+          <div id="lblCadastralCode" class="font-mono text-sm sm:text-base font-bold text-white tracking-wide">
             01.14.11.059.039
           </div>
         </div>
 
         <!-- Address -->
-        <div class="bg-[#121c33] p-3 rounded-lg border border-[#213254]">
+        <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254]">
           <div class="text-slate-400 text-[11px] mb-1">რეგისტრირებული მისამართი:</div>
           <div id="lblAddress" class="font-medium text-slate-200 leading-snug">
             ქალაქი თბილისი, გიორგი შატბერაშვილის ქუჩა, N 5
@@ -319,42 +337,42 @@
 
         <!-- Land Area Metrics (Official vs Geometric) -->
         <div class="grid grid-cols-2 gap-2">
-          <div class="bg-[#121c33] p-3 rounded-lg border border-[#213254]">
+          <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254]">
             <div class="text-slate-400 text-[10px] uppercase font-mono">რეგისტრირებული:</div>
             <div class="flex items-baseline gap-1 mt-0.5">
-              <span id="lblOfficialArea" class="font-mono text-lg font-extrabold text-sky-400">820</span>
+              <span id="lblOfficialArea" class="font-mono text-base sm:text-lg font-extrabold text-sky-400">820</span>
               <span class="text-xs text-slate-400 font-mono">მ²</span>
             </div>
           </div>
-          <div class="bg-[#121c33] p-3 rounded-lg border border-[#213254]">
+          <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254]">
             <div class="text-slate-400 text-[10px] uppercase font-mono">გეომეტრიული:</div>
             <div class="flex items-baseline gap-1 mt-0.5">
-              <span id="lblGeometricArea" class="font-mono text-lg font-extrabold text-slate-200">819</span>
+              <span id="lblGeometricArea" class="font-mono text-base sm:text-lg font-extrabold text-slate-200">819</span>
               <span class="text-xs text-slate-400 font-mono">მ²</span>
             </div>
           </div>
         </div>
 
         <!-- Land Category & Ownership Form -->
-        <div class="bg-[#121c33] p-3 rounded-lg border border-[#213254] space-y-2">
-          <div class="flex items-center justify-between border-b border-white/5 pb-1.5">
+        <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254] space-y-2">
+          <div class="flex items-center justify-between border-b border-white/5 pb-1">
             <span class="text-slate-400">მიწის სტატუსი:</span>
             <span id="lblLandType" class="font-semibold text-slate-200 font-mono">არასასოფლო-სამეურნეო</span>
           </div>
-          <div class="flex items-center justify-between border-b border-white/5 pb-1.5">
+          <div class="flex items-center justify-between border-b border-white/5 pb-1">
             <span class="text-slate-400">საკუთრების ფორმა:</span>
             <span id="lblOwnershipType" class="font-semibold text-slate-200">თანასაკუთრება</span>
           </div>
           <div>
             <div class="text-slate-400 text-[11px] mb-1">მესაკუთრე(ები):</div>
-            <div id="lblOwnersList" class="font-medium text-slate-200 bg-[#0c1424] p-2 rounded border border-white/5">
+            <div id="lblOwnersList" class="font-medium text-slate-200 bg-[#0c1424] p-1.5 rounded border border-white/5 leading-tight">
               შპს "მონოლით გრუპ"
             </div>
           </div>
         </div>
 
         <!-- Urban Functional Zoning -->
-        <div class="bg-[#121c33] p-3 rounded-lg border border-[#213254]">
+        <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254]">
           <div class="flex items-center justify-between mb-1.5">
             <span class="text-slate-400">ურბანული ზონა:</span>
             <span id="lblZoneBadge" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
@@ -362,13 +380,13 @@
             </span>
           </div>
           <p id="lblZoneDescription" class="text-[11px] text-slate-300 leading-relaxed">
-            საცხოვრებელი ზონა 6 — მაღალი ინტენსივობის განაშენიანების არეალი. ნებადართულია მრავალბინიანი საცხოვრებელი კორპუსები და საზოგადოებრივი ფუნქციები.
+            საცხოვრებელი ზონა 6 — მაღალი ინტენსივობის განაშენიანების არეალი. ნებადართულია მრავალბინიანი საცხოვრებელი კორპუსები.
           </p>
         </div>
 
         <!-- Cadastral Coordinates Table (Corner Nodes) -->
-        <div class="bg-[#121c33] p-3 rounded-lg border border-[#213254]">
-          <div class="flex items-center justify-between mb-2">
+        <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254]">
+          <div class="flex items-center justify-between mb-1.5">
             <span class="text-slate-300 font-semibold text-xs flex items-center gap-1.5">
               <i class="fa-solid fa-draw-polygon text-sky-400"></i> კუთხის წერტილები (<span id="lblCornerCount">15</span>)
             </span>
@@ -376,13 +394,13 @@
               CSV Export
             </button>
           </div>
-          <div class="max-h-40 overflow-y-auto border border-white/5 rounded">
+          <div class="max-h-36 overflow-y-auto border border-white/5 rounded">
             <table class="w-full text-[10px] font-mono text-left">
               <thead class="bg-[#0b1222] text-slate-400 sticky top-0">
                 <tr>
-                  <th class="p-1.5">#</th>
-                  <th class="p-1.5">Latitude (Y)</th>
-                  <th class="p-1.5">Longitude (X)</th>
+                  <th class="p-1">#</th>
+                  <th class="p-1">Latitude (Y)</th>
+                  <th class="p-1">Longitude (X)</th>
                 </tr>
               </thead>
               <tbody id="tblCoordinatesBody" class="divide-y divide-white/5 text-slate-300">
@@ -401,7 +419,7 @@
     <main class="flex-1 flex flex-col relative overflow-hidden bg-[#070c17]">
 
       <!-- Top Interactive Drawing & Style Toolbar Bar -->
-      <div class="h-13 bg-[#0d1629]/95 backdrop-blur-md border-b border-[#1f2e4d] px-4 flex items-center justify-between z-10 flex-wrap gap-2 py-1.5">
+      <div class="min-h-12 bg-[#0d1629]/95 backdrop-blur-md border-b border-[#1f2e4d] px-3 flex items-center justify-between z-10 flex-wrap gap-2 py-1.5">
         
         <!-- Primary 2D CAD Manipulation Tools Group -->
         <div class="flex items-center gap-1 sm:gap-1.5 flex-wrap">
@@ -414,7 +432,7 @@
             class="btn-cad-tool btn-tool-active h-8 px-2.5 rounded-md bg-[#162238] border border-[#243557] text-xs font-medium flex items-center gap-1.5 hover:bg-[#1e2f4f] transition"
             title="გადაადგილება &amp; არჩევა (Pan Mode) [Space]"
           >
-            <i class="fa-solid fa-hand text-slate-300 text-xs"></i>
+            <i class="fa-solid fa-arrow-pointer text-slate-300 text-xs"></i>
             <span class="hidden sm:inline">არჩევა</span>
           </button>
 
@@ -429,7 +447,7 @@
             title="ნაკვეთის დაყოფა (დააკლიკეთ ორ წერტილზე გასაყოფად)"
           >
             <i class="fa-solid fa-scissors text-amber-400 text-xs"></i>
-            <span>ნაკვეთის დაყოფა</span>
+            <span>დაყოფა</span>
           </button>
 
           <!-- 2. Parcel Merge Tool (ნაკვეთის გაერთიანება) -->
@@ -455,34 +473,61 @@
             title="შენობის ლაქის თავისუფალი დახაზვა წერტილებით"
           >
             <i class="fa-solid fa-pen-ruler text-sky-400 text-xs"></i>
-            <span>+ ლაქის დახაზვა</span>
+            <span>+ ლაქა</span>
           </button>
 
-          <!-- 4. Add Preset Footprint (მართკუთხა / L-ფორმის) -->
+          <!-- 4. Add Preset Shapes (Dropdown) -->
+          <div class="relative group">
+            <button 
+              type="button" 
+              class="btn-cad-tool h-8 px-2.5 rounded-md bg-[#162238] border border-[#243557] text-xs font-medium flex items-center gap-1.5 hover:bg-[#1e2f4f] text-slate-200 transition"
+              title="შენობის მზა ტიპოლოგიური შაბლონები"
+            >
+              <i class="fa-solid fa-shapes text-sky-400 text-xs"></i>
+              <span>შაბლონი</span>
+              <i class="fa-solid fa-chevron-down text-[9px] text-slate-400"></i>
+            </button>
+            <div class="absolute left-0 top-full mt-1 w-44 bg-[#0d1629] border border-[#243557] rounded-lg shadow-2xl py-1 z-30 hidden group-hover:block">
+              <button type="button" onclick="addPresetFootprint('rect')" class="w-full text-left px-3 py-1.5 text-xs text-slate-200 hover:bg-sky-500/20 hover:text-white flex items-center gap-2">
+                <i class="fa-regular fa-square text-sky-400"></i> მართკუთხა (15×12მ)
+              </button>
+              <button type="button" onclick="addPresetFootprint('l_shape')" class="w-full text-left px-3 py-1.5 text-xs text-slate-200 hover:bg-sky-500/20 hover:text-white flex items-center gap-2">
+                <i class="fa-solid fa-chart-gantt text-amber-400"></i> L-ფორმის ბლოკი
+              </button>
+              <button type="button" onclick="addPresetFootprint('u_shape')" class="w-full text-left px-3 py-1.5 text-xs text-slate-200 hover:bg-sky-500/20 hover:text-white flex items-center gap-2">
+                <i class="fa-solid fa-cube text-emerald-400"></i> U-ფორმის ეზოთი
+              </button>
+              <button type="button" onclick="addPresetFootprint('tower')" class="w-full text-left px-3 py-1.5 text-xs text-slate-200 hover:bg-sky-500/20 hover:text-white flex items-center gap-2">
+                <i class="fa-solid fa-building text-purple-400"></i> კოშკი / ტაუერი (20×20მ)
+              </button>
+            </div>
+          </div>
+
+          <!-- 5. Trees & Greenery Tool (+ ხეები / გამწვანება) -->
           <button 
             type="button" 
-            id="toolBtnAddPresetFootprint" 
-            onclick="addPresetFootprint()" 
-            class="btn-cad-tool h-8 px-2 rounded-md bg-[#162238] border border-[#243557] text-xs font-medium flex items-center gap-1 hover:bg-[#1e2f4f] text-slate-200 transition"
-            title="სტანდარტული შენობის ლაქის განთავსება (15მ × 20მ)"
+            id="toolBtnTree" 
+            onclick="setCadActiveTool('tree')" 
+            class="btn-cad-tool h-8 px-2 rounded-md bg-[#162238] border border-[#243557] text-xs font-medium flex items-center gap-1 hover:bg-[#1e2f4f] text-emerald-300 transition"
+            title="ხეებისა და გამწვანების განთავსება ნაკვეთზე (ზრდის K-3 ბალანსს)"
           >
-            <i class="fa-solid fa-square-plus text-sky-400 text-xs"></i>
-            <span class="hidden md:inline">+ შაბლონი</span>
+            <i class="fa-solid fa-tree text-emerald-400 text-xs"></i>
+            <span class="hidden md:inline">+ ხეები</span>
           </button>
 
-          <!-- 5. Draw Road / Driveway (გზა) -->
+          <!-- 6. Draw Road / Driveway (გზა) -->
           <button 
             type="button" 
             id="toolBtnDrawRoad" 
             onclick="setCadActiveTool('draw_road')" 
             class="btn-cad-tool h-8 px-2 rounded-md bg-[#162238] border border-[#243557] text-xs font-medium flex items-center gap-1 hover:bg-[#1e2f4f] text-slate-300 transition"
-            title="მისასვლელი საავტომობილო &amp; სახანძრო გზის დახაზვა"
+            title="მისასვლელი საავტომობილო &amp; სახანძრო გზის დახაზვა (6მ)"
           >
             <i class="fa-solid fa-road text-slate-400 text-xs"></i>
             <span class="hidden md:inline">+ გზა</span>
           </button>
 
-          <!-- 6. Parking Tool (ავტოსადგომები) -->
+          <!-- 7. Parking Tool (ავტოსადგომები) -->
           <button 
             type="button" 
             id="toolBtnAddParking" 
@@ -494,7 +539,7 @@
             <span class="hidden lg:inline">პარკინგი</span>
           </button>
 
-          <!-- 7. Ruler Tool (საზომი) -->
+          <!-- 8. Ruler Tool (საზომი) -->
           <button 
             type="button" 
             id="toolBtnRuler" 
@@ -506,24 +551,77 @@
             <span class="hidden lg:inline">საზომი</span>
           </button>
 
-          <!-- Reset / Clear Parcel -->
+          <!-- Clear Button -->
           <button 
             type="button" 
             onclick="clearAllFootprints()" 
             class="btn-cad-tool h-8 px-2 rounded-md bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/40 text-rose-300 text-xs font-medium flex items-center gap-1 transition"
-            title="ყველა ლაქის წაშლა &amp; ნაკვეთის გასუფთავება"
+            title="ნაკვეთის გასუფთავება"
           >
             <i class="fa-solid fa-eraser text-xs"></i>
-            <span class="hidden xl:inline">გასუფთავება</span>
           </button>
         </div>
 
-        <!-- Visual Plan Styles Selector (ნახაზის სტილის არჩევა) -->
-        <div class="flex items-center gap-2">
+        <!-- Visual Plan Styles & Layers & Scale Selector -->
+        <div class="flex items-center gap-2 flex-wrap">
+          
+          <!-- Layers Visibility Toggles Dropdown -->
+          <div class="relative group">
+            <button type="button" class="h-8 px-2 rounded-md bg-[#121d33] border border-[#213254] text-xs text-slate-300 hover:text-white flex items-center gap-1.5">
+              <i class="fa-solid fa-layer-group text-sky-400 text-xs"></i>
+              <span class="hidden sm:inline">შრეები</span>
+              <i class="fa-solid fa-chevron-down text-[9px] text-slate-400"></i>
+            </button>
+            <div class="absolute right-0 top-full mt-1 w-52 bg-[#0d1629] border border-[#243557] rounded-lg shadow-2xl p-2 z-30 hidden group-hover:block space-y-1.5 text-xs">
+              <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
+                <input type="checkbox" id="chkLayerBoundary" checked onchange="toggleLayer('boundary', this.checked)" class="accent-sky-400">
+                <span>საკადასტრო საზღვარი</span>
+              </label>
+              <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
+                <input type="checkbox" id="chkLayerSetback" checked onchange="toggleLayer('setback', this.checked)" class="accent-rose-400">
+                <span>სამეზობლო მიჯნა (3მ)</span>
+              </label>
+              <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
+                <input type="checkbox" id="chkLayerDimensions" checked onchange="toggleLayer('dimensions', this.checked)" class="accent-amber-400">
+                <span>ზომები &amp; კვოტები</span>
+              </label>
+              <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
+                <input type="checkbox" id="chkLayerFootprints" checked onchange="toggleLayer('footprints', this.checked)" class="accent-sky-400">
+                <span>შენობების ლაქები</span>
+              </label>
+              <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
+                <input type="checkbox" id="chkLayerShadows" checked onchange="toggleLayer('shadows', this.checked)" class="accent-slate-400">
+                <span>მზის ჩრდილები</span>
+              </label>
+              <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
+                <input type="checkbox" id="chkLayerTrees" checked onchange="toggleLayer('trees', this.checked)" class="accent-emerald-400">
+                <span>ხეები &amp; გამწვანება</span>
+              </label>
+              <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
+                <input type="checkbox" id="chkLayerRoads" checked onchange="toggleLayer('roads', this.checked)" class="accent-blue-400">
+                <span>გზები &amp; პარკინგი</span>
+              </label>
+              <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
+                <input type="checkbox" id="chkLayerNodes" onchange="toggleLayer('nodes', this.checked)" class="accent-sky-400">
+                <span>წერტილების ნომრები</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 5 Visual Styles Selector -->
           <div class="flex items-center gap-1 bg-[#121d33] p-0.5 rounded-lg border border-[#213254]">
-            <span class="text-[10px] font-mono text-slate-400 px-1.5 hidden xl:inline">სტილი:</span>
-            
-            <!-- 1. Blueprint -->
+            <!-- 1. Technical Classic -->
+            <button 
+              type="button" 
+              onclick="setDrawingStyle('classic')" 
+              id="styleBtnClassic" 
+              class="style-choice-btn px-2 py-1 rounded text-[11px] font-semibold text-slate-300 hover:text-white transition"
+              title="არქიტექტურული თეთრი ტექნიკური ნახაზი"
+            >
+              🏛️ არქიტექტურული
+            </button>
+
+            <!-- 2. Blueprint -->
             <button 
               type="button" 
               onclick="setDrawingStyle('blueprint')" 
@@ -534,29 +632,18 @@
               📐 Blueprint
             </button>
 
-            <!-- 2. Classic B&W -->
-            <button 
-              type="button" 
-              onclick="setDrawingStyle('classic')" 
-              id="styleBtnClassic" 
-              class="style-choice-btn px-2 py-1 rounded text-[11px] font-semibold text-slate-300 hover:text-white transition"
-              title="კლასიკური არქიტექტურული თეთრი ნახაზი"
-            >
-              🏛️ კლასიკური
-            </button>
-
-            <!-- 3. Presentation Colored -->
+            <!-- 3. Presentation -->
             <button 
               type="button" 
               onclick="setDrawingStyle('presentation')" 
               id="styleBtnPresentation" 
               class="style-choice-btn px-2 py-1 rounded text-[11px] font-semibold text-slate-300 hover:text-white transition"
-              title="ფერადი პრეზენტაციული გენგეგმა"
+              title="ფერადი ლანდშაფტური გენგეგმა"
             >
-              🎨 პრეზენტაცია
+              🌿 გენგეგმა
             </button>
 
-            <!-- 4. Satellite Ortho -->
+            <!-- 4. Satellite -->
             <button 
               type="button" 
               onclick="setDrawingStyle('satellite')" 
@@ -566,18 +653,31 @@
             >
               🛰️ სატელიტი
             </button>
+
+            <!-- 5. Dark OLED -->
+            <button 
+              type="button" 
+              onclick="setDrawingStyle('dark')" 
+              id="styleBtnDark" 
+              class="style-choice-btn px-2 py-1 rounded text-[11px] font-semibold text-slate-300 hover:text-white transition"
+              title="თანამედროვე Dark Minimal CAD"
+            >
+              🌑 მუქი
+            </button>
           </div>
 
-          <!-- Scale Selector -->
-          <div class="hidden sm:flex items-center gap-1 bg-[#121d33] px-2 py-1 rounded-lg border border-[#213254]">
+          <!-- Real Functional Architectural Scale Selector -->
+          <div class="flex items-center gap-1 bg-[#121d33] px-2 py-1 rounded-lg border border-[#213254]">
             <i class="fa-solid fa-ruler-combined text-sky-400 text-xs"></i>
             <select id="selCadScale" onchange="changeCadScale(this.value)" class="bg-transparent text-xs font-mono text-slate-200 outline-none cursor-pointer">
               <option value="1:100">M 1:100</option>
               <option value="1:200">M 1:200</option>
               <option value="1:500" selected>M 1:500</option>
               <option value="1:1000">M 1:1000</option>
+              <option value="1:2000">M 1:2000</option>
             </select>
           </div>
+
         </div>
 
       </div>
@@ -589,7 +689,7 @@
         <div id="cadSvgContainer" class="cad-canvas-container">
           <svg id="cadSvgStage" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              <!-- Grid Pattern -->
+              <!-- Grid Patterns -->
               <pattern id="cadGridPatternSmall" width="20" height="20" patternUnits="userSpaceOnUse">
                 <path d="M 20 0 L 0 0 0 20" fill="none" stroke="var(--grid-line)" stroke-width="0.5"/>
               </pattern>
@@ -597,9 +697,20 @@
                 <rect width="100" height="100" fill="url(#cadGridPatternSmall)"/>
                 <path d="M 100 0 L 0 0 0 100" fill="none" stroke="var(--grid-major)" stroke-width="1"/>
               </pattern>
-              <!-- Hatch for Building Footprint -->
-              <pattern id="hatchBuilding" width="10" height="10" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
-                <line x1="0" y1="0" x2="0" y2="10" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" />
+
+              <!-- Architectural Hatches for Building Footprints -->
+              <pattern id="hatchBuildingClassic" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+                <line x1="0" y1="0" x2="0" y2="8" stroke="rgba(15,23,42,0.18)" stroke-width="1" />
+              </pattern>
+              <pattern id="hatchBuildingBlueprint" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+                <line x1="0" y1="0" x2="0" y2="8" stroke="rgba(255,255,255,0.22)" stroke-width="1" />
+              </pattern>
+              <pattern id="hatchGrassPresentation" width="16" height="16" patternUnits="userSpaceOnUse">
+                <circle cx="4" cy="4" r="1" fill="rgba(22,101,52,0.15)"/>
+                <circle cx="12" cy="12" r="1.2" fill="rgba(22,101,52,0.12)"/>
+              </pattern>
+              <pattern id="hatchPaverRoad" width="10" height="6" patternUnits="userSpaceOnUse">
+                <rect width="10" height="6" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
               </pattern>
             </defs>
 
@@ -624,6 +735,9 @@
               <!-- Parking Layer -->
               <g id="parkingLayer"></g>
 
+              <!-- Trees & Landscaping Layer -->
+              <g id="treesLayer"></g>
+
               <!-- Shadow Projection Layer -->
               <g id="shadowsLayer"></g>
 
@@ -633,28 +747,27 @@
               <!-- Dimension Annotations Layer -->
               <g id="dimensionsLayer"></g>
 
+              <!-- Node Numbers Layer -->
+              <g id="nodesLayer"></g>
+
               <!-- Temporary Interactive Drawing / Splitting Line Layer -->
               <g id="interactionLayer"></g>
             </g>
           </svg>
         </div>
 
-        <!-- Floating HUD: Mode Hint & Coordinates -->
-        <div class="absolute bottom-4 left-4 floating-cad-hud px-3.5 py-2 rounded-lg text-xs flex items-center gap-3 z-10 pointer-events-none">
+        <!-- Floating HUD: Mode Hint -->
+        <div class="absolute top-4 left-4 floating-cad-hud px-3.5 py-2 rounded-lg text-xs flex items-center gap-3 z-10 pointer-events-none">
           <div class="flex items-center gap-2">
             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             <span id="lblToolStatusHint" class="text-slate-200 font-medium">მზადაა: აირჩიეთ ინსტრუმენტი ან გადააადგილეთ ლაქა</span>
           </div>
-          <div class="h-3.5 w-px bg-slate-700"></div>
-          <div class="font-mono text-sky-400 text-[11px]" id="lblMouseCoords">
-            X: 0.00 მ | Y: 0.00 მ
-          </div>
         </div>
 
         <!-- Floating HUD: Sun Insolation & Shadow Angle Slider -->
-        <div class="absolute top-4 left-4 floating-cad-hud p-2.5 rounded-lg text-xs z-10 flex items-center gap-2.5">
-          <i class="fa-solid fa-sun text-amber-400 text-sm"></i>
-          <span class="text-[11px] text-slate-300 font-medium">ინსოლაცია:</span>
+        <div class="absolute top-4 right-16 floating-cad-hud p-2 rounded-lg text-xs z-10 flex items-center gap-2">
+          <i class="fa-solid fa-sun text-amber-400 text-xs"></i>
+          <span class="text-[11px] text-slate-300 font-medium hidden sm:inline">ინსოლაცია:</span>
           <input 
             type="range" 
             id="sliderSunAzimuth" 
@@ -662,10 +775,37 @@
             max="360" 
             value="135" 
             oninput="updateSunShadows(this.value)" 
-            class="w-24 accent-amber-400 cursor-pointer"
+            class="w-20 sm:w-24 accent-amber-400 cursor-pointer"
             title="მზის აზიმუტი (ჩრდილის კუთხე)"
           >
-          <span id="lblSunAzimuthVal" class="font-mono text-[11px] text-amber-300 w-8">135°</span>
+          <span id="lblSunAzimuthVal" class="font-mono text-[10px] text-amber-300 w-7">135°</span>
+        </div>
+
+        <!-- Floating HUD: Architectural North Arrow (ჩრდილოეთის ისარი) -->
+        <div class="absolute top-4 right-4 floating-cad-hud w-9 h-9 rounded-lg flex items-center justify-center z-10" title="ჩრდილოეთი (North)">
+          <svg viewBox="0 0 24 24" class="w-6 h-6">
+            <polygon points="12,2 8,22 12,17" fill="#ef4444" />
+            <polygon points="12,2 16,22 12,17" fill="#cbd5e1" />
+            <text x="12" y="8" font-size="5" font-weight="extrabold" fill="#ffffff" text-anchor="middle" font-family="'JetBrains Mono', monospace">N</text>
+          </svg>
+        </div>
+
+        <!-- Floating HUD: Dynamic Graphic Scale Bar (გრაფიკული მასშტაბი) -->
+        <div class="absolute bottom-4 left-4 floating-cad-hud p-2.5 rounded-lg text-xs flex flex-col gap-1.5 z-10 pointer-events-auto">
+          <div class="flex items-center gap-2">
+            <!-- Alternating Scale Bar -->
+            <div id="cadScaleBarGraphic" class="flex items-center h-3 border border-slate-500 rounded overflow-hidden">
+              <div id="scaleSegment1" class="h-full bg-white text-[8px] font-mono text-black font-bold flex items-center justify-center px-1" style="width: 25px;">0</div>
+              <div id="scaleSegment2" class="h-full bg-slate-900 text-[8px] font-mono text-white flex items-center justify-center px-1" style="width: 25px;"></div>
+              <div id="scaleSegment3" class="h-full bg-white text-[8px] font-mono text-black flex items-center justify-center px-1" style="width: 25px;"></div>
+              <div id="scaleSegment4" class="h-full bg-slate-900 text-[8px] font-mono text-white flex items-center justify-center px-1" style="width: 25px;"></div>
+            </div>
+            <span id="lblGraphicScaleUnit" class="font-mono text-[11px] text-slate-300 font-semibold">20 მ</span>
+          </div>
+          <div class="flex items-center justify-between text-[10px] font-mono text-slate-400 gap-3">
+            <span id="lblCurrentScaleRatio" class="text-sky-300 font-bold">M 1:500</span>
+            <span id="lblMouseCoords" class="text-slate-300">X: 0.0მ | Y: 0.0მ</span>
+          </div>
         </div>
 
         <!-- Floating HUD: Zoom Controls -->
@@ -690,7 +830,7 @@
     <aside id="rightZoningSidebar" class="w-80 sm:w-96 flex-none bg-[#0a101d] border-l border-[#1f2e4d] flex flex-col overflow-y-auto z-20">
       
       <!-- Panel Header -->
-      <div class="p-3.5 border-b border-[#1f2e4d] flex items-center justify-between bg-[#0e1628]">
+      <div class="p-3 border-b border-[#1f2e4d] flex items-center justify-between bg-[#0e1628]">
         <div class="flex items-center gap-2">
           <i class="fa-solid fa-chart-pie text-sky-400 text-sm"></i>
           <h2 class="text-xs font-bold uppercase tracking-wider text-slate-200">კოეფიციენტები &amp; პარამეტრები</h2>
@@ -700,10 +840,10 @@
         </button>
       </div>
 
-      <div class="p-4 space-y-4 text-xs">
+      <div class="p-3.5 space-y-3.5 text-xs">
 
         <!-- K-1 (განაშენიანების კოეფიციენტი) Card -->
-        <div class="bg-[#121c33] p-3.5 rounded-lg border border-[#213254]">
+        <div class="bg-[#121c33] p-3 rounded-lg border border-[#213254]">
           <div class="flex items-center justify-between mb-1.5">
             <span class="font-bold text-sky-400 text-xs flex items-center gap-1.5">
               <span class="w-2 h-2 rounded-full bg-sky-400"></span> K-1 განაშენიანება
@@ -715,7 +855,7 @@
           </div>
 
           <!-- K1 Progress Bar -->
-          <div class="w-full h-2 bg-[#09101f] rounded-full overflow-hidden mb-2.5 border border-white/5">
+          <div class="w-full h-2 bg-[#09101f] rounded-full overflow-hidden mb-2 border border-white/5">
             <div id="barK1Progress" class="h-full bg-gradient-to-r from-sky-500 to-cyan-400 metric-bar-fill" style="width: 25%;"></div>
           </div>
 
@@ -737,7 +877,7 @@
         </div>
 
         <!-- K-2 (განაშენიანების ინტენსივობის კოეფიციენტი) Card -->
-        <div class="bg-[#121c33] p-3.5 rounded-lg border border-[#213254]">
+        <div class="bg-[#121c33] p-3 rounded-lg border border-[#213254]">
           <div class="flex items-center justify-between mb-1.5">
             <span class="font-bold text-purple-400 text-xs flex items-center gap-1.5">
               <span class="w-2 h-2 rounded-full bg-purple-400"></span> K-2 ინტენსივობა (GFA)
@@ -749,7 +889,7 @@
           </div>
 
           <!-- K2 Progress Bar -->
-          <div class="w-full h-2 bg-[#09101f] rounded-full overflow-hidden mb-2.5 border border-white/5">
+          <div class="w-full h-2 bg-[#09101f] rounded-full overflow-hidden mb-2 border border-white/5">
             <div id="barK2Progress" class="h-full bg-gradient-to-r from-purple-500 to-pink-500 metric-bar-fill" style="width: 32%;"></div>
           </div>
 
@@ -771,8 +911,8 @@
         </div>
 
         <!-- K-3 (გამწვანების კოეფიციენტი) Card -->
-        <div class="bg-[#121c33] p-3.5 rounded-lg border border-[#213254]">
-          <div class="flex items-center justify-between mb-1.5">
+        <div class="bg-[#121c33] p-3 rounded-lg border border-[#213254]">
+          <div class="flex items-center justify-between mb-1">
             <span class="font-bold text-emerald-400 text-xs flex items-center gap-1.5">
               <span class="w-2 h-2 rounded-full bg-emerald-400"></span> K-3 გამწვანება
             </span>
@@ -782,25 +922,87 @@
             </div>
           </div>
           <div class="flex items-center justify-between text-xs font-mono bg-[#0b1222] p-2 rounded">
-            <span class="text-slate-400">მინიმალური მოთხოვნა:</span>
+            <span class="text-slate-400">სავალდებულო მინიმუმი:</span>
             <span id="lblK3Required" class="text-emerald-300 font-bold">164 მ²</span>
+          </div>
+          <div class="flex items-center justify-between text-[11px] font-mono text-slate-400 mt-1 px-1">
+            <span>დარგული ხეები:</span>
+            <span id="lblPlantedTreesCount" class="text-emerald-400 font-bold">0 ხე (0 მ²)</span>
           </div>
         </div>
 
-        <!-- ACTIVE BUILDING CONTROLS (სიმაღლე, სართულები, დანიშნულება) -->
-        <div class="bg-[#121c33] p-3.5 rounded-lg border border-[#213254] space-y-3">
-          <div class="flex items-center justify-between border-b border-white/10 pb-2">
+        <!-- ACTIVE BUILDING CONTROLS (ზომები, როტაცია, სიმაღლე, სართულები) -->
+        <div class="bg-[#121c33] p-3 rounded-lg border border-[#213254] space-y-2.5">
+          <div class="flex items-center justify-between border-b border-white/10 pb-1.5">
             <span class="font-bold text-white text-xs flex items-center gap-1.5">
               <i class="fa-solid fa-building text-sky-400"></i> შენობის პარამეტრები
             </span>
-            <span id="lblSelectedBuildingName" class="text-[11px] font-mono px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">
+            <span id="lblSelectedBuildingName" class="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">
               შენობა 1
             </span>
           </div>
 
+          <!-- Dimension Resizers (სიგანე W & სიგრძე L) -->
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <div class="flex items-center justify-between text-[11px] mb-0.5">
+                <span class="text-slate-300">სიგანე (W):</span>
+                <span id="lblBuildingWidthVal" class="font-mono text-xs font-bold text-sky-400">15.0 მ</span>
+              </div>
+              <input 
+                type="range" 
+                id="sliderBuildingWidth" 
+                min="6" 
+                max="60" 
+                value="15" 
+                oninput="updateBuildingDimensions(this.value, null)" 
+                class="w-full accent-sky-400 cursor-pointer"
+              >
+            </div>
+            <div>
+              <div class="flex items-center justify-between text-[11px] mb-0.5">
+                <span class="text-slate-300">სიგრძე (L):</span>
+                <span id="lblBuildingLengthVal" class="font-mono text-xs font-bold text-sky-400">12.0 მ</span>
+              </div>
+              <input 
+                type="range" 
+                id="sliderBuildingLength" 
+                min="6" 
+                max="80" 
+                value="12" 
+                oninput="updateBuildingDimensions(null, this.value)" 
+                class="w-full accent-sky-400 cursor-pointer"
+              >
+            </div>
+          </div>
+
+          <!-- Rotation Angle Controls (როტაცია) -->
+          <div>
+            <div class="flex items-center justify-between text-[11px] mb-1">
+              <span class="text-slate-300">როტაცია (კუთხე):</span>
+              <span id="lblBuildingRotationVal" class="font-mono text-xs font-bold text-amber-400">0°</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <input 
+                type="range" 
+                id="sliderBuildingRotation" 
+                min="0" 
+                max="360" 
+                value="0" 
+                oninput="setBuildingRotation(this.value)" 
+                class="flex-1 accent-amber-400 cursor-pointer"
+              >
+              <div class="flex items-center gap-1">
+                <button type="button" onclick="setBuildingRotation(0)" class="px-1.5 py-0.5 rounded bg-[#0b1222] hover:bg-white/10 font-mono text-[10px] text-slate-300">0°</button>
+                <button type="button" onclick="setBuildingRotation(45)" class="px-1.5 py-0.5 rounded bg-[#0b1222] hover:bg-white/10 font-mono text-[10px] text-slate-300">45°</button>
+                <button type="button" onclick="setBuildingRotation(90)" class="px-1.5 py-0.5 rounded bg-[#0b1222] hover:bg-white/10 font-mono text-[10px] text-slate-300">90°</button>
+              </div>
+            </div>
+          </div>
+
           <!-- Floors Count Slider -->
           <div>
-            <div class="flex items-center justify-between text-xs mb-1">
+            <div class="flex items-center justify-between text-xs mb-0.5">
               <span class="text-slate-300">სართულიანობა:</span>
               <div class="flex items-center gap-1">
                 <span id="lblFloorsCountVal" class="font-mono text-sm font-bold text-sky-400">4</span>
@@ -820,34 +1022,31 @@
 
           <!-- Floor-to-Floor Height (სართულის სიმაღლე) -->
           <div>
-            <div class="flex items-center justify-between text-xs mb-1">
+            <div class="flex items-center justify-between text-[11px] mb-1">
               <span class="text-slate-300">სართულის სიმაღლე:</span>
-              <div class="flex items-center gap-1">
-                <span id="lblFloorHeightVal" class="font-mono text-sm font-bold text-sky-400">3.0</span>
-                <span class="text-slate-400 text-[11px]">მ</span>
-              </div>
+              <span id="lblFloorHeightVal" class="font-mono text-xs font-bold text-sky-400">3.0 მ</span>
             </div>
-            <div class="grid grid-cols-4 gap-1.5">
-              <button type="button" onclick="setFloorHeight(2.8)" class="btn-floor-h py-1 text-center rounded bg-[#0b1222] hover:bg-white/10 font-mono text-[11px] border border-white/5">2.8მ</button>
-              <button type="button" onclick="setFloorHeight(3.0)" class="btn-floor-h py-1 text-center rounded bg-sky-500/20 text-sky-300 font-mono text-[11px] border border-sky-500/30 font-bold">3.0მ</button>
-              <button type="button" onclick="setFloorHeight(3.3)" class="btn-floor-h py-1 text-center rounded bg-[#0b1222] hover:bg-white/10 font-mono text-[11px] border border-white/5">3.3მ</button>
-              <button type="button" onclick="setFloorHeight(3.6)" class="btn-floor-h py-1 text-center rounded bg-[#0b1222] hover:bg-white/10 font-mono text-[11px] border border-white/5">3.6მ</button>
+            <div class="grid grid-cols-4 gap-1">
+              <button type="button" onclick="setFloorHeight(2.8)" class="btn-floor-h py-0.5 text-center rounded bg-[#0b1222] hover:bg-white/10 font-mono text-[10px] border border-white/5">2.8მ</button>
+              <button type="button" onclick="setFloorHeight(3.0)" class="btn-floor-h py-0.5 text-center rounded bg-sky-500/20 text-sky-300 font-mono text-[10px] border border-sky-500/30 font-bold">3.0მ</button>
+              <button type="button" onclick="setFloorHeight(3.3)" class="btn-floor-h py-0.5 text-center rounded bg-[#0b1222] hover:bg-white/10 font-mono text-[10px] border border-white/5">3.3მ</button>
+              <button type="button" onclick="setFloorHeight(3.6)" class="btn-floor-h py-0.5 text-center rounded bg-[#0b1222] hover:bg-white/10 font-mono text-[10px] border border-white/5">3.6მ</button>
             </div>
           </div>
 
           <!-- Total Building Height (სრული საპროექტო სიმაღლე H) -->
-          <div class="bg-[#0b1222] p-2.5 rounded border border-white/5 flex items-center justify-between">
+          <div class="bg-[#0b1222] p-2 rounded border border-white/5 flex items-center justify-between">
             <div class="text-slate-400 text-[11px]">სრული სიმაღლე (H):</div>
             <div class="flex items-baseline gap-1 font-mono">
-              <span id="lblTotalHeightVal" class="text-base font-extrabold text-white">12.8</span>
-              <span class="text-xs text-sky-400 font-semibold">მეტრი</span>
+              <span id="lblTotalHeightVal" class="text-sm font-extrabold text-white">12.8</span>
+              <span class="text-[11px] text-sky-400 font-semibold">მეტრი</span>
             </div>
           </div>
 
           <!-- Building Typology / Function -->
           <div>
             <label class="block text-slate-300 text-[11px] mb-1">ფუნქციური დანიშნულება:</label>
-            <select id="selBuildingFunction" onchange="updateBuildingFunction(this.value)" class="w-full bg-[#0b1222] border border-white/10 rounded-md p-2 text-xs text-slate-200 outline-none">
+            <select id="selBuildingFunction" onchange="updateBuildingFunction(this.value)" class="w-full bg-[#0b1222] border border-white/10 rounded p-1.5 text-xs text-slate-200 outline-none">
               <option value="residential">საცხოვრებელი სახლი</option>
               <option value="hotel">სასტუმრო / აპარტ-ოტელი</option>
               <option value="commercial">კომერციული / საოფისე</option>
@@ -857,15 +1056,15 @@
 
           <!-- Setback Line Adjustment (სამეზობლო მიჯნა) -->
           <div>
-            <div class="flex items-center justify-between text-xs mb-1">
+            <div class="flex items-center justify-between text-[11px] mb-1">
               <span class="text-slate-300">მიჯნის დაშორება:</span>
               <span id="lblSetbackDistVal" class="font-mono text-xs font-bold text-rose-400">3.0 მ</span>
             </div>
-            <div class="grid grid-cols-4 gap-1.5">
-              <button type="button" onclick="setSetbackDistance(1.5)" class="py-1 text-center rounded bg-[#0b1222] hover:bg-white/10 font-mono text-[11px] border border-white/5">1.5მ</button>
-              <button type="button" onclick="setSetbackDistance(3.0)" class="py-1 text-center rounded bg-rose-500/20 text-rose-300 font-mono text-[11px] border border-rose-500/30 font-bold">3.0მ</button>
-              <button type="button" onclick="setSetbackDistance(4.0)" class="py-1 text-center rounded bg-[#0b1222] hover:bg-white/10 font-mono text-[11px] border border-white/5">4.0მ</button>
-              <button type="button" onclick="setSetbackDistance(5.0)" class="py-1 text-center rounded bg-[#0b1222] hover:bg-white/10 font-mono text-[11px] border border-white/5">5.0მ</button>
+            <div class="grid grid-cols-4 gap-1">
+              <button type="button" onclick="setSetbackDistance(1.5)" class="py-0.5 text-center rounded bg-[#0b1222] hover:bg-white/10 font-mono text-[10px] border border-white/5">1.5მ</button>
+              <button type="button" onclick="setSetbackDistance(3.0)" class="py-0.5 text-center rounded bg-rose-500/20 text-rose-300 font-mono text-[10px] border border-rose-500/30 font-bold">3.0მ</button>
+              <button type="button" onclick="setSetbackDistance(4.0)" class="py-0.5 text-center rounded bg-[#0b1222] hover:bg-white/10 font-mono text-[10px] border border-white/5">4.0მ</button>
+              <button type="button" onclick="setSetbackDistance(5.0)" class="py-0.5 text-center rounded bg-[#0b1222] hover:bg-white/10 font-mono text-[10px] border border-white/5">5.0მ</button>
             </div>
           </div>
         </div>
@@ -874,11 +1073,11 @@
         <div class="bg-[#121c33] p-3 rounded-lg border border-[#213254]">
           <div class="flex items-center justify-between mb-2">
             <span class="font-bold text-slate-200 text-xs">შენობების ჩამონათვალი (<span id="lblFootprintsCount">1</span>)</span>
-            <button type="button" onclick="addPresetFootprint()" class="text-sky-400 hover:text-sky-300 text-[11px] font-semibold flex items-center gap-1">
+            <button type="button" onclick="addPresetFootprint('rect')" class="text-sky-400 hover:text-sky-300 text-[11px] font-semibold flex items-center gap-1">
               <i class="fa-solid fa-plus text-[10px]"></i> დამატება
             </button>
           </div>
-          <div id="lstBuildingsContainer" class="space-y-1.5 max-h-36 overflow-y-auto">
+          <div id="lstBuildingsContainer" class="space-y-1 max-h-36 overflow-y-auto">
             <!-- Dynamically populated footprint tiles -->
           </div>
         </div>
@@ -889,6 +1088,6 @@
   </div>
 
   <!-- Core JavaScript Logic -->
-  <script src="tsinare.js?v=20260930_1020"></script>
+  <script src="tsinare.js?v=20260930_1045"></script>
 </body>
 </html>
