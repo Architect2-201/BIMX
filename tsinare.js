@@ -72,6 +72,8 @@
     
     // Layer Visibility
     layers: {
+      topography: true,
+      neighborhood: true,
       boundary: true,
       setback: true,
       dimensions: true,
@@ -163,6 +165,8 @@
     els.cadSvgContainer = document.getElementById('cadSvgContainer');
     els.cadSvgStage = document.getElementById('cadSvgStage');
     els.worldGroup = document.getElementById('worldGroup');
+    els.topographyReliefLayer = document.getElementById('topographyReliefLayer');
+    els.neighborhoodContextLayer = document.getElementById('neighborhoodContextLayer');
     els.subParcelsLayer = document.getElementById('subParcelsLayer');
     els.cadastralBoundaryLayer = document.getElementById('cadastralBoundaryLayer');
     els.setbackBoundaryLayer = document.getElementById('setbackBoundaryLayer');
@@ -1232,14 +1236,30 @@
     a.click();
   };
 
-  // --- Architectural Visual Styles Map (24+ Styles including Real Engineering Drawing Plots) ---
+  // --- Architectural Visual Styles Map (30+ Styles including Real Engineering Drawing Plots) ---
   const styleNamesMap = {
+    // Topographic & Relief Themes
+    'topographic': '🗺️ ტოპოგრაფიული გეოდეზია (კლასიკური)',
+    'topo_relief_hypsometric': '⛰️ რელიეფური ჰიფსომეტრია (ფერადი სიმაღლეები)',
+    'topo_cad_dark': '📐 ტოპო-რელიეფი Dark CAD (ნეონ ჰორიზონტალები)',
+    'topo_blueprint': '📜 ტოპო-რელიეფური ბლუპრინტი (Royal Topo)',
+    'topo_slope_analysis': '📐 რელიეფის ქანობების ანალიზი (Slope Map)',
+
+    // Neighborhood & Urban Context Themes
+    'neighborhood_napr': '🏛️ სამეზობლო საკადასტრო GIS (საჯარო რეესტრი)',
+    'neighborhood_urban_dark': '🏙️ სამეზობლო ურბანული Dark (ღამის ქალაქი)',
+    'neighborhood_masterplan': '🌳 სამეზობლო გამწვანებული გენგეგმა',
+    'neighborhood_cadplot': '📄 სამეზობლო Paper Plot (საპროექტო თეთრი)',
+    'neighborhood_satellite': '🛰️ სამეზობლო სატელიტური კონტექსტი',
+
+    // Official & Engineering
     'autocad': '📐 AutoCAD Model Space (შავი CAD)',
     'cadplot': '📄 AutoCAD Paper Plot (თეთრი პლოტი)',
     'napr': '🏛️ საჯარო რეესტრის გეგმა (წითელი ხაზები)',
     'vellum': '📜 არქიტექტურული კალკა & ტუში',
-    'topographic': '🗺️ ტოპოგრაფიული გეოდეზია',
     'masterplan': '🌳 საპრეზენტაციო ფერადი გენგეგმა',
+
+    // Design & Artistic Themes
     'blueprint': '📐 Royal Blueprint (ლურჯი)',
     'classic': '🏛️ არქიტექტურული თეთრი',
     'presentation': '🌿 კლასიკური გენგეგმა',
@@ -1276,6 +1296,18 @@
     const selStyle = document.getElementById('selCadDrawingStyle');
     if (selStyle && selStyle.value !== styleName) {
       selStyle.value = styleName;
+    }
+
+    // Auto-enable corresponding layers when a specialized theme is chosen
+    if (styleName.startsWith('topo') || styleName === 'topographic') {
+      state.layers.topography = true;
+      const chk = document.getElementById('chkLayerTopography');
+      if (chk) chk.checked = true;
+    }
+    if (styleName.startsWith('neighborhood')) {
+      state.layers.neighborhood = true;
+      const chk = document.getElementById('chkLayerNeighborhood');
+      if (chk) chk.checked = true;
     }
 
     renderCadWorld();
@@ -2317,6 +2349,8 @@
   function renderCadWorld() {
     const pxToM = 1 / Math.max(0.001, state.zoomScale);
 
+    renderTopographyRelief(pxToM);
+    renderNeighborhoodContext(pxToM);
     renderCadastralBoundary(pxToM);
     renderSetbackBuffer(pxToM);
     renderSubParcels(pxToM);
@@ -2334,6 +2368,330 @@
     renderDimensions(pxToM);
     renderNodes(pxToM);
     renderInteractionLayer(pxToM);
+  }
+
+  // 0a. Topographic Elevation Contours & Relief Layer (იზოჰიფსები & რელიეფი)
+  function renderTopographyRelief(pxToM) {
+    if (!els.topographyReliefLayer) return;
+    if (!state.layers.topography || !state.boundaryMeters || state.boundaryMeters.length < 3) {
+      els.topographyReliefLayer.innerHTML = '';
+      return;
+    }
+
+    const xs = state.boundaryMeters.map(p => p[0]);
+    const ys = state.boundaryMeters.map(p => p[1]);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const spanX = maxX - minX;
+    const spanY = maxY - minY;
+    const margin = Math.max(45, Math.max(spanX, spanY) * 0.55);
+
+    const x0 = minX - margin;
+    const x1 = maxX + margin;
+    const y0 = minY - margin;
+    const y1 = maxY + margin;
+
+    let html = '';
+
+    // A. Shaded Relief / Hypsometric Underlay (for relief styles)
+    const isHypsometric = state.activeStyle === 'topo_relief_hypsometric';
+    const isSlopeAnalysis = state.activeStyle === 'topo_slope_analysis';
+    const isTopoCadDark = state.activeStyle === 'topo_cad_dark';
+
+    if (isHypsometric || isSlopeAnalysis) {
+      html += `
+        <defs>
+          <linearGradient id="topoHypsometricGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#86efac" stop-opacity="0.32"/>
+            <stop offset="35%" stop-color="#fde047" stop-opacity="0.22"/>
+            <stop offset="70%" stop-color="#fdba74" stop-opacity="0.26"/>
+            <stop offset="100%" stop-color="#f87171" stop-opacity="0.20"/>
+          </linearGradient>
+          <linearGradient id="topoSlopeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.16"/>
+            <stop offset="50%" stop-color="#fbbf24" stop-opacity="0.22"/>
+            <stop offset="100%" stop-color="#ef4444" stop-opacity="0.25"/>
+          </linearGradient>
+        </defs>
+        <rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" fill="${isHypsometric ? 'url(#topoHypsometricGrad)' : 'url(#topoSlopeGrad)'}" rx="${4 * pxToM}" />
+      `;
+    }
+
+    // B. Elevation Contours (ჰორიზონტალები / Isohypses)
+    const numContours = 12;
+    const stepY = (y1 - y0) / (numContours + 1);
+
+    for (let k = 0; k <= numContours; k++) {
+      const baseCy = y0 + k * stepY;
+      const elev = 480 + k * 1.0;
+      const isIndex = (elev % 5 === 0) || (k % 3 === 0);
+
+      const numSegments = 10;
+      const segW = (x1 - x0) / numSegments;
+      let pathD = `M ${x0.toFixed(2)} ${baseCy.toFixed(2)}`;
+
+      for (let s = 1; s <= numSegments; s++) {
+        const curX = x0 + s * segW;
+        const wave = Math.sin((curX * 0.04) + k * 0.45) * (3.5 + (k % 2) * 2.0)
+                   + Math.cos((curX * 0.02) + k * 0.3) * 2.5;
+        const curY = baseCy + wave;
+        pathD += ` L ${curX.toFixed(2)} ${curY.toFixed(2)}`;
+      }
+
+      const strokeCol = isIndex ? 'var(--contour-index, #b45309)' : 'var(--contour-inter, rgba(180,83,9,0.38))';
+      const strokeW = isIndex ? Math.max(0.3, 1.2 * pxToM) : Math.max(0.15, 0.6 * pxToM);
+      const strokeDash = isIndex ? 'none' : (isTopoCadDark ? `${5 * pxToM}, ${2 * pxToM}` : 'none');
+
+      html += `<path d="${pathD}" fill="none" stroke="${strokeCol}" stroke-width="${strokeW}" stroke-dasharray="${strokeDash}" opacity="0.9" />`;
+
+      // Label on Index Contours
+      if (isIndex) {
+        const labelX = minX + spanX * (0.25 + (k % 2) * 0.45);
+        const waveAtLabel = Math.sin((labelX * 0.04) + k * 0.45) * 4.0;
+        const labelY = baseCy + waveAtLabel;
+        const badgeW = 38 * pxToM;
+        const badgeH = 14 * pxToM;
+        const bgFill = isTopoCadDark ? '#07090e' : (state.activeStyle === 'topo_blueprint' ? '#0a1931' : '#ffffff');
+
+        html += `
+          <g transform="translate(${labelX}, ${labelY})">
+            <rect x="${-badgeW / 2}" y="${-badgeH / 2}" width="${badgeW}" height="${badgeH}" rx="${2 * pxToM}" fill="${bgFill}" stroke="${strokeCol}" stroke-width="${0.7 * pxToM}" opacity="0.95" />
+            <text x="0" y="${3 * pxToM}" text-anchor="middle" fill="${strokeCol}" font-size="${7.5 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">${elev.toFixed(1)} მ</text>
+          </g>
+        `;
+      }
+    }
+
+    // C. Spot Elevations (გეოდეზიური საკონტროლო ნიშნულები +486.35)
+    const spotPoints = [
+      { x: minX + spanX * 0.1, y: minY + spanY * 0.15, z: 482.45 },
+      { x: maxX - spanX * 0.1, y: minY + spanY * 0.25, z: 485.80 },
+      { x: minX + spanX * 0.2, y: maxY - spanY * 0.2, z: 488.20 },
+      { x: maxX - spanX * 0.15, y: maxY - spanY * 0.1, z: 491.15 },
+      { x: (minX + maxX) / 2, y: (minY + maxY) / 2, z: 486.60 }
+    ];
+
+    spotPoints.forEach(sp => {
+      const crossSize = 3 * pxToM;
+      const spotCol = isTopoCadDark ? '#10b981' : (state.activeStyle === 'topo_blueprint' ? '#7dd3fc' : '#b45309');
+      html += `
+        <g>
+          <line x1="${sp.x - crossSize}" y1="${sp.y}" x2="${sp.x + crossSize}" y2="${sp.y}" stroke="${spotCol}" stroke-width="${0.9 * pxToM}"/>
+          <line x1="${sp.x}" y1="${sp.y - crossSize}" x2="${sp.x}" y2="${sp.y + crossSize}" stroke="${spotCol}" stroke-width="${0.9 * pxToM}"/>
+          <text x="${sp.x + 4 * pxToM}" y="${sp.y - 2 * pxToM}" fill="${spotCol}" font-size="${7.5 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="600">+${sp.z.toFixed(2)}</text>
+        </g>
+      `;
+    });
+
+    // D. Terrain Slope & Direction Indicator (ქანობის ისარი და კოეფიციენტი)
+    const slopeX = minX - 10 * pxToM;
+    const slopeY = minY - 10 * pxToM;
+    const slopeW = 105 * pxToM;
+    const slopeH = 20 * pxToM;
+    const slopeBg = isTopoCadDark ? 'rgba(7,9,14,0.92)' : 'rgba(255,255,255,0.92)';
+    const slopeBorder = isTopoCadDark ? '#10b981' : '#b45309';
+
+    html += `
+      <g transform="translate(${slopeX}, ${slopeY})">
+        <rect x="0" y="0" width="${slopeW}" height="${slopeH}" rx="${4 * pxToM}" fill="${slopeBg}" stroke="${slopeBorder}" stroke-width="${0.8 * pxToM}" />
+        <text x="${8 * pxToM}" y="${13.5 * pxToM}" fill="${slopeBorder}" font-size="${8.5 * pxToM}" font-family="Inter, sans-serif" font-weight="bold">↘ ქანობი: i = 3.8% (NE)</text>
+      </g>
+    `;
+
+    els.topographyReliefLayer.innerHTML = html;
+  }
+
+  // 0b. Neighboring Parcels & Neighboring Buildings Layer (სამეზობლო ნაკვეთები & შენობები)
+  function renderNeighborhoodContext(pxToM) {
+    if (!els.neighborhoodContextLayer) return;
+    if (!state.layers.neighborhood || !state.boundaryMeters || state.boundaryMeters.length < 3) {
+      els.neighborhoodContextLayer.innerHTML = '';
+      return;
+    }
+
+    const xs = state.boundaryMeters.map(p => p[0]);
+    const ys = state.boundaryMeters.map(p => p[1]);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+
+    const baseCode = state.cadastralCode || '01.14.11.059.039';
+    const parts = baseCode.split('.');
+    const lastNum = parseInt(parts[parts.length - 1], 10) || 39;
+    const prefix = parts.slice(0, parts.length - 1).join('.');
+
+    // Generate 4 surrounding adjacent parcels (North, East, South, West)
+    const neighborParcels = [
+      {
+        id: 'nb_north',
+        code: `${prefix}.${String(lastNum + 2).padStart(3, '0')}`,
+        label: 'სამეზობლო ნაკვეთი (ჩრდილოეთი)',
+        points: [
+          [minX - 15, minY - 35],
+          [maxX + 20, minY - 35],
+          [maxX + 15, minY - 1],
+          [minX - 10, minY - 1]
+        ],
+        center: [cx, minY - 18]
+      },
+      {
+        id: 'nb_east',
+        code: `${prefix}.${String(lastNum + 1).padStart(3, '0')}`,
+        label: 'სამეზობლო ნაკვეთი (აღმოსავლეთი)',
+        points: [
+          [maxX + 1, minY - 5],
+          [maxX + 45, minY - 5],
+          [maxX + 45, maxY + 20],
+          [maxX + 1, maxY + 5]
+        ],
+        center: [maxX + 22, cy]
+      },
+      {
+        id: 'nb_south',
+        code: `${prefix}.${String(Math.max(1, lastNum - 4)).padStart(3, '0')}`,
+        label: 'სამეზობლო ნაკვეთი (სამხრეთი)',
+        points: [
+          [minX - 25, maxY + 1],
+          [maxX + 15, maxY + 1],
+          [maxX + 10, maxY + 40],
+          [minX - 20, maxY + 40]
+        ],
+        center: [cx, maxY + 20]
+      },
+      {
+        id: 'nb_west',
+        code: `${prefix}.${String(Math.max(1, lastNum - 1)).padStart(3, '0')}`,
+        label: 'სამეზობლო ნაკვეთი (დასავლეთი)',
+        points: [
+          [minX - 45, minY - 10],
+          [minX - 1, minY - 5],
+          [minX - 1, maxY + 15],
+          [minX - 45, maxY + 10]
+        ],
+        center: [minX - 22, cy]
+      }
+    ];
+
+    let html = '';
+
+    // A. Neighbor Parcels Polygons & Badges
+    neighborParcels.forEach(np => {
+      const ptsStr = np.points.map(p => `${p[0]},${p[1]}`).join(' ');
+      const strokeW = Math.max(0.25, 1.1 * pxToM);
+      const dash = `${6 * pxToM}, ${4 * pxToM}`;
+
+      html += `
+        <polygon points="${ptsStr}" fill="var(--neighbor-fill, rgba(241,245,249,0.35))" stroke="var(--neighbor-stroke, #64748b)" stroke-width="${strokeW}" stroke-dasharray="${dash}" opacity="0.85" />
+      `;
+
+      // Cadastral number badge inside neighbor parcel
+      const badgeW = 95 * pxToM;
+      const badgeH = 22 * pxToM;
+      html += `
+        <g transform="translate(${np.center[0]}, ${np.center[1]})">
+          <rect x="${-badgeW / 2}" y="${-badgeH / 2}" width="${badgeW}" height="${badgeH}" rx="${3 * pxToM}" fill="rgba(15,23,42,0.85)" stroke="var(--neighbor-stroke, #64748b)" stroke-width="${0.7 * pxToM}" />
+          <text x="0" y="${-1 * pxToM}" text-anchor="middle" fill="#ffffff" font-size="${8 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">${np.code}</text>
+          <text x="0" y="${7.5 * pxToM}" text-anchor="middle" fill="#94a3b8" font-size="${6.5 * pxToM}" font-family="Inter, sans-serif">${np.label}</text>
+        </g>
+      `;
+    });
+
+    // B. Surrounding Existing Buildings (სამეზობლო შენობები)
+    const neighborBuildings = [
+      {
+        id: 'nb_bldg_1',
+        name: 'მეზობელი №40',
+        type: 'საცხოვრებელი',
+        heightM: 9.5,
+        floors: 3,
+        cx: maxX + 18,
+        cy: cy - 10,
+        w: 16,
+        l: 12,
+        rot: 12,
+        distToBoundary: 5.8,
+        dimP1: [maxX + 10, cy - 10],
+        dimP2: [maxX + 1, cy - 10]
+      },
+      {
+        id: 'nb_bldg_2',
+        name: 'მეზობელი №38',
+        type: 'კერძო სახლი',
+        heightM: 6.8,
+        floors: 2,
+        cx: minX - 18,
+        cy: cy + 8,
+        w: 14,
+        l: 10,
+        rot: -18,
+        distToBoundary: 6.2,
+        dimP1: [minX - 11, cy + 8],
+        dimP2: [minX - 1, cy + 8]
+      },
+      {
+        id: 'nb_bldg_3',
+        name: 'მეზობელი №41',
+        type: 'ავტოფარეხი',
+        heightM: 3.5,
+        floors: 1,
+        cx: cx + 12,
+        cy: minY - 18,
+        w: 12,
+        l: 8,
+        rot: 5,
+        distToBoundary: 4.8,
+        dimP1: [cx + 12, minY - 14],
+        dimP2: [cx + 12, minY - 1]
+      }
+    ];
+
+    neighborBuildings.forEach(nb => {
+      const rad = (nb.rot * Math.PI) / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+      const hw = nb.w / 2;
+      const hl = nb.l / 2;
+
+      const corners = [
+        [-hw, -hl], [hw, -hl], [hw, hl], [-hw, hl]
+      ].map(([x, y]) => [
+        nb.cx + x * cos - y * sin,
+        nb.cy + x * sin + y * cos
+      ]);
+
+      const ptsStr = corners.map(p => `${p[0]},${p[1]}`).join(' ');
+      const strokeW = Math.max(0.3, 1.3 * pxToM);
+
+      html += `
+        <g>
+          <!-- Building Footprint -->
+          <polygon points="${ptsStr}" fill="var(--neighbor-bldg, rgba(148,163,184,0.35))" stroke="var(--neighbor-bldg-stroke, #475569)" stroke-width="${strokeW}" stroke-linejoin="round" />
+          <!-- Roof ridge line -->
+          <line x1="${(corners[0][0] + corners[3][0]) / 2}" y1="${(corners[0][1] + corners[3][1]) / 2}" x2="${(corners[1][0] + corners[2][0]) / 2}" y2="${(corners[1][1] + corners[2][1]) / 2}" stroke="var(--neighbor-bldg-stroke, #475569)" stroke-width="${0.7 * pxToM}" stroke-dasharray="${3 * pxToM}, ${2 * pxToM}" />
+          <!-- Info Tag -->
+          <text x="${nb.cx}" y="${nb.cy - 1 * pxToM}" text-anchor="middle" fill="#ffffff" font-size="${7.5 * pxToM}" font-family="Inter, sans-serif" font-weight="bold">${nb.name}</text>
+          <text x="${nb.cx}" y="${nb.cy + 7 * pxToM}" text-anchor="middle" fill="#cbd5e1" font-size="${6.5 * pxToM}" font-family="Inter, sans-serif">H: ${nb.heightM}მ (${nb.floors}ს)</text>
+        </g>
+      `;
+
+      // Setback Distance Measurement Line to Site Boundary
+      if (nb.dimP1 && nb.dimP2) {
+        const mx = (nb.dimP1[0] + nb.dimP2[0]) / 2;
+        const my = (nb.dimP1[1] + nb.dimP2[1]) / 2;
+        html += `
+          <g>
+            <line x1="${nb.dimP1[0]}" y1="${nb.dimP1[1]}" x2="${nb.dimP2[0]}" y2="${nb.dimP2[1]}" stroke="#f43f5e" stroke-width="${0.8 * pxToM}" stroke-dasharray="${2 * pxToM}, ${2 * pxToM}" />
+            <circle cx="${nb.dimP1[0]}" cy="${nb.dimP1[1]}" r="${1.5 * pxToM}" fill="#f43f5e"/>
+            <circle cx="${nb.dimP2[0]}" cy="${nb.dimP2[1]}" r="${1.5 * pxToM}" fill="#f43f5e"/>
+            <rect x="${mx - 15 * pxToM}" y="${my - 6 * pxToM}" width="${30 * pxToM}" height="${12 * pxToM}" rx="${2 * pxToM}" fill="rgba(10,16,28,0.85)" stroke="#f43f5e" stroke-width="${0.5 * pxToM}"/>
+            <text x="${mx}" y="${my + 2.5 * pxToM}" text-anchor="middle" fill="#f43f5e" font-size="${6.5 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">↔ ${nb.distToBoundary}მ</text>
+          </g>
+        `;
+      }
+    });
+
+    els.neighborhoodContextLayer.innerHTML = html;
   }
 
   // 1. Cadastral Boundary Layer

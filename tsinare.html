@@ -698,9 +698,9 @@
       --terrace-fill: #92400e;
     }
 
-    /* 5. Topographic Survey (ტოპოგრაფიული გეოდეზიური გეგმა) */
+    /* 5. Topographic Survey (ტოპოგრაფიული გეოდეზიური გეგმა - კლასიკური) */
     .style-topographic {
-      --canvas-bg: #f4f6f8;
+      --canvas-bg: #f8fafc;
       --grid-line: rgba(30, 58, 138, 0.04);
       --grid-major: rgba(180, 83, 9, 0.12);
       --parcel-fill: rgba(239, 246, 255, 0.65);
@@ -717,6 +717,255 @@
       --tree-fill: #15803d;
       --water-fill: #0284c7;
       --terrace-fill: #b45309;
+      --contour-index: #b45309;
+      --contour-inter: rgba(180, 83, 9, 0.45);
+      --neighbor-stroke: #64748b;
+      --neighbor-fill: rgba(241, 245, 249, 0.45);
+      --neighbor-bldg: rgba(148, 163, 184, 0.35);
+      --neighbor-bldg-stroke: #475569;
+    }
+
+    /* 5b. Topo Relief Hypsometric (რელიეფური ჰიფსომეტრია / სიმაღლებრივი ფერები) */
+    .style-topo_relief_hypsometric {
+      --canvas-bg: #f4efe6;
+      --grid-line: rgba(120, 53, 15, 0.04);
+      --grid-major: rgba(120, 53, 15, 0.12);
+      --parcel-fill: rgba(255, 255, 255, 0.55);
+      --parcel-stroke: #0f172a;
+      --setback-stroke: #dc2626;
+      --footprint-fill: #ffffff;
+      --footprint-stroke: #0f172a;
+      --text-color: #451a03;
+      --road-fill: #cbd5e1;
+      --road-stripe: #f59e0b;
+      --walkway-fill: #fef3c7;
+      --walkway-stroke: #d97706;
+      --parking-fill: #94a3b8;
+      --tree-fill: #15803d;
+      --water-fill: #0284c7;
+      --terrace-fill: #b45309;
+      --contour-index: #78350f;
+      --contour-inter: rgba(146, 64, 14, 0.55);
+      --neighbor-stroke: #78716c;
+      --neighbor-fill: rgba(231, 229, 228, 0.4);
+      --neighbor-bldg: rgba(168, 162, 158, 0.4);
+      --neighbor-bldg-stroke: #57534e;
+    }
+
+    /* 5c. Topo CAD Dark (შავი CAD ტოპო-რელიეფი / ნეონ ჰორიზონტალები) */
+    .style-topo_cad_dark {
+      --canvas-bg: #07090e;
+      --grid-line: rgba(16, 185, 129, 0.05);
+      --grid-major: rgba(6, 182, 212, 0.16);
+      --parcel-fill: rgba(6, 182, 212, 0.08);
+      --parcel-stroke: #00e5ff;
+      --setback-stroke: #ff3344;
+      --footprint-fill: rgba(253, 224, 71, 0.22);
+      --footprint-stroke: #ffff00;
+      --text-color: #10b981;
+      --road-fill: #1e293b;
+      --road-stripe: #ffffff;
+      --walkway-fill: #162032;
+      --walkway-stroke: #06b6d4;
+      --parking-fill: #2563eb;
+      --tree-fill: #00ff66;
+      --water-fill: #00bfff;
+      --terrace-fill: #f59e0b;
+      --contour-index: #10b981;
+      --contour-inter: rgba(16, 185, 129, 0.4);
+      --neighbor-stroke: #334155;
+      --neighbor-fill: rgba(15, 23, 42, 0.55);
+      --neighbor-bldg: rgba(30, 41, 59, 0.65);
+      --neighbor-bldg-stroke: #64748b;
+    }
+
+    /* 5d. Topo Royal Blueprint (ლურჯი საინჟინრო ტოპო-ბლუპრინტი) */
+    .style-topo_blueprint {
+      --canvas-bg: #0a1931;
+      --grid-line: rgba(56, 189, 248, 0.08);
+      --grid-major: rgba(56, 189, 248, 0.22);
+      --parcel-fill: rgba(56, 189, 248, 0.1);
+      --parcel-stroke: #38bdf8;
+      --setback-stroke: #f43f5e;
+      --footprint-fill: rgba(255, 255, 255, 0.2);
+      --footprint-stroke: #ffffff;
+      --text-color: #bae6fd;
+      --road-fill: #0f274a;
+      --road-stripe: #38bdf8;
+      --walkway-fill: #13335e;
+      --walkway-stroke: #7dd3fc;
+      --parking-fill: #1e40af;
+      --tree-fill: #34d399;
+      --water-fill: #38bdf8;
+      --terrace-fill: #fbbf24;
+      --contour-index: #7dd3fc;
+      --contour-inter: rgba(125, 211, 252, 0.35);
+      --neighbor-stroke: #1e3a8a;
+      --neighbor-fill: rgba(15, 23, 42, 0.45);
+      --neighbor-bldg: rgba(30, 58, 138, 0.45);
+      --neighbor-bldg-stroke: #60a5fa;
+    }
+
+    /* 5e. Topo Slope Analysis (რელიეფის ქანობების ანალიზი) */
+    .style-topo_slope_analysis {
+      --canvas-bg: #0f172a;
+      --grid-line: rgba(255, 255, 255, 0.04);
+      --grid-major: rgba(245, 158, 11, 0.14);
+      --parcel-fill: rgba(245, 158, 11, 0.08);
+      --parcel-stroke: #f59e0b;
+      --setback-stroke: #ef4444;
+      --footprint-fill: rgba(255, 255, 255, 0.25);
+      --footprint-stroke: #ffffff;
+      --text-color: #fbbf24;
+      --road-fill: #1e293b;
+      --road-stripe: #ffffff;
+      --walkway-fill: #334155;
+      --walkway-stroke: #f59e0b;
+      --parking-fill: #475569;
+      --tree-fill: #22c55e;
+      --water-fill: #06b6d4;
+      --terrace-fill: #d97706;
+      --contour-index: #f59e0b;
+      --contour-inter: rgba(245, 158, 11, 0.42);
+      --neighbor-stroke: #475569;
+      --neighbor-fill: rgba(30, 41, 59, 0.4);
+      --neighbor-bldg: rgba(51, 65, 85, 0.55);
+      --neighbor-bldg-stroke: #94a3b8;
+    }
+
+    /* 6a. Neighborhood NAPR Cadastral (სამეზობლო საჯარო რეესტრის GIS გეგმა) */
+    .style-neighborhood_napr {
+      --canvas-bg: #fdfbf7;
+      --grid-line: rgba(220, 38, 38, 0.03);
+      --grid-major: rgba(30, 58, 138, 0.08);
+      --parcel-fill: rgba(254, 226, 226, 0.35);
+      --parcel-stroke: #dc2626;
+      --setback-stroke: #d97706;
+      --footprint-fill: rgba(30, 58, 138, 0.15);
+      --footprint-stroke: #1e3a8a;
+      --text-color: #991b1b;
+      --road-fill: #e2e8f0;
+      --road-stripe: #dc2626;
+      --walkway-fill: #f1f5f9;
+      --walkway-stroke: #64748b;
+      --parking-fill: #94a3b8;
+      --tree-fill: #16a34a;
+      --water-fill: #0284c7;
+      --terrace-fill: #d97706;
+      --contour-index: #b45309;
+      --contour-inter: rgba(180, 83, 9, 0.35);
+      --neighbor-stroke: #b91c1c;
+      --neighbor-fill: rgba(254, 242, 242, 0.55);
+      --neighbor-bldg: rgba(203, 213, 225, 0.7);
+      --neighbor-bldg-stroke: #475569;
+    }
+
+    /* 6b. Neighborhood Urban Dark (სამეზობლო ურბანული Dark CAD) */
+    .style-neighborhood_urban_dark {
+      --canvas-bg: #080c14;
+      --grid-line: rgba(255, 255, 255, 0.04);
+      --grid-major: rgba(56, 189, 248, 0.15);
+      --parcel-fill: rgba(14, 165, 233, 0.12);
+      --parcel-stroke: #38bdf8;
+      --setback-stroke: #f43f5e;
+      --footprint-fill: rgba(253, 224, 71, 0.25);
+      --footprint-stroke: #fde047;
+      --text-color: #38bdf8;
+      --road-fill: #131c2e;
+      --road-stripe: #ffffff;
+      --walkway-fill: #18233a;
+      --walkway-stroke: #0284c7;
+      --parking-fill: #2563eb;
+      --tree-fill: #10b981;
+      --water-fill: #06b6d4;
+      --terrace-fill: #f59e0b;
+      --contour-index: #0284c7;
+      --contour-inter: rgba(2, 132, 199, 0.35);
+      --neighbor-stroke: #334155;
+      --neighbor-fill: rgba(15, 23, 42, 0.7);
+      --neighbor-bldg: rgba(30, 41, 59, 0.75);
+      --neighbor-bldg-stroke: #64748b;
+    }
+
+    /* 6c. Neighborhood Masterplan (სამეზობლო გამწვანებული გენგეგმა) */
+    .style-neighborhood_masterplan {
+      --canvas-bg: #f8fafc;
+      --grid-line: rgba(22, 101, 52, 0.04);
+      --grid-major: rgba(22, 101, 52, 0.10);
+      --parcel-fill: #dcfce7;
+      --parcel-stroke: #166534;
+      --setback-stroke: #dc2626;
+      --footprint-fill: #ffffff;
+      --footprint-stroke: #0f172a;
+      --text-color: #0f172a;
+      --road-fill: #334155;
+      --road-stripe: #ffffff;
+      --walkway-fill: #fef08a;
+      --walkway-stroke: #ca8a04;
+      --parking-fill: #475569;
+      --tree-fill: #16a34a;
+      --water-fill: #0ea5e9;
+      --terrace-fill: #f59e0b;
+      --contour-index: #15803d;
+      --contour-inter: rgba(21, 128, 61, 0.35);
+      --neighbor-stroke: #64748b;
+      --neighbor-fill: rgba(241, 245, 249, 0.65);
+      --neighbor-bldg: rgba(226, 232, 240, 0.85);
+      --neighbor-bldg-stroke: #475569;
+    }
+
+    /* 6d. Neighborhood Cad Plot (სამეზობლო საპროექტო თეთრი პლოტი) */
+    .style-neighborhood_cadplot {
+      --canvas-bg: #ffffff;
+      --grid-line: rgba(15, 23, 42, 0.04);
+      --grid-major: rgba(15, 23, 42, 0.09);
+      --parcel-fill: #fafafa;
+      --parcel-stroke: #000000;
+      --setback-stroke: #dc2626;
+      --footprint-fill: #f4f4f5;
+      --footprint-stroke: #000000;
+      --text-color: #000000;
+      --road-fill: #e5e7eb;
+      --road-stripe: #6b7280;
+      --walkway-fill: #f3f4f6;
+      --walkway-stroke: #374151;
+      --parking-fill: #94a3b8;
+      --tree-fill: #15803d;
+      --water-fill: #0284c7;
+      --terrace-fill: #b45309;
+      --contour-index: #475569;
+      --contour-inter: rgba(71, 85, 105, 0.35);
+      --neighbor-stroke: #94a3b8;
+      --neighbor-fill: #f8fafc;
+      --neighbor-bldg: #e2e8f0;
+      --neighbor-bldg-stroke: #334155;
+    }
+
+    /* 6e. Neighborhood Satellite (სამეზობლო სატელიტური კონტექსტი) */
+    .style-neighborhood_satellite {
+      --canvas-bg: #0b1118;
+      --grid-line: rgba(255, 255, 255, 0.05);
+      --grid-major: rgba(250, 204, 21, 0.18);
+      --parcel-fill: rgba(250, 204, 21, 0.12);
+      --parcel-stroke: #facc15;
+      --setback-stroke: #ef4444;
+      --footprint-fill: rgba(56, 189, 248, 0.28);
+      --footprint-stroke: #38bdf8;
+      --text-color: #facc15;
+      --road-fill: #1e293b;
+      --road-stripe: #facc15;
+      --walkway-fill: #334155;
+      --walkway-stroke: #94a3b8;
+      --parking-fill: #0284c7;
+      --tree-fill: #22c55e;
+      --water-fill: #06b6d4;
+      --terrace-fill: #d97706;
+      --contour-index: #38bdf8;
+      --contour-inter: rgba(56, 189, 248, 0.35);
+      --neighbor-stroke: rgba(250, 204, 21, 0.45);
+      --neighbor-fill: rgba(15, 23, 42, 0.55);
+      --neighbor-bldg: rgba(30, 41, 59, 0.7);
+      --neighbor-bldg-stroke: #94a3b8;
     }
 
     /* 6. Presentation Masterplan Pro (პრეზენტაციული ფერადი გენგეგმა) */
@@ -1220,12 +1469,25 @@
           <div class="flex items-center gap-1.5 bg-[#121d33] px-2 py-0.5 rounded border border-[#213254]">
             <i class="fa-solid fa-palette text-amber-400 text-xs"></i>
             <select id="selCadDrawingStyle" onchange="setDrawingStyle(this.value)" class="bg-transparent text-xs font-semibold text-slate-200 outline-none cursor-pointer max-w-[170px]">
+              <optgroup label="🗺️ ტოპოგრაფიული &amp; რელიეფური იერსახეები">
+                <option value="topographic">🗺️ ტოპოგრაფიული გეოდეზია (კლასიკური)</option>
+                <option value="topo_relief_hypsometric">⛰️ რელიეფური ჰიფსომეტრია (ფერადი სიმაღლეები)</option>
+                <option value="topo_cad_dark">📐 ტოპო-რელიეფი Dark CAD (ნეონ ჰორიზონტალები)</option>
+                <option value="topo_blueprint">📜 ტოპო-რელიეფური ბლუპრინტი (Royal Topo)</option>
+                <option value="topo_slope_analysis">📐 რელიეფის ქანობების ანალიზი (Slope Map)</option>
+              </optgroup>
+              <optgroup label="🏘️ სამეზობლო გარემო &amp; ურბანული კონტექსტი">
+                <option value="neighborhood_napr">🏛️ სამეზობლო საკადასტრო GIS (საჯარო რეესტრი)</option>
+                <option value="neighborhood_urban_dark">🏙️ სამეზობლო ურბანული Dark (ღამის ქალაქი)</option>
+                <option value="neighborhood_masterplan">🌳 სამეზობლო გამწვანებული გენგეგმა</option>
+                <option value="neighborhood_cadplot">📄 სამეზობლო Paper Plot (საპროექტო თეთრი)</option>
+                <option value="neighborhood_satellite">🛰️ სამეზობლო სატელიტური კონტექსტი</option>
+              </optgroup>
               <optgroup label="📋 საპროექტო &amp; ოფიციალური ნახაზები">
                 <option value="autocad">📐 AutoCAD Model Space (შავი CAD)</option>
                 <option value="cadplot">📄 AutoCAD Paper Plot (თეთრი პლოტი)</option>
                 <option value="napr">🏛️ საჯარო რეესტრის გეგმა (წითელი ხაზები)</option>
                 <option value="vellum">📜 არქიტექტურული კალკა &amp; ტუში</option>
-                <option value="topographic">🗺️ ტოპოგრაფიული გეოდეზია</option>
                 <option value="masterplan">🌳 საპრეზენტაციო ფერადი გენგეგმა</option>
               </optgroup>
               <optgroup label="🎨 დიზაინ &amp; CAD თემები">
@@ -1278,6 +1540,14 @@
               <i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
             </button>
             <div id="dropdownLayersMenu" class="cad-menu-popup hidden absolute right-0 top-full mt-1 min-w-[280px] max-w-xs bg-[#0d1629] border border-[#243557] rounded-lg shadow-2xl p-2.5 z-50 space-y-2 text-xs">
+              <label class="flex items-center gap-2 text-slate-200 cursor-pointer hover:text-white font-medium bg-amber-500/10 p-1 rounded border border-amber-500/20">
+                <input type="checkbox" id="chkLayerTopography" checked onchange="toggleLayer('topography', this.checked)" class="accent-amber-400">
+                <span>🗺️ ტოპოგრაფია &amp; რელიეფი (ჰორიზონტალები)</span>
+              </label>
+              <label class="flex items-center gap-2 text-slate-200 cursor-pointer hover:text-white font-medium bg-sky-500/10 p-1 rounded border border-sky-500/20">
+                <input type="checkbox" id="chkLayerNeighborhood" checked onchange="toggleLayer('neighborhood', this.checked)" class="accent-sky-400">
+                <span>🏘️ სამეზობლო ნაკვეთები &amp; შენობები</span>
+              </label>
               <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
                 <input type="checkbox" id="chkLayerBoundary" checked onchange="toggleLayer('boundary', this.checked)" class="accent-sky-400">
                 <span>საკადასტრო საზღვარი</span>
@@ -1420,6 +1690,12 @@
 
             <!-- Main World Transform Group (Pan & Zoom) -->
             <g id="worldGroup">
+              <!-- Topography & Relief Isohypses Layer -->
+              <g id="topographyReliefLayer"></g>
+
+              <!-- Neighboring Parcels & Buildings (სამეზობლო გარემო) Layer -->
+              <g id="neighborhoodContextLayer"></g>
+
               <!-- Sub-parcels (when split) Layer -->
               <g id="subParcelsLayer"></g>
 
