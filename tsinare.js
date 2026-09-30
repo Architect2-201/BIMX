@@ -2130,6 +2130,56 @@
     }
   }
 
+  // --- CAD Ribbon Tab Switcher ---
+  window.switchCadRibbonTab = function (tabName) {
+    const tabs = ['cad_draw', 'buildings', 'cad_modify', 'contour_edit', 'site_env'];
+    tabs.forEach(t => {
+      const panel = document.getElementById(`panel_${t}`);
+      const btn = document.getElementById(`tabBtn_${t}`);
+      if (panel) {
+        if (t === tabName) {
+          panel.classList.remove('hidden');
+        } else {
+          panel.classList.add('hidden');
+        }
+      }
+      if (btn) {
+        if (t === tabName) {
+          btn.className = 'btn-ribbon-tab h-7 px-2.5 rounded text-xs flex items-center gap-1.5 transition bg-sky-500/25 border border-sky-400 text-sky-300 font-bold';
+        } else {
+          btn.className = 'btn-ribbon-tab h-7 px-2.5 rounded text-xs flex items-center gap-1.5 transition bg-[#142036] border border-[#223354] text-slate-300 hover:text-white';
+        }
+      }
+    });
+  };
+
+  // --- Quick Parameter Helpers for Ribbon Tier 2 Inputs ---
+  window.applyQuickRoadWidth = function (val) {
+    const w = parseFloat(val) || 6.0;
+    state.activeRoadWidth = w;
+  };
+  window.applyQuickWalkwayWidth = function (val) {
+    const w = parseFloat(val) || 1.8;
+    state.activeWalkwayWidth = w;
+  };
+  window.applyQuickTreeDiam = function (val) {
+    const d = parseFloat(val) || 5.0;
+    state.activeTreeRadius = d / 2;
+  };
+  window.applyQuickBuildingDim = function () {
+    const w = parseFloat(document.getElementById('quickBldW')?.value) || 15;
+    const l = parseFloat(document.getElementById('quickBldL')?.value) || 12;
+    state.stampWidth = w;
+    state.stampLength = l;
+    if (els.inputNumBuildingWidth) els.inputNumBuildingWidth.value = w;
+    if (els.inputNumBuildingLength) els.inputNumBuildingLength.value = l;
+  };
+  window.applyQuickBuildingFloors = function () {
+    const f = parseInt(document.getElementById('quickBldFloors')?.value, 10) || 4;
+    state.stampFloors = f;
+    if (els.inputNumBuildingFloors) els.inputNumBuildingFloors.value = f;
+  };
+
   // --- Tools Activation ---
   window.setCadActiveTool = function (toolName) {
     state.activeTool = toolName;
@@ -2145,8 +2195,48 @@
     state.isFreehandDrawing = false;
     state.activeSnap = null;
 
+    if (toolName === 'footprint_vertex') {
+      state.footprintEditMode = true;
+    } else {
+      state.footprintEditMode = false;
+    }
+
     if (els.cadDynamicHud) els.cadDynamicHud.classList.add('hidden');
     if (els.cadOsnapTooltip) els.cadOsnapTooltip.classList.add('hidden');
+
+    // Auto-switch ribbon tab based on active tool category
+    const toolToTabMap = {
+      'draw_cad_line': 'cad_draw',
+      'draw_cad_polyline': 'cad_draw',
+      'draw_cad_arc': 'cad_draw',
+      'draw_cad_circle': 'cad_draw',
+      'draw_cad_hatch': 'cad_draw',
+      'draw_cad_freehand': 'cad_draw',
+      'draw_rect_footprint': 'buildings',
+      'draw_polygon': 'buildings',
+      'draw_footprint': 'buildings',
+      'stamp_footprint': 'buildings',
+      'cad_offset': 'cad_modify',
+      'cad_trim': 'cad_modify',
+      'cad_extend': 'cad_modify',
+      'cad_mirror': 'cad_modify',
+      'cad_array': 'cad_modify',
+      'footprint_vertex': 'contour_edit',
+      'footprint_cutout': 'contour_edit',
+      'draw_road': 'site_env',
+      'walkway': 'site_env',
+      'bike_path': 'site_env',
+      'parking': 'site_env',
+      'tree': 'site_env',
+      'pine_tree': 'site_env',
+      'water': 'site_env',
+      'terrace': 'site_env',
+      'split': 'site_env',
+      'ruler': 'site_env'
+    };
+    if (toolToTabMap[toolName]) {
+      window.switchCadRibbonTab(toolToTabMap[toolName]);
+    }
 
     document.querySelectorAll('.btn-cad-tool').forEach(btn => btn.classList.remove('btn-tool-active'));
     const btnMap = {
@@ -2155,28 +2245,30 @@
       'split': 'toolBtnSplit',
       'draw_footprint': 'toolBtnDrawFootprint',
       'draw_polygon': 'toolBtnDrawFootprint',
-      'draw_rect_footprint': 'toolBtnDrawFootprint',
+      'draw_rect_footprint': 'toolBtnDrawRectFootprint',
+      'stamp_footprint': 'toolBtnStampFootprint',
       'tree': 'toolBtnTree',
-      'pine_tree': 'toolBtnTree',
+      'pine_tree': 'toolBtnPineTree',
       'water': 'toolBtnWater',
       'terrace': 'toolBtnTerrace',
       'walkway': 'toolBtnWalkway',
-      'bike_path': 'toolBtnWalkway',
+      'bike_path': 'toolBtnBikePath',
       'draw_road': 'toolBtnDrawRoad',
       'parking': 'toolBtnParking',
       'ruler': 'toolBtnRuler',
-      'draw_cad_line': 'btnCadDrawMenu',
-      'draw_cad_polyline': 'btnCadDrawMenu',
-      'draw_cad_arc': 'btnCadDrawMenu',
-      'draw_cad_circle': 'btnCadDrawMenu',
-      'draw_cad_hatch': 'btnCadDrawMenu',
-      'draw_cad_freehand': 'btnCadDrawMenu',
-      'cad_offset': 'btnCadModifyMenu',
-      'cad_trim': 'btnCadModifyMenu',
-      'cad_extend': 'btnCadModifyMenu',
-      'cad_mirror': 'btnCadModifyMenu',
-      'cad_array': 'btnCadModifyMenu',
-      'footprint_cutout': 'btnFootprintEditMenu'
+      'draw_cad_line': 'toolBtnCadLine',
+      'draw_cad_polyline': 'toolBtnCadPolyline',
+      'draw_cad_arc': 'toolBtnCadArc',
+      'draw_cad_circle': 'toolBtnCadCircle',
+      'draw_cad_hatch': 'toolBtnCadHatch',
+      'draw_cad_freehand': 'toolBtnCadFreehand',
+      'cad_offset': 'toolBtnCadOffset',
+      'cad_trim': 'toolBtnCadTrim',
+      'cad_extend': 'toolBtnCadExtend',
+      'cad_mirror': 'toolBtnCadMirror',
+      'cad_array': 'toolBtnCadArray',
+      'footprint_vertex': 'toolBtnCadVertex',
+      'footprint_cutout': 'toolBtnCadCutout'
     };
     if (btnMap[toolName]) {
       const btn = document.getElementById(btnMap[toolName]);
@@ -2219,6 +2311,7 @@
       'cad_extend': '➡️ გაგრძელება (Extend): დააკლიკეთ ხაზს უახლოეს საზღვრამდე გასაგრძელებლად [EX]',
       'cad_mirror': '🪞 სარკისებური ასლი: დააკლიკეთ 2 წერტილს სარკის ღერძის გასავლებად [MI]',
       'cad_array': '🔲 თანაბარი გამეორება (Array): დააკლიკეთ შენობას მის გასამრავლებლად თანაბარი ბიჯით [AR]',
+      'footprint_vertex': '🎯 კუთხეების მართვა: გადააადგილეთ კუთხეები, დააკლიკეთ [+] ახალი კუთხის დასამატებლად ან Alt+კლიკი წასაშლელად',
       'footprint_cutout': '🕳️ შიდა ეზოს / ატრიუმის ამოჭრა: დახაზეთ შიდა კონტური შენობის ლაქაში სიცარიელის ამოსაჭრელად'
     };
     updateToolStatus(hintMap[toolName] || '');
@@ -3870,8 +3963,7 @@
 
   // --- Footprint Vertex Mode Toggle ---
   window.enableFootprintVertexMode = function () {
-    state.footprintEditMode = true;
-    updateToolStatus('🎯 კუთხეების რეჟიმი: გადააადგილეთ კუთხეები, დააკლიკეთ [+] ახალი კუთხის დასამატებლად ან Alt+კლიკი წასაშლელად.');
+    setCadActiveTool('footprint_vertex');
     renderCadWorld();
   };
 
