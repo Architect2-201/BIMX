@@ -1838,11 +1838,13 @@
 
   /**
    * Export Cadastral Boundary Points to CSV:
-   * 1. 'revit' (Default): Pure numeric X,Y,Z in meters (UTM 38N / EPSG:32638) with NO text header.
-   *    Directly importable in Autodesk Revit -> Massing & Site -> Toposurface / Toposolid -> Specify Points File.
-   * 2. 'gps': WGS84 Lat/Lon with full column headers for GIS and spreadsheet software.
+   * 1. 'revit_local' (Default): Centered at Local Origin (0,0) in Meters with North = +Y.
+   *    Prevents Revit's 33km limit floating-point precision breakdown and distorted perimeters.
+   *    Duplicate closing point is cleanly removed.
+   * 2. 'revit_utm': Pure numeric X,Y,Z in meters (UTM 38N / EPSG:32638) with NO text header.
+   * 3. 'gps': WGS84 Lat/Lon with full column headers for GIS and spreadsheet software.
    */
-  window.exportCoordinatesCsv = function (format = 'revit') {
+  window.exportCoordinatesCsv = function (format = 'revit_local') {
     if (!state.rawCoordinates || state.rawCoordinates.length === 0) {
       alert('კოორდინატები არ არის ჩატვირთული. გთხოვთ ჯერ მოიძიოთ ნაკვეთი.');
       return;
@@ -1852,27 +1854,40 @@
     let filename = '';
     const safeCode = (state.cadastralCode || 'parcel').replace(/[^\w.-]/g, '_');
 
-    if (format === 'revit' || format === 'revit_utm') {
-      // Autodesk Revit Points File (Specify Points File for Toposurface / Toposolid)
-      // STRICT REQUIREMENT: Comma-delimited numeric lines: X,Y,Z in meters with NO text header!
-      // Any text header in Revit causes "Point file does not contain valid data" error.
-      state.rawCoordinates.forEach((c) => {
+    // Filter duplicate closing point if present (Revit gives duplicate point errors if point 1 == point N)
+    let cleanRaw = state.rawCoordinates.slice();
+    if (cleanRaw.length > 2) {
+      const first = cleanRaw[0];
+      const last = cleanRaw[cleanRaw.length - 1];
+      if (Math.hypot(first[0] - last[0], first[1] - last[1]) < 1e-5) {
+        cleanRaw.pop();
+      }
+    }
+
+    if (format === 'revit_local' || format === 'revit') {
+      // Local Metric Origin (0,0 Centered in Meters) - RECOMMENDED for Revit Points File
+      // In boundaryMeters, y is negative for north. In Revit, +Y is North, so CAD y = -pt[1].
+      if (state.boundaryMeters && state.boundaryMeters.length > 0) {
+        let cleanBM = state.boundaryMeters.slice();
+        if (cleanBM.length > 2 && Math.hypot(cleanBM[0][0] - cleanBM[cleanBM.length - 1][0], cleanBM[0][1] - cleanBM[cleanBM.length - 1][1]) < 1e-4) {
+          cleanBM.pop();
+        }
+        cleanBM.forEach((pt) => {
+          csv += `${pt[0].toFixed(3)},${(-pt[1]).toFixed(3)},0.000\r\n`;
+        });
+      }
+      filename = `Revit_Points_Local00_${safeCode}.csv`;
+    } else if (format === 'revit_utm') {
+      // Autodesk Revit Points File (UTM Zone 38N - Meters, no header, duplicates removed)
+      cleanRaw.forEach((c) => {
         const utm = latLonToUtm38N(c[0], c[1]);
         csv += `${utm.easting.toFixed(3)},${utm.northing.toFixed(3)},0.000\r\n`;
       });
       filename = `Revit_UTM38N_${safeCode}.csv`;
-    } else if (format === 'revit_local') {
-      // Local origin relative coordinates (meters, no text header)
-      if (state.boundaryMeters && state.boundaryMeters.length > 0) {
-        state.boundaryMeters.forEach((pt) => {
-          csv += `${pt[0].toFixed(3)},${pt[1].toFixed(3)},0.000\r\n`;
-        });
-      }
-      filename = `Revit_Local_${safeCode}.csv`;
     } else {
       // Standard GPS / GIS CSV with descriptive headers
       csv = "Index,Latitude,Longitude,UTM_X_Easting,UTM_Y_Northing,Elevation_M\r\n";
-      state.rawCoordinates.forEach((c, i) => {
+      cleanRaw.forEach((c, i) => {
         const utm = latLonToUtm38N(c[0], c[1]);
         csv += `${i + 1},${c[0].toFixed(7)},${c[1].toFixed(7)},${utm.easting.toFixed(3)},${utm.northing.toFixed(3)},0.000\r\n`;
       });
@@ -4248,58 +4263,85 @@
     img.src = url;
   };
 
-  // --- AutoCAD DXF Export ---
-  window.exportTsinareDxf = function () {
-    let dxf = "0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1009\n0\nENDSEC\n";
-    dxf += "0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nLAYER\n70\n7\n";
-    dxf += "0\nLAYER\n2\nCADASTRAL_BOUNDARY\n70\n0\n62\n1\n6\nCONTINUOUS\n";
-    dxf += "0\nLAYER\n2\nSETBACK_BUFFER\n70\n0\n62\n6\n6\nDASHED\n";
-    dxf += "0\nLAYER\n2\nBUILDING_FOOTPRINTS\n70\n0\n62\n4\n6\nCONTINUOUS\n";
-    dxf += "0\nLAYER\n2\nSUBDIVISION_PARCELS\n70\n0\n62\n3\n6\nCONTINUOUS\n";
-    dxf += "0\nLAYER\n2\nTREES_GREENERY\n70\n0\n62\n2\n6\nCONTINUOUS\n";
-    dxf += "0\nLAYER\n2\nWATER_BODIES\n70\n0\n62\n5\n6\nCONTINUOUS\n";
-    dxf += "0\nLAYER\n2\nROADS\n70\n0\n62\n8\n6\nCONTINUOUS\n";
+  // --- AutoCAD / Autodesk Revit 1:1 Vector DXF Export ---
+  window.exportTsinareDxf = function (mode = 'local') {
+    if (!state.boundaryMeters || state.boundaryMeters.length < 3) {
+      alert('ნაკვეთის მონაცემები არ არის ჩატვირთული. გთხოვთ ჯერ მოიძიოთ ნაკვეთი.');
+      return;
+    }
+
+    let dxf = "0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1009\n9\n$INSUNITS\n70\n6\n0\nENDSEC\n"; // 6 = Meters
+    dxf += "0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nLAYER\n70\n8\n";
+    dxf += "0\nLAYER\n2\nCADASTRAL_BOUNDARY\n70\n0\n62\n1\n6\nCONTINUOUS\n"; // Red
+    dxf += "0\nLAYER\n2\nSETBACK_BUFFER\n70\n0\n62\n6\n6\nCONTINUOUS\n"; // Magenta
+    dxf += "0\nLAYER\n2\nBUILDING_FOOTPRINTS\n70\n0\n62\n4\n6\nCONTINUOUS\n"; // Cyan
+    dxf += "0\nLAYER\n2\nSUBDIVISION_PARCELS\n70\n0\n62\n3\n6\nCONTINUOUS\n"; // Green
+    dxf += "0\nLAYER\n2\nTREES_GREENERY\n70\n0\n62\n2\n6\nCONTINUOUS\n"; // Yellow
+    dxf += "0\nLAYER\n2\nWATER_BODIES\n70\n0\n62\n5\n6\nCONTINUOUS\n"; // Blue
+    dxf += "0\nLAYER\n2\nROADS\n70\n0\n62\n8\n6\nCONTINUOUS\n"; // Gray
+    dxf += "0\nLAYER\n2\nWALKWAYS\n70\n0\n62\n9\n6\nCONTINUOUS\n";
     dxf += "0\nENDTAB\n0\nENDSEC\n";
     dxf += "0\nSECTION\n2\nENTITIES\n";
 
-    const addPolyline = (layer, pts) => {
-      if (!pts || pts.length < 2) return;
-      for (let i = 0; i < pts.length; i++) {
-        const p1 = pts[i];
-        const p2 = pts[(i + 1) % pts.length];
-        dxf += `0\nLINE\n8\n${layer}\n10\n${p1[0].toFixed(3)}\n20\n${p1[1].toFixed(3)}\n30\n0.0\n11\n${p2[0].toFixed(3)}\n21\n${p2[1].toFixed(3)}\n31\n0.0\n`;
-      }
+    // Helper: In state.boundaryMeters, y is negative for North (SVG convention).
+    // In CAD / Revit, +Y is North, so CAD Y = -pt[1].
+    const transformPt = (pt) => {
+      return [pt[0], -pt[1]];
     };
 
-    addPolyline('CADASTRAL_BOUNDARY', state.boundaryMeters);
+    // Add a Closed or Open Polyline (AC1009 standard, 100% compatible with Revit Toposolid / Property Line)
+    const addPolyline = (layer, pts, isClosed = true) => {
+      if (!pts || pts.length < 2) return;
+      let clean = pts.slice();
+      if (clean.length > 2 && Math.hypot(clean[0][0] - clean[clean.length - 1][0], clean[0][1] - clean[clean.length - 1][1]) < 1e-4) {
+        clean.pop();
+      }
+
+      dxf += `0\nPOLYLINE\n8\n${layer}\n66\n1\n70\n${isClosed ? 1 : 0}\n`;
+      clean.forEach(p => {
+        const cp = transformPt(p);
+        dxf += `0\nVERTEX\n8\n${layer}\n10\n${cp[0].toFixed(3)}\n20\n${cp[1].toFixed(3)}\n30\n0.000\n`;
+      });
+      dxf += "0\nSEQEND\n";
+    };
+
+    // 1. Cadastral Boundary (Closed 1:1 polyline)
+    addPolyline('CADASTRAL_BOUNDARY', state.boundaryMeters, true);
+
+    // 2. Setback Buffer (Closed or open polylines)
     const setbackRes = computeNeighborSetbackPolylines(state.boundaryMeters, state.boundaryEdgeTypes, state.setbackDistance);
     (setbackRes.polylines || []).forEach(poly => {
-      for (let i = 0; i < poly.length - 1; i++) {
-        const p1 = poly[i];
-        const p2 = poly[i + 1];
-        dxf += `0\nLINE\n8\nSETBACK_BUFFER\n10\n${p1[0].toFixed(3)}\n20\n${p1[1].toFixed(3)}\n30\n0.0\n11\n${p2[0].toFixed(3)}\n21\n${p2[1].toFixed(3)}\n31\n0.0\n`;
-      }
+      addPolyline('SETBACK_BUFFER', poly, false);
     });
-    state.subParcels.forEach(sp => addPolyline('SUBDIVISION_PARCELS', sp.polygon));
-    state.footprints.forEach(fp => addPolyline('BUILDING_FOOTPRINTS', fp.vertices));
-    (state.roads || []).forEach(r => addPolyline('ROADS', r.points));
-    (state.walkways || []).forEach(w => addPolyline('WALKWAYS', w.points));
-    (state.bikePaths || []).forEach(b => addPolyline('BIKE_PATHS', b.points));
-    (state.hedges || []).forEach(h => addPolyline('HEDGES', h.points));
+
+    // 3. Other Masterplan Elements
+    state.subParcels.forEach(sp => addPolyline('SUBDIVISION_PARCELS', sp.polygon, true));
+    state.footprints.forEach(fp => addPolyline('BUILDING_FOOTPRINTS', fp.vertices, true));
+    (state.roads || []).forEach(r => addPolyline('ROADS', r.points, false));
+    (state.walkways || []).forEach(w => addPolyline('WALKWAYS', w.points, false));
+    (state.bikePaths || []).forEach(b => addPolyline('BIKE_PATHS', b.points, false));
+    (state.hedges || []).forEach(h => addPolyline('HEDGES', h.points, false));
 
     // Trees as Circles
     state.trees.forEach(t => {
-      dxf += `0\nCIRCLE\n8\nTREES_GREENERY\n10\n${t.x.toFixed(3)}\n20\n${t.y.toFixed(3)}\n30\n0.0\n40\n${(t.radius || 2.5).toFixed(3)}\n`;
+      const ct = transformPt([t.x, t.y]);
+      dxf += `0\nCIRCLE\n8\nTREES_GREENERY\n10\n${ct[0].toFixed(3)}\n20\n${ct[1].toFixed(3)}\n30\n0.000\n40\n${(t.radius || 2.5).toFixed(3)}\n`;
     });
 
     dxf += "0\nENDSEC\n0\nEOF\n";
 
+    const safeCode = (state.cadastralCode || 'parcel').replace(/[^\w.-]/g, '_');
     const blob = new Blob([dxf], { type: 'application/dxf;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `BIMX_Tsinare_${state.cadastralCode}.dxf`;
+    a.download = `Revit_Cadastral_Boundary_1to1_${safeCode}.dxf`;
+    document.body.appendChild(a);
     a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
   };
 
   // Keyboard Shortcuts: Delete, Undo, Tool shortcuts

@@ -1240,14 +1240,23 @@
             <span class="text-slate-300 font-semibold text-xs flex items-center gap-1.5">
               <i class="fa-solid fa-draw-polygon text-sky-400"></i> კუთხის წერტილები (<span id="lblCornerCount">0</span>)
             </span>
-            <div class="flex items-center gap-1.5">
-              <button type="button" onclick="exportCoordinatesCsv('revit')" title="Autodesk Revit Points File (UTM 38N - მეტრებში, უსათაურო X,Y,Z წერტილები Toposurface / Toposolid-ისთვის)" class="px-2 py-0.5 bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 text-blue-300 rounded text-[10px] font-medium transition flex items-center gap-1">
-                <i class="fa-solid fa-cube text-[9px]"></i> Revit CSV
+            <div class="flex items-center gap-1 flex-wrap">
+              <button type="button" onclick="exportTsinareDxf('local')" title="Autodesk Revit / AutoCAD 1:1 Vector CAD (დახურული პოლიხაზი 14,911მ² ზუსტი კონტურით Toposolid / Property Line-ისთვის)" class="px-2 py-0.5 bg-sky-600/30 hover:bg-sky-600/50 border border-sky-500/40 text-sky-300 rounded text-[10px] font-semibold transition flex items-center gap-1">
+                <i class="fa-solid fa-cube text-[9px]"></i> Revit 1:1 DXF
               </button>
-              <button type="button" onclick="exportCoordinatesCsv('gps')" title="WGS-84 GPS კოორდინატები (Lat, Lon)" class="text-sky-400 hover:text-sky-300 text-[10px] font-mono px-1.5 py-0.5">
-                GPS CSV
+              <button type="button" onclick="exportCoordinatesCsv('revit_local')" title="Revit Points File (ლოკალური 0,0 მეტრებში, დუბლიკატების გარეშე)" class="px-1.5 py-0.5 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 text-blue-300 rounded text-[10px] font-mono transition">
+                CSV (0,0)
+              </button>
+              <button type="button" onclick="exportCoordinatesCsv('revit_utm')" title="Revit UTM 38N გეოდეზიური კოორდინატები" class="text-slate-400 hover:text-white text-[10px] font-mono px-1">
+                UTM
+              </button>
+              <button type="button" onclick="exportCoordinatesCsv('gps')" title="WGS-84 GPS კოორდინატები (Lat, Lon)" class="text-slate-400 hover:text-white text-[10px] font-mono px-1">
+                GPS
               </button>
             </div>
+          </div>
+          <div class="text-[9.5px] text-slate-400 mb-1 leading-tight flex items-center gap-1">
+            <i class="fa-solid fa-circle-info text-sky-400"></i> <span>Revit Toposolid/Property Line-ის 100% ზუსტი 1:1 კონტურისთვის გამოიყენეთ <b>Revit 1:1 DXF</b> (Insert ➔ Link CAD).</span>
           </div>
           <div class="max-h-36 overflow-y-auto border border-white/5 rounded">
             <table class="w-full text-[10px] font-mono text-left">
@@ -2355,6 +2364,6 @@
   </div>
 
   <!-- Core JavaScript Logic -->
-  <script src="tsinare.js?v=20260930_1605"></script>
+  <script src="tsinare.js?v=20260930_1615"></script>
 </body>
 </html>
