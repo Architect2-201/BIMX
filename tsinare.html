@@ -1088,19 +1088,12 @@
       </form>
     </div>
 
-    <!-- Quick Demo Region Chips & Export Actions -->
-    <div class="flex items-center gap-2 min-w-max">
-      <!-- Quick Demo Parcel Selector -->
-      <div class="hidden xl:flex items-center gap-1 bg-[#111a2e] p-1 rounded-lg border border-[#1f2e4d]">
-        <button type="button" onclick="showGeorgiaOverviewState()" class="px-2 py-0.5 text-[11px] font-mono rounded bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 font-semibold transition flex items-center gap-1" title="მთლიანი საქართველოს რუკაზე დაბრუნება">
-          <i class="fa-solid fa-earth-europe text-[10px]"></i> რუკა
+      <!-- Quick Georgia Map Reset Button -->
+      <div class="hidden sm:flex items-center">
+        <button type="button" onclick="showGeorgiaOverviewState()" class="h-9 px-3 text-xs font-mono rounded-lg bg-[#16233d] hover:bg-[#1e2f52] border border-[#263a63] text-sky-300 hover:text-white transition flex items-center gap-1.5" title="მთლიანი საქართველოს რუკაზე დაბრუნება">
+          <i class="fa-solid fa-earth-europe text-sky-400 text-xs"></i>
+          <span>საქართველოს რუკა</span>
         </button>
-        <div class="h-3 w-px bg-slate-700/60 mx-0.5"></div>
-        <span class="text-[11px] font-mono text-slate-400 px-1">სატესტო:</span>
-        <button type="button" onclick="loadCadastralSample('01.14.11.059.039')" class="px-2 py-0.5 text-[11px] font-mono rounded bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition">თბილისი</button>
-        <button type="button" onclick="loadCadastralSample('72.13.12.125')" class="px-2 py-0.5 text-[11px] font-mono rounded bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition">მცხეთა</button>
-        <button type="button" onclick="loadCadastralSample('20.42.05.011')" class="px-2 py-0.5 text-[11px] font-mono rounded bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition">ქობულეთი</button>
-        <button type="button" onclick="loadCadastralSample('74.04.11.025')" class="px-2 py-0.5 text-[11px] font-mono rounded bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition">ყაზბეგი</button>
       </div>
 
       <!-- Action: Export PDF Report -->
@@ -1676,22 +1669,8 @@
             <div>
               <h2 class="text-base sm:text-lg font-bold text-white tracking-wide">საქართველოს საკადასტრო სივრცე</h2>
               <p class="text-xs text-slate-300 mt-1.5 leading-relaxed">
-                ჩაწერეთ ნებისმიერი საკადასტრო კოდი ზედა საძიებო ველში ან აირჩიეთ სატესტო რეგიონი ნაკვეთზე გადასაფრენად:
+                ჩაწერეთ საკადასტრო კოდი ზედა საძიებო ველში ნაკვეთის მოსაძებნად
               </p>
-            </div>
-            <div class="flex flex-wrap items-center justify-center gap-2 pt-1">
-              <button type="button" onclick="loadCadastralSample('01.14.11.059.039')" class="px-3 py-1.5 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 font-mono text-xs font-semibold transition active:scale-95 flex items-center gap-1.5">
-                <i class="fa-solid fa-building text-[10px]"></i> თბილისი (ვაკე)
-              </button>
-              <button type="button" onclick="loadCadastralSample('72.13.12.125')" class="px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 font-mono text-xs font-semibold transition active:scale-95 flex items-center gap-1.5">
-                <i class="fa-solid fa-mountain text-[10px]"></i> მცხეთა
-              </button>
-              <button type="button" onclick="loadCadastralSample('20.42.05.011')" class="px-3 py-1.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 font-mono text-xs font-semibold transition active:scale-95 flex items-center gap-1.5">
-                <i class="fa-solid fa-umbrella-beach text-[10px]"></i> ქობულეთი
-              </button>
-              <button type="button" onclick="loadCadastralSample('74.04.11.025')" class="px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 font-mono text-xs font-semibold transition active:scale-95 flex items-center gap-1.5">
-                <i class="fa-solid fa-tree text-[10px]"></i> ყაზბეგი
-              </button>
             </div>
           </div>
         </div>
@@ -2367,6 +2346,6 @@
   </div>
 
   <!-- Core JavaScript Logic -->
-  <script src="tsinare.js?v=20260930_1545"></script>
+  <script src="tsinare.js?v=20260930_1548"></script>
 </body>
 </html>
