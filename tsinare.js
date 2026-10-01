@@ -158,6 +158,9 @@
   // Leaflet Map & GIS Layer Instance
   let tsinareMap = null;
   let parcelPolygonLayer = null;
+  let _satelliteLayer = null;   // Esri World Imagery (hybrid mode)
+  let _labelsLayer = null;      // CartoDB labels overlay (hybrid mode)
+  let _roadMapLayer = null;     // CartoDB Voyager roads (map/GIS mode)
 
   function initGeorgiaLeafletMap() {
     if (typeof L === 'undefined') {
@@ -181,16 +184,26 @@
     });
 
     // High-resolution satellite basemap (Esri World Imagery)
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    _satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: 19,
       maxNativeZoom: 19
-    }).addTo(tsinareMap);
+    });
 
-    // CartoDB Voyager English/Georgian labels & roads overlay
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', {
+    // CartoDB Voyager English/Georgian labels & roads overlay (used on top of satellite)
+    _labelsLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', {
       subdomains: 'abcd',
       maxZoom: 20
-    }).addTo(tsinareMap);
+    });
+
+    // CartoDB Voyager full road map (used in GIS / map mode — clearly different from satellite)
+    _roadMapLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      subdomains: 'abcd',
+      maxZoom: 20
+    });
+
+    // Default: satellite + labels (hybrid mode)
+    _satelliteLayer.addTo(tsinareMap);
+    _labelsLayer.addTo(tsinareMap);
   }
 
   function showGeorgiaOverviewState() {
@@ -2308,17 +2321,29 @@
     const isCurrentlyOpen = !target.classList.contains('hidden');
     window.closeAllDropdowns();
     if (!isCurrentlyOpen) {
-      target.classList.remove('hidden');
-      const rect = target.getBoundingClientRect();
-      if (rect.right > (window.innerWidth || 1200) - 16) {
-        target.style.left = 'auto';
-        target.style.right = '0';
-      } else {
-        target.style.left = '0';
+      // Use fixed positioning so the popup escapes any overflow:auto parent (scrollable ribbon row)
+      const triggerBtn = e && e.currentTarget ? e.currentTarget : (e && e.target ? e.target.closest('button') : null);
+      target.style.position = 'fixed';
+      target.style.zIndex = '99999';
+      if (triggerBtn) {
+        const btnRect = triggerBtn.getBoundingClientRect();
+        const topPos = btnRect.bottom + 4;
+        let leftPos = btnRect.left;
+        target.classList.remove('hidden');
+        // Check if it would overflow right edge and flip
+        const popupWidth = target.offsetWidth || 320;
+        if (leftPos + popupWidth > (window.innerWidth - 12)) {
+          leftPos = Math.max(8, (window.innerWidth - popupWidth - 12));
+        }
+        target.style.top = topPos + 'px';
+        target.style.left = leftPos + 'px';
         target.style.right = 'auto';
+      } else {
+        target.classList.remove('hidden');
       }
     }
   };
+
 
   window.closeAllDropdowns = function () {
     document.querySelectorAll('.cad-menu-popup').forEach(p => p.classList.add('hidden'));
@@ -2528,8 +2553,12 @@
         cadSvg.style.display = 'block';
         cadSvg.style.pointerEvents = 'auto';
       }
-      if (tsinareMap && state.centroidLatLng) {
-        tsinareMap.setView(state.centroidLatLng, 18);
+      // Switch to satellite + labels baselayer
+      if (tsinareMap) {
+        if (_roadMapLayer && tsinareMap.hasLayer(_roadMapLayer)) tsinareMap.removeLayer(_roadMapLayer);
+        if (_satelliteLayer && !tsinareMap.hasLayer(_satelliteLayer)) _satelliteLayer.addTo(tsinareMap);
+        if (_labelsLayer && !tsinareMap.hasLayer(_labelsLayer)) _labelsLayer.addTo(tsinareMap);
+        if (state.centroidLatLng) { tsinareMap.setView(state.centroidLatLng, 18); }
         tsinareMap.invalidateSize();
       }
     } else if (mode === 'map') {
@@ -2540,8 +2569,12 @@
         cadSvg.style.display = 'block';
         cadSvg.style.pointerEvents = 'none'; // allow direct map interaction
       }
-      if (tsinareMap && state.centroidLatLng) {
-        tsinareMap.setView(state.centroidLatLng, 18);
+      // Switch to road/street map baselayer (clearly different from satellite)
+      if (tsinareMap) {
+        if (_satelliteLayer && tsinareMap.hasLayer(_satelliteLayer)) tsinareMap.removeLayer(_satelliteLayer);
+        if (_labelsLayer && tsinareMap.hasLayer(_labelsLayer)) tsinareMap.removeLayer(_labelsLayer);
+        if (_roadMapLayer && !tsinareMap.hasLayer(_roadMapLayer)) _roadMapLayer.addTo(tsinareMap);
+        if (state.centroidLatLng) { tsinareMap.setView(state.centroidLatLng, 18); }
         tsinareMap.invalidateSize();
       }
     }
@@ -4974,10 +5007,15 @@
     }
 
     const pointsStr = state.boundaryMeters.map(p => `${p[0]},${p[1]}`).join(' ');
-    const strokeW = Math.max(0.3, 2.2 * pxToM);
     const poly = state.boundaryMeters;
     const n = poly.length;
     const types = state.boundaryEdgeTypes || [];
+
+    // In GIS/map mode: use non-scaling stroke so boundary lines keep constant pixel width
+    // regardless of zoom level. In CAD/hybrid mode, scale stroke naturally with the world.
+    const isGisMode = state.viewMode === 'map';
+    const strokeW = isGisMode ? 2.5 : Math.max(0.3, 2.2 * pxToM);
+    const nonScalingAttr = isGisMode ? 'vector-effect="non-scaling-stroke"' : '';
 
     // Edge boundary badges for toggle between road and neighbor (only if setbackLabels layer is enabled)
     let edgeBadgesSvg = '';
@@ -5002,7 +5040,7 @@
         edgeBadgesSvg += `
           <g class="cursor-pointer" onclick="toggleBoundaryEdgeType(${i})" style="cursor: pointer;">
             <title>საზღვარი №${i + 1}: ${isRoad ? 'საგზაო/საზოგადოებრივი (მიჯნა 0მ)' : 'სამეზობლო მიჯნა (' + state.setbackDistance + 'მ)'} - დააწკაპუნეთ ტიპის შესაცვლელად</title>
-            <rect x="${midX - badgeW / 2}" y="${midY - badgeH / 2}" width="${badgeW}" height="${badgeH}" rx="${3 * pxToM}" fill="${bg}" stroke="${stroke}" stroke-width="${0.7 * pxToM}" />
+            <rect x="${midX - badgeW / 2}" y="${midY - badgeH / 2}" width="${badgeW}" height="${badgeH}" rx="${3 * pxToM}" fill="${bg}" stroke="${stroke}" stroke-width="${0.7 * pxToM}" ${nonScalingAttr} />
             <text x="${midX}" y="${midY + 3.5 * pxToM}" text-anchor="middle" fill="${textColor}" font-size="${7.2 * pxToM}" font-family="Inter, sans-serif" font-weight="600">${tagText}</text>
           </g>
         `;
@@ -5010,7 +5048,7 @@
     }
 
     els.cadastralBoundaryLayer.innerHTML = `
-      <polygon points="${pointsStr}" fill="var(--parcel-fill)" stroke="var(--parcel-stroke)" stroke-width="${strokeW}" stroke-linejoin="round" />
+      <polygon points="${pointsStr}" fill="var(--parcel-fill)" stroke="var(--parcel-stroke)" stroke-width="${strokeW}" stroke-linejoin="round" ${nonScalingAttr} />
       ${edgeBadgesSvg}
     `;
   }

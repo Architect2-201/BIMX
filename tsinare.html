@@ -1023,14 +1023,13 @@
     }
 
     .cad-menu-popup {
-      position: absolute !important;
-      top: calc(100% + 4px) !important;
+      position: fixed !important;
       z-index: 99999 !important;
       box-shadow: 0 20px 48px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(56, 189, 248, 0.35) !important;
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
       width: max-content !important;
-      min-width: 320px !important;
+      min-width: 280px !important;
       max-width: 450px !important;
       white-space: normal !important;
       box-sizing: border-box !important;
@@ -1040,9 +1039,6 @@
       display: none !important;
     }
 
-    #cadRibbonRow1 {
-      overflow: visible !important;
-    }
 
     /* Modern Responsive CAD Ribbon Horizontal Scrolling */
     .cad-scroll-row {
@@ -1387,7 +1383,7 @@
           <i class="fa-solid fa-chevron-left text-[10px]"></i>
         </button>
 
-        <div id="cadRibbonRow1" class="flex-1 flex items-center gap-2 overflow-visible text-xs flex-nowrap py-1">
+        <div id="cadRibbonRow1" class="cad-scroll-row flex-1 flex items-center gap-2 overflow-x-auto text-xs flex-nowrap py-1">
           <!-- Left Group: Navigation & History -->
           <div class="flex items-center gap-1 shrink-0">
             <button type="button" id="toolBtnPan" onclick="setCadActiveTool('pan')" class="btn-cad-tool btn-tool-active h-8 px-2.5 rounded bg-[#162238] border border-[#243557] text-xs font-medium flex items-center gap-1.5 hover:bg-[#1e2f4f] text-slate-200 transition" title="არჩევა &amp; გადაადგილება [Space / V]">
