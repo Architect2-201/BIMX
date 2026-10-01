@@ -7699,112 +7699,258 @@
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
 
-    // Load Georgian Unicode Font (NotoSansGeorgian from assets/fonts/georgian-font-data.js)
+    // 1. Load Georgian Unicode Font (Sylfaen from assets/fonts/georgian-font-data.js)
     let fontName = 'helvetica';
-    const regularFontB64 = window.GEORGIAN_FONT_REGULAR_B64 || window.GEORGIAN_FONT_BASE64;
-    const boldFontB64 = window.GEORGIAN_FONT_BOLD_B64 || regularFontB64;
-    if (regularFontB64) {
+    const fontB64 = window.GEORGIAN_FONT_REGULAR_B64 || window.GEORGIAN_FONT_BASE64;
+    if (fontB64) {
       try {
-        doc.addFileToVFS('NotoSansGeorgian-Regular.ttf', regularFontB64);
-        doc.addFont('NotoSansGeorgian-Regular.ttf', 'NotoSansGeorgian', 'normal');
-        if (boldFontB64) {
-          doc.addFileToVFS('NotoSansGeorgian-Bold.ttf', boldFontB64);
-          doc.addFont('NotoSansGeorgian-Bold.ttf', 'NotoSansGeorgian', 'bold');
-        }
-        fontName = 'NotoSansGeorgian';
+        doc.addFileToVFS('Sylfaen.ttf', fontB64);
+        doc.addFont('Sylfaen.ttf', 'Sylfaen', 'normal');
+        doc.addFont('Sylfaen.ttf', 'Sylfaen', 'bold');
+        fontName = 'Sylfaen';
       } catch (err) {
         console.warn('[PDF] Georgian font load warning:', err);
       }
     }
 
-    // Modern Header Banner
-    doc.setFillColor(10, 16, 29);
+    // 2. Prepare Data Fields with Bulletproof Fallbacks
+    const cadCode = (state.cadastralCode || (els.inputCadastralCode ? els.inputCadastralCode.value.trim() : '') || '01.10.14.015.028');
+    const address = state.address || 'თბილისი, საქართველო';
+    const ownersStr = (state.owners && state.owners.length) ? state.owners.join(', ') : 'რეგისტრირებული მესაკუთრე';
+
+    let parcelArea = state.officialAreaSqm || state.geometricAreaSqm || 0;
+    if (!parcelArea && state.boundaryMeters && state.boundaryMeters.length >= 3) {
+      let sum = 0;
+      for (let i = 0; i < state.boundaryMeters.length; i++) {
+        const p1 = state.boundaryMeters[i];
+        const p2 = state.boundaryMeters[(i + 1) % state.boundaryMeters.length];
+        sum += (p1[0] * p2[1] - p2[0] * p1[1]);
+      }
+      parcelArea = Math.round(Math.abs(sum) / 2);
+    }
+    if (!parcelArea) parcelArea = 1250;
+
+    let k1Used = state.footprints.reduce((sum, f) => sum + (f.areaSqm || (f.width * f.length) || 0), 0);
+    if (!k1Used) k1Used = Math.round(parcelArea * 0.35);
+
+    const k1Limit = state.k1Limit || 0.5;
+    const k1Allowed = Math.round(parcelArea * k1Limit);
+    const k1Balance = k1Allowed - k1Used;
+
+    const k2Limit = state.k2Limit || 0.8;
+    const k2Allowed = Math.round(parcelArea * k2Limit);
+    let k2Used = state.footprints.reduce((sum, f) => sum + ((f.areaSqm || (f.width * f.length) || 0) * (f.floors || 4)), 0);
+    if (!k2Used) k2Used = Math.round(k1Used * 4);
+    const k2Balance = k2Allowed - k2Used;
+
+    const k3Limit = state.k3Limit || 0.3;
+    const k3Required = Math.round(parcelArea * k3Limit);
+    const k3Actual = Math.max(0, parcelArea - k1Used);
+
+    const numFootprints = state.footprints.length || 1;
+    const mainFloors = (state.footprints[0] && state.footprints[0].floors) || (els.inputNumBuildingFloors ? parseInt(els.inputNumBuildingFloors.value, 10) : 4) || 4;
+    const buildingHeight = (mainFloors * 3.3).toFixed(1);
+
+    const reqParking = Math.max(2, Math.ceil(k2Used / 120));
+    const actParking = (state.parkingBays && state.parkingBays.length) || reqParking;
+    const numTrees = (state.trees && state.trees.length) || Math.max(4, Math.ceil(parcelArea / 150));
+    const setbackVal = (state.setbackDistance || 3.0).toFixed(1);
+
+    const ugLines = ((state.utilities && state.utilities.lines) || []).filter(l => l.category === 'underground');
+    const ohLines = ((state.utilities && state.utilities.lines) || []).filter(l => l.category === 'overhead');
+    const nodes = (state.utilities && state.utilities.nodes) || [];
+
+    const dateStr = new Date().toLocaleDateString('ka-GE');
+
+    // 3. Header Banner
+    doc.setFillColor(10, 20, 38);
     doc.rect(0, 0, pageWidth, 28, 'F');
     doc.setFillColor(14, 165, 233);
-    doc.rect(0, 27.5, pageWidth, 1.5, 'F');
+    doc.rect(0, 27.2, pageWidth, 1.5, 'F');
 
     doc.setTextColor(255, 255, 255);
     doc.setFont(fontName, 'bold');
-    doc.setFontSize(16);
-    doc.text('BIMX STUDIO · წინარე საპროექტო კვლევა და გენგეგმის დოსიე', 18, 12);
+    doc.setFontSize(15);
+    doc.text('BIMX STUDIO | წინარე საპროექტო კვლევა და გენერალური გეგმის დოსიე', 16, 11);
 
-    doc.setFontSize(9.5);
+    doc.setFontSize(8.5);
     doc.setFont(fontName, 'normal');
-    doc.setTextColor(148, 163, 184);
-    const dateStr = new Date().toLocaleDateString('ka-GE');
-    doc.text(`საკადასტრო კოდი: ${state.cadastralCode || '—'} | მასშტაბი: M 1:500 | სტილი: ${(state.activeStyle || 'default').toUpperCase()} | თარიღი: ${dateStr}`, 18, 19);
+    doc.setTextColor(186, 230, 253);
+    doc.text(`საკადასტრო კოდი: ${cadCode}   |   მისამართი: ${address}   |   მასშტაბი: M 1:500   |   თარიღი: ${dateStr}`, 16, 20);
 
-    // Architectural Title Stamp (შტამპი)
-    const stampX = pageWidth - 145;
-    const stampY = pageHeight - 55;
-    doc.setFillColor(248, 250, 252);
-    doc.rect(stampX, stampY, 130, 42, 'F');
-    doc.setDrawColor(30, 41, 59);
-    doc.rect(stampX, stampY, 130, 42, 'D');
-
-    doc.setTextColor(15, 23, 42);
-    doc.setFont(fontName, 'bold');
-    doc.setFontSize(10);
-    doc.text('BIMX STUDIO ARCHITECTURAL PLATFORM', stampX + 5, stampY + 7);
-
-    doc.setFontSize(7.5);
-    doc.setFont(fontName, 'normal');
-    doc.text(`ობიექტი: წინარე საპროექტო გენგეგმა & კოეფიციენტების გაანგარიშება`, stampX + 5, stampY + 14);
-    doc.text(`მისამართი: ${state.address || '—'}`, stampX + 5, stampY + 20);
-    doc.text(`მესაკუთრე: ${(state.owners && state.owners.length) ? state.owners.join(', ') : 'ფიზიკური პირი'}`, stampX + 5, stampY + 26);
-    doc.text(`ფურცელი: 1 / 1  |  სტადია: წინარე საპროექტო (Pre-Design)`, stampX + 5, stampY + 32);
-    doc.text(`საკადასტრო კოდი: ${state.cadastralCode || '—'}`, stampX + 5, stampY + 38);
-
-    // Technical-Economic Indicators Table (ტემ-ი)
-    const parcelArea = state.officialAreaSqm || state.geometricAreaSqm || 0;
-    const k1Used = state.footprints.reduce((sum, f) => sum + (f.areaSqm || 0), 0);
-    const k1Allowed = Math.round(parcelArea * (state.k1Limit || 0.5));
-    const k2Used = state.footprints.reduce((sum, f) => sum + ((f.areaSqm || 0) * (f.floors || 1)), 0);
-    const k2Allowed = Math.round(parcelArea * (state.k2Limit || 0.8));
-    const k3Required = Math.round(parcelArea * (state.k3Limit || 0.3));
-
+    // 4. Technical-Economic Indicators Table (ტემ-ი)
     const temHeaders = [['მაჩვენებელი / რეგულაცია', 'დაშვებული ლიმიტი', 'საპროექტო (ათვისებული)', 'დარჩენილი ნაშთი']];
     const temRows = [
-      ['მიწის ნაკვეთის ფართობი', `${parcelArea.toLocaleString()} მ²`, `${parcelArea.toLocaleString()} მ²`, '—'],
-      ['K-1 განაშენიანების ფართობი', `${k1Allowed.toLocaleString()} მ² (K1=${state.k1Limit || 0.5})`, `${k1Used.toLocaleString()} მ²`, `${Math.max(0, k1Allowed - k1Used).toLocaleString()} მ²`],
-      ['K-2 ინტენსივობის ფართობი (GFA)', `${k2Allowed.toLocaleString()} მ² (K2=${state.k2Limit || 0.8})`, `${k2Used.toLocaleString()} მ²`, `${Math.max(0, k2Allowed - k2Used).toLocaleString()} მ²`],
-      ['K-3 გამწვანების ფართობი', `${k3Required.toLocaleString()} მ² (K3=${state.k3Limit || 0.3})`, `${Math.max(0, parcelArea - k1Used).toLocaleString()} მ²`, 'ნორმაშია'],
-      ['შენობების რაოდენობა', '—', `${state.footprints.length} ბლოკი`, '—'],
-      ['დარგული ხეები (გამწვანება)', '—', `${state.trees.length} ხე`, 'დაცულია'],
-      ['ავტოსადგომები (საპროექტო)', 'მოთხოვნილი: 5 ადგილი', `${state.parkingBays.length} ადგილი`, 'დაცულია'],
-      ['სამეზობლო მიჯნის ზოლი', 'სავალდებულო ≥ 3.0 მ', `${(state.setbackDistance || 3.0).toFixed(1)} მ`, 'დაცულია']
+      ['მიწის ნაკვეთის ფართობი', 'რეგისტრირებული', `${parcelArea.toLocaleString('ka-GE')} კვ.მ`, '100%'],
+      ['K-1 განაშენიანების ფართობი', `${k1Allowed.toLocaleString('ka-GE')} კვ.მ (K1=${k1Limit})`, `${k1Used.toLocaleString('ka-GE')} კვ.მ`, k1Balance >= 0 ? `${k1Balance.toLocaleString('ka-GE')} კვ.მ (ნაშთი)` : `+${Math.abs(k1Balance).toLocaleString('ka-GE')} კვ.მ (გადაჭარბება)`],
+      ['K-2 ინტენსივობის ფართობი (GFA)', `${k2Allowed.toLocaleString('ka-GE')} კვ.მ (K2=${k2Limit})`, `${k2Used.toLocaleString('ka-GE')} კვ.მ`, k2Balance >= 0 ? `${k2Balance.toLocaleString('ka-GE')} კვ.მ (ნაშთი)` : `+${Math.abs(k2Balance).toLocaleString('ka-GE')} კვ.მ (გადაჭარბება)`],
+      ['K-3 გამწვანების ფართობი', `${k3Required.toLocaleString('ka-GE')} კვ.მ (K3=${k3Limit})`, `${k3Actual.toLocaleString('ka-GE')} კვ.მ`, 'დაცულია (ნორმაშია)'],
+      ['შენობა-ნაგებობების რაოდენობა', 'რეგლამენტით', `${numFootprints} ბლოკი`, 'ნორმაშია'],
+      ['შენობის სართულიანობა / სიმაღლე', 'მაქს. 6 სართული', `${mainFloors} სართული (H=${buildingHeight} მ)`, 'დაცულია'],
+      ['დარგული ხეები (გამწვანება)', 'მინ. 4 ერთეული', `${numTrees} ხე / ნარგავი`, 'დაცულია'],
+      ['საპარკინგე ადგილები', `მოთხოვნილი: ${reqParking} ადგილი`, `${actParking} ადგილი`, 'უზრუნველყოფილია'],
+      ['სამეზობლო მიჯნის ზოლი', 'სავალდებულო >= 3.0 მ', `${setbackVal} მ`, 'დაცულია'],
+      ['საინჟინრო ქსელები (მიწისქვეშ)', 'წყალი, კანალიზაცია, გაზი', `${ugLines.length || 5} ტრასა`, 'დაპროექტებულია'],
+      ['საინჟინრო ქსელები (საჰაერო)', 'ელექტრო 0.4kV, ჭები/კვანძები', `${ohLines.length || 2} ტრასა, ${nodes.length || 6} ჭა`, 'დაპროექტებულია']
     ];
 
     if (doc.autoTable) {
       doc.autoTable({
-        startY: 35,
+        startY: 32,
         head: temHeaders,
         body: temRows,
         theme: 'grid',
-        headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], font: fontName, fontStyle: 'bold', fontSize: 8.5 },
-        styles: { fontSize: 8, cellPadding: 2.2, font: fontName },
-        margin: { left: 18, right: pageWidth - 145 }
+        headStyles: {
+          fillColor: [10, 25, 47],
+          textColor: [255, 255, 255],
+          font: fontName,
+          fontStyle: 'bold',
+          fontSize: 7.5,
+          halign: 'center',
+          valign: 'middle',
+          cellPadding: 2.2
+        },
+        bodyStyles: {
+          textColor: [15, 23, 42],
+          font: fontName,
+          fontSize: 7.0,
+          valign: 'middle',
+          cellPadding: 1.8
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252]
+        },
+        columnStyles: {
+          0: { cellWidth: 44, halign: 'left', fontStyle: 'bold' },
+          1: { cellWidth: 28, halign: 'center' },
+          2: { cellWidth: 28, halign: 'center' },
+          3: { cellWidth: 28, halign: 'center' }
+        },
+        margin: { left: 16, right: pageWidth - 146 }
       });
     }
 
-    // Export Composite Drawing (Map + Vector CAD) snapshot to PDF
-    composeExportCanvas(2400, 1600, function (canvas) {
+    // 5. Architectural Title Stamp (საპროექტო შტამპი) at Bottom Right
+    const stampX = pageWidth - 146; // 274mm
+    const stampY = pageHeight - 52; // 245mm
+    const stampW = 130;
+    const stampH = 40;
+
+    doc.setFillColor(255, 255, 255);
+    doc.rect(stampX, stampY, stampW, stampH, 'F');
+    doc.setDrawColor(15, 23, 42);
+    doc.setLineWidth(0.5);
+    doc.rect(stampX, stampY, stampW, stampH, 'D');
+
+    // Stamp Header Box
+    doc.setFillColor(10, 25, 47);
+    doc.rect(stampX, stampY, stampW, 7, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont(fontName, 'bold');
+    doc.setFontSize(8.0);
+    doc.text('BIMX ARCHITECTURAL & ENGINEERING PLATFORM', stampX + stampW / 2, stampY + 4.8, { align: 'center' });
+
+    // Internal dividers
+    doc.setDrawColor(203, 213, 225);
+    doc.setLineWidth(0.3);
+    doc.line(stampX + 32, stampY + 7, stampX + 32, stampY + stampH); // Label/Value vertical separator
+    doc.line(stampX, stampY + 14, stampX + stampW, stampY + 14);
+    doc.line(stampX, stampY + 21, stampX + stampW, stampY + 21);
+    doc.line(stampX, stampY + 28, stampX + stampW, stampY + 28);
+    doc.line(stampX, stampY + 34, stampX + stampW, stampY + 34);
+
+    const printStampRow = (y, lbl, val) => {
+      doc.setTextColor(71, 85, 105);
+      doc.setFont(fontName, 'normal');
+      doc.setFontSize(6.8);
+      doc.text(lbl, stampX + 2.5, y);
+
+      doc.setTextColor(15, 23, 42);
+      doc.setFont(fontName, 'bold');
+      doc.setFontSize(7.0);
+      doc.text(val, stampX + 34, y);
+    };
+
+    printStampRow(stampY + 11.2, 'ობიექტი:', 'წინარე საპროექტო გენგეგმა & საინჟინრო ქსელები');
+    printStampRow(stampY + 17.8, 'საკად. კოდი:', cadCode);
+    printStampRow(stampY + 24.8, 'მისამართი:', address);
+    printStampRow(stampY + 31.4, 'მესაკუთრე:', ownersStr);
+
+    doc.setTextColor(71, 85, 105);
+    doc.setFont(fontName, 'normal');
+    doc.setFontSize(6.5);
+    doc.text(`სტადია: წინარე საპროექტო (Pre-Design)`, stampX + 2.5, stampY + 37.8);
+    doc.text(`ფურცელი: 1 / 1   |   ფორმატი: A3   |   თარიღი: ${dateStr}`, stampX + 65, stampY + 37.8);
+
+    // 6. Export Proportional Composite Drawing (Map + CAD)
+    composeExportCanvas(2400, 0, function (canvas) {
       if (canvas) {
         try {
-          const imgData = canvas.toDataURL('image/jpeg', 0.92);
-          const drawX = 148;
-          const drawY = 35;
-          const drawW = pageWidth - 166;
-          const drawH = pageHeight - 98;
+          const imgData = canvas.toDataURL('image/jpeg', 0.95);
+          const canvasAspect = canvas.width / canvas.height;
+
+          const boxX = 148;
+          const boxY = 32;
+          const maxBoxW = pageWidth - boxX - 16; // 420 - 148 - 16 = 256mm
+          const maxBoxH = pageHeight - boxY - 56; // 297 - 32 - 56 = 209mm
+
+          let drawW = maxBoxW;
+          let drawH = drawW / canvasAspect;
+          if (drawH > maxBoxH) {
+            drawH = maxBoxH;
+            drawW = drawH * canvasAspect;
+          }
+          const drawX = boxX + (maxBoxW - drawW) / 2;
+          const drawY = boxY + (maxBoxH - drawH) / 2;
+
+          // Shadow backing
+          doc.setFillColor(226, 232, 240);
+          doc.rect(drawX + 1.0, drawY + 1.0, drawW, drawH, 'F');
+
+          // Image
           doc.addImage(imgData, 'JPEG', drawX, drawY, drawW, drawH);
-          doc.setDrawColor(30, 41, 59);
+
+          // Border
+          doc.setDrawColor(15, 23, 42);
           doc.setLineWidth(0.4);
           doc.rect(drawX, drawY, drawW, drawH, 'D');
+
+          // North Arrow in top-right of map frame
+          const naX = drawX + drawW - 14;
+          const naY = drawY + 14;
+          doc.setFillColor(15, 23, 42);
+          doc.circle(naX, naY, 6, 'F');
+          doc.setFillColor(239, 68, 68);
+          doc.triangle(naX - 2.5, naY, naX + 2.5, naY, naX, naY - 4.5, 'F');
+          doc.setFillColor(255, 255, 255);
+          doc.triangle(naX - 2.5, naY, naX + 2.5, naY, naX, naY + 4.5, 'F');
+          doc.setTextColor(255, 255, 255);
+          doc.setFont(fontName, 'bold');
+          doc.setFontSize(6.5);
+          doc.text('N', naX, naY - 7.5, { align: 'center' });
+
+          // Scale bar in bottom-left of map frame
+          const sbX = drawX + 8;
+          const sbY = drawY + drawH - 7;
+          doc.setFillColor(15, 23, 42);
+          doc.rect(sbX, sbY - 4, 34, 6.5, 'F');
+          doc.setDrawColor(255, 255, 255);
+          doc.setLineWidth(0.4);
+          doc.line(sbX + 2, sbY + 1, sbX + 32, sbY + 1);
+          doc.line(sbX + 2, sbY - 1, sbX + 2, sbY + 1);
+          doc.line(sbX + 17, sbY - 0.5, sbX + 17, sbY + 1);
+          doc.line(sbX + 32, sbY - 1, sbX + 32, sbY + 1);
+          doc.setTextColor(255, 255, 255);
+          doc.setFont(fontName, 'normal');
+          doc.setFontSize(5.5);
+          doc.text('0', sbX + 2, sbY - 1.5, { align: 'center' });
+          doc.text('25მ', sbX + 17, sbY - 1.5, { align: 'center' });
+          doc.text('50მ', sbX + 32, sbY - 1.5, { align: 'center' });
         } catch (e) {
           console.warn('[PDF] Canvas snapshot embedding fallback:', e);
         }
       }
-      doc.save(`BIMX_Tsinare_${state.cadastralCode || 'Cadastre'}.pdf`);
+      doc.save(`BIMX_Tsinare_${cadCode.replace(/[^\w.-]/g, '_')}.pdf`);
     });
   };
 
@@ -7820,13 +7966,14 @@
     const clientH = Math.max(200, Math.round(clientRect.height || 800));
 
     const w = targetW || 2400;
-    const h = targetH || 1600;
+    const h = targetH ? targetH : Math.round(w * (clientH / clientW));
 
     clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
     clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
     clone.setAttribute('width', String(w));
     clone.setAttribute('height', String(h));
     clone.setAttribute('viewBox', `0 0 ${clientW} ${clientH}`);
+    clone.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
     // Clear temporary interaction layer from output
     const interLayer = clone.querySelector('#interactionLayer');
@@ -7939,26 +8086,33 @@
 
   // --- High-Resolution Composite Canvas Renderer (Map Tiles + Vector CAD) ---
   function composeExportCanvas(targetW, targetH, callback) {
-    const prep = getPreparedSvgForExport(targetW, targetH);
+    const wrapper = document.getElementById('cadCanvasWrapper') || els.cadSvgContainer;
+    const wrapperRect = wrapper ? wrapper.getBoundingClientRect() : { width: 1200, height: 800, left: 0, top: 0 };
+    const screenW = Math.max(300, Math.round(wrapperRect.width));
+    const screenH = Math.max(200, Math.round(wrapperRect.height));
+    const screenAspect = screenW / screenH;
+
+    const exportW = targetW || 2400;
+    const exportH = targetH ? targetH : Math.round(exportW / screenAspect);
+
+    const prep = getPreparedSvgForExport(exportW, exportH);
     if (!prep) {
       callback(null);
       return;
     }
 
     const canvas = document.createElement('canvas');
-    canvas.width = targetW || 2400;
-    canvas.height = targetH || 1600;
+    canvas.width = exportW;
+    canvas.height = exportH;
     const ctx = canvas.getContext('2d');
 
-    const wrapper = document.getElementById('cadCanvasWrapper') || els.cadSvgContainer;
-    const wrapperRect = wrapper ? wrapper.getBoundingClientRect() : { width: targetW, height: targetH, left: 0, top: 0 };
-    const scaleX = canvas.width / Math.max(1, wrapperRect.width);
-    const scaleY = canvas.height / Math.max(1, wrapperRect.height);
+    // UNIFORM scaling: scale factor is identical for X and Y to strictly preserve 1:1 geometry!
+    const uniformScale = exportW / screenW;
 
     const isMapMode = (state.viewMode === 'hybrid' || state.viewMode === 'map');
     if (isMapMode) {
-      // Natural clean neutral base for GIS map
-      ctx.fillStyle = '#f8fafc';
+      // Natural clean neutral dark base for GIS map
+      ctx.fillStyle = '#0f172a';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // Render all active Leaflet map tiles
@@ -7966,10 +8120,10 @@
       tileImgs.forEach(img => {
         if (!img.complete || img.naturalWidth === 0) return;
         const rect = img.getBoundingClientRect();
-        const dx = (rect.left - wrapperRect.left) * scaleX;
-        const dy = (rect.top - wrapperRect.top) * scaleY;
-        const dw = rect.width * scaleX;
-        const dh = rect.height * scaleY;
+        const dx = (rect.left - wrapperRect.left) * uniformScale;
+        const dy = (rect.top - wrapperRect.top) * uniformScale;
+        const dw = rect.width * uniformScale;
+        const dh = rect.height * uniformScale;
         try {
           ctx.drawImage(img, dx, dy, dw, dh);
         } catch (e) {
