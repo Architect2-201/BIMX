@@ -1042,18 +1042,19 @@
     /* Search History Dropdown */
     #searchHistoryDropdown {
       position: absolute;
-      top: calc(100% + 4px);
+      top: calc(100% + 6px);
       left: 0;
       right: 0;
-      z-index: 99997;
-      background: rgba(9, 15, 29, 0.98);
+      z-index: 99999;
+      background: #080f1e;
+      background: rgba(8, 15, 30, 0.98);
       backdrop-filter: blur(28px);
       -webkit-backdrop-filter: blur(28px);
-      border: 1px solid rgba(56, 189, 248, 0.22);
+      border: 1px solid rgba(56, 189, 248, 0.35);
       border-radius: 12px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.9), 0 0 0 1px rgba(56,189,248,0.12);
+      box-shadow: 0 25px 60px rgba(0,0,0,0.95), 0 0 0 1px rgba(56,189,248,0.18), 0 10px 25px rgba(0,0,0,0.7);
       overflow: hidden;
-      max-height: 420px;
+      max-height: 440px;
       overflow-y: auto;
       scrollbar-width: thin;
       scrollbar-color: rgba(56,189,248,0.3) transparent;
@@ -1064,52 +1065,53 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 8px 12px 4px;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
+      padding: 9px 12px 6px;
+      background: rgba(255,255,255,0.02);
+      border-bottom: 1px solid rgba(56, 189, 248, 0.12);
     }
-    .sh-title { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; }
+    .sh-title { font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.05em; display: flex; items-center; gap: 5px; }
     .sh-clear-btn {
-      font-size: 10px; color: #475569; background: none; border: none;
-      cursor: pointer; padding: 2px 6px; border-radius: 4px;
-      transition: all 0.15s;
+      font-size: 10px; color: #94a3b8; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      cursor: pointer; padding: 2px 7px; border-radius: 4px;
+      transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px;
     }
-    .sh-clear-btn:hover { color: #f87171; background: rgba(248,113,113,0.1); }
+    .sh-clear-btn:hover { color: #f87171; border-color: rgba(248,113,113,0.3); background: rgba(248,113,113,0.1); }
     .sh-section-label {
-      font-size: 9px; font-weight: 700; letter-spacing: 0.06em;
-      text-transform: uppercase; color: #334155;
-      padding: 6px 12px 2px;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; color: #64748b;
+      padding: 7px 12px 3px;
     }
     .sh-item {
-      display: flex; align-items: center; gap: 8px;
-      padding: 7px 12px;
+      display: flex; align-items: center; gap: 9px;
+      padding: 8px 12px;
       cursor: pointer;
-      transition: background 0.12s;
+      transition: background 0.12s, transform 0.08s;
       border: none; background: transparent; width: 100%; text-align: left;
     }
-    .sh-item:hover { background: rgba(56, 189, 248, 0.08); }
-    .sh-item:hover .sh-code { color: #7dd3fc; }
+    .sh-item:hover { background: rgba(56, 189, 248, 0.1); }
+    .sh-item:hover .sh-code { color: #38bdf8; }
     .sh-code {
       font-family: 'JetBrains Mono', monospace;
       font-size: 12px; font-weight: 600;
-      color: #cbd5e1; flex: 1;
+      color: #f1f5f9; flex: 1;
       transition: color 0.12s;
     }
     .sh-addr {
-      font-size: 10px; color: #475569;
-      max-width: 160px; white-space: nowrap;
+      font-size: 11px; color: #94a3b8;
+      max-width: 170px; white-space: nowrap;
       overflow: hidden; text-overflow: ellipsis;
     }
-    .sh-time { font-size: 9px; color: #334155; font-family: monospace; flex-shrink: 0; }
-    .sh-icon { font-size: 11px; color: #334155; flex-shrink: 0; }
+    .sh-time { font-size: 10px; color: #64748b; font-family: monospace; flex-shrink: 0; }
+    .sh-icon { font-size: 12px; color: #38bdf8; flex-shrink: 0; }
     .sh-del-btn {
-      font-size: 10px; color: #334155; background: none; border: none;
-      cursor: pointer; padding: 2px 4px; border-radius: 3px;
-      opacity: 0; transition: all 0.12s; flex-shrink: 0;
+      font-size: 11px; color: #64748b; background: none; border: none;
+      cursor: pointer; padding: 3px 5px; border-radius: 4px;
+      opacity: 0.4; transition: all 0.12s; flex-shrink: 0;
     }
-    .sh-item:hover .sh-del-btn { opacity: 1; color: #f87171; }
+    .sh-item:hover .sh-del-btn { opacity: 1; color: #f87171; background: rgba(248,113,113,0.12); }
     .sh-empty {
-      padding: 20px 12px; text-align: center;
-      font-size: 11px; color: #334155;
+      padding: 22px 14px; text-align: center;
+      font-size: 12px; color: #94a3b8;
     }
 
     /* Basemap Picker Panel */
@@ -1233,7 +1235,7 @@
   <!-- =========================================================================
        1. TOP APP BAR / HEADER & CADASTRAL SEARCH
        ========================================================================= -->
-  <header class="h-16 flex-none bg-[#0a101d]/95 backdrop-blur-xl border-b border-[#1f2e4d] px-4 flex items-center justify-between z-30 gap-3">
+  <header class="h-16 flex-none bg-[#0a101d]/95 backdrop-blur-xl border-b border-[#1f2e4d] px-4 flex items-center justify-between relative z-[200] gap-3">
     <!-- Brand & Page Title -->
     <div class="flex items-center gap-3 min-w-max">
       <a href="index.html" class="flex items-center gap-2 group" title="BIMX Studio მთავარი">
@@ -1251,7 +1253,7 @@
     </div>
 
     <!-- Central Cadastral Search Bar -->
-    <div class="flex-1 max-w-xl mx-2">
+    <div class="flex-1 max-w-xl mx-2 relative z-50">
       <form id="cadastralSearchForm" onsubmit="event.preventDefault(); triggerCadastralSearch(); return false;" class="relative flex items-center">
         <div class="relative w-full">
           <i class="fa-solid fa-location-crosshairs absolute left-3.5 top-1/2 -translate-y-1/2 text-sky-400 text-sm"></i>
