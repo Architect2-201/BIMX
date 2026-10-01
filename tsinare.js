@@ -7004,6 +7004,25 @@
     updateToolStatus('ინჟინერია: საპროექტო მიწისქვეშა და მიწისზედა კომუნიკაციები ავტომატურად დაიხაზა.');
   };
 
+  window.toggleUtilitiesQuickPanel = function () {
+    const isCurrentlyVisible = !!state.layers.utilities;
+    const nextState = !isCurrentlyVisible;
+    window.toggleLayer('utilities_all', nextState);
+    if (nextState && (!state.utilities || (!state.utilities.lines.length && !state.utilities.nodes.length))) {
+      generateDefaultUtilities();
+      renderCadWorld();
+    }
+    const btn = document.getElementById('btnCadUtilitiesToggle');
+    if (btn) {
+      if (nextState) {
+        btn.classList.add('border-cyan-400', 'bg-cyan-950/60');
+      } else {
+        btn.classList.remove('border-cyan-400', 'bg-cyan-950/60');
+      }
+    }
+    updateToolStatus(nextState ? 'საინჟინრო კომუნიკაციები (მიწისქვეშა & საჰაერო): ჩართულია.' : 'საინჟინრო კომუნიკაციები: გამორთულია.');
+  };
+
   // 12c. Render Engineering Utilities SVG
   function renderUtilities(pxToM) {
     if (!els.utilitiesUndergroundLayer && !els.utilitiesOvergroundLayer && !els.utilitiesManholesLayer) return;
