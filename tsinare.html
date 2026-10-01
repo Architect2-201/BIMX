@@ -1039,6 +1039,79 @@
       display: none !important;
     }
 
+    /* Search History Dropdown */
+    #searchHistoryDropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      z-index: 99997;
+      background: rgba(9, 15, 29, 0.98);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1px solid rgba(56, 189, 248, 0.22);
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.9), 0 0 0 1px rgba(56,189,248,0.12);
+      overflow: hidden;
+      max-height: 420px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(56,189,248,0.3) transparent;
+    }
+    #searchHistoryDropdown::-webkit-scrollbar { width: 4px; }
+    #searchHistoryDropdown::-webkit-scrollbar-thumb { background: rgba(56,189,248,0.3); border-radius: 2px; }
+    .sh-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px 4px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .sh-title { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; }
+    .sh-clear-btn {
+      font-size: 10px; color: #475569; background: none; border: none;
+      cursor: pointer; padding: 2px 6px; border-radius: 4px;
+      transition: all 0.15s;
+    }
+    .sh-clear-btn:hover { color: #f87171; background: rgba(248,113,113,0.1); }
+    .sh-section-label {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; color: #334155;
+      padding: 6px 12px 2px;
+    }
+    .sh-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 12px;
+      cursor: pointer;
+      transition: background 0.12s;
+      border: none; background: transparent; width: 100%; text-align: left;
+    }
+    .sh-item:hover { background: rgba(56, 189, 248, 0.08); }
+    .sh-item:hover .sh-code { color: #7dd3fc; }
+    .sh-code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; font-weight: 600;
+      color: #cbd5e1; flex: 1;
+      transition: color 0.12s;
+    }
+    .sh-addr {
+      font-size: 10px; color: #475569;
+      max-width: 160px; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    .sh-time { font-size: 9px; color: #334155; font-family: monospace; flex-shrink: 0; }
+    .sh-icon { font-size: 11px; color: #334155; flex-shrink: 0; }
+    .sh-del-btn {
+      font-size: 10px; color: #334155; background: none; border: none;
+      cursor: pointer; padding: 2px 4px; border-radius: 3px;
+      opacity: 0; transition: all 0.12s; flex-shrink: 0;
+    }
+    .sh-item:hover .sh-del-btn { opacity: 1; color: #f87171; }
+    .sh-empty {
+      padding: 20px 12px; text-align: center;
+      font-size: 11px; color: #334155;
+    }
+
     /* Basemap Picker Panel */
     #basemapPickerPanel {
       display: none;
@@ -1188,9 +1261,20 @@
             placeholder="საკადასტრო კოდი (მაგ: 01.15.05.070.108, 01.14.11.059.039, 72.13.12.125)..." 
             value=""
             autocomplete="off"
-            onkeydown="if(event.key === 'Enter'){ event.preventDefault(); triggerCadastralSearch(); }"
-            class="w-full bg-[#111a2e] border border-[#243557] focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg py-2 pl-10 pr-24 text-xs sm:text-sm font-mono text-white placeholder-slate-400 outline-none transition-all shadow-inner"
+            onfocus="openSearchHistory()"
+            oninput="filterSearchHistory(this.value)"
+            onkeydown="handleSearchInputKey(event)"
+            class="w-full bg-[#111a2e] border border-[#243557] focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg py-2 pl-10 pr-28 text-xs sm:text-sm font-mono text-white placeholder-slate-400 outline-none transition-all shadow-inner"
           >
+          <button 
+            type="button" 
+            id="btnToggleHistory"
+            onclick="toggleSearchHistory(event)"
+            title="ძებნის ისტორია"
+            class="absolute right-[74px] sm:right-[82px] top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-sky-300 hover:bg-sky-500/10 rounded transition-all text-xs"
+          >
+            <i class="fa-solid fa-clock-rotate-left"></i>
+          </button>
           <button 
             type="button" 
             id="btnSearchCadastral" 
@@ -1200,6 +1284,17 @@
             <i class="fa-solid fa-magnifying-glass text-[11px]"></i>
             <span class="hidden sm:inline">ძებნა</span>
           </button>
+
+          <!-- Search History Dropdown -->
+          <div id="searchHistoryDropdown" class="hidden">
+            <div class="sh-header">
+              <span class="sh-title"><i class="fa-solid fa-clock-rotate-left mr-1"></i>ძებნის ისტორია</span>
+              <button type="button" class="sh-clear-btn" onclick="clearSearchHistory()">
+                <i class="fa-solid fa-trash-can mr-0.5"></i> გასუფთავება
+              </button>
+            </div>
+            <div id="searchHistoryList"></div>
+          </div>
         </div>
       </form>
     </div>

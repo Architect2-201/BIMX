@@ -702,6 +702,7 @@
     const cleanCode = universalNormalizeCadastral(rawInput);
     if (!cleanCode) return;
     if (els.cadastralInput) els.cadastralInput.value = cleanCode;
+    window.closeSearchHistory();
 
     if (els.btnSearchCadastral) {
       els.btnSearchCadastral.disabled = true;
@@ -883,6 +884,11 @@
 
         updateToolStatus(`მოიძებნა ნაკვეთი ${state.cadastralCode} (${state.officialAreaSqm} მ²). გენგეგმის სტუდია მზადაა.`);
 
+        // Save successfully searched cadastral code & address to history
+        if (typeof window.saveToSearchHistory === 'function') {
+          window.saveToSearchHistory(state.cadastralCode, state.address);
+        }
+
         if (els.naprStatusBadge) {
           els.naprStatusBadge.innerText = 'NAPR VERIFIED';
           els.naprStatusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
@@ -918,6 +924,199 @@
     if (els.cadastralInput) els.cadastralInput.value = code;
     triggerCadastralSearch(code);
   };
+
+  // ================================================================
+  // SEARCH HISTORY SYSTEM (localStorage, max 20 entries)
+  // ================================================================
+  const HISTORY_KEY = 'tsinare_search_history';
+  const HISTORY_MAX = 20;
+  let _shHighlightIndex = -1; // keyboard navigation index
+
+  function getSearchHistory() {
+    try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }
+    catch { return []; }
+  }
+
+  function saveSearchHistory(arr) {
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(arr)); }
+    catch {}
+  }
+
+  window.saveToSearchHistory = function (code, address) {
+    if (!code) return;
+    let hist = getSearchHistory();
+    // Remove existing entry for same code
+    hist = hist.filter(h => h.code !== code);
+    // Prepend new entry
+    hist.unshift({
+      code,
+      address: address || '',
+      ts: Date.now()
+    });
+    // Trim to max
+    if (hist.length > HISTORY_MAX) hist = hist.slice(0, HISTORY_MAX);
+    saveSearchHistory(hist);
+  };
+
+  window.removeFromSearchHistory = function (code, e) {
+    if (e) { e.stopPropagation(); e.preventDefault(); }
+    let hist = getSearchHistory().filter(h => h.code !== code);
+    saveSearchHistory(hist);
+    renderSearchHistoryList(hist);
+  };
+
+  window.clearSearchHistory = function () {
+    saveSearchHistory([]);
+    renderSearchHistoryList([]);
+  };
+
+  function formatHistoryTime(ts) {
+    const now = Date.now();
+    const diff = now - ts;
+    const m = Math.floor(diff / 60000);
+    const h = Math.floor(diff / 3600000);
+    const d = Math.floor(diff / 86400000);
+    if (m < 1) return 'ახლახან';
+    if (m < 60) return m + ' წთ. წინ';
+    if (h < 24) return h + ' სთ. წინ';
+    if (d < 7) return d + ' დღე წინ';
+    return new Date(ts).toLocaleDateString('ka-GE', { day: 'numeric', month: 'short' });
+  }
+
+  function renderSearchHistoryList(hist, filter) {
+    const list = document.getElementById('searchHistoryList');
+    if (!list) return;
+    _shHighlightIndex = -1;
+
+    let items = hist;
+    if (filter && filter.length >= 2) {
+      items = hist.filter(h => h.code.includes(filter) || (h.address && h.address.toLowerCase().includes(filter.toLowerCase())));
+    }
+
+    if (items.length === 0) {
+      list.innerHTML = `<div class="sh-empty">${filter ? '🔍 შედეგი არ მოიძებნა' : '⏳ ძებნის ისტორია ცარიელია'}</div>`;
+      return;
+    }
+
+    // Group: Today vs Earlier
+    const today = new Date(); today.setHours(0,0,0,0);
+    const todayItems = items.filter(h => h.ts >= today.getTime());
+    const earlierItems = items.filter(h => h.ts < today.getTime());
+
+    let html = '';
+    if (todayItems.length > 0) {
+      html += `<div class="sh-section-label">დღეს</div>`;
+      todayItems.forEach(h => html += buildHistoryItem(h));
+    }
+    if (earlierItems.length > 0) {
+      html += `<div class="sh-section-label">ადრე</div>`;
+      earlierItems.forEach(h => html += buildHistoryItem(h));
+    }
+    list.innerHTML = html;
+  }
+
+  function buildHistoryItem(h) {
+    const addrEsc = (h.address || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    const codeEsc = h.code.replace(/"/g, '&quot;');
+    return `
+      <button type="button" class="sh-item"
+        onclick="selectHistoryItem('${codeEsc}')">
+        <i class="sh-icon fa-solid fa-clock-rotate-left"></i>
+        <span class="sh-code">${h.code}</span>
+        ${h.address ? `<span class="sh-addr" title="${addrEsc}">${h.address}</span>` : ''}
+        <span class="sh-time">${formatHistoryTime(h.ts)}</span>
+        <button type="button" class="sh-del-btn"
+          onclick="removeFromSearchHistory('${codeEsc}', event)"
+          title="ამ ჩანაწერის წაშლა">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </button>`;
+  }
+
+  window.toggleSearchHistory = function (e) {
+    if (e) { e.stopPropagation(); e.preventDefault(); }
+    const dropdown = document.getElementById('searchHistoryDropdown');
+    if (!dropdown) return;
+    if (dropdown.classList.contains('hidden')) {
+      window.openSearchHistory();
+    } else {
+      window.closeSearchHistory();
+    }
+  };
+
+  window.openSearchHistory = function () {
+    const dropdown = document.getElementById('searchHistoryDropdown');
+    const input = els.cadastralInput;
+    if (!dropdown) return;
+    const hist = getSearchHistory();
+    renderSearchHistoryList(hist, input ? input.value : '');
+    dropdown.classList.remove('hidden');
+  };
+
+  window.filterSearchHistory = function (val) {
+    const dropdown = document.getElementById('searchHistoryDropdown');
+    if (!dropdown) return;
+    const hist = getSearchHistory();
+    renderSearchHistoryList(hist, val);
+    if (hist.length > 0) dropdown.classList.remove('hidden');
+  };
+
+  window.closeSearchHistory = function () {
+    const dropdown = document.getElementById('searchHistoryDropdown');
+    if (dropdown) dropdown.classList.add('hidden');
+    _shHighlightIndex = -1;
+  };
+
+  window.selectHistoryItem = function (code) {
+    if (els.cadastralInput) els.cadastralInput.value = code;
+    window.closeSearchHistory();
+    triggerCadastralSearch(code);
+  };
+
+  // Keyboard navigation (arrow up/down, Escape, Enter)
+  window.handleSearchInputKey = function (e) {
+    const dropdown = document.getElementById('searchHistoryDropdown');
+    const items = dropdown ? Array.from(dropdown.querySelectorAll('.sh-item:not(.sh-header *)')) : [];
+
+    if (e.key === 'Escape') {
+      window.closeSearchHistory();
+      return;
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (_shHighlightIndex >= 0 && items[_shHighlightIndex]) {
+        items[_shHighlightIndex].click();
+      } else {
+        window.closeSearchHistory();
+        triggerCadastralSearch();
+      }
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (dropdown && dropdown.classList.contains('hidden')) window.openSearchHistory();
+      _shHighlightIndex = Math.min(_shHighlightIndex + 1, items.length - 1);
+      items.forEach((it, i) => it.style.background = i === _shHighlightIndex ? 'rgba(56,189,248,0.12)' : '');
+      if (items[_shHighlightIndex]) items[_shHighlightIndex].scrollIntoView({ block: 'nearest' });
+      return;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      _shHighlightIndex = Math.max(_shHighlightIndex - 1, -1);
+      items.forEach((it, i) => it.style.background = i === _shHighlightIndex ? 'rgba(56,189,248,0.12)' : '');
+      if (_shHighlightIndex >= 0 && items[_shHighlightIndex]) items[_shHighlightIndex].scrollIntoView({ block: 'nearest' });
+      return;
+    }
+  };
+
+  // Close history on click outside
+  document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('searchHistoryDropdown');
+    const form = document.getElementById('cadastralSearchForm');
+    if (dropdown && !dropdown.classList.contains('hidden')) {
+      if (!form || !form.contains(e.target)) window.closeSearchHistory();
+    }
+  });
 
   // Convert WGS-84 [lat, lng] to Metric Cartesian (Meters) centered on centroid
   function convertGeoToMetric(rawCoords) {
