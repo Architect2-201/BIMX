@@ -97,6 +97,15 @@
     atriumCutoutPoints: [],
     
     // Layer Visibility
+    // Engineering Linear & Point Utilities (მიწისქვეშა & მიწისზედა კომუნიკაციები)
+    utilities: {
+      lines: [], // [{ id, type, category: 'underground'|'overhead', points: [[x,y]...], name, specs, depthM, slope, flowDir, status }]
+      nodes: []  // [{ id, type, pos: [x,y], name, specs, depthM, elevationM, status }]
+    },
+    currentUtilityPoints: [],
+    selectedUtilityId: null,
+
+    // Layer Visibility
     layers: {
       topography: false,
       neighborhood: false,
@@ -112,7 +121,18 @@
       terraces: true,
       roads: true,
       parking: true,
-      nodes: false
+      nodes: false,
+      // Engineering Utilities
+      utilities: true,
+      utilities_underground: true,
+      utilities_overhead: true,
+      utilities_water: true,
+      utilities_sewer: true,
+      utilities_storm: true,
+      utilities_electric: true,
+      utilities_gas: true,
+      utilities_telecom: true,
+      utilities_manholes: true
     },
 
     // CAD Canvas Viewport Transform
@@ -123,11 +143,17 @@
     panStart: { x: 0, y: 0 },
     
     // Tools & Modes
-    activeTool: 'pan', // 'pan', 'stamp_footprint', 'delete', 'split', 'draw_footprint', 'tree', 'pine_tree', 'hedge', 'water', 'fountain', 'terrace', 'walkway', 'bike_path', 'draw_road', 'parking', 'ruler'
-    activeStyle: 'blueprint', // 24 styles
+    activeTool: 'pan',
+    activeStyle: 'blueprint', // 30 styles
     viewMode: 'hybrid', // 'cad' | 'hybrid' | 'map'
     activeBasemap: 'esri_satellite', // key from BASEMAP_REGISTRY
     sunAzimuth: 135, // degrees
+
+    // Historical Maps & Timeline Engine (1887 - 2026)
+    historicalYearIndex: 10,
+    historicalPlaying: false,
+    historicalTimer: null,
+    historicalOpacity: 0.95,
     
     // Interactive Transformations
     drawPoints: [],
@@ -358,8 +384,161 @@
       layers: [
         { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 13, maxZoom: 22 } }
       ]
+    },
+
+    // --- 5. თანამედროვე & კარტოგრაფიული რუკები ---
+    carto_voyager: {
+      label: 'CARTO Voyager',
+      icon: '🧭',
+      group: 'neutral',
+      description: 'CARTO Voyager — ელეგანტური ურბანული რუკა შენობების კონტურებით',
+      layers: [
+        { url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', opts: { subdomains: 'abcd', maxNativeZoom: 19, maxZoom: 22 } }
+      ]
+    },
+    carto_dark: {
+      label: 'CARTO Dark Matter',
+      icon: '🌑',
+      group: 'dark',
+      description: 'CARTO Dark Matter — მუქი გრაფიტის ფონი მაღალი კონტრასტის CAD ხაზებისთვის',
+      layers: [
+        { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', opts: { subdomains: 'abcd', maxNativeZoom: 19, maxZoom: 22 } }
+      ]
+    },
+    carto_positron: {
+      label: 'CARTO Positron (მინიმალისტური)',
+      icon: '⚪',
+      group: 'neutral',
+      description: 'CARTO Positron — სუფთა თეთრი მინიმალისტური ფონი საპროექტო გენგეგმისთვის',
+      layers: [
+        { url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', opts: { subdomains: 'abcd', maxNativeZoom: 19, maxZoom: 22 } }
+      ]
+    },
+    esri_clarity: {
+      label: 'ESRI Clarity Ortho',
+      icon: '✨',
+      group: 'satellite',
+      description: 'ESRI Clarity — უმაღლესი სიცხადის ორთოფოტო ღრუბლების გარეშე',
+      layers: [
+        { url: 'https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 19, maxZoom: 22 } }
+      ]
+    },
+    esri_firefly: {
+      label: 'ESRI Firefly Imagery',
+      icon: '🪲',
+      group: 'satellite',
+      description: 'ESRI Firefly — დაბალანსებული მუქი ორთოფოტო CAD ვექტორების გასანათებლად',
+      layers: [
+        { url: 'https://fly.maptiles.arcgis.com/arcgis/rest/services/World_Imagery_Firefly/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 19, maxZoom: 22 } }
+      ]
+    },
+    esri_nav_charts: {
+      label: 'ESRI ნავიგაციის რუკა',
+      icon: '⚓',
+      group: 'topo',
+      description: 'ESRI Navigation Charts — საინჟინრო ნავიგაციური და ტოპოგრაფიული ჩარტები',
+      layers: [
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Specialty/World_Navigation_Charts/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 13, maxZoom: 22 } }
+      ]
+    },
+    osm_de: {
+      label: 'OpenStreetMap გერმანია',
+      icon: '🇩🇪',
+      group: 'road',
+      description: 'OSM German Style — გერმანული საინჟინრო კარტოგრაფიის დეტალურობა',
+      layers: [
+        { url: 'https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxNativeZoom: 19, maxZoom: 22 } }
+      ]
+    },
+
+    arcgis_clarity: {
+      label: 'ESRI Clarity Ortho',
+      icon: '💎',
+      group: 'satellite',
+      description: 'ESRI Clarity — უმაღლესი სიცხადის ორთოფოტო',
+      layers: [
+        { url: 'https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 19, maxZoom: 22 } }
+      ]
+    },
+    arcgis_firefly: {
+      label: 'ESRI Firefly Imagery',
+      icon: '🪲',
+      group: 'satellite',
+      description: 'ESRI Firefly — დაბალანსებული მუქი ორთოფოტო CAD ვექტორებისთვის',
+      layers: [
+        { url: 'https://fly.maptiles.arcgis.com/arcgis/rest/services/World_Imagery_Firefly/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 19, maxZoom: 22 } }
+      ]
+    },
+    carto_light: {
+      label: 'CARTO Positron (ღია)',
+      icon: '⚪',
+      group: 'neutral',
+      description: 'CARTO Positron — სუფთა ნათელი ფონი',
+      layers: [
+        { url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', opts: { subdomains: 'abcd', maxNativeZoom: 19, maxZoom: 22 } }
+      ]
+    },
+
+    // --- 6. ისტორიული რუკები & რეტრო ტოპოგრაფია ---
+    hist_1887_imperial: {
+      label: '1887 რუსეთის იმპერიის ტოპო',
+      icon: '📜',
+      group: 'historical',
+      description: '1887 წლის სამხედრო-ტოპოგრაფიული ერთვერსიანი რუკა (ვინტაჟური სეპია)',
+      layers: [
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 18, maxZoom: 22, className: 'tile-filter-sepia-antique' } }
+      ]
+    },
+    hist_1942_soviet: {
+      label: '1942 გენშტაბის სამხედრო ტოპო',
+      icon: '🎖️',
+      group: 'historical',
+      description: '1942 წლის წითელი არმიის გენშტაბის სამხედრო-ტოპოგრაფიული რუკა',
+      layers: [
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 18, maxZoom: 22, className: 'tile-filter-soviet-topo' } }
+      ]
+    },
+    hist_1975_soviet: {
+      label: '1975 საბჭოთა გენგეგმის ტოპო',
+      icon: '🏗️',
+      group: 'historical',
+      description: '1975 წლის ურბანული გენერალური გეგმის ტოპოგრაფიული საფუძველი',
+      layers: [
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 18, maxZoom: 22, className: 'tile-filter-soviet-70s' } }
+      ]
     }
   };
+
+  // Historical Milestones & ESRI Wayback Releases (1887 - 2026)
+  const WAYBACK_RELEASES = {
+    2014: 5844,
+    2015: 28163,
+    2016: 18966,
+    2017: 25521,
+    2018: 23448,
+    2019: 4756,
+    2020: 29260,
+    2021: 26120,
+    2022: 45134,
+    2023: 56102,
+    2024: 16453,
+    2025: 13192,
+    2026: 26334
+  };
+
+  const HISTORICAL_YEARS = [
+    { year: 1887, label: '1887 (რუსეთის იმპერია)', desc: '1887 წლის სამხედრო-ტოპოგრაფიული ერთვერსიანი რუკა (ვინტაჟური სეპია)', basemapKey: 'hist_1887_imperial', filterClass: 'tile-filter-sepia-antique' },
+    { year: 1942, label: '1942 (გენშტაბი II მსოფლიო ომი)', desc: '1942 წლის წითელი არმიის გენშტაბის სამხედრო-ტოპოგრაფიული რუკა', basemapKey: 'hist_1942_soviet', filterClass: 'tile-filter-soviet-topo' },
+    { year: 1975, label: '1975 (საბჭოთა გენგეგმა)', desc: '1975 წლის ურბანული გენერალური გეგმის ტოპოგრაფიული საფუძველი', basemapKey: 'hist_1975_soviet', filterClass: 'tile-filter-soviet-70s' },
+    { year: 2004, label: '2004 (ადრეული სატელიტი)', desc: '2004 წლის Landsat / early NASA სატელიტური ორთოფოტოსურათი', basemapKey: 'esri_satellite', filterClass: 'tile-filter-retro-ortho' },
+    { year: 2014, label: '2014 (ESRI Wayback)', desc: '2014 წლის აეროფოტოგადაღება (Release M=5844)', waybackRelease: 5844 },
+    { year: 2016, label: '2016 (ESRI Wayback)', desc: '2016 წლის აეროფოტოგადაღება (Release M=18966)', waybackRelease: 18966 },
+    { year: 2018, label: '2018 (ESRI Wayback)', desc: '2018 წლის ორთოფოტო (Release M=23448)', waybackRelease: 23448 },
+    { year: 2020, label: '2020 (ESRI Wayback)', desc: '2020 წლის სატელიტური ორთოფოტო (Release M=29260)', waybackRelease: 29260 },
+    { year: 2022, label: '2022 (ESRI Wayback)', desc: '2022 წლის მაღალი სიზუსტის ორთოფოტო (Release M=45134)', waybackRelease: 45134 },
+    { year: 2024, label: '2024 (ESRI Wayback)', desc: '2024 წლის ორთოფოტოგადაღება (Release M=16453)', waybackRelease: 16453 },
+    { year: 2026, label: '2026 (უახლესი 2026)', desc: '2026 წლის უახლესი ორთოფოტო და საჯარო რეესტრის კადასტრი (M=26334)', waybackRelease: 26334 }
+  ];
 
   // Active Leaflet tile layer instances (current basemap)
   let tsinareMap = null;
@@ -371,6 +550,20 @@
     const cfg = BASEMAP_REGISTRY[key];
     if (!cfg || !tsinareMap) return;
     state.activeBasemap = key;
+
+    // Reset any historical CSS filters on leaflet container
+    const mapEl = document.getElementById('tsinareLeafletMap');
+    if (mapEl) {
+      mapEl.classList.remove(
+        'tile-filter-sepia-antique',
+        'tile-filter-soviet-topo',
+        'tile-filter-soviet-70s',
+        'tile-filter-retro-ortho',
+        'tile-filter-matrix',
+        'tile-filter-high-contrast'
+      );
+    }
+
     // Remove existing base tile layers
     _activeTileLayers.forEach(l => { if (tsinareMap.hasLayer(l)) tsinareMap.removeLayer(l); });
     _activeTileLayers = [];
@@ -385,13 +578,13 @@
         updateWhenIdle: true,
         crossOrigin: 'anonymous'
       }, def.opts || {});
-      // Ensure maxZoom is always 22 so leaflet stretches native tiles rather than disappearing
       opts.maxZoom = 22;
       opts.crossOrigin = 'anonymous';
       const layer = L.tileLayer(def.url, opts);
       layer.addTo(tsinareMap);
       _activeTileLayers.push(layer);
     });
+
     // Update picker UI
     document.querySelectorAll('.basemap-btn').forEach(b => {
       if (b.dataset.basemap === key) {
@@ -405,6 +598,152 @@
     if (triggerLabel) triggerLabel.textContent = cfg.icon + ' ' + cfg.label;
     // Re-sync map
     renderCadWorld();
+  };
+
+  // ----------------------------------------------------------------
+  // Historical Maps & Timeline Engine Implementation
+  // ----------------------------------------------------------------
+  window.toggleHistoricalTimeline = function () {
+    const bar = document.getElementById('historicalTimelineBar');
+    if (!bar) return;
+    const isHidden = bar.classList.contains('hidden');
+    if (isHidden) {
+      bar.classList.remove('hidden');
+      // If CAD is not currently showing map, switch to hybrid mode
+      if (state.viewMode === 'cad' && typeof window.setViewMode === 'function') {
+        window.setViewMode('hybrid');
+      }
+      window.setHistoricalYear(state.historicalYearIndex ?? 10);
+    } else {
+      bar.classList.add('hidden');
+      if (state.historicalTimer) {
+        clearInterval(state.historicalTimer);
+        state.historicalTimer = null;
+        state.historicalPlaying = false;
+        const icon = document.getElementById('iconHistoricalPlay');
+        if (icon) icon.className = 'fa-solid fa-play';
+      }
+      // Revert to active basemap
+      window.setBasemap(state.activeBasemap || 'esri_satellite');
+    }
+  };
+
+  window.setHistoricalYear = function (indexOrYear) {
+    if (!tsinareMap) return;
+    let idx = 0;
+    if (typeof indexOrYear === 'number' && indexOrYear < HISTORICAL_YEARS.length) {
+      idx = indexOrYear;
+    } else {
+      idx = HISTORICAL_YEARS.findIndex(h => h.year === indexOrYear);
+      if (idx === -1) idx = HISTORICAL_YEARS.length - 1;
+    }
+    state.historicalYearIndex = idx;
+    const item = HISTORICAL_YEARS[idx];
+    if (!item) return;
+
+    // Remove existing tile layers
+    _activeTileLayers.forEach(l => { if (tsinareMap.hasLayer(l)) tsinareMap.removeLayer(l); });
+    _activeTileLayers = [];
+
+    const mapEl = document.getElementById('tsinareLeafletMap');
+    if (mapEl) {
+      mapEl.classList.remove(
+        'tile-filter-sepia-antique',
+        'tile-filter-soviet-topo',
+        'tile-filter-soviet-70s',
+        'tile-filter-retro-ortho',
+        'tile-filter-matrix',
+        'tile-filter-high-contrast'
+      );
+      if (item.filterClass) {
+        mapEl.classList.add(item.filterClass);
+      }
+      mapEl.style.opacity = (state.historicalOpacity ?? 0.95).toString();
+    }
+
+    // Add appropriate historical tile layer
+    if (item.waybackRelease) {
+      const waybackUrl = `https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/${item.waybackRelease}/{z}/{y}/{x}`;
+      const layer = L.tileLayer(waybackUrl, {
+        minZoom: 1,
+        maxZoom: 22,
+        maxNativeZoom: 19,
+        crossOrigin: 'anonymous'
+      });
+      layer.addTo(tsinareMap);
+      _activeTileLayers.push(layer);
+    } else if (item.basemapKey && BASEMAP_REGISTRY[item.basemapKey]) {
+      const cfg = BASEMAP_REGISTRY[item.basemapKey];
+      cfg.layers.forEach(def => {
+        const opts = Object.assign({
+          minZoom: 1,
+          maxZoom: 22,
+          maxNativeZoom: 19,
+          crossOrigin: 'anonymous'
+        }, def.opts || {});
+        const layer = L.tileLayer(def.url, opts);
+        layer.addTo(tsinareMap);
+        _activeTileLayers.push(layer);
+      });
+    }
+
+    // Update UI elements
+    const badgeYear = document.getElementById('badgeCurrentHistoricalYear');
+    if (badgeYear) badgeYear.innerText = item.label;
+
+    const descEl = document.getElementById('lblHistoricalDescription');
+    if (descEl) descEl.innerText = item.desc;
+
+    const slider = document.getElementById('sliderHistoricalTimeline');
+    if (slider && parseInt(slider.value, 10) !== idx) {
+      slider.value = idx;
+    }
+
+    updateToolStatus(`ისტორიული რუკა: ${item.label} — ${item.desc}`);
+    renderCadWorld();
+  };
+
+  window.onHistoricalSliderInput = function (val) {
+    const idx = parseInt(val, 10);
+    window.setHistoricalYear(idx);
+  };
+
+  window.stepHistoricalYear = function (step) {
+    let nextIdx = (state.historicalYearIndex || 0) + step;
+    if (nextIdx < 0) nextIdx = 0;
+    if (nextIdx >= HISTORICAL_YEARS.length) nextIdx = HISTORICAL_YEARS.length - 1;
+    window.setHistoricalYear(nextIdx);
+  };
+
+  window.onHistoricalOpacityInput = function (val) {
+    const op = Math.max(0.1, Math.min(1.0, parseInt(val, 10) / 100));
+    state.historicalOpacity = op;
+    const mapEl = document.getElementById('tsinareLeafletMap');
+    if (mapEl) {
+      mapEl.style.opacity = op.toString();
+    }
+    const lbl = document.getElementById('lblHistoricalOpacityVal');
+    if (lbl) lbl.innerText = Math.round(op * 100) + '%';
+  };
+
+  window.toggleHistoricalPlay = function () {
+    state.historicalPlaying = !state.historicalPlaying;
+    const icon = document.getElementById('iconHistoricalPlay');
+    if (state.historicalPlaying) {
+      if (icon) icon.className = 'fa-solid fa-pause';
+      if (state.historicalTimer) clearInterval(state.historicalTimer);
+      state.historicalTimer = setInterval(() => {
+        let nextIdx = (state.historicalYearIndex || 0) + 1;
+        if (nextIdx >= HISTORICAL_YEARS.length) nextIdx = 0;
+        window.setHistoricalYear(nextIdx);
+      }, 2400);
+    } else {
+      if (icon) icon.className = 'fa-solid fa-play';
+      if (state.historicalTimer) {
+        clearInterval(state.historicalTimer);
+        state.historicalTimer = null;
+      }
+    }
   };
 
   function initGeorgiaLeafletMap() {
@@ -466,6 +805,9 @@
     state.fountains = [];
     state.parkingBays = [];
     state.subParcels = [];
+    state.utilities = { lines: [], nodes: [] };
+    state.currentUtilityPoints = [];
+    state.selectedUtilityId = null;
 
     if (els.cadastralInput) els.cadastralInput.value = '';
     if (els.georgiaOverviewOverlay) els.georgiaOverviewOverlay.style.display = 'flex';
@@ -553,6 +895,13 @@
     els.dimensionsLayer = document.getElementById('dimensionsLayer');
     els.nodesLayer = document.getElementById('nodesLayer');
     els.interactionLayer = document.getElementById('interactionLayer');
+
+    // Engineering Utilities Layers & Popups
+    els.utilitiesUndergroundLayer = document.getElementById('utilitiesUndergroundLayer');
+    els.utilitiesOvergroundLayer = document.getElementById('utilitiesOvergroundLayer');
+    els.utilitiesManholesLayer = document.getElementById('utilitiesManholesLayer');
+    els.historicalTimelineBar = document.getElementById('historicalTimelineBar');
+    els.utilityDetailsPopup = document.getElementById('utilityDetailsPopup');
 
     // CAD Precision, Snapping & Dynamic HUD Elements
     els.cadDynamicHud = document.getElementById('cadDynamicHud');
@@ -667,6 +1016,7 @@
       fountains: JSON.parse(JSON.stringify(state.fountains || [])),
       parkingBays: JSON.parse(JSON.stringify(state.parkingBays)),
       subParcels: JSON.parse(JSON.stringify(state.subParcels)),
+      utilities: JSON.parse(JSON.stringify(state.utilities || { lines: [], nodes: [] })),
       setbackDistance: state.setbackDistance,
       boundaryEdgeTypes: [...(state.boundaryEdgeTypes || [])]
     });
@@ -687,6 +1037,7 @@
       state.fountains = snap.fountains || [];
       state.parkingBays = snap.parkingBays || [];
       state.subParcels = snap.subParcels || [];
+      state.utilities = snap.utilities || { lines: [], nodes: [] };
       if (snap.setbackDistance) state.setbackDistance = snap.setbackDistance;
       if (snap.boundaryEdgeTypes) state.boundaryEdgeTypes = [...snap.boundaryEdgeTypes];
 
@@ -993,6 +1344,7 @@
         state.terraces = [];
         generateDefaultFootprint();
         generateDefaultLandscaping();
+        generateDefaultUtilities();
 
         // Reveal CAD SVG Container and hide Georgia overview HUD
         if (els.georgiaOverviewOverlay) els.georgiaOverviewOverlay.style.display = 'none';
@@ -2715,8 +3067,17 @@
     'desert': '🏜️ უდაბნოს ქვიშა / ვილა',
     'concrete': '🏭 ურბანული ბეტონი',
     'emerald': '💎 ზურმუხტისფერი ლუქსი',
-    'nightglow': '🌙 ღამის განათება'
+    'nightglow': '🌙 ღამის განათება',
+
+    // New Curated Architectural Themes & Engineering Palettes
+    'vintage_archival': '📜 ძველი საარქივო ნახაზი (1890s)',
+    'cad_electric': '⚡ CAD Electric High-Vis (ლურჯი/ელექტრო)',
+    'cyber_matrix': '💚 Cyber Matrix (კიბერ-მატრიცა)',
+    'warm_terracotta': '🏺 ქართული კრამიტი & ტერაკოტა',
+    'chalkboard': '🎓 საინჟინრო დაფა (Slate & Chalk)',
+    'monochrome_high_contrast': '🔳 მაღალი კონტრასტი B&W'
   };
+  const CAD_STYLE_NAMES = styleNamesMap;
 
   window.setDrawingStyle = function (styleName) {
     state.activeStyle = styleName;
@@ -2754,7 +3115,28 @@
 
   // --- Layer Visibility Toggle ---
   window.toggleLayer = function (layerName, isChecked) {
-    state.layers[layerName] = isChecked;
+    if (layerName === 'utilities_all') {
+      state.layers.utilities = isChecked;
+      state.layers.utilities_underground = isChecked;
+      state.layers.utilities_overhead = isChecked;
+      state.layers.utilities_water = isChecked;
+      state.layers.utilities_sewer = isChecked;
+      state.layers.utilities_storm = isChecked;
+      state.layers.utilities_electric = isChecked;
+      state.layers.utilities_gas = isChecked;
+      state.layers.utilities_telecom = isChecked;
+      state.layers.utilities_manholes = isChecked;
+      ['chkLayerUtilUG', 'chkLayerUtilOH', 'chkLayerUtilWater', 'chkLayerUtilSewer', 'chkLayerUtilStorm', 'chkLayerUtilPower', 'chkLayerUtilGas', 'chkLayerUtilTelecom', 'chkLayerUtilManholes'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.checked = isChecked;
+      });
+    } else if (layerName === 'utilities_ug') {
+      state.layers.utilities_underground = isChecked;
+    } else if (layerName === 'utilities_oh') {
+      state.layers.utilities_overhead = isChecked;
+    } else {
+      state.layers[layerName] = isChecked;
+    }
     renderCadWorld();
   };
 
@@ -3131,6 +3513,11 @@
 
   // --- Tools Activation ---
   window.setCadActiveTool = function (toolName) {
+    if (toolName === 'auto_design_utilities') {
+      window.generateAndRenderUtilities();
+      return;
+    }
+
     state.activeTool = toolName;
     state.drawPoints = [];
     state.splitLine = [];
@@ -3140,6 +3527,7 @@
     state.currentBikePathPoints = [];
     state.currentHedgePoints = [];
     state.cadDraftPoints = [];
+    state.currentUtilityPoints = [];
     state.atriumCutoutPoints = [];
     state.isFreehandDrawing = false;
     state.activeSnap = null;
@@ -3181,7 +3569,20 @@
       'water': 'site_env',
       'terrace': 'site_env',
       'split': 'site_env',
-      'ruler': 'site_env'
+      'ruler': 'site_env',
+      'draw_utility_water': 'utilities',
+      'draw_utility_sewer': 'utilities',
+      'draw_utility_storm': 'utilities',
+      'draw_utility_electric_ug': 'utilities',
+      'draw_utility_gas_ug': 'utilities',
+      'draw_utility_telecom': 'utilities',
+      'draw_utility_electric_oh': 'utilities',
+      'draw_utility_gas_oh': 'utilities',
+      'stamp_manhole_sewer': 'utilities',
+      'stamp_manhole_water': 'utilities',
+      'stamp_fire_hydrant': 'utilities',
+      'stamp_pole_electric': 'utilities',
+      'stamp_gas_cabinet': 'utilities'
     };
     if (toolName === 'pan' || toolName === 'delete') {
       window.switchCadRibbonTab('default');
@@ -3281,9 +3682,22 @@
       'tree': 'site',
       'water': 'site',
       'terrace': 'site',
-      'ruler': 'site'
+      'ruler': 'site',
+      'draw_utility_water': 'utilities',
+      'draw_utility_sewer': 'utilities',
+      'draw_utility_storm': 'utilities',
+      'draw_utility_electric_ug': 'utilities',
+      'draw_utility_gas_ug': 'utilities',
+      'draw_utility_telecom': 'utilities',
+      'draw_utility_electric_oh': 'utilities',
+      'draw_utility_gas_oh': 'utilities',
+      'stamp_manhole_sewer': 'utilities',
+      'stamp_manhole_water': 'utilities',
+      'stamp_fire_hydrant': 'utilities',
+      'stamp_pole_electric': 'utilities',
+      'stamp_gas_cabinet': 'utilities'
     };
-    ['draw', 'buildings', 'modify', 'contour', 'site'].forEach(cat => {
+    ['draw', 'buildings', 'modify', 'contour', 'site', 'utilities'].forEach(cat => {
       const btn = document.getElementById(`dropdownBtn_${cat}`);
       if (btn) {
         if (catByTool[toolName] === cat) {
@@ -3306,7 +3720,7 @@
       'draw_rect_footprint': '✏️ ლაქის მოხაზვა: დააჭირეთ მაუსს და გადაატარეთ მართკუთხედის მოსახაზად, ხელის გაშვებით ლაქა დაჯდება ნაკვეთზე',
       'draw_polygon': 'ლაქის ხელით მოხაზვა: დააკლიკეთ წერტილების დასასმელად, ორმაგი კლიკით ასრულებს',
       'draw_footprint': 'ლაქის ხელით მოხაზვა: დააკლიკეთ წერტილების დასასმელად, ორმაგი კლიკით ასრულებს',
-      'delete': 'საშლელი: დააკლიკეთ ნებისმიერ ობიექტზე (შენობა, ხე, აუზი, ტერასა, გზა, ბილიკი, პარკინგი, CAD ხაზი) მის წასაშლელად',
+      'delete': 'საშლელი: დააკლიკეთ ნებისმიერ ობიექტზე (შენობა, ხე, აუზი, ტერასა, გზა, ბილიკი, პარკინგი, CAD ხაზი, კომუნიკაცია) მის წასაშლელად',
       'split': 'ნაკვეთის დაყოფა: დააკლიკეთ ორ წერტილზე გამყოფი ხაზის გასავლებად',
       'tree': 'ფოთლოვანი ხე: დააკლიკეთ ნაკვეთის ნებისმიერ ადგილას ხის დასარგავად (Ø5მ)',
       'pine_tree': 'წიწვოვანი ხე: დააკლიკეთ ნაკვეთზე მარადმწვანე წიწვოვანი ხის დასარგავად (Ø3.5მ)',
@@ -3331,7 +3745,20 @@
       'cad_mirror': '🪞 სარკისებური ასლი: დააკლიკეთ 2 წერტილს სარკის ღერძის გასავლებად [MI]',
       'cad_array': '🔲 თანაბარი გამეორება (Array): დააკლიკეთ შენობას მის გასამრავლებლად თანაბარი ბიჯით [AR]',
       'footprint_vertex': '🎯 კუთხეების მართვა: გადააადგილეთ კუთხეები, დააკლიკეთ [+] ახალი კუთხის დასამატებლად ან Alt+კლიკი წასაშლელად',
-      'footprint_cutout': '🕳️ შიდა ეზოს / ატრიუმის ამოჭრა: დახაზეთ შიდა კონტური შენობის ლაქაში სიცარიელის ამოსაჭრელად'
+      'footprint_cutout': '🕳️ შიდა ეზოს / ატრიუმის ამოჭრა: დახაზეთ შიდა კონტური შენობის ლაქაში სიცარიელის ამოსაჭრელად',
+      'draw_utility_water': '💧 სასმელი წყალსადენი (PE100 d=110): დააკლიკეთ ტრასის გასაყვანად (ორმაგი კლიკი / Enter ასრულებს)',
+      'draw_utility_sewer': '🚽 ფეკალური კანალიზაცია (PVC d=200): დააკლიკეთ ტრასის გასაყვანად (ორმაგი კლიკი / Enter ასრულებს)',
+      'draw_utility_storm': '🌧️ სანიაღვრე კოლექტორი (d=300): დააკლიკეთ ტრასის გასაყვანად (ორმაგი კლიკი / Enter ასრულებს)',
+      'draw_utility_electric_ug': '⚡ მიწისქვეშა ელექტრო ქსელი (0.4kV): დააკლიკეთ კაბელის ტრასის გასაყვანად',
+      'draw_utility_gas_ug': '🔥 მიწისქვეშა გაზსადენი (PE100 d=63): დააკლიკეთ მილის ტრასის გასაყვანად',
+      'draw_utility_telecom': '📡 სატელეკომუნიკაციო ოპტიკური ქსელი (d=110): დააკლიკეთ ტრასის გასაყვანად',
+      'draw_utility_electric_oh': '🔌 საჰაერო ელექტროგადამცემი ხაზი: დააკლიკეთ ბოძიდან ბოძამდე გასაყვანად',
+      'draw_utility_gas_oh': '🧱 საჰაერო გაზსადენი ფასადზე: დააკლიკეთ სამაგრებზე მილის გასაყვანად',
+      'stamp_manhole_sewer': '🕳️ საკანალიზაციო საკონტროლო ჭა (K.Ch): დააკლიკეთ ნაკვეთზე განსათავსებლად',
+      'stamp_manhole_water': '💧 წყალმზომი / ურდულის ჭა (W.Ch): დააკლიკეთ ნაკვეთზე განსათავსებლად',
+      'stamp_fire_hydrant': '🚒 სახანძრო ჰიდრანტი (PG): დააკლიკეთ ჰიდრანტის განსათავსებლად (R=150მ)',
+      'stamp_pole_electric': '🗼 რ/ბ საყრდენი ბოძი: დააკლიკეთ საყრდენი ბოძის დასადგმელად',
+      'stamp_gas_cabinet': '📦 გაზის მარეგულირებელი კარადა (ГРПШ/GRF): დააკლიკეთ განსათავსებლად'
     };
 
     const toolMetaMap = {
@@ -3364,7 +3791,20 @@
       'fountain': { name: 'შადრევანი', icon: '<i class="fa-solid fa-faucet-drip text-cyan-300"></i>' },
       'terrace': { name: 'ტერასა', icon: '<i class="fa-solid fa-layer-group text-amber-400"></i>' },
       'ruler': { name: 'საზომი [R]', icon: '<i class="fa-solid fa-ruler-combined text-amber-400"></i>' },
-      'split': { name: 'დაყოფა', icon: '<i class="fa-solid fa-scissors text-amber-400"></i>' }
+      'split': { name: 'დაყოფა', icon: '<i class="fa-solid fa-scissors text-amber-400"></i>' },
+      'draw_utility_water': { name: 'წყალსადენი', icon: '<i class="fa-solid fa-faucet-drip text-cyan-400"></i>' },
+      'draw_utility_sewer': { name: 'კანალიზაცია', icon: '<i class="fa-solid fa-water text-amber-500"></i>' },
+      'draw_utility_storm': { name: 'სანიაღვრე', icon: '<i class="fa-solid fa-cloud-showers-heavy text-teal-400"></i>' },
+      'draw_utility_electric_ug': { name: 'ელ. მიწისქვეშ', icon: '<i class="fa-solid fa-bolt text-rose-500"></i>' },
+      'draw_utility_gas_ug': { name: 'გაზი მიწისქვეშ', icon: '<i class="fa-solid fa-fire-flame-simple text-yellow-400"></i>' },
+      'draw_utility_telecom': { name: 'კავშირგაბმულობა', icon: '<i class="fa-solid fa-network-wired text-emerald-400"></i>' },
+      'draw_utility_electric_oh': { name: 'საჰაერო ელ.', icon: '<i class="fa-solid fa-tower-broadcast text-rose-400"></i>' },
+      'draw_utility_gas_oh': { name: 'საჰაერო გაზი', icon: '<i class="fa-solid fa-fire text-amber-400"></i>' },
+      'stamp_manhole_sewer': { name: 'საკანალიზაციო ჭა', icon: '<i class="fa-solid fa-circle-dot text-amber-600"></i>' },
+      'stamp_manhole_water': { name: 'წყლის ჭა', icon: '<i class="fa-solid fa-faucet text-sky-400"></i>' },
+      'stamp_fire_hydrant': { name: 'ჰიდრანტი [PG]', icon: '<i class="fa-solid fa-fire-extinguisher text-red-500"></i>' },
+      'stamp_pole_electric': { name: 'საყრდენი ბოძი', icon: '<i class="fa-solid fa-location-pin text-rose-400"></i>' },
+      'stamp_gas_cabinet': { name: 'გაზის კარადა', icon: '<i class="fa-solid fa-box text-yellow-400"></i>' }
     };
     const meta = toolMetaMap[toolName];
     if (meta) {
@@ -3951,6 +4391,45 @@
         return;
       }
 
+      // 9b. UTILITY NODE STAMPING TOOLS (MANHOLES, WELLS, POLES, HYDRANTS, CABINETS)
+      if (state.activeTool && state.activeTool.startsWith('stamp_') && state.activeTool !== 'stamp_footprint') {
+        saveUndoSnapshot();
+        const pt = state.activeSnap ? state.activeSnap.point : [Math.round(worldPos[0] * 10) / 10, Math.round(worldPos[1] * 10) / 10];
+        const stampMap = {
+          'stamp_manhole_sewer': { type: 'manhole_sewer', name: 'საკანალიზაციო ჭა K.Ch', specs: 'რ/ბ ასაწყობი ჭა D=1000მმ', depthM: -2.30 },
+          'stamp_manhole_water': { type: 'manhole_water', name: 'წყალმზომი ჭა W.Ch', specs: 'რ/ბ ჭა D=1000მმ მრიცხველით', depthM: -1.25 },
+          'stamp_fire_hydrant': { type: 'fire_hydrant', name: 'სახანძრო ჰიდრანტი PG', specs: 'თუჯის ჰიდრანტი H=1.25მ R=150მ', depthM: -1.30 },
+          'stamp_pole_electric': { type: 'pole_electric', name: 'საყრდენი ბოძი №', specs: 'რ/ბ საყრდენი СВ 95-2', depthM: 8.0 },
+          'stamp_electric_pole': { type: 'pole_electric', name: 'საყრდენი ბოძი №', specs: 'რ/ბ საყრდენი СВ 95-2', depthM: 8.0 },
+          'stamp_gas_cabinet': { type: 'gas_cabinet', name: 'გაზის მარეგულირებელი კარადა', specs: 'ГРПШ რეგულატორი', depthM: 0.0 },
+          'stamp_manhole_telecom': { type: 'manhole_telecom', name: 'საკაბელო ჭა T.Ch', specs: 'კავშირგაბმულობის რ/ბ ჭა ККС-2', depthM: -0.90 }
+        };
+        const s = stampMap[state.activeTool] || { type: 'manhole_sewer', name: 'ჭა', specs: 'სტანდარტული', depthM: -1.5 };
+        if (!state.utilities) state.utilities = { lines: [], nodes: [] };
+        state.utilities.nodes.push({
+          id: 'util_node_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+          type: s.type,
+          pos: pt,
+          name: s.name,
+          specs: s.specs,
+          depthM: s.depthM,
+          status: 'საპროექტო'
+        });
+        renderCadWorld();
+        updateToolStatus(`განთავსდა ${s.name}.`);
+        return;
+      }
+
+      // 9c. UTILITY LINE DRAWING TOOLS
+      if (state.activeTool && (state.activeTool.startsWith('draw_utility_') || state.activeTool.startsWith('draw_util_'))) {
+        const commitPt = state.activeSnap ? state.activeSnap.point : [Math.round(worldPos[0] * 10) / 10, Math.round(worldPos[1] * 10) / 10];
+        if (!state.currentUtilityPoints) state.currentUtilityPoints = [];
+        state.currentUtilityPoints.push(commitPt);
+        renderInteractionLayer();
+        updateToolStatus(`კომუნიკაციის ტრასა: მონიშნულია ${state.currentUtilityPoints.length} წერტილი. დასასრულებლად ორმაგი კლიკი ან Enter.`);
+        return;
+      }
+
       // 10. DRAW FOOTPRINT / POLYGON TOOL
       if (state.activeTool === 'draw_footprint' || state.activeTool === 'draw_polygon') {
         const pxToM = 1 / Math.max(0.001, state.zoomScale);
@@ -4085,6 +4564,8 @@
         window.finishCadHatch();
       } else if (state.activeTool === 'footprint_cutout') {
         window.finishFootprintCutout();
+      } else if (state.activeTool && (state.activeTool.startsWith('draw_utility_') || state.activeTool.startsWith('draw_util_'))) {
+        finishDrawnUtilityLine();
       }
     });
 
@@ -4101,6 +4582,9 @@
       } else if (state.activeTool === 'footprint_cutout') {
         e.preventDefault();
         window.finishFootprintCutout();
+      } else if (state.activeTool && (state.activeTool.startsWith('draw_utility_') || state.activeTool.startsWith('draw_util_'))) {
+        e.preventDefault();
+        finishDrawnUtilityLine();
       }
     });
 
@@ -5375,6 +5859,7 @@
     renderShadows();
     renderTrees(pxToM);
     renderFootprints(pxToM);
+    renderUtilities(pxToM);
     renderCadDrafting(pxToM);
     renderDimensions(pxToM);
     renderNodes(pxToM);
@@ -6172,10 +6657,706 @@
     `).join('');
   }
 
+  // ----------------------------------------------------------------
+  // 12b. Engineering Utilities Engine (მიწისქვეშა & მიწისზედა ქსელები)
+  // ----------------------------------------------------------------
+  function generateDefaultUtilities() {
+    state.utilities = { lines: [], nodes: [] };
+    if (!state.boundaryMeters || state.boundaryMeters.length < 3) return;
+
+    // 1. Identify road frontage edge or lowest Y edge
+    let frontageIdx = 0;
+    const roadIdx = (state.boundaryEdgeTypes || []).findIndex(t => t === 'road');
+    if (roadIdx !== -1) {
+      frontageIdx = roadIdx;
+    } else {
+      let maxY = -Infinity;
+      for (let i = 0; i < state.boundaryMeters.length; i++) {
+        const p1 = state.boundaryMeters[i];
+        const p2 = state.boundaryMeters[(i + 1) % state.boundaryMeters.length];
+        const midY = (p1[1] + p2[1]) / 2;
+        if (midY > maxY) {
+          maxY = midY;
+          frontageIdx = i;
+        }
+      }
+    }
+
+    const pA = state.boundaryMeters[frontageIdx];
+    const pB = state.boundaryMeters[(frontageIdx + 1) % state.boundaryMeters.length];
+    const dx = pB[0] - pA[0];
+    const dy = pB[1] - pA[1];
+    const edgeLen = Math.hypot(dx, dy);
+    if (edgeLen < 4) return;
+
+    const ux = dx / edgeLen;
+    const uy = dy / edgeLen;
+
+    const xs = state.boundaryMeters.map(p => p[0]);
+    const ys = state.boundaryMeters.map(p => p[1]);
+    const cx = xs.reduce((a, b) => a + b, 0) / xs.length;
+    const cy = ys.reduce((a, b) => a + b, 0) / ys.length;
+
+    let nx = -uy;
+    let ny = ux;
+    const midX = (pA[0] + pB[0]) / 2;
+    const midY = (pA[1] + pB[1]) / 2;
+    if ((midX + nx - cx) ** 2 + (midY + ny - cy) ** 2 < (midX - cx) ** 2 + (midY - cy) ** 2) {
+      nx = -nx;
+      ny = -ny;
+    }
+
+    const ext = 3.5;
+    const makeCorridorPts = (dist) => {
+      const start = [pA[0] - ux * ext + nx * dist, pA[1] - uy * ext + ny * dist];
+      const end = [pB[0] + ux * ext + nx * dist, pB[1] + uy * ext + ny * dist];
+      return [start, end];
+    };
+
+    // Street Mains
+    // 1. Water Main (წყალსადენი d=160 PE100) at 1.8m
+    state.utilities.lines.push({
+      id: 'util_water_main',
+      type: 'water_ug',
+      category: 'underground',
+      name: 'ქუჩის სასმელი წყალსადენის მაგისტრალი',
+      specs: 'PE100 SDR11 d=160 მმ PN16',
+      depthM: -1.30,
+      slope: 0.000,
+      flowDir: 'bidirectional',
+      status: 'არსებული ქსელი',
+      points: makeCorridorPts(1.8)
+    });
+
+    // 2. Sewer Main (ფეკალური კანალიზაცია d=200 PVC) at 3.4m
+    state.utilities.lines.push({
+      id: 'util_sewer_main',
+      type: 'sewer_ug',
+      category: 'underground',
+      name: 'ქუჩის საკანალიზაციო კოლექტორი',
+      specs: 'PVC SN8 d=200 მმ i=0.008',
+      depthM: -2.30,
+      slope: 0.008,
+      flowDir: 'forward',
+      status: 'არსებული ქსელი',
+      points: makeCorridorPts(3.4)
+    });
+
+    // 3. Stormwater Main (სანიაღვრე კოლექტორი d=300 PVC) at 2.6m
+    state.utilities.lines.push({
+      id: 'util_storm_main',
+      type: 'storm_ug',
+      category: 'underground',
+      name: 'ქუჩის სანიაღვრე კოლექტორი',
+      specs: 'PVC SN8 d=300 მმ i=0.006',
+      depthM: -1.60,
+      slope: 0.006,
+      flowDir: 'forward',
+      status: 'არსებული ქსელი',
+      points: makeCorridorPts(2.6)
+    });
+
+    // 4. Gas Main UG (გაზსადენი d=63 PE100) at 1.0m
+    state.utilities.lines.push({
+      id: 'util_gas_main',
+      type: 'gas_ug',
+      category: 'underground',
+      name: 'მიწისქვეშა საშუალო წნევის გაზსადენი',
+      specs: 'PE100 SDR11 d=63 მმ P=0.3MPa',
+      depthM: -0.90,
+      slope: 0.000,
+      flowDir: 'forward',
+      status: 'არსებული ქსელი',
+      points: makeCorridorPts(1.0)
+    });
+
+    // 5. Telecom Duct (სატელეკომუნიკაციო კავშირგაბმულობა d=110) at 0.5m
+    state.utilities.lines.push({
+      id: 'util_telecom_main',
+      type: 'telecom_ug',
+      category: 'underground',
+      name: 'კავშირგაბმულობის ოპტიკურ-ბოჭკოვანი ტრასა',
+      specs: 'HDPE d=110 მმ (4xSubduct) ოპტიკა',
+      depthM: -0.70,
+      slope: 0.000,
+      flowDir: 'bidirectional',
+      status: 'არსებული ქსელი',
+      points: makeCorridorPts(0.5)
+    });
+
+    // 6. Overhead Power Line (საჰაერო ელ. ხაზი 0.4kV) at 4.2m with poles
+    state.utilities.lines.push({
+      id: 'util_elec_oh_main',
+      type: 'electric_oh',
+      category: 'overhead',
+      name: 'საჰაერო ელექტროგადამცემი ხაზი 0.4kV',
+      specs: 'SIP-4 4x70 მმ² H=+8.0 მ',
+      depthM: 8.0,
+      slope: 0.000,
+      flowDir: 'forward',
+      status: 'არსებული ქსელი',
+      points: makeCorridorPts(4.2)
+    });
+
+    // Nodes along street
+    const pole1Pos = [pA[0] - ux * 1.5 + nx * 4.2, pA[1] - uy * 1.5 + ny * 4.2];
+    const pole2Pos = [pB[0] + ux * 1.5 + nx * 4.2, pB[1] + uy * 1.5 + ny * 4.2];
+    state.utilities.nodes.push({
+      id: 'util_node_pole_1',
+      type: 'pole_electric',
+      pos: pole1Pos,
+      name: 'რ/ბ საყრდენი ბოძი №1',
+      specs: 'რკინაბეტონის საყრდენი СВ 95-2, H=9.5მ',
+      depthM: 8.0,
+      status: 'არსებული'
+    });
+    state.utilities.nodes.push({
+      id: 'util_node_pole_2',
+      type: 'pole_electric',
+      pos: pole2Pos,
+      name: 'რ/ბ საყრდენი ბოძი №2',
+      specs: 'რკინაბეტონის საყრდენი СВ 95-2, H=9.5მ',
+      depthM: 8.0,
+      status: 'არსებული'
+    });
+
+    // Street Sewer Manholes (K-1 & K-2)
+    const sewerMh1 = [pA[0] + ux * 2.0 + nx * 3.4, pA[1] + uy * 2.0 + ny * 3.4];
+    const sewerMh2 = [pB[0] - ux * 2.0 + nx * 3.4, pB[1] - uy * 2.0 + ny * 3.4];
+    state.utilities.nodes.push({
+      id: 'util_node_sewer_mh_1',
+      type: 'manhole_sewer',
+      pos: sewerMh1,
+      name: 'საკანალიზაციო საკონტროლო ჭა K-1',
+      specs: 'რ/ბ ასაწყობი ჭა D=1000 მმ თუჯის ლუკით',
+      depthM: -2.30,
+      status: 'არსებული'
+    });
+    state.utilities.nodes.push({
+      id: 'util_node_sewer_mh_2',
+      type: 'manhole_sewer',
+      pos: sewerMh2,
+      name: 'საკანალიზაციო საკონტროლო ჭა K-2',
+      specs: 'რ/ბ ასაწყობი ჭა D=1000 მმ თუჯის ლუკით',
+      depthM: -2.38,
+      status: 'არსებული'
+    });
+
+    // Fire Hydrant (სახანძრო ჰიდრანტი PG-1)
+    const pgPos = [pA[0] + ux * (edgeLen * 0.28) + nx * 1.8, pA[1] + uy * (edgeLen * 0.28) + ny * 1.8];
+    state.utilities.nodes.push({
+      id: 'util_node_pg_1',
+      type: 'fire_hydrant',
+      pos: pgPos,
+      name: 'მიწისქვეშა სახანძრო ჰიდრანტი PG-1',
+      specs: 'თუჯის ჰიდრანტი ГОСТ 8220 H=1.25მ R_დაცვა=150მ',
+      depthM: -1.30,
+      status: 'საპროექტო'
+    });
+
+    // Target location for service connections (building center or parcel center)
+    let targetPt = [cx, cy];
+    if (state.footprints && state.footprints.length > 0) {
+      targetPt = state.footprints[0].center || [cx, cy];
+    }
+
+    const waterBranchPt = [midX - ux * 4.0, midY - uy * 4.0];
+    const sewerBranchPt = [midX + ux * 4.0, midY + uy * 4.0];
+    const gasBranchPt = [midX - ux * 8.0, midY - uy * 8.0];
+    const elecBranchPt = [midX + ux * 8.0, midY + uy * 8.0];
+
+    const bldWaterPt = [targetPt[0] - 2.5, targetPt[1] + 2.5];
+    const bldSewerPt = [targetPt[0] + 2.5, targetPt[1] + 2.5];
+    const bldGasPt = [targetPt[0] - 5.0, targetPt[1] + 1.5];
+    const bldElecPt = [targetPt[0] + 5.0, targetPt[1] + 1.5];
+
+    // Water Connection Branch & Water Meter Chamber (W.Ch-1)
+    const wchPos = [waterBranchPt[0] - nx * 1.5, waterBranchPt[1] - ny * 1.5];
+    state.utilities.lines.push({
+      id: 'util_water_branch',
+      type: 'water_ug',
+      category: 'underground',
+      name: 'სასმელი წყალსადენის დაერთების შტო',
+      specs: 'PE100 d=32 მმ PN16 (საყოფაცხოვრებო შეყვანა)',
+      depthM: -1.20,
+      slope: 0.002,
+      flowDir: 'forward',
+      status: 'საპროექტო',
+      points: [
+        [waterBranchPt[0] + nx * 1.8, waterBranchPt[1] + ny * 1.8],
+        waterBranchPt,
+        wchPos,
+        bldWaterPt
+      ]
+    });
+    state.utilities.nodes.push({
+      id: 'util_node_wch_1',
+      type: 'manhole_water',
+      pos: wchPos,
+      name: 'წყალმზომი საკვანძო ჭა W.Ch-1',
+      specs: 'რ/ბ ჭა D=1000მმ წყლის მრიცხველით & ურდულით',
+      depthM: -1.25,
+      status: 'საპროექტო'
+    });
+
+    // Sewer Connection Branch & Site Inspection Chamber (K.Ch)
+    const siteSewerMhPos = [sewerBranchPt[0] - nx * 2.5, sewerBranchPt[1] - ny * 2.5];
+    state.utilities.lines.push({
+      id: 'util_sewer_branch',
+      type: 'sewer_ug',
+      category: 'underground',
+      name: 'გამყვანი ფეკალური კანალიზაცია',
+      specs: 'PVC SN4 d=160 მმ i=0.015 (თვითდინებითი)',
+      depthM: -1.80,
+      slope: 0.015,
+      flowDir: 'forward',
+      status: 'საპროექტო',
+      points: [
+        bldSewerPt,
+        siteSewerMhPos,
+        sewerMh2
+      ]
+    });
+    state.utilities.nodes.push({
+      id: 'util_node_kch_site',
+      type: 'manhole_sewer',
+      pos: siteSewerMhPos,
+      name: 'ეზოს საკონტროლო ჭა K.Ch-საპრ',
+      specs: 'პლასტმასის ინსპექციური ჭა D=400მმ',
+      depthM: -1.75,
+      status: 'საპროექტო'
+    });
+
+    // Underground Gas Branch & Regulator Cabinet (GRF)
+    const gasCabPos = [gasBranchPt[0] - nx * 1.0, gasBranchPt[1] - ny * 1.0];
+    state.utilities.lines.push({
+      id: 'util_gas_branch',
+      type: 'gas_ug',
+      category: 'underground',
+      name: 'დაბალი წნევის გაზსადენის შეყვანა',
+      specs: 'PE100 d=32 მმ P=0.003MPa',
+      depthM: -0.80,
+      slope: 0.000,
+      flowDir: 'forward',
+      status: 'საპროექტო',
+      points: [
+        [gasBranchPt[0] + nx * 1.0, gasBranchPt[1] + ny * 1.0],
+        gasCabPos,
+        bldGasPt
+      ]
+    });
+    state.utilities.nodes.push({
+      id: 'util_node_grf',
+      type: 'gas_cabinet',
+      pos: gasCabPos,
+      name: 'გაზის მარეგულირებელი კარადა (ГРПШ/GRF)',
+      specs: 'კარადული რეგულატორი მრიცხველით G-4/G-6',
+      depthM: 0.0,
+      status: 'საპროექტო'
+    });
+
+    // Underground Power Branch (0.4kV)
+    state.utilities.lines.push({
+      id: 'util_elec_ug_branch',
+      type: 'electric_ug',
+      category: 'underground',
+      name: 'მიწისქვეშა ელექტრო შეყვანის კაბელი 0.4kV',
+      specs: 'ჯავშნიანი კაბელი VBbShv 4x35 მმ² მილში',
+      depthM: -0.80,
+      slope: 0.000,
+      flowDir: 'forward',
+      status: 'საპროექტო',
+      points: [
+        pole2Pos,
+        elecBranchPt,
+        bldElecPt
+      ]
+    });
+
+    // Overhead Gas along Facade
+    if (state.footprints && state.footprints.length > 0) {
+      const fp = state.footprints[0];
+      const vs = fp.vertices || [];
+      if (vs.length >= 2) {
+        state.utilities.lines.push({
+          id: 'util_gas_oh_facade',
+          type: 'gas_oh',
+          category: 'overhead',
+          name: 'საჰაერო გაზსადენი ფასადზე (სამაგრებზე)',
+          specs: 'ფოლადის მილი d=57 მმ H=+2.5მ',
+          depthM: 2.5,
+          slope: 0.000,
+          flowDir: 'forward',
+          status: 'საპროექტო',
+          points: [
+            bldGasPt,
+            [vs[0][0], vs[0][1]],
+            [(vs[0][0] + vs[1][0]) / 2, (vs[0][1] + vs[1][1]) / 2]
+          ]
+        });
+      }
+    }
+  }
+  window.generateDefaultUtilities = generateDefaultUtilities;
+  window.generateAndRenderUtilities = function () {
+    generateDefaultUtilities();
+    renderCadWorld();
+    updateToolStatus('ინჟინერია: საპროექტო მიწისქვეშა და მიწისზედა კომუნიკაციები ავტომატურად დაიხაზა.');
+  };
+
+  // 12c. Render Engineering Utilities SVG
+  function renderUtilities(pxToM) {
+    if (!els.utilitiesUndergroundLayer && !els.utilitiesOvergroundLayer && !els.utilitiesManholesLayer) return;
+
+    if (!state.layers.utilities) {
+      if (els.utilitiesUndergroundLayer) els.utilitiesUndergroundLayer.innerHTML = '';
+      if (els.utilitiesOvergroundLayer) els.utilitiesOvergroundLayer.innerHTML = '';
+      if (els.utilitiesManholesLayer) els.utilitiesManholesLayer.innerHTML = '';
+      return;
+    }
+
+    let ugHtml = '';
+    let ohHtml = '';
+    let nodesHtml = '';
+
+    const lines = (state.utilities && state.utilities.lines) || [];
+    const nodes = (state.utilities && state.utilities.nodes) || [];
+
+    const lineConfig = {
+      'water_ug': { color: '#0284c7', dash: `${8 * pxToM}, ${3 * pxToM}, ${2 * pxToM}, ${3 * pxToM}`, width: 2.4 * pxToM, code: 'W', name: 'წყალსადენი' },
+      'sewer_ug': { color: '#b45309', dash: `${10 * pxToM}, ${4 * pxToM}`, width: 2.8 * pxToM, code: 'K', name: 'კანალიზაცია' },
+      'storm_ug': { color: '#0d9488', dash: `${12 * pxToM}, ${3 * pxToM}, ${2 * pxToM}, ${3 * pxToM}`, width: 2.6 * pxToM, code: 'D', name: 'სანიაღვრე' },
+      'electric_ug': { color: '#ef4444', dash: `${6 * pxToM}, ${3 * pxToM}, ${1 * pxToM}, ${3 * pxToM}`, width: 2.2 * pxToM, code: 'E', name: 'ელ. მიწისქვეშ' },
+      'gas_ug': { color: '#eab308', dash: `${14 * pxToM}, ${4 * pxToM}`, width: 2.2 * pxToM, code: 'G', name: 'გაზი მიწისქვეშ' },
+      'telecom_ug': { color: '#10b981', dash: `${5 * pxToM}, ${3 * pxToM}`, width: 2.0 * pxToM, code: 'T', name: 'კავშირგაბმულობა' },
+      'electric_oh': { color: '#f43f5e', dash: `${16 * pxToM}, ${2 * pxToM}, ${2 * pxToM}, ${2 * pxToM}`, width: 2.8 * pxToM, code: '⚡', name: 'საჰაერო ელ.' },
+      'gas_oh': { color: '#f59e0b', dash: `${8 * pxToM}, ${2 * pxToM}, ${2 * pxToM}, ${2 * pxToM}`, width: 2.4 * pxToM, code: 'G_OH', name: 'საჰაერო გაზი' }
+    };
+
+    const isLayerVisible = (type, category) => {
+      if (category === 'underground' && !state.layers.utilities_underground) return false;
+      if (category === 'overhead' && !state.layers.utilities_overhead) return false;
+      if (type.startsWith('water') && !state.layers.utilities_water) return false;
+      if (type.startsWith('sewer') && !state.layers.utilities_sewer) return false;
+      if (type.startsWith('storm') && !state.layers.utilities_storm) return false;
+      if (type.startsWith('electric') && !state.layers.utilities_electric) return false;
+      if (type.startsWith('gas') && !state.layers.utilities_gas) return false;
+      if (type.startsWith('telecom') && !state.layers.utilities_telecom) return false;
+      return true;
+    };
+
+    lines.forEach(line => {
+      if (!line.points || line.points.length < 2) return;
+      const cfg = lineConfig[line.type] || { color: '#38bdf8', dash: 'none', width: 2 * pxToM, code: 'U', name: 'კომუნიკაცია' };
+      if (!isLayerVisible(line.type, line.category)) return;
+
+      const ptsStr = line.points.map(p => `${p[0]},${p[1]}`).join(' ');
+      const isSelected = state.selectedUtilityId === line.id;
+      const strokeW = isSelected ? cfg.width * 1.8 : cfg.width;
+      const strokeColor = isSelected ? '#38bdf8' : cfg.color;
+
+      let lineSvg = `
+        <g class="utility-line-group cursor-pointer" onclick="showUtilityDetails('${line.id}')">
+          <polyline points="${ptsStr}" fill="none" stroke="rgba(0,0,0,0.5)" stroke-width="${strokeW + 2 * pxToM}" stroke-linecap="round" stroke-linejoin="round" />
+          <polyline points="${ptsStr}" fill="none" stroke="${strokeColor}" stroke-width="${strokeW}" stroke-dasharray="${cfg.dash}" stroke-linecap="round" stroke-linejoin="round" />
+      `;
+
+      for (let i = 0; i < line.points.length - 1; i++) {
+        const p1 = line.points[i];
+        const p2 = line.points[i + 1];
+        const segLen = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]);
+        if (segLen > 6.0) {
+          const midX = (p1[0] + p2[0]) / 2;
+          const midY = (p1[1] + p2[1]) / 2;
+          const angle = Math.atan2(p2[1] - p1[1], p2[0] - p1[0]) * 180 / Math.PI;
+          const normAngle = (angle > 90 || angle < -90) ? angle + 180 : angle;
+
+          lineSvg += `
+            <g transform="translate(${midX}, ${midY}) rotate(${normAngle})">
+              <rect x="${-18 * pxToM}" y="${-7 * pxToM}" width="${36 * pxToM}" height="${14 * pxToM}" rx="${3 * pxToM}" fill="#080e1c" fill-opacity="0.88" stroke="${strokeColor}" stroke-width="${0.7 * pxToM}" />
+              <text x="0" y="${2.5 * pxToM}" text-anchor="middle" fill="${strokeColor}" font-size="${7 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">${cfg.code}</text>
+            </g>
+          `;
+        }
+      }
+      lineSvg += `</g>`;
+
+      if (line.category === 'overhead') {
+        ohHtml += lineSvg;
+      } else {
+        ugHtml += lineSvg;
+      }
+    });
+
+    if (state.layers.utilities_manholes) {
+      nodes.forEach(node => {
+        if (!node.pos) return;
+        const [nx, ny] = node.pos;
+        const isSelected = state.selectedUtilityId === node.id;
+        const selectRing = isSelected ? `<circle cx="${nx}" cy="${ny}" r="${1.2}" fill="none" stroke="#38bdf8" stroke-width="${1.0 * pxToM}" stroke-dasharray="${3 * pxToM}, ${2 * pxToM}" />` : '';
+
+        if (node.type === 'manhole_sewer') {
+          nodesHtml += `
+            <g class="utility-node cursor-pointer" onclick="showUtilityDetails('${node.id}')">
+              ${selectRing}
+              <circle cx="${nx}" cy="${ny}" r="${0.65}" fill="#1e1812" stroke="#b45309" stroke-width="${1.2 * pxToM}" />
+              <circle cx="${nx}" cy="${ny}" r="${0.45}" fill="#b45309" fill-opacity="0.35" stroke="#b45309" stroke-width="${0.8 * pxToM}" />
+              <line x1="${nx - 0.4}" y1="${ny}" x2="${nx + 0.4}" y2="${ny}" stroke="#b45309" stroke-width="${0.6 * pxToM}" />
+              <line x1="${nx}" y1="${ny - 0.4}" x2="${nx}" y2="${ny + 0.4}" stroke="#b45309" stroke-width="${0.6 * pxToM}" />
+              <text x="${nx}" y="${ny - 0.85}" text-anchor="middle" fill="#d97706" font-size="${6.5 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">K.Ch</text>
+            </g>
+          `;
+        } else if (node.type === 'manhole_water') {
+          nodesHtml += `
+            <g class="utility-node cursor-pointer" onclick="showUtilityDetails('${node.id}')">
+              ${selectRing}
+              <circle cx="${nx}" cy="${ny}" r="${0.55}" fill="#082f49" stroke="#0284c7" stroke-width="${1.2 * pxToM}" />
+              <circle cx="${nx}" cy="${ny}" r="${0.35}" fill="#0284c7" fill-opacity="0.4" stroke="#0284c7" stroke-width="${0.8 * pxToM}" />
+              <text x="${nx}" y="${ny - 0.75}" text-anchor="middle" fill="#38bdf8" font-size="${6.5 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">W.Ch</text>
+            </g>
+          `;
+        } else if (node.type === 'fire_hydrant') {
+          nodesHtml += `
+            <g class="utility-node cursor-pointer" onclick="showUtilityDetails('${node.id}')">
+              ${selectRing}
+              <circle cx="${nx}" cy="${ny}" r="${1.5}" fill="none" stroke="#ef4444" stroke-width="${0.5 * pxToM}" stroke-dasharray="${3 * pxToM}, ${2 * pxToM}" opacity="0.4" />
+              <circle cx="${nx}" cy="${ny}" r="${0.6}" fill="#7f1d1d" stroke="#ef4444" stroke-width="${1.4 * pxToM}" />
+              <polygon points="${nx},${ny - 0.4} ${nx + 0.35},${ny + 0.3} ${nx - 0.35},${ny + 0.3}" fill="#ef4444" />
+              <text x="${nx}" y="${ny - 0.8}" text-anchor="middle" fill="#f87171" font-size="${7 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="extrabold">PG</text>
+            </g>
+          `;
+        } else if (node.type === 'pole_electric' || node.type === 'electric_pole') {
+          nodesHtml += `
+            <g class="utility-node cursor-pointer" onclick="showUtilityDetails('${node.id}')">
+              ${selectRing}
+              <circle cx="${nx}" cy="${ny}" r="${0.45}" fill="#18181b" stroke="#f43f5e" stroke-width="${1.4 * pxToM}" />
+              <line x1="${nx - 0.3}" y1="${ny - 0.3}" x2="${nx + 0.3}" y2="${ny + 0.3}" stroke="#f43f5e" stroke-width="${0.8 * pxToM}" />
+              <line x1="${nx - 0.3}" y1="${ny + 0.3}" x2="${nx + 0.3}" y2="${ny - 0.3}" stroke="#f43f5e" stroke-width="${0.8 * pxToM}" />
+              <text x="${nx}" y="${ny - 0.65}" text-anchor="middle" fill="#fb7185" font-size="${6.5 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">POLE</text>
+            </g>
+          `;
+        } else if (node.type === 'gas_cabinet') {
+          nodesHtml += `
+            <g class="utility-node cursor-pointer" onclick="showUtilityDetails('${node.id}')">
+              ${selectRing}
+              <rect x="${nx - 0.6}" y="${ny - 0.4}" width="1.2" height="0.8" rx="${0.1}" fill="#422006" stroke="#eab308" stroke-width="${1.2 * pxToM}" />
+              <text x="${nx}" y="${ny + 0.15}" text-anchor="middle" fill="#facc15" font-size="${5.5 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">GRF</text>
+              <text x="${nx}" y="${ny - 0.6}" text-anchor="middle" fill="#facc15" font-size="${6 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">ГРПШ</text>
+            </g>
+          `;
+        } else if (node.type === 'manhole_telecom') {
+          nodesHtml += `
+            <g class="utility-node cursor-pointer" onclick="showUtilityDetails('${node.id}')">
+              ${selectRing}
+              <rect x="${nx - 0.5}" y="${ny - 0.35}" width="1.0" height="0.7" rx="${0.1}" fill="#064e3b" stroke="#10b981" stroke-width="${1.2 * pxToM}" />
+              <text x="${nx}" y="${ny + 0.12}" text-anchor="middle" fill="#34d399" font-size="${5.5 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">T.Ch</text>
+            </g>
+          `;
+        }
+      });
+    }
+
+    if (els.utilitiesUndergroundLayer) els.utilitiesUndergroundLayer.innerHTML = ugHtml;
+    if (els.utilitiesOvergroundLayer) els.utilitiesOvergroundLayer.innerHTML = ohHtml;
+    if (els.utilitiesManholesLayer) els.utilitiesManholesLayer.innerHTML = nodesHtml;
+  }
+
+  // 12d. Utility Inspector & Modal Controls
+  window.showUtilityDetails = function (id) {
+    state.selectedUtilityId = id;
+    const lines = (state.utilities && state.utilities.lines) || [];
+    const nodes = (state.utilities && state.utilities.nodes) || [];
+
+    const foundLine = lines.find(l => l.id === id);
+    const foundNode = nodes.find(n => n.id === id);
+    const item = foundLine || foundNode;
+    if (!item) return;
+
+    const popup = document.getElementById('utilityDetailsPopup');
+    if (!popup) return;
+
+    popup.classList.remove('hidden');
+
+    const titleEl = document.getElementById('popupUtilityTitle');
+    const catEl = document.getElementById('popupUtilityCategory');
+    const specsEl = document.getElementById('popupUtilitySpecs');
+    const depthEl = document.getElementById('popupUtilityDepth');
+    const lenSlopeEl = document.getElementById('popupUtilityLengthSlope');
+    const statusEl = document.getElementById('popupUtilityStatus');
+    const iconBadge = document.getElementById('popupUtilityIconBadge');
+
+    if (titleEl) titleEl.innerText = item.name || 'საინჟინრო კომუნიკაცია';
+    if (catEl) catEl.innerText = item.category === 'overhead' ? 'მიწისზედა / საჰაერო' : (foundNode ? 'კვანძი / ჭა' : 'მიწისქვეშა');
+    if (specsEl) specsEl.innerText = item.specs || 'სტანდარტული';
+    if (depthEl) {
+      if (item.depthM > 0 && item.category === 'overhead') {
+        depthEl.innerText = `+${item.depthM.toFixed(2)} მ (საჰაერო)`;
+        depthEl.className = 'text-rose-400 font-bold';
+      } else {
+        depthEl.innerText = `${(item.depthM || -1.2).toFixed(2)} მ`;
+        depthEl.className = 'text-emerald-400 font-bold';
+      }
+    }
+
+    if (lenSlopeEl) {
+      if (foundLine) {
+        let totalLen = 0;
+        for (let i = 0; i < foundLine.points.length - 1; i++) {
+          totalLen += Math.hypot(foundLine.points[i + 1][0] - foundLine.points[i][0], foundLine.points[i + 1][1] - foundLine.points[i][1]);
+        }
+        lenSlopeEl.innerText = `${totalLen.toFixed(1)} მ ${foundLine.slope ? `/ i=${foundLine.slope}` : ''}`;
+      } else if (foundNode) {
+        lenSlopeEl.innerText = `X: ${foundNode.pos[0].toFixed(2)}მ, Y: ${foundNode.pos[1].toFixed(2)}მ`;
+      }
+    }
+
+    if (statusEl) statusEl.innerText = item.status || 'საპროექტო ქსელი';
+
+    if (iconBadge) {
+      if (item.type.includes('water')) {
+        iconBadge.innerHTML = '<i class="fa-solid fa-faucet-drip"></i>';
+        iconBadge.className = 'w-5 h-5 rounded flex items-center justify-center bg-cyan-500/20 text-cyan-400 text-xs';
+      } else if (item.type.includes('sewer')) {
+        iconBadge.innerHTML = '<i class="fa-solid fa-water"></i>';
+        iconBadge.className = 'w-5 h-5 rounded flex items-center justify-center bg-amber-600/20 text-amber-500 text-xs';
+      } else if (item.type.includes('storm')) {
+        iconBadge.innerHTML = '<i class="fa-solid fa-cloud-showers-heavy"></i>';
+        iconBadge.className = 'w-5 h-5 rounded flex items-center justify-center bg-teal-500/20 text-teal-400 text-xs';
+      } else if (item.type.includes('electric')) {
+        iconBadge.innerHTML = '<i class="fa-solid fa-bolt"></i>';
+        iconBadge.className = 'w-5 h-5 rounded flex items-center justify-center bg-red-500/20 text-red-400 text-xs';
+      } else if (item.type.includes('gas')) {
+        iconBadge.innerHTML = '<i class="fa-solid fa-fire-flame-simple"></i>';
+        iconBadge.className = 'w-5 h-5 rounded flex items-center justify-center bg-yellow-500/20 text-yellow-400 text-xs';
+      } else if (item.type.includes('telecom')) {
+        iconBadge.innerHTML = '<i class="fa-solid fa-network-wired"></i>';
+        iconBadge.className = 'w-5 h-5 rounded flex items-center justify-center bg-emerald-500/20 text-emerald-400 text-xs';
+      } else if (item.type.includes('hydrant')) {
+        iconBadge.innerHTML = '<i class="fa-solid fa-fire-extinguisher"></i>';
+        iconBadge.className = 'w-5 h-5 rounded flex items-center justify-center bg-rose-500/20 text-rose-400 text-xs';
+      }
+    }
+
+    renderCadWorld();
+  };
+
+  window.closeUtilityDetailsPopup = function () {
+    state.selectedUtilityId = null;
+    const popup = document.getElementById('utilityDetailsPopup');
+    if (popup) popup.classList.add('hidden');
+    renderCadWorld();
+  };
+
+  window.deleteSelectedUtility = function () {
+    if (!state.selectedUtilityId) return;
+    saveUndoSnapshot();
+    if (state.utilities.lines) {
+      state.utilities.lines = state.utilities.lines.filter(l => l.id !== state.selectedUtilityId);
+    }
+    if (state.utilities.nodes) {
+      state.utilities.nodes = state.utilities.nodes.filter(n => n.id !== state.selectedUtilityId);
+    }
+    window.closeUtilityDetailsPopup();
+    updateToolStatus('საინჟინრო ობიექტი წაიშალა.');
+  };
+
+  function finishDrawnUtilityLine() {
+    if (!state.currentUtilityPoints || state.currentUtilityPoints.length < 2) {
+      state.currentUtilityPoints = [];
+      renderInteractionLayer();
+      return;
+    }
+    saveUndoSnapshot();
+    const typeMap = {
+      'draw_utility_water': { type: 'water_ug', category: 'underground', name: 'სასმელი წყალსადენი', specs: 'PE100 SDR11 d=110 მმ PN16', depthM: -1.30, slope: 0.000 },
+      'draw_util_water': { type: 'water_ug', category: 'underground', name: 'სასმელი წყალსადენი', specs: 'PE100 SDR11 d=110 მმ PN16', depthM: -1.30, slope: 0.000 },
+      'draw_utility_sewer': { type: 'sewer_ug', category: 'underground', name: 'ფეკალური კანალიზაცია', specs: 'PVC SN8 d=160 მმ i=0.015', depthM: -2.00, slope: 0.015 },
+      'draw_util_sewer': { type: 'sewer_ug', category: 'underground', name: 'ფეკალური კანალიზაცია', specs: 'PVC SN8 d=160 მმ i=0.015', depthM: -2.00, slope: 0.015 },
+      'draw_utility_storm': { type: 'storm_ug', category: 'underground', name: 'სანიაღვრე კანალიზაცია', specs: 'PVC SN8 d=200 მმ i=0.008', depthM: -1.50, slope: 0.008 },
+      'draw_util_storm': { type: 'storm_ug', category: 'underground', name: 'სანიაღვრე კანალიზაცია', specs: 'PVC SN8 d=200 მმ i=0.008', depthM: -1.50, slope: 0.008 },
+      'draw_utility_electric_ug': { type: 'electric_ug', category: 'underground', name: 'მიწისქვეშა 0.4kV კაბელი', specs: 'ჯავშნიანი კაბელი VBbShv 4x50 მმ²', depthM: -0.80, slope: 0.000 },
+      'draw_util_elec_ug': { type: 'electric_ug', category: 'underground', name: 'მიწისქვეშა 0.4kV კაბელი', specs: 'ჯავშნიანი კაბელი VBbShv 4x50 მმ²', depthM: -0.80, slope: 0.000 },
+      'draw_utility_gas_ug': { type: 'gas_ug', category: 'underground', name: 'მიწისქვეშა გაზსადენი', specs: 'PE100 d=63 მმ P=0.3MPa', depthM: -0.90, slope: 0.000 },
+      'draw_util_gas_ug': { type: 'gas_ug', category: 'underground', name: 'მიწისქვეშა გაზსადენი', specs: 'PE100 d=63 მმ P=0.3MPa', depthM: -0.90, slope: 0.000 },
+      'draw_utility_telecom': { type: 'telecom_ug', category: 'underground', name: 'სატელეკომუნიკაციო კავშირგაბმულობა', specs: 'HDPE d=110 მმ ოპტიკა', depthM: -0.70, slope: 0.000 },
+      'draw_util_telecom': { type: 'telecom_ug', category: 'underground', name: 'სატელეკომუნიკაციო კავშირგაბმულობა', specs: 'HDPE d=110 მმ ოპტიკა', depthM: -0.70, slope: 0.000 },
+      'draw_utility_electric_oh': { type: 'electric_oh', category: 'overhead', name: 'საჰაერო ელექტროგადამცემი ხაზი', specs: 'SIP-4 4x70 მმ² H=+8.0მ', depthM: 8.0, slope: 0.000 },
+      'draw_util_elec_oh': { type: 'electric_oh', category: 'overhead', name: 'საჰაერო ელექტროგადამცემი ხაზი', specs: 'SIP-4 4x70 მმ² H=+8.0მ', depthM: 8.0, slope: 0.000 },
+      'draw_utility_gas_oh': { type: 'gas_oh', category: 'overhead', name: 'საჰაერო გაზსადენი სამაგრებზე', specs: 'ფოლადის მილი d=57 მმ H=+2.5მ', depthM: 2.5, slope: 0.000 },
+      'draw_util_gas_oh': { type: 'gas_oh', category: 'overhead', name: 'საჰაერო გაზსადენი სამაგრებზე', specs: 'ფოლადის მილი d=57 მმ H=+2.5მ', depthM: 2.5, slope: 0.000 }
+    };
+    const s = typeMap[state.activeTool] || { type: 'water_ug', category: 'underground', name: 'კომუნიკაცია', specs: 'სტანდარტული', depthM: -1.2 };
+    if (!state.utilities) state.utilities = { lines: [], nodes: [] };
+    state.utilities.lines.push({
+      id: 'util_line_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      type: s.type,
+      category: s.category,
+      points: state.currentUtilityPoints.slice(),
+      name: s.name,
+      specs: s.specs,
+      depthM: s.depthM,
+      slope: s.slope,
+      flowDir: 'forward',
+      status: 'საპროექტო'
+    });
+    state.currentUtilityPoints = [];
+    renderInteractionLayer();
+    renderCadWorld();
+    updateToolStatus(`დაიხაზა ${s.name}.`);
+  }
+  window.finishDrawnUtilityLine = finishDrawnUtilityLine;
+
   // 13. Temporary Interaction Layer
   function renderInteractionLayer(pxToM) {
     if (!els.interactionLayer) return;
     const p2m = pxToM || (1 / Math.max(0.001, state.zoomScale));
+
+    // A. In-progress Utility Line Drawing Preview
+    if (state.currentUtilityPoints && state.currentUtilityPoints.length > 0) {
+      const pts = state.currentUtilityPoints.slice();
+      if (state.mouseWorldPos) {
+        pts.push(state.activeSnap ? state.activeSnap.point : state.mouseWorldPos);
+      }
+      const ptsStr = pts.map(p => `${p[0]},${p[1]}`).join(' ');
+      let lineLen = 0;
+      for (let i = 0; i < pts.length - 1; i++) {
+        lineLen += Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]);
+      }
+      const lastP = pts[pts.length - 1];
+      const previewHtml = `
+        <g pointer-events="none">
+          <polyline points="${ptsStr}" fill="none" stroke="#38bdf8" stroke-width="${2.5 * p2m}" stroke-dasharray="${6 * p2m}, ${3 * p2m}" />
+          ${pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${3.5 * p2m}" fill="#0284c7" stroke="#ffffff" stroke-width="${1 * p2m}" />`).join('')}
+          <rect x="${lastP[0] + 5 * p2m}" y="${lastP[1] - 16 * p2m}" width="${120 * p2m}" height="${16 * p2m}" rx="${3 * p2m}" fill="#080e1c" fill-opacity="0.9" stroke="#38bdf8" stroke-width="${0.8 * p2m}" />
+          <text x="${lastP[0] + 65 * p2m}" y="${lastP[1] - 5 * p2m}" text-anchor="middle" fill="#38bdf8" font-size="${8 * p2m}" font-family="'JetBrains Mono', monospace" font-weight="bold">L = ${lineLen.toFixed(1)}მ (Enter / DblClick)</text>
+        </g>
+      `;
+      els.interactionLayer.innerHTML = previewHtml;
+      return;
+    }
+
+    // B. Ghost icon for utility stamping tools
+    if (state.activeTool && state.activeTool.startsWith('stamp_') && state.mouseWorldPos) {
+      const cx = state.activeSnap ? state.activeSnap.point[0] : state.mouseWorldPos[0];
+      const cy = state.activeSnap ? state.activeSnap.point[1] : state.mouseWorldPos[1];
+      let ghostLabel = 'კვანძი';
+      let ghostColor = '#38bdf8';
+      if (state.activeTool === 'stamp_manhole_sewer') { ghostLabel = 'K.Ch (კანალიზაციის ჭა)'; ghostColor = '#d97706'; }
+      else if (state.activeTool === 'stamp_manhole_water') { ghostLabel = 'W.Ch (წყლის ჭა)'; ghostColor = '#0284c7'; }
+      else if (state.activeTool === 'stamp_fire_hydrant') { ghostLabel = 'PG (სახანძრო ჰიდრანტი)'; ghostColor = '#ef4444'; }
+      else if (state.activeTool === 'stamp_pole_electric') { ghostLabel = 'საყრდენი ბოძი'; ghostColor = '#f43f5e'; }
+      else if (state.activeTool === 'stamp_gas_cabinet') { ghostLabel = 'GRF (გაზის კარადა)'; ghostColor = '#eab308'; }
+
+      els.interactionLayer.innerHTML = `
+        <g pointer-events="none">
+          <circle cx="${cx}" cy="${cy}" r="${6 * p2m}" fill="none" stroke="${ghostColor}" stroke-width="${1.5 * p2m}" stroke-dasharray="${3 * p2m}, ${2 * p2m}" />
+          <circle cx="${cx}" cy="${cy}" r="${2 * p2m}" fill="${ghostColor}" />
+          <rect x="${cx - 60 * p2m}" y="${cy - 20 * p2m}" width="${120 * p2m}" height="${16 * p2m}" rx="${3 * p2m}" fill="#080e1c" fill-opacity="0.9" stroke="${ghostColor}" stroke-width="${0.7 * p2m}" />
+          <text x="${cx}" y="${cy - 9 * p2m}" text-anchor="middle" fill="${ghostColor}" font-size="${7.5 * p2m}" font-family="Inter, sans-serif" font-weight="bold">${ghostLabel}</text>
+        </g>
+      `;
+      return;
+    }
 
     if (state.activeTool === 'draw_rect_footprint') {
       if (state.isDrawingRect && state.drawRectStart && state.drawRectCurrent) {
@@ -6666,7 +7847,13 @@
       'dark': '#05080f',
       'nightglow': '#070b14',
       'satellite': '#091018',
-      'blueprint': '#071329'
+      'blueprint': '#071329',
+      'vintage_archival': '#f3ecdb',
+      'cad_electric': '#030d22',
+      'cyber_matrix': '#020b05',
+      'warm_terracotta': '#fcf6f0',
+      'chalkboard': '#1e242b',
+      'monochrome_high_contrast': '#000000'
     };
 
     const varMap = {};
@@ -6832,6 +8019,15 @@
     dxf += "0\nLAYER\n2\nWATER_BODIES\n70\n0\n62\n5\n6\nCONTINUOUS\n"; // Blue
     dxf += "0\nLAYER\n2\nROADS\n70\n0\n62\n8\n6\nCONTINUOUS\n"; // Gray
     dxf += "0\nLAYER\n2\nWALKWAYS\n70\n0\n62\n9\n6\nCONTINUOUS\n";
+    dxf += "0\nLAYER\n2\nUTILITY_WATER\n70\n0\n62\n5\n6\nCONTINUOUS\n";
+    dxf += "0\nLAYER\n2\nUTILITY_SEWER\n70\n0\n62\n30\n6\nCONTINUOUS\n";
+    dxf += "0\nLAYER\n2\nUTILITY_STORM\n70\n0\n62\n4\n6\nCONTINUOUS\n";
+    dxf += "0\nLAYER\n2\nUTILITY_ELEC_UG\n70\n0\n62\n1\n6\nCONTINUOUS\n";
+    dxf += "0\nLAYER\n2\nUTILITY_ELEC_OH\n70\n0\n62\n6\n6\nCONTINUOUS\n";
+    dxf += "0\nLAYER\n2\nUTILITY_GAS_UG\n70\n0\n62\n2\n6\nCONTINUOUS\n";
+    dxf += "0\nLAYER\n2\nUTILITY_GAS_OH\n70\n0\n62\n2\n6\nCONTINUOUS\n";
+    dxf += "0\nLAYER\n2\nUTILITY_TELECOM\n70\n0\n62\n3\n6\nCONTINUOUS\n";
+    dxf += "0\nLAYER\n2\nUTILITY_MANHOLES\n70\n0\n62\n7\n6\nCONTINUOUS\n";
     dxf += "0\nENDTAB\n0\nENDSEC\n";
     dxf += "0\nSECTION\n2\nENTITIES\n";
 
@@ -6878,6 +8074,30 @@
     state.trees.forEach(t => {
       const ct = transformPt([t.x, t.y]);
       dxf += `0\nCIRCLE\n8\nTREES_GREENERY\n10\n${ct[0].toFixed(3)}\n20\n${ct[1].toFixed(3)}\n30\n0.000\n40\n${(t.radius || 2.5).toFixed(3)}\n`;
+    });
+
+    // 4. Engineering Utilities Lines
+    const utilLayerMap = {
+      'water_ug': 'UTILITY_WATER',
+      'sewer_ug': 'UTILITY_SEWER',
+      'storm_ug': 'UTILITY_STORM',
+      'electric_ug': 'UTILITY_ELEC_UG',
+      'electric_oh': 'UTILITY_ELEC_OH',
+      'gas_ug': 'UTILITY_GAS_UG',
+      'gas_oh': 'UTILITY_GAS_OH',
+      'telecom_ug': 'UTILITY_TELECOM'
+    };
+    ((state.utilities && state.utilities.lines) || []).forEach(l => {
+      const lay = utilLayerMap[l.type] || 'UTILITY_WATER';
+      addPolyline(lay, l.points, false);
+    });
+
+    // 5. Utility Nodes (Manholes, Wells, Poles, Hydrants) as Circles
+    ((state.utilities && state.utilities.nodes) || []).forEach(n => {
+      if (!n.pos) return;
+      const cn = transformPt(n.pos);
+      const r = (n.type.includes('sewer') || n.type.includes('water')) ? 0.6 : (n.type.includes('hydrant') ? 0.5 : 0.4);
+      dxf += `0\nCIRCLE\n8\nUTILITY_MANHOLES\n10\n${cn[0].toFixed(3)}\n20\n${cn[1].toFixed(3)}\n30\n0.000\n40\n${r.toFixed(3)}\n`;
     });
 
     dxf += "0\nENDSEC\n0\nEOF\n";
@@ -6955,6 +8175,11 @@
           window.finishFootprintCutout();
           return;
         }
+        if (state.activeTool && (state.activeTool.startsWith('draw_utility_') || state.activeTool.startsWith('draw_util_'))) {
+          e.preventDefault();
+          finishDrawnUtilityLine();
+          return;
+        }
       }
       if (e.key === ' ' || e.key.toLowerCase() === 'v') setCadActiveTool('pan');
       if (e.key.toLowerCase() === 'l') setCadActiveTool('draw_cad_line');
@@ -6974,6 +8199,7 @@
       if (e.key === 'Escape') {
         state.drawPoints = [];
         state.cadDraftPoints = [];
+        state.currentUtilityPoints = [];
         state.atriumCutoutPoints = [];
         state.isFreehandDrawing = false;
         if (els.cadDynamicHud) els.cadDynamicHud.classList.add('hidden');
