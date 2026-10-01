@@ -480,13 +480,14 @@
     },
 
     // --- 6. ისტორიული რუკები & რეტრო ტოპოგრაფია ---
+    // --- 6. ისტორიული რუკები & რეტრო ტოპოგრაფია ---
     hist_1887_imperial: {
       label: '1887 რუსეთის იმპერიის ტოპო',
       icon: '📜',
       group: 'historical',
       description: '1887 წლის სამხედრო-ტოპოგრაფიული ერთვერსიანი რუკა (ვინტაჟური სეპია)',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 18, maxZoom: 22, className: 'tile-filter-sepia-antique' } }
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 16, maxZoom: 22, className: 'tile-filter-sepia-antique' } }
       ]
     },
     antique_1887: {
@@ -495,7 +496,7 @@
       group: 'historical',
       description: '1887 წლის სამხედრო-ტოპოგრაფიული ერთვერსიანი რუკა (ვინტაჟური სეპია)',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 18, maxZoom: 22, className: 'tile-filter-sepia-antique' } }
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 16, maxZoom: 22, className: 'tile-filter-sepia-antique' } }
       ]
     },
     hist_1942_soviet: {
@@ -504,7 +505,7 @@
       group: 'historical',
       description: '1942 წლის წითელი არმიის გენშტაბის სამხედრო-ტოპოგრაფიული რუკა',
       layers: [
-        { url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxNativeZoom: 17, maxZoom: 22, className: 'tile-filter-soviet-topo' } }
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 16, maxZoom: 22, className: 'tile-filter-soviet-topo' } }
       ]
     },
     soviet_1942: {
@@ -513,7 +514,7 @@
       group: 'historical',
       description: '1942 წლის წითელი არმიის გენშტაბის სამხედრო-ტოპოგრაფიული რუკა',
       layers: [
-        { url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxNativeZoom: 17, maxZoom: 22, className: 'tile-filter-soviet-topo' } }
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 16, maxZoom: 22, className: 'tile-filter-soviet-topo' } }
       ]
     },
     hist_1975_soviet: {
@@ -522,7 +523,7 @@
       group: 'historical',
       description: '1975 წლის ურბანული გენერალური გეგმის ტოპოგრაფიული საფუძველი',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 18, maxZoom: 22, className: 'tile-filter-soviet-70s' } }
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 17, maxZoom: 22, className: 'tile-filter-soviet-70s' } }
       ]
     },
     soviet_1975: {
@@ -531,7 +532,7 @@
       group: 'historical',
       description: '1975 წლის ურბანული გენერალური გეგმის ტოპოგრაფიული საფუძველი',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 18, maxZoom: 22, className: 'tile-filter-soviet-70s' } }
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 17, maxZoom: 22, className: 'tile-filter-soviet-70s' } }
       ]
     },
     arcgis_nav: {
@@ -665,7 +666,8 @@
       if (state.viewMode === 'cad' && typeof window.setViewMode === 'function') {
         window.setViewMode('hybrid');
       }
-      window.setHistoricalYear(state.historicalYearIndex ?? 10);
+      // Start at 1887 (index 0) or user's active historical selection
+      window.setHistoricalYear(state.historicalYearIndex ?? 0);
     } else {
       bar.classList.add('hidden');
       if (state.historicalTimer) {
@@ -682,7 +684,7 @@
     }
   };
 
-  // Smooth Cross-Fading Historical Map Transition (No white/blank flash)
+  // Smooth Reliable Historical Map Transition
   window.setHistoricalYear = function (indexOrYear) {
     if (!tsinareMap) return;
     let idx = 0;
@@ -690,7 +692,7 @@
       idx = indexOrYear;
     } else {
       idx = HISTORICAL_YEARS.findIndex(h => h.year === indexOrYear);
-      if (idx === -1) idx = HISTORICAL_YEARS.length - 1;
+      if (idx === -1) idx = 0;
     }
     state.historicalYearIndex = idx;
     const item = HISTORICAL_YEARS[idx];
@@ -720,6 +722,9 @@
     const oldLayers = [..._activeTileLayers];
     const newLayers = [];
 
+    // Track active basemap key so hybrid mode preserves it
+    state.activeBasemap = item.basemapKey || ('wayback_' + item.year);
+
     // Build new layer definitions
     const layerDefs = [];
     if (item.waybackRelease) {
@@ -730,7 +735,7 @@
           minZoom: 1,
           maxZoom: 22,
           maxNativeZoom: item.maxNativeZoom || 18,
-          keepBuffer: 6,
+          keepBuffer: 8,
           crossOrigin: 'anonymous'
         }
       });
@@ -742,8 +747,8 @@
           opts: Object.assign({
             minZoom: 1,
             maxZoom: 22,
-            maxNativeZoom: item.maxNativeZoom || (def.opts && def.opts.maxNativeZoom) || 18,
-            keepBuffer: 6,
+            maxNativeZoom: item.maxNativeZoom || (def.opts && def.opts.maxNativeZoom) || 16,
+            keepBuffer: 8,
             crossOrigin: 'anonymous',
             className: item.filterClass || (def.opts && def.opts.className) || ''
           }, def.opts || {})
@@ -751,57 +756,31 @@
       });
     }
 
-    // Instantiate and add new layers with initial opacity 0 for smooth cross-dissolve
+    // Add new layers directly with target opacity so tiles download and render immediately
     layerDefs.forEach(d => {
       const opts = Object.assign({}, d.opts, {
-        opacity: 0
+        opacity: targetOpacity,
+        crossOrigin: 'anonymous',
+        maxZoom: 22
       });
       const layer = L.tileLayer(d.url, opts);
       layer.addTo(tsinareMap);
       newLayers.push(layer);
-
-      const container = layer.getContainer ? layer.getContainer() : null;
-      if (container) {
-        container.style.transition = 'opacity 0.75s cubic-bezier(0.4, 0, 0.2, 1)';
-        container.style.opacity = '0';
-      }
-    });
-
-    // Make old layers transition smoothly to opacity 0
-    oldLayers.forEach(l => {
-      const c = l.getContainer ? l.getContainer() : null;
-      if (c) {
-        c.style.transition = 'opacity 0.75s cubic-bezier(0.4, 0, 0.2, 1)';
-      }
-    });
-
-    // Animate opacity in next animation frames
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        newLayers.forEach(l => {
-          l.setOpacity(targetOpacity);
-          const c = l.getContainer ? l.getContainer() : null;
-          if (c) c.style.opacity = targetOpacity.toString();
-        });
-        oldLayers.forEach(l => {
-          l.setOpacity(0);
-          const c = l.getContainer ? l.getContainer() : null;
-          if (c) c.style.opacity = '0';
-        });
-      });
     });
 
     _activeTileLayers = newLayers;
 
-    // After animation duration finishes (800ms), safely remove previous layers
-    _histFadeTimer = setTimeout(() => {
-      oldLayers.forEach(l => {
-        if (tsinareMap && tsinareMap.hasLayer(l)) {
-          tsinareMap.removeLayer(l);
-        }
-      });
-      _histFadeTimer = null;
-    }, 800);
+    // Safely remove previous layers after a brief transition to avoid white/blank flash
+    if (oldLayers.length > 0) {
+      _histFadeTimer = setTimeout(() => {
+        oldLayers.forEach(l => {
+          if (tsinareMap && tsinareMap.hasLayer(l)) {
+            tsinareMap.removeLayer(l);
+          }
+        });
+        _histFadeTimer = null;
+      }, 300);
+    }
 
     // Update UI elements
     const badgeYear = document.getElementById('badgeCurrentHistoricalYear');
@@ -826,6 +805,10 @@
         t.classList.add('text-slate-400');
       }
     });
+
+    // Update trigger button text if present
+    const activeHistYearBadge = document.getElementById('lblActiveHistoricalYear');
+    if (activeHistYearBadge) activeHistYearBadge.innerText = item.year.toString();
 
     updateToolStatus(`ისტორიული რუკა: ${item.label} — ${item.desc}`);
     renderCadWorld();
@@ -1654,8 +1637,9 @@
     const addrEsc = (h.address || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
     const codeEsc = h.code.replace(/"/g, '&quot;');
     return `
-      <button type="button" class="sh-item"
-        onclick="selectHistoryItem('${codeEsc}')">
+      <div role="button" tabindex="0" class="sh-item"
+        onclick="selectHistoryItem('${codeEsc}')"
+        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectHistoryItem('${codeEsc}');}">
         <i class="sh-icon fa-solid fa-clock-rotate-left"></i>
         <span class="sh-code">${h.code}</span>
         ${h.address ? `<span class="sh-addr" title="${addrEsc}">${h.address}</span>` : ''}
@@ -1665,7 +1649,7 @@
           title="ამ ჩანაწერის წაშლა">
           <i class="fa-solid fa-xmark"></i>
         </button>
-      </button>`;
+      </div>`;
   }
 
   window.toggleSearchHistory = function (e) {
@@ -3584,10 +3568,9 @@
         cadSvg.style.display = 'block';
         cadSvg.style.pointerEvents = 'auto';
       }
-      // In hybrid mode: if currently on a road/non-satellite basemap, auto-switch to satellite
+      // In hybrid mode: ensure a basemap is active, but preserve user-selected historical or custom basemap
       if (tsinareMap) {
-        const currentBasemap = BASEMAP_REGISTRY[state.activeBasemap];
-        if (!currentBasemap || currentBasemap.group !== 'satellite') {
+        if (!state.activeBasemap || !BASEMAP_REGISTRY[state.activeBasemap]) {
           window.setBasemap('esri_satellite');
         }
         if (state.centroidLatLng) tsinareMap.setView(state.centroidLatLng, 18);
@@ -3604,10 +3587,9 @@
         cadSvg.style.display = 'block';
         cadSvg.style.pointerEvents = 'auto';
       }
-      // In map mode: if currently on satellite, auto-switch to OSM road map
+      // In map mode: ensure a basemap is active, preserving user selection
       if (tsinareMap) {
-        const currentBasemap = BASEMAP_REGISTRY[state.activeBasemap];
-        if (!currentBasemap || currentBasemap.group === 'satellite') {
+        if (!state.activeBasemap || !BASEMAP_REGISTRY[state.activeBasemap]) {
           window.setBasemap('osm');
         }
         syncMapWithCad();
