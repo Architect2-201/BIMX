@@ -126,6 +126,7 @@
     activeTool: 'pan', // 'pan', 'stamp_footprint', 'delete', 'split', 'draw_footprint', 'tree', 'pine_tree', 'hedge', 'water', 'fountain', 'terrace', 'walkway', 'bike_path', 'draw_road', 'parking', 'ruler'
     activeStyle: 'blueprint', // 24 styles
     viewMode: 'hybrid', // 'cad' | 'hybrid' | 'map'
+    activeBasemap: 'esri_satellite', // key from BASEMAP_REGISTRY
     sunAzimuth: 135, // degrees
     
     // Interactive Transformations
@@ -155,12 +156,128 @@
   // DOM Elements Cache
   const els = {};
 
-  // Leaflet Map & GIS Layer Instance
+  // ----------------------------------------------------------------
+  // Basemap Registry — all supported tile providers
+  // ----------------------------------------------------------------
+  const BASEMAP_REGISTRY = {
+    esri_satellite: {
+      label: 'სატელიტი (ESRI)',
+      icon: '🛰️',
+      group: 'satellite',
+      description: 'ESRI World Imagery — მაღალი რეზოლუციის ორთოფოტო',
+      layers: [
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 19, maxNativeZoom: 19 } },
+        { url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', opts: { subdomains: 'abcd', maxZoom: 20 } }
+      ]
+    },
+    osm: {
+      label: 'OpenStreetMap',
+      icon: '🗺️',
+      group: 'road',
+      description: 'OSM Standard — ღია გლობალური საგზაო რუკა',
+      layers: [
+        { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxZoom: 19 } }
+      ]
+    },
+    carto_voyager: {
+      label: 'CartoDB Voyager',
+      icon: '🧭',
+      group: 'road',
+      description: 'CartoDB Voyager — თანამედროვე ნათელი საგზაო რუკა',
+      layers: [
+        { url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', opts: { subdomains: 'abcd', maxZoom: 20 } }
+      ]
+    },
+    carto_dark: {
+      label: 'CartoDB Dark Matter',
+      icon: '🌑',
+      group: 'dark',
+      description: 'CartoDB Dark Matter — მუქი ფონი CAD ხაზებისთვის',
+      layers: [
+        { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', opts: { subdomains: 'abcd', maxZoom: 20 } }
+      ]
+    },
+    esri_gray: {
+      label: 'ESRI Gray Canvas',
+      icon: '🩶',
+      group: 'neutral',
+      description: 'ESRI World Gray Canvas — ნეიტრალური ნაცრისფერი ფონი',
+      layers: [
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 16 } },
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 16 } }
+      ]
+    },
+    stamen_toner: {
+      label: 'Stamen Toner',
+      icon: '⬛',
+      group: 'dark',
+      description: 'Stamen Toner — მაღალი კონტრასტის შავ-თეთრი CAD სტილი',
+      layers: [
+        { url: 'https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}{r}.png', opts: { maxZoom: 20 } }
+      ]
+    },
+    stamen_terrain: {
+      label: 'Stamen Terrain',
+      icon: '⛰️',
+      group: 'topo',
+      description: 'Stamen Terrain — რელიეფური ტოპოგრაფიული სტილი',
+      layers: [
+        { url: 'https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}{r}.png', opts: { maxZoom: 18 } }
+      ]
+    },
+    stamen_watercolor: {
+      label: 'Stamen Watercolor',
+      icon: '🎨',
+      group: 'artistic',
+      description: 'Stamen Watercolor — მხატვრული აქვარელის სტილი',
+      layers: [
+        { url: 'https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg', opts: { maxZoom: 16 } }
+      ]
+    },
+    opentopomap: {
+      label: 'OpenTopoMap',
+      icon: '📐',
+      group: 'topo',
+      description: 'OpenTopoMap — ტოპოგრაფიული ნიშნულებით და Hillshade-ით',
+      layers: [
+        { url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxZoom: 17 } }
+      ]
+    }
+  };
+
+  // Active Leaflet tile layer instances (current basemap)
   let tsinareMap = null;
   let parcelPolygonLayer = null;
-  let _satelliteLayer = null;   // Esri World Imagery (hybrid mode)
-  let _labelsLayer = null;      // CartoDB labels overlay (hybrid mode)
-  let _roadMapLayer = null;     // CartoDB Voyager roads (map/GIS mode)
+  let _activeTileLayers = []; // currently rendered Leaflet tile layers
+
+  // Switch the Leaflet basemap to any key in BASEMAP_REGISTRY
+  window.setBasemap = function (key) {
+    const cfg = BASEMAP_REGISTRY[key];
+    if (!cfg || !tsinareMap) return;
+    state.activeBasemap = key;
+    // Remove existing base tile layers
+    _activeTileLayers.forEach(l => { if (tsinareMap.hasLayer(l)) tsinareMap.removeLayer(l); });
+    _activeTileLayers = [];
+    // Add new layers
+    cfg.layers.forEach(def => {
+      const layer = L.tileLayer(def.url, def.opts || {});
+      layer.addTo(tsinareMap);
+      _activeTileLayers.push(layer);
+    });
+    // Update picker UI
+    document.querySelectorAll('.basemap-btn').forEach(b => {
+      if (b.dataset.basemap === key) {
+        b.classList.add('basemap-btn-active');
+      } else {
+        b.classList.remove('basemap-btn-active');
+      }
+    });
+    // Update the trigger button label
+    const triggerLabel = document.getElementById('lblActiveBasemap');
+    if (triggerLabel) triggerLabel.textContent = cfg.icon + ' ' + cfg.label;
+    // Re-sync map
+    renderCadWorld();
+  };
 
   function initGeorgiaLeafletMap() {
     if (typeof L === 'undefined') {
@@ -183,27 +300,8 @@
       wheelPxPerZoomLevel: 120
     });
 
-    // High-resolution satellite basemap (Esri World Imagery)
-    _satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 19,
-      maxNativeZoom: 19
-    });
-
-    // CartoDB Voyager English/Georgian labels & roads overlay (used on top of satellite)
-    _labelsLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
-      maxZoom: 20
-    });
-
-    // CartoDB Voyager full road map (used in GIS / map mode — clearly different from satellite)
-    _roadMapLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
-      maxZoom: 20
-    });
-
-    // Default: satellite + labels (hybrid mode)
-    _satelliteLayer.addTo(tsinareMap);
-    _labelsLayer.addTo(tsinareMap);
+    // Initialize with default basemap (ESRI Satellite)
+    window.setBasemap(state.activeBasemap || 'esri_satellite');
   }
 
   function showGeorgiaOverviewState() {
@@ -2344,9 +2442,9 @@
     }
   };
 
-
   window.closeAllDropdowns = function () {
     document.querySelectorAll('.cad-menu-popup').forEach(p => p.classList.add('hidden'));
+    window.closeBasemapDropdown();
   };
 
   // --- Ribbon Dropdown Menu Tool Selector ---
@@ -2367,9 +2465,40 @@
     window.closeAllDropdowns();
   };
 
+  // --- Basemap Picker Toggle ---
+  window.toggleBasemapDropdown = function (e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    const dropdown = document.getElementById('basemapDropdown');
+    if (!dropdown) return;
+    const isOpen = !dropdown.classList.contains('hidden');
+    if (isOpen) {
+      dropdown.classList.add('hidden');
+      return;
+    }
+    const btn = document.getElementById('btnBasemapTrigger');
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      dropdown.style.top = (rect.bottom + 6) + 'px';
+      let left = rect.left;
+      // Clamp so it doesn't go off right edge
+      const dropW = 340;
+      if (left + dropW > window.innerWidth - 12) {
+        left = Math.max(8, window.innerWidth - dropW - 12);
+      }
+      dropdown.style.left = left + 'px';
+    }
+    dropdown.classList.remove('hidden');
+  };
+
+  window.closeBasemapDropdown = function () {
+    const dropdown = document.getElementById('basemapDropdown');
+    if (dropdown) dropdown.classList.add('hidden');
+  };
+
   window.selectCadStyle = function (styleKey, label) {
     window.setDrawingStyle(styleKey);
     const lbl = document.getElementById('lblActiveCadStyle');
+
     if (lbl && label) {
       const cleanLabel = label.split('(')[0].trim();
       lbl.innerText = cleanLabel.length > 13 ? cleanLabel.slice(0, 12) + '…' : cleanLabel;
@@ -2553,30 +2682,38 @@
         cadSvg.style.display = 'block';
         cadSvg.style.pointerEvents = 'auto';
       }
-      // Switch to satellite + labels baselayer
+      // In hybrid mode: if currently on a road/non-satellite basemap, auto-switch to satellite
       if (tsinareMap) {
-        if (_roadMapLayer && tsinareMap.hasLayer(_roadMapLayer)) tsinareMap.removeLayer(_roadMapLayer);
-        if (_satelliteLayer && !tsinareMap.hasLayer(_satelliteLayer)) _satelliteLayer.addTo(tsinareMap);
-        if (_labelsLayer && !tsinareMap.hasLayer(_labelsLayer)) _labelsLayer.addTo(tsinareMap);
-        if (state.centroidLatLng) { tsinareMap.setView(state.centroidLatLng, 18); }
+        const currentBasemap = BASEMAP_REGISTRY[state.activeBasemap];
+        if (!currentBasemap || currentBasemap.group !== 'satellite') {
+          window.setBasemap('esri_satellite');
+        }
+        if (state.centroidLatLng) tsinareMap.setView(state.centroidLatLng, 18);
         tsinareMap.invalidateSize();
       }
+      // Show basemap picker
+      const picker = document.getElementById('basemapPickerPanel');
+      if (picker) picker.style.display = 'flex';
     } else if (mode === 'map') {
       if (btnMap) btnMap.className = 'h-8 px-2.5 rounded-md bg-amber-500/25 border border-amber-400 text-amber-300 font-bold transition flex items-center gap-1.5';
       if (bgRect) bgRect.setAttribute('fill', 'transparent');
       if (gridOverlay) gridOverlay.style.opacity = '0.08';
       if (cadSvg) {
         cadSvg.style.display = 'block';
-        cadSvg.style.pointerEvents = 'none'; // allow direct map interaction
+        cadSvg.style.pointerEvents = 'none';
       }
-      // Switch to road/street map baselayer (clearly different from satellite)
+      // In map mode: if currently on satellite, auto-switch to voyager road map
       if (tsinareMap) {
-        if (_satelliteLayer && tsinareMap.hasLayer(_satelliteLayer)) tsinareMap.removeLayer(_satelliteLayer);
-        if (_labelsLayer && tsinareMap.hasLayer(_labelsLayer)) tsinareMap.removeLayer(_labelsLayer);
-        if (_roadMapLayer && !tsinareMap.hasLayer(_roadMapLayer)) _roadMapLayer.addTo(tsinareMap);
-        if (state.centroidLatLng) { tsinareMap.setView(state.centroidLatLng, 18); }
+        const currentBasemap = BASEMAP_REGISTRY[state.activeBasemap];
+        if (!currentBasemap || currentBasemap.group === 'satellite') {
+          window.setBasemap('carto_voyager');
+        }
+        if (state.centroidLatLng) tsinareMap.setView(state.centroidLatLng, 18);
         tsinareMap.invalidateSize();
       }
+      // Show basemap picker
+      const picker = document.getElementById('basemapPickerPanel');
+      if (picker) picker.style.display = 'flex';
     }
   };
 

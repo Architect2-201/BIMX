@@ -1039,6 +1039,65 @@
       display: none !important;
     }
 
+    /* Basemap Picker Panel */
+    #basemapPickerPanel {
+      display: none;
+      position: relative;
+    }
+    #basemapDropdown {
+      position: fixed;
+      z-index: 99998;
+      background: rgba(9, 15, 29, 0.97);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 14px;
+      padding: 10px;
+      width: 340px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.9), 0 0 0 1px rgba(56,189,248,0.15);
+    }
+    .basemap-group-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #64748b;
+      padding: 4px 6px 2px;
+      margin-top: 4px;
+    }
+    .basemap-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 7px 10px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: left;
+    }
+    .basemap-btn:hover {
+      background: rgba(56, 189, 248, 0.1);
+      color: #e2e8f0;
+      border-color: rgba(56, 189, 248, 0.2);
+    }
+    .basemap-btn-active {
+      background: rgba(56, 189, 248, 0.18) !important;
+      border-color: rgba(56, 189, 248, 0.5) !important;
+      color: #7dd3fc !important;
+    }
+    .basemap-btn .bm-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+    .basemap-btn .bm-name { font-weight: 600; color: inherit; }
+    .basemap-btn .bm-desc { font-size: 9px; color: #475569; margin-top: 1px; }
+    .basemap-btn-active .bm-name { color: #7dd3fc; }
+    .basemap-btn-active .bm-desc { color: #38bdf8; opacity: 0.7; }
+    .bm-sep { height: 1px; background: rgba(255,255,255,0.05); margin: 4px 0; }
+
 
     /* Modern Responsive CAD Ribbon Horizontal Scrolling */
     .cad-scroll-row {
@@ -1167,6 +1226,91 @@
         <i class="fa-solid fa-compass text-sky-400 text-xs"></i>
         <span>რუკის ცენტრირება</span>
       </button>
+    </div>
+
+    <!-- Basemap Picker (visible only in hybrid/map modes) -->
+    <div id="basemapPickerPanel" class="items-center relative shrink-0">
+      <button
+        type="button"
+        id="btnBasemapTrigger"
+        onclick="toggleBasemapDropdown(event)"
+        class="h-9 px-3 text-xs rounded-lg bg-[#0d1627] hover:bg-[#1a2846] border border-[#263a63] text-slate-200 hover:text-white transition flex items-center gap-1.5 shrink-0"
+        title="ბეისმეპის შეცვლა"
+      >
+        <i class="fa-solid fa-layer-group text-violet-400 text-xs"></i>
+        <span id="lblActiveBasemap" class="hidden sm:inline">🛰️ სატელიტი (ESRI)</span>
+        <i class="fa-solid fa-chevron-down text-[9px] text-slate-400 ml-0.5"></i>
+      </button>
+
+      <!-- Basemap Dropdown Panel -->
+      <div id="basemapDropdown" class="hidden">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-2 px-1">
+          <span class="text-[11px] font-bold text-sky-300 flex items-center gap-1.5">
+            <i class="fa-solid fa-layer-group text-violet-400"></i> ბეისმეპის არჩევა
+          </span>
+          <button onclick="closeBasemapDropdown()" class="text-slate-500 hover:text-slate-300 text-xs transition"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <!-- Group: სატელიტი -->
+        <div class="basemap-group-label">🛰️ სატელიტური ხედი</div>
+        <button class="basemap-btn basemap-btn-active" data-basemap="esri_satellite" onclick="setBasemap('esri_satellite'); closeBasemapDropdown();">
+          <span class="bm-icon">🛰️</span>
+          <div><div class="bm-name">სატელიტი (ESRI)</div><div class="bm-desc">ESRI World Imagery — მაღალი რეზოლუციის ორთოფოტო</div></div>
+        </button>
+
+        <div class="bm-sep"></div>
+
+        <!-- Group: საგზაო რუკები -->
+        <div class="basemap-group-label">🧭 საგზაო / ქუჩის რუკები</div>
+        <button class="basemap-btn" data-basemap="carto_voyager" onclick="setBasemap('carto_voyager'); closeBasemapDropdown();">
+          <span class="bm-icon">🧭</span>
+          <div><div class="bm-name">CartoDB Voyager</div><div class="bm-desc">თანამედროვე ნათელი საგზაო რუკა</div></div>
+        </button>
+        <button class="basemap-btn" data-basemap="osm" onclick="setBasemap('osm'); closeBasemapDropdown();">
+          <span class="bm-icon">🗺️</span>
+          <div><div class="bm-name">OpenStreetMap</div><div class="bm-desc">ღია გლობალური საგზაო რუკა (OSM Standard)</div></div>
+        </button>
+
+        <div class="bm-sep"></div>
+
+        <!-- Group: მუქი / CAD -->
+        <div class="basemap-group-label">⬛ მუქი / CAD სტილი</div>
+        <button class="basemap-btn" data-basemap="carto_dark" onclick="setBasemap('carto_dark'); closeBasemapDropdown();">
+          <span class="bm-icon">🌑</span>
+          <div><div class="bm-name">CartoDB Dark Matter</div><div class="bm-desc">მუქი ფონი CAD ხაზებისთვის</div></div>
+        </button>
+        <button class="basemap-btn" data-basemap="stamen_toner" onclick="setBasemap('stamen_toner'); closeBasemapDropdown();">
+          <span class="bm-icon">⬛</span>
+          <div><div class="bm-name">Stamen Toner</div><div class="bm-desc">მაღალი კონტრასტის შავ-თეთრი CAD სტილი</div></div>
+        </button>
+        <button class="basemap-btn" data-basemap="esri_gray" onclick="setBasemap('esri_gray'); closeBasemapDropdown();">
+          <span class="bm-icon">🩶</span>
+          <div><div class="bm-name">ESRI Gray Canvas</div><div class="bm-desc">ნეიტრალური ნაცრისფერი ფონი CAD-ისთვის</div></div>
+        </button>
+
+        <div class="bm-sep"></div>
+
+        <!-- Group: ტოპოგრაფია -->
+        <div class="basemap-group-label">⛰️ ტოპოგრაფია / რელიეფი</div>
+        <button class="basemap-btn" data-basemap="opentopomap" onclick="setBasemap('opentopomap'); closeBasemapDropdown();">
+          <span class="bm-icon">📐</span>
+          <div><div class="bm-name">OpenTopoMap</div><div class="bm-desc">ტოპოგრაფიული ნიშნულებით და Hillshade-ით</div></div>
+        </button>
+        <button class="basemap-btn" data-basemap="stamen_terrain" onclick="setBasemap('stamen_terrain'); closeBasemapDropdown();">
+          <span class="bm-icon">⛰️</span>
+          <div><div class="bm-name">Stamen Terrain</div><div class="bm-desc">რელიეფური ტოპოგრაფიული სტილი (Stadia Maps)</div></div>
+        </button>
+
+        <div class="bm-sep"></div>
+
+        <!-- Group: მხატვრული -->
+        <div class="basemap-group-label">🎨 მხატვრული</div>
+        <button class="basemap-btn" data-basemap="stamen_watercolor" onclick="setBasemap('stamen_watercolor'); closeBasemapDropdown();">
+          <span class="bm-icon">🎨</span>
+          <div><div class="bm-name">Stamen Watercolor</div><div class="bm-desc">მხატვრული აქვარელის სტილი (Stadia Maps)</div></div>
+        </button>
+      </div>
     </div>
 
     <!-- Action: Export PDF Report -->
