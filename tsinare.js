@@ -382,10 +382,12 @@
         maxNativeZoom: (def.opts && (def.opts.maxNativeZoom || def.opts.maxZoom)) || 19,
         keepBuffer: 8,
         updateWhenZooming: false,
-        updateWhenIdle: true
+        updateWhenIdle: true,
+        crossOrigin: 'anonymous'
       }, def.opts || {});
       // Ensure maxZoom is always 22 so leaflet stretches native tiles rather than disappearing
       opts.maxZoom = 22;
+      opts.crossOrigin = 'anonymous';
       const layer = L.tileLayer(def.url, opts);
       layer.addTo(tsinareMap);
       _activeTileLayers.push(layer);
@@ -424,6 +426,14 @@
       zoomSnap: 0,
       zoomDelta: 0.1,
       wheelPxPerZoomLevel: 120
+    });
+
+    // Listen to Leaflet move and zoom events to keep CAD locked in sync
+    tsinareMap.on('move zoom', function () {
+      if (_isSyncingCad || !state.centroidLatLng) return;
+      if (typeof syncCadWithMap === 'function') {
+        syncCadWithMap();
+      }
     });
 
     // Initialize with default basemap (ESRI Satellite)
@@ -1285,8 +1295,8 @@
     const avgLng = coordsLatLng.reduce((sum, c) => sum + c[1], 0) / coordsLatLng.length;
     state.centroidLatLng = [avgLat, avgLng];
 
-    const metersPerDegLat = 111132.954;
-    const metersPerDegLng = 111132.954 * Math.cos((avgLat * Math.PI) / 180);
+    const metersPerDegLat = 111319.4907932736;
+    const metersPerDegLng = 111319.4907932736 * Math.cos((avgLat * Math.PI) / 180);
 
     state.boundaryMeters = coordsLatLng.map(c => {
       const x = (c[1] - avgLng) * metersPerDegLng;
@@ -3041,7 +3051,7 @@
       if (gridOverlay) gridOverlay.style.opacity = '0.08';
       if (cadSvg) {
         cadSvg.style.display = 'block';
-        cadSvg.style.pointerEvents = 'none';
+        cadSvg.style.pointerEvents = 'auto';
       }
       // In map mode: if currently on satellite, auto-switch to OSM road map
       if (tsinareMap) {
@@ -3049,7 +3059,7 @@
         if (!currentBasemap || currentBasemap.group === 'satellite') {
           window.setBasemap('osm');
         }
-        if (state.centroidLatLng) tsinareMap.setView(state.centroidLatLng, 18);
+        syncMapWithCad();
         tsinareMap.invalidateSize();
       }
       // Show basemap picker
@@ -4315,37 +4325,69 @@
     return [x, y];
   }
 
+  let _isSyncingCad = false;
+  let _isSyncingMap = false;
+
   function syncMapWithCad() {
-    if (!tsinareMap || !state.centroidLatLng || !els.cadSvgContainer) return;
+    if (_isSyncingMap || !tsinareMap || !state.centroidLatLng || !els.cadSvgContainer) return;
     if (state.viewMode !== 'hybrid' && state.viewMode !== 'map') return;
 
     const rect = els.cadSvgContainer.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
 
-    // Center of screen in CAD container coordinates
-    const cx = rect.width / 2;
-    const cy = rect.height / 2;
+    _isSyncingCad = true;
+    try {
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
 
-    // Convert screen center to CAD metric world coordinates (meters relative to centroid)
-    const worldCenterX = (cx - state.panX) / state.zoomScale;
-    const worldCenterY = (cy - state.panY) / state.zoomScale;
+      const avgLat = state.centroidLatLng[0];
+      const cosLat = Math.cos((avgLat * Math.PI) / 180);
+      const metersPerPixelAtZoom0 = 156543.03392804097 * cosLat;
+      const targetZoom = Math.log2(Math.max(0.001, state.zoomScale) * metersPerPixelAtZoom0);
+      const clampedZoom = Math.max(2, Math.min(22, targetZoom));
 
-    // Convert CAD metric world coords back to WGS84 Lat/Lng
-    const avgLat = state.centroidLatLng[0];
-    const avgLng = state.centroidLatLng[1];
-    const metersPerDegLat = 111132.954;
-    const metersPerDegLng = 111132.954 * Math.cos((avgLat * Math.PI) / 180);
+      // Calculate Leaflet projection offset so that state.centroidLatLng is rendered at exactly (state.panX, state.panY)
+      const centroidProjected = tsinareMap.project(state.centroidLatLng, clampedZoom);
+      const centerProjected = L.point(
+        centroidProjected.x - (state.panX - cx),
+        centroidProjected.y - (state.panY - cy)
+      );
+      const targetCenterLatLng = tsinareMap.unproject(centerProjected, clampedZoom);
 
-    const lat = avgLat - (worldCenterY / metersPerDegLat);
-    const lng = avgLng + (worldCenterX / metersPerDegLng);
+      tsinareMap.setView(targetCenterLatLng, clampedZoom, { animate: false });
+    } finally {
+      _isSyncingCad = false;
+    }
+  }
 
-    // Compute Leaflet zoom level matching state.zoomScale (pixels per meter)
-    const cosLat = Math.cos((lat * Math.PI) / 180);
-    const metersPerPixelAtZoom0 = 156543.03392 * cosLat;
-    const targetZoom = Math.log2(Math.max(0.001, state.zoomScale) * metersPerPixelAtZoom0);
-    const clampedZoom = Math.max(2, Math.min(22, targetZoom));
+  function syncCadWithMap() {
+    if (_isSyncingCad || !tsinareMap || !state.centroidLatLng || !els.cadSvgContainer) return;
+    if (state.viewMode !== 'hybrid' && state.viewMode !== 'map') return;
 
-    tsinareMap.setView([lat, lng], clampedZoom, { animate: false });
+    const rect = els.cadSvgContainer.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+
+    _isSyncingMap = true;
+    try {
+      const currentZoom = tsinareMap.getZoom();
+      const avgLat = state.centroidLatLng[0];
+      const cosLat = Math.cos((avgLat * Math.PI) / 180);
+      const metersPerPixelAtZoom0 = 156543.03392804097 * cosLat;
+      state.zoomScale = Math.pow(2, currentZoom) / metersPerPixelAtZoom0;
+
+      // Update CAD pan so centroid matches Leaflet container pixel exactly
+      const centroidPx = tsinareMap.latLngToContainerPoint(state.centroidLatLng);
+      state.panX = centroidPx.x;
+      state.panY = centroidPx.y;
+
+      if (els.worldGroup) {
+        els.worldGroup.setAttribute('transform', `translate(${state.panX}, ${state.panY}) scale(${state.zoomScale})`);
+      }
+      updateGraphicScaleBar();
+      renderCadWorld();
+    } finally {
+      _isSyncingMap = false;
+    }
   }
 
   function applyTransform() {
@@ -6457,14 +6499,16 @@
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
 
-    // Load Georgian Unicode Font
+    // Load Georgian Unicode Font (NotoSansGeorgian from assets/fonts/georgian-font-data.js)
     let fontName = 'helvetica';
-    if (window.GEORGIAN_FONT_BASE64) {
+    const regularFontB64 = window.GEORGIAN_FONT_REGULAR_B64 || window.GEORGIAN_FONT_BASE64;
+    const boldFontB64 = window.GEORGIAN_FONT_BOLD_B64 || regularFontB64;
+    if (regularFontB64) {
       try {
-        doc.addFileToVFS('NotoSansGeorgian-Regular.ttf', window.GEORGIAN_FONT_BASE64);
+        doc.addFileToVFS('NotoSansGeorgian-Regular.ttf', regularFontB64);
         doc.addFont('NotoSansGeorgian-Regular.ttf', 'NotoSansGeorgian', 'normal');
-        if (window.GEORGIAN_FONT_BOLD_B64) {
-          doc.addFileToVFS('NotoSansGeorgian-Bold.ttf', window.GEORGIAN_FONT_BOLD_B64);
+        if (boldFontB64) {
+          doc.addFileToVFS('NotoSansGeorgian-Bold.ttf', boldFontB64);
           doc.addFont('NotoSansGeorgian-Bold.ttf', 'NotoSansGeorgian', 'bold');
         }
         fontName = 'NotoSansGeorgian';
@@ -6488,7 +6532,7 @@
     doc.setFont(fontName, 'normal');
     doc.setTextColor(148, 163, 184);
     const dateStr = new Date().toLocaleDateString('ka-GE');
-    doc.text(`საკადასტრო კოდი: ${state.cadastralCode} | მასშტაბი: M 1:500 | სტილი: ${state.activeStyle.toUpperCase()} | თარიღი: ${dateStr}`, 18, 19);
+    doc.text(`საკადასტრო კოდი: ${state.cadastralCode || '—'} | მასშტაბი: M 1:500 | სტილი: ${(state.activeStyle || 'default').toUpperCase()} | თარიღი: ${dateStr}`, 18, 19);
 
     // Architectural Title Stamp (შტამპი)
     const stampX = pageWidth - 145;
@@ -6506,29 +6550,29 @@
     doc.setFontSize(7.5);
     doc.setFont(fontName, 'normal');
     doc.text(`ობიექტი: წინარე საპროექტო გენგეგმა & კოეფიციენტების გაანგარიშება`, stampX + 5, stampY + 14);
-    doc.text(`მისამართი: ${state.address}`, stampX + 5, stampY + 20);
-    doc.text(`მესაკუთრე: ${state.owners.join(', ')}`, stampX + 5, stampY + 26);
+    doc.text(`მისამართი: ${state.address || '—'}`, stampX + 5, stampY + 20);
+    doc.text(`მესაკუთრე: ${(state.owners && state.owners.length) ? state.owners.join(', ') : 'ფიზიკური პირი'}`, stampX + 5, stampY + 26);
     doc.text(`ფურცელი: 1 / 1  |  სტადია: წინარე საპროექტო (Pre-Design)`, stampX + 5, stampY + 32);
-    doc.text(`საკადასტრო კოდი: ${state.cadastralCode}`, stampX + 5, stampY + 38);
+    doc.text(`საკადასტრო კოდი: ${state.cadastralCode || '—'}`, stampX + 5, stampY + 38);
 
     // Technical-Economic Indicators Table (ტემ-ი)
-    const parcelArea = state.officialAreaSqm || state.geometricAreaSqm;
+    const parcelArea = state.officialAreaSqm || state.geometricAreaSqm || 0;
     const k1Used = state.footprints.reduce((sum, f) => sum + (f.areaSqm || 0), 0);
-    const k1Allowed = Math.round(parcelArea * state.k1Limit);
+    const k1Allowed = Math.round(parcelArea * (state.k1Limit || 0.5));
     const k2Used = state.footprints.reduce((sum, f) => sum + ((f.areaSqm || 0) * (f.floors || 1)), 0);
-    const k2Allowed = Math.round(parcelArea * state.k2Limit);
-    const k3Required = Math.round(parcelArea * state.k3Limit);
+    const k2Allowed = Math.round(parcelArea * (state.k2Limit || 0.8));
+    const k3Required = Math.round(parcelArea * (state.k3Limit || 0.3));
 
     const temHeaders = [['მაჩვენებელი / რეგულაცია', 'დაშვებული ლიმიტი', 'საპროექტო (ათვისებული)', 'დარჩენილი ნაშთი']];
     const temRows = [
       ['მიწის ნაკვეთის ფართობი', `${parcelArea.toLocaleString()} მ²`, `${parcelArea.toLocaleString()} მ²`, '—'],
-      ['K-1 განაშენიანების ფართობი', `${k1Allowed.toLocaleString()} მ² (K1=${state.k1Limit})`, `${k1Used.toLocaleString()} მ²`, `${Math.max(0, k1Allowed - k1Used).toLocaleString()} მ²`],
-      ['K-2 ინტენსივობის ფართობი (GFA)', `${k2Allowed.toLocaleString()} მ² (K2=${state.k2Limit})`, `${k2Used.toLocaleString()} მ²`, `${Math.max(0, k2Allowed - k2Used).toLocaleString()} მ²`],
-      ['K-3 გამწვანების ფართობი', `${k3Required.toLocaleString()} მ² (K3=${state.k3Limit})`, `${Math.max(0, parcelArea - k1Used).toLocaleString()} მ²`, 'ნორმაშია'],
+      ['K-1 განაშენიანების ფართობი', `${k1Allowed.toLocaleString()} მ² (K1=${state.k1Limit || 0.5})`, `${k1Used.toLocaleString()} მ²`, `${Math.max(0, k1Allowed - k1Used).toLocaleString()} მ²`],
+      ['K-2 ინტენსივობის ფართობი (GFA)', `${k2Allowed.toLocaleString()} მ² (K2=${state.k2Limit || 0.8})`, `${k2Used.toLocaleString()} მ²`, `${Math.max(0, k2Allowed - k2Used).toLocaleString()} მ²`],
+      ['K-3 გამწვანების ფართობი', `${k3Required.toLocaleString()} მ² (K3=${state.k3Limit || 0.3})`, `${Math.max(0, parcelArea - k1Used).toLocaleString()} მ²`, 'ნორმაშია'],
       ['შენობების რაოდენობა', '—', `${state.footprints.length} ბლოკი`, '—'],
       ['დარგული ხეები (გამწვანება)', '—', `${state.trees.length} ხე`, 'დაცულია'],
       ['ავტოსადგომები (საპროექტო)', 'მოთხოვნილი: 5 ადგილი', `${state.parkingBays.length} ადგილი`, 'დაცულია'],
-      ['სამეზობლო მიჯნის ზოლი', 'სავალდებულო ≥ 3.0 მ', `${state.setbackDistance.toFixed(1)} მ`, 'დაცულია']
+      ['სამეზობლო მიჯნის ზოლი', 'სავალდებულო ≥ 3.0 მ', `${(state.setbackDistance || 3.0).toFixed(1)} მ`, 'დაცულია']
     ];
 
     if (doc.autoTable) {
@@ -6543,36 +6587,25 @@
       });
     }
 
-    // Export Vector Drawing snapshot to PDF
-    const prep = getPreparedSvgForExport(1800, 1200);
-    if (prep) {
-      const svgBlob = new Blob([prep.svgString], { type: 'image/svg+xml;charset=utf-8' });
-      const DOMURL = window.URL || window.webkitURL || window;
-      const url = DOMURL.createObjectURL(svgBlob);
-
-      const img = new Image();
-      img.onload = function () {
-        const canvas = document.createElement('canvas');
-        canvas.width = 1800;
-        canvas.height = 1200;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = prep.bgColor;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        DOMURL.revokeObjectURL(url);
-
-        const imgData = canvas.toDataURL('image/png');
-        doc.addImage(imgData, 'PNG', 145, 35, pageWidth - 165, pageHeight - 100);
-        doc.save(`BIMX_Tsinare_${state.cadastralCode}.pdf`);
-      };
-      img.onerror = function() {
-        console.error('PDF SVG snapshot rasterization fallback');
-        doc.save(`BIMX_Tsinare_${state.cadastralCode}.pdf`);
-      };
-      img.src = url;
-    } else {
-      doc.save(`BIMX_Tsinare_${state.cadastralCode}.pdf`);
-    }
+    // Export Composite Drawing (Map + Vector CAD) snapshot to PDF
+    composeExportCanvas(2400, 1600, function (canvas) {
+      if (canvas) {
+        try {
+          const imgData = canvas.toDataURL('image/jpeg', 0.92);
+          const drawX = 148;
+          const drawY = 35;
+          const drawW = pageWidth - 166;
+          const drawH = pageHeight - 98;
+          doc.addImage(imgData, 'JPEG', drawX, drawY, drawW, drawH);
+          doc.setDrawColor(30, 41, 59);
+          doc.setLineWidth(0.4);
+          doc.rect(drawX, drawY, drawW, drawH, 'D');
+        } catch (e) {
+          console.warn('[PDF] Canvas snapshot embedding fallback:', e);
+        }
+      }
+      doc.save(`BIMX_Tsinare_${state.cadastralCode || 'Cadastre'}.pdf`);
+    });
   };
 
   // --- Helper to prepare self-contained SVG for HD Export ---
@@ -6673,10 +6706,16 @@
     styleEl.textContent = styleRules;
     defs.appendChild(styleEl);
 
-    const canvasBgColor = varMap['--canvas-bg'] || bgMap[state.activeStyle] || '#071329';
+    const isMapMode = (state.viewMode === 'hybrid' || state.viewMode === 'map');
+    const canvasBgColor = isMapMode ? 'transparent' : (varMap['--canvas-bg'] || bgMap[state.activeStyle] || '#071329');
     const gridBg = clone.querySelector('#cadGridBackground');
     if (gridBg) {
       gridBg.setAttribute('fill', canvasBgColor);
+    }
+
+    if (isMapMode) {
+      const gridOverlay = clone.querySelector('#cadGridOverlay');
+      if (gridOverlay) gridOverlay.style.display = 'none';
     }
 
     let serialized = new XMLSerializer().serializeToString(clone);
@@ -6692,39 +6731,88 @@
     };
   }
 
-  // --- High-Res PNG Image Export ---
-  window.exportTsinarePng = function () {
-    const prep = getPreparedSvgForExport(2400, 1600);
-    if (!prep) return;
+  // --- High-Resolution Composite Canvas Renderer (Map Tiles + Vector CAD) ---
+  function composeExportCanvas(targetW, targetH, callback) {
+    const prep = getPreparedSvgForExport(targetW, targetH);
+    if (!prep) {
+      callback(null);
+      return;
+    }
 
+    const canvas = document.createElement('canvas');
+    canvas.width = targetW || 2400;
+    canvas.height = targetH || 1600;
+    const ctx = canvas.getContext('2d');
+
+    const wrapper = document.getElementById('cadCanvasWrapper') || els.cadSvgContainer;
+    const wrapperRect = wrapper ? wrapper.getBoundingClientRect() : { width: targetW, height: targetH, left: 0, top: 0 };
+    const scaleX = canvas.width / Math.max(1, wrapperRect.width);
+    const scaleY = canvas.height / Math.max(1, wrapperRect.height);
+
+    const isMapMode = (state.viewMode === 'hybrid' || state.viewMode === 'map');
+    if (isMapMode) {
+      // Natural clean neutral base for GIS map
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Render all active Leaflet map tiles
+      const tileImgs = document.querySelectorAll('#tsinareLeafletMap img.leaflet-tile');
+      tileImgs.forEach(img => {
+        if (!img.complete || img.naturalWidth === 0) return;
+        const rect = img.getBoundingClientRect();
+        const dx = (rect.left - wrapperRect.left) * scaleX;
+        const dy = (rect.top - wrapperRect.top) * scaleY;
+        const dw = rect.width * scaleX;
+        const dh = rect.height * scaleY;
+        try {
+          ctx.drawImage(img, dx, dy, dw, dh);
+        } catch (e) {
+          // Cross-origin fallback
+        }
+      });
+    } else {
+      ctx.fillStyle = prep.bgColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Render CAD SVG on top of map background
     const svgBlob = new Blob([prep.svgString], { type: 'image/svg+xml;charset=utf-8' });
     const DOMURL = window.URL || window.webkitURL || window;
     const url = DOMURL.createObjectURL(svgBlob);
-
     const img = new Image();
-    img.onload = function () {
-      const canvas = document.createElement('canvas');
-      canvas.width = 2400;
-      canvas.height = 1600;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = prep.bgColor;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      DOMURL.revokeObjectURL(url);
 
-      const a = document.createElement('a');
-      a.href = canvas.toDataURL('image/png');
-      a.download = `BIMX_Tsinare_${state.cadastralCode}.png`;
-      a.click();
+    img.onload = function () {
+      try {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      } catch (err) {
+        console.warn('[PDF/PNG] SVG draw warning:', err);
+      }
+      DOMURL.revokeObjectURL(url);
+      callback(canvas);
     };
+
     img.onerror = function (err) {
-      console.error('PNG export rendering error, fallback to SVG download:', err);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `BIMX_Tsinare_${state.cadastralCode}.svg`;
-      a.click();
+      console.warn('[PDF/PNG] SVG load warning:', err);
+      DOMURL.revokeObjectURL(url);
+      callback(canvas);
     };
+
     img.src = url;
+  }
+
+  // --- High-Res PNG Image Export ---
+  window.exportTsinarePng = function () {
+    composeExportCanvas(2400, 1600, function (canvas) {
+      if (!canvas) return;
+      try {
+        const a = document.createElement('a');
+        a.href = canvas.toDataURL('image/png');
+        a.download = `BIMX_Tsinare_${state.cadastralCode || 'Cadastre'}.png`;
+        a.click();
+      } catch (err) {
+        console.error('PNG export error:', err);
+      }
+    });
   };
 
   // --- AutoCAD / Autodesk Revit 1:1 Vector DXF Export ---
