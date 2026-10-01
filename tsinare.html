@@ -1151,11 +1151,11 @@
 
     <!-- View Mode Switcher: CAD | Hybrid Satellite | Full GIS Map -->
     <div class="hidden md:flex items-center bg-[#0d1627] p-0.5 rounded-lg border border-[#1e2f4f] text-xs font-medium shrink-0">
-      <button type="button" id="btnModeCad" onclick="setViewMode('cad')" class="h-8 px-2.5 rounded-md bg-sky-500/25 border border-sky-400 text-sky-300 font-bold transition flex items-center gap-1.5" title="სუფთა CAD ნახაზის რეჟიმი (ბლუპრინტი/ვექტორული ბადე)">
+      <button type="button" id="btnModeCad" onclick="setViewMode('cad')" class="h-8 px-2.5 rounded-md text-slate-300 hover:text-white transition flex items-center gap-1.5" title="სუფთა CAD ნახაზის რეჟიმი (ბლუპრინტი/ვექტორული ბადე)">
         <i class="fa-solid fa-pen-nib text-xs text-sky-400"></i>
         <span>CAD ნახაზი</span>
       </button>
-      <button type="button" id="btnModeHybrid" onclick="setViewMode('hybrid')" class="h-8 px-2.5 rounded-md text-slate-300 hover:text-white transition flex items-center gap-1.5" title="სატელიტური ორთოფოტო + CAD ნახაზი ზედნადებით">
+      <button type="button" id="btnModeHybrid" onclick="setViewMode('hybrid')" class="h-8 px-2.5 rounded-md bg-emerald-500/25 border border-emerald-400 text-emerald-300 font-bold transition flex items-center gap-1.5" title="სატელიტური ორთოფოტო + CAD ნახაზი ზედნადებით">
         <i class="fa-solid fa-satellite text-xs text-emerald-400"></i>
         <span>სატელიტი + CAD</span>
       </button>
@@ -1686,6 +1686,79 @@
 
             <div class="h-5 w-px bg-slate-700/60 flex-none mx-0.5"></div>
 
+            <!-- Prominent Layers / Fenebi Toggle Button -->
+            <div class="relative shrink-0">
+              <button type="button" onclick="toggleDropdownMenu('dropdownLayersMenu', event)" id="btnLayersMenuTrigger" class="h-8 px-3 rounded bg-sky-500/20 border border-sky-400/50 text-xs text-sky-300 hover:bg-sky-500/30 hover:text-white flex items-center gap-1.5 transition font-bold shadow-sm" title="ფენების / შრეების მართვა და გათიშვა">
+                <i class="fa-solid fa-layer-group text-sky-400 text-xs"></i>
+                <span>ფენები (შრეები)</span>
+                <i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
+              </button>
+              <div id="dropdownLayersMenu" class="cad-menu-popup hidden absolute left-0 sm:right-0 top-full mt-1 min-w-[280px] max-w-xs bg-[#0d1629] border border-[#243557] rounded-lg shadow-2xl p-2.5 z-50 space-y-2 text-xs">
+                <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 pb-1 border-b border-slate-700/50 flex items-center justify-between">
+                  <span>ფენების ჩართვა / გათიშვა</span>
+                  <button type="button" onclick="window.closeAllDropdowns()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <label class="flex items-center gap-2 text-slate-200 cursor-pointer hover:text-white font-medium bg-amber-500/10 p-1 rounded border border-amber-500/20">
+                  <input type="checkbox" id="chkLayerTopography" onchange="toggleLayer('topography', this.checked)" class="accent-amber-400">
+                  <span>🗺️ ტოპოგრაფია &amp; რელიეფი</span>
+                </label>
+                <label class="flex items-center gap-2 text-slate-200 cursor-pointer hover:text-white font-medium bg-sky-500/10 p-1 rounded border border-sky-500/20">
+                  <input type="checkbox" id="chkLayerNeighborhood" onchange="toggleLayer('neighborhood', this.checked)" class="accent-sky-400">
+                  <span>🏘️ სამეზობლო ნაკვეთები &amp; შენობები</span>
+                </label>
+                <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
+                  <input type="checkbox" id="chkLayerBoundary" checked onchange="toggleLayer('boundary', this.checked)" class="accent-sky-400">
+                  <span>საკადასტრო საზღვარი</span>
+                </label>
+                <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
+                  <input type="checkbox" id="chkLayerSetback" checked onchange="toggleLayer('setback', this.checked)" class="accent-rose-400">
+                  <span>სამეზობლო მიჯნა</span>
+                </label>
+                <label class="flex items-center gap-2 text-slate-400 cursor-pointer hover:text-slate-200 pl-4 text-[11px] bg-white/[0.02] py-0.5 rounded">
+                  <input type="checkbox" id="chkLayerSetbackLabels" onchange="toggleLayer('setbackLabels', this.checked)" class="accent-rose-400">
+                  <span>🏷️ მიჯნის წარწერები</span>
+                </label>
+                <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
+                  <input type="checkbox" id="chkLayerDimensions" checked onchange="toggleLayer('dimensions', this.checked)" class="accent-amber-400">
+                  <span>ზომები &amp; კვოტები</span>
+                </label>
+                <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
+                  <input type="checkbox" id="chkLayerFootprints" checked onchange="toggleLayer('footprints', this.checked)" class="accent-sky-400">
+                  <span>შენობების ლაქები</span>
+                </label>
+                <label class="flex items-center gap-2 text-slate-200 cursor-pointer hover:text-white font-medium bg-cyan-500/10 p-1 rounded border border-cyan-500/20">
+                  <input type="checkbox" id="chkLayerCadDrafting" checked onchange="toggleLayer('cadDrafting', this.checked)" class="accent-cyan-400">
+                  <span>📏 CAD ხაზვა (Line, Arc, Circle)</span>
+                </label>
+                <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
+                  <input type="checkbox" id="chkLayerShadows" checked onchange="toggleLayer('shadows', this.checked)" class="accent-slate-400">
+                  <span>მზის ჩრდილები</span>
+                </label>
+                <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
+                  <input type="checkbox" id="chkLayerTrees" checked onchange="toggleLayer('trees', this.checked)" class="accent-emerald-400">
+                  <span>ხეები &amp; გამწვანება</span>
+                </label>
+                <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
+                  <input type="checkbox" id="chkLayerWater" checked onchange="toggleLayer('water', this.checked)" class="accent-cyan-400">
+                  <span>აუზები &amp; წყალი</span>
+                </label>
+                <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
+                  <input type="checkbox" id="chkLayerTerraces" checked onchange="toggleLayer('terraces', this.checked)" class="accent-amber-400">
+                  <span>ხის ტერასები</span>
+                </label>
+                <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
+                  <input type="checkbox" id="chkLayerRoads" checked onchange="toggleLayer('roads', this.checked)" class="accent-blue-400">
+                  <span>გზები &amp; ბილიკები</span>
+                </label>
+                <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
+                  <input type="checkbox" id="chkLayerParking" checked onchange="toggleLayer('parking', this.checked)" class="accent-blue-400">
+                  <span>ავტოსადგომები</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="h-5 w-px bg-slate-700/60 flex-none mx-0.5"></div>
+
             <!-- Architectural Drawing Styles Select -->
             <div class="flex items-center gap-1 bg-[#121d33] px-2 py-0.5 rounded border border-[#213254] h-8 shrink-0" title="არქიტექტურული ნახაზის სტილი">
               <i class="fa-solid fa-palette text-amber-400 text-xs"></i>
@@ -1752,73 +1825,6 @@
                 <option value="1:5000">1:5000</option>
               </select>
             </div>
-
-            <!-- Layers Trigger & Popup -->
-            <div class="relative shrink-0">
-              <button type="button" onclick="toggleDropdownMenu('dropdownLayersMenu', event)" id="btnLayersMenuTrigger" class="h-8 px-2.5 rounded bg-[#121d33] border border-[#213254] text-xs text-slate-300 hover:text-white flex items-center gap-1.5 transition" title="შრეების ჩართვა/გამორთვა">
-                <i class="fa-solid fa-layer-group text-sky-400 text-xs"></i>
-                <span>შრეები</span>
-                <i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
-              </button>
-              <div id="dropdownLayersMenu" class="cad-menu-popup hidden absolute right-0 top-full mt-1 min-w-[280px] max-w-xs bg-[#0d1629] border border-[#243557] rounded-lg shadow-2xl p-2.5 z-50 space-y-2 text-xs">
-                <label class="flex items-center gap-2 text-slate-200 cursor-pointer hover:text-white font-medium bg-amber-500/10 p-1 rounded border border-amber-500/20">
-                  <input type="checkbox" id="chkLayerTopography" onchange="toggleLayer('topography', this.checked)" class="accent-amber-400">
-                  <span>🗺️ ტოპოგრაფია &amp; რელიეფი</span>
-                </label>
-                <label class="flex items-center gap-2 text-slate-200 cursor-pointer hover:text-white font-medium bg-sky-500/10 p-1 rounded border border-sky-500/20">
-                  <input type="checkbox" id="chkLayerNeighborhood" onchange="toggleLayer('neighborhood', this.checked)" class="accent-sky-400">
-                  <span>🏘️ სამეზობლო ნაკვეთები &amp; შენობები</span>
-                </label>
-                <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
-                  <input type="checkbox" id="chkLayerBoundary" checked onchange="toggleLayer('boundary', this.checked)" class="accent-sky-400">
-                  <span>საკადასტრო საზღვარი</span>
-                </label>
-                <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
-                  <input type="checkbox" id="chkLayerSetback" checked onchange="toggleLayer('setback', this.checked)" class="accent-rose-400">
-                  <span>სამეზობლო მიჯნა</span>
-                </label>
-                <label class="flex items-center gap-2 text-slate-400 cursor-pointer hover:text-slate-200 pl-4 text-[11px] bg-white/[0.02] py-0.5 rounded">
-                  <input type="checkbox" id="chkLayerSetbackLabels" onchange="toggleLayer('setbackLabels', this.checked)" class="accent-rose-400">
-                  <span>🏷️ მიჯნის წარწერები</span>
-                </label>
-                <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
-                  <input type="checkbox" id="chkLayerDimensions" checked onchange="toggleLayer('dimensions', this.checked)" class="accent-amber-400">
-                  <span>ზომები &amp; კვოტები</span>
-                </label>
-                <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
-                  <input type="checkbox" id="chkLayerFootprints" checked onchange="toggleLayer('footprints', this.checked)" class="accent-sky-400">
-                  <span>შენობების ლაქები</span>
-                </label>
-                <label class="flex items-center gap-2 text-slate-200 cursor-pointer hover:text-white font-medium bg-cyan-500/10 p-1 rounded border border-cyan-500/20">
-                  <input type="checkbox" id="chkLayerCadDrafting" checked onchange="toggleLayer('cadDrafting', this.checked)" class="accent-cyan-400">
-                  <span>📏 CAD ხაზვა (Line, Arc, Circle)</span>
-                </label>
-                <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
-                  <input type="checkbox" id="chkLayerShadows" checked onchange="toggleLayer('shadows', this.checked)" class="accent-slate-400">
-                  <span>მზის ჩრდილები</span>
-                </label>
-                <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
-                  <input type="checkbox" id="chkLayerTrees" checked onchange="toggleLayer('trees', this.checked)" class="accent-emerald-400">
-                  <span>ხეები &amp; გამწვანება</span>
-                </label>
-                <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
-                  <input type="checkbox" id="chkLayerWater" checked onchange="toggleLayer('water', this.checked)" class="accent-cyan-400">
-                  <span>აუზები &amp; წყალი</span>
-                </label>
-                <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
-                  <input type="checkbox" id="chkLayerTerraces" checked onchange="toggleLayer('terraces', this.checked)" class="accent-amber-400">
-                  <span>ხის ტერასები</span>
-                </label>
-                <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
-                  <input type="checkbox" id="chkLayerRoads" checked onchange="toggleLayer('roads', this.checked)" class="accent-blue-400">
-                  <span>გზები &amp; ბილიკები</span>
-                </label>
-                <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
-                  <input type="checkbox" id="chkLayerParking" checked onchange="toggleLayer('parking', this.checked)" class="accent-blue-400">
-                  <span>ავტოსადგომები</span>
-                </label>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -1869,6 +1875,12 @@
             <button type="button" onclick="setCadActiveTool('ruler')" class="h-7 px-2 rounded bg-[#121c33] border border-[#213254] text-xs font-medium text-amber-300 hover:bg-[#1a2846] flex items-center gap-1 transition" title="საზომი [R]">
               <i class="fa-solid fa-ruler text-amber-400 text-xs"></i>
               <span>საზომი [R]</span>
+            </button>
+            <div class="h-4 w-px bg-slate-700/60 flex-none mx-0.5"></div>
+            <button type="button" onclick="toggleDropdownMenu('dropdownLayersMenu', event)" class="h-7 px-2.5 rounded bg-sky-500/20 border border-sky-400/60 text-xs font-bold text-sky-300 hover:bg-sky-500/30 hover:text-white flex items-center gap-1.5 transition shadow-sm" title="ფენების / შრეების გათიშვა და ჩართვა">
+              <i class="fa-solid fa-layer-group text-sky-400 text-xs"></i>
+              <span>ფენების გათიშვა</span>
+              <i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
             </button>
           </div>
 
@@ -2143,8 +2155,8 @@
             </defs>
 
             <!-- Grid Background Layer -->
-            <rect id="cadGridBackground" width="100%" height="100%" fill="var(--canvas-bg)"/>
-            <rect id="cadGridOverlay" width="100%" height="100%" fill="url(#cadGridPatternMajor)"/>
+            <rect id="cadGridBackground" width="100%" height="100%" fill="transparent"/>
+            <rect id="cadGridOverlay" width="100%" height="100%" fill="url(#cadGridPatternMajor)" style="opacity: 0.25;"/>
 
             <!-- Main World Transform Group (Pan & Zoom) -->
             <g id="worldGroup">
@@ -2813,6 +2825,6 @@
   </div>
 
   <!-- Core JavaScript Logic -->
-  <script src="tsinare.js?v=20261001_1130"></script>
+  <script src="tsinare.js?v=20261001_1155"></script>
 </body>
 </html>
