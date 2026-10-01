@@ -110,29 +110,29 @@
       topography: false,
       neighborhood: false,
       boundary: true,
-      setback: true,
+      setback: false,
       setbackLabels: false,
-      dimensions: true,
-      footprints: true,
-      cadDrafting: true,
-      shadows: true,
-      trees: true,
-      water: true,
-      terraces: true,
-      roads: true,
-      parking: true,
+      dimensions: false,
+      footprints: false,
+      cadDrafting: false,
+      shadows: false,
+      trees: false,
+      water: false,
+      terraces: false,
+      roads: false,
+      parking: false,
       nodes: false,
       // Engineering Utilities
-      utilities: true,
-      utilities_underground: true,
-      utilities_overhead: true,
-      utilities_water: true,
-      utilities_sewer: true,
-      utilities_storm: true,
-      utilities_electric: true,
-      utilities_gas: true,
-      utilities_telecom: true,
-      utilities_manholes: true
+      utilities: false,
+      utilities_underground: false,
+      utilities_overhead: false,
+      utilities_water: false,
+      utilities_sewer: false,
+      utilities_storm: false,
+      utilities_electric: false,
+      utilities_gas: false,
+      utilities_telecom: false,
+      utilities_manholes: false
     },
 
     // CAD Canvas Viewport Transform
@@ -971,6 +971,7 @@
     initGeorgiaLeafletMap();
     initCadCanvas();
     setupEventListeners();
+    syncLayerCheckboxes();
     
     // Check URL query parameters for cadastral code
     const urlParams = new URLSearchParams(window.location.search);
@@ -1813,7 +1814,7 @@
 
     const fp = createFootprintObject('შენობა 1 (ბლოკი A)', 'rect', w, h, 0, cx, cy, 4, 3.0, 'residential');
     state.footprints.push(fp);
-    state.selectedFootprintId = fp.id;
+    state.selectedFootprintId = null;
   }
 
   // Generate Sample Trees around building
@@ -3271,6 +3272,42 @@
     }
     renderCadWorld();
   };
+
+  // Sync DOM checkboxes in the Layers menu with current state.layers
+  function syncLayerCheckboxes() {
+    const layerMap = {
+      chkLayerTopography: !!state.layers.topography,
+      chkLayerNeighborhood: !!state.layers.neighborhood,
+      chkLayerBoundary: !!state.layers.boundary,
+      chkLayerSetback: !!state.layers.setback,
+      chkLayerSetbackLabels: !!state.layers.setbackLabels,
+      chkLayerDimensions: !!state.layers.dimensions,
+      chkLayerFootprints: !!state.layers.footprints,
+      chkLayerCadDrafting: !!state.layers.cadDrafting,
+      chkLayerUtilitiesAll: !!state.layers.utilities,
+      chkLayerUtilUG: !!state.layers.utilities_underground,
+      chkLayerUtilOH: !!state.layers.utilities_overhead,
+      chkLayerUtilWater: !!state.layers.utilities_water,
+      chkLayerUtilSewer: !!state.layers.utilities_sewer,
+      chkLayerUtilStorm: !!state.layers.utilities_storm,
+      chkLayerUtilPower: !!state.layers.utilities_electric,
+      chkLayerUtilGas: !!state.layers.utilities_gas,
+      chkLayerUtilTelecom: !!state.layers.utilities_telecom,
+      chkLayerUtilManholes: !!state.layers.utilities_manholes,
+      chkLayerShadows: !!state.layers.shadows,
+      chkLayerTrees: !!state.layers.trees,
+      chkLayerWater: !!state.layers.water,
+      chkLayerTerraces: !!state.layers.terraces,
+      chkLayerRoads: !!state.layers.roads,
+      chkLayerParking: !!state.layers.parking
+    };
+
+    Object.entries(layerMap).forEach(([id, val]) => {
+      const el = document.getElementById(id);
+      if (el) el.checked = val;
+    });
+  }
+  window.syncLayerCheckboxes = syncLayerCheckboxes;
 
   // --- Ribbon Dropdown Menu Toggle Helpers ---
   window.toggleDropdownMenu = function (menuId, e) {
