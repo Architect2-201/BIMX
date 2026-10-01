@@ -1128,8 +1128,26 @@
       border: 1px solid rgba(56, 189, 248, 0.25);
       border-radius: 14px;
       padding: 10px;
-      width: 340px;
+      width: 350px;
+      max-height: 85vh;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(56, 189, 248, 0.4) rgba(15, 23, 42, 0.8);
       box-shadow: 0 24px 64px rgba(0,0,0,0.9), 0 0 0 1px rgba(56,189,248,0.15);
+    }
+    #basemapDropdown::-webkit-scrollbar {
+      width: 5px;
+    }
+    #basemapDropdown::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 4px;
+    }
+    #basemapDropdown::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.4);
+      border-radius: 4px;
+    }
+    #basemapDropdown::-webkit-scrollbar-thumb:hover {
+      background: rgba(56, 189, 248, 0.8);
     }
     .basemap-group-label {
       font-size: 9px;
@@ -1172,6 +1190,13 @@
     .basemap-btn-active .bm-name { color: #7dd3fc; }
     .basemap-btn-active .bm-desc { color: #38bdf8; opacity: 0.7; }
     .bm-sep { height: 1px; background: rgba(255,255,255,0.05); margin: 4px 0; }
+    /* Stylized Open Basemaps */
+    .leaflet-tile.tile-filter-night {
+      filter: invert(100%) hue-rotate(180deg) brightness(88%) contrast(110%);
+    }
+    .leaflet-tile.tile-filter-blueprint {
+      filter: invert(100%) sepia(100%) hue-rotate(185deg) saturate(380%) brightness(75%) contrast(120%);
+    }
 
 
     /* Modern Responsive CAD Ribbon Horizontal Scrolling */
@@ -1353,7 +1378,11 @@
         <div class="basemap-group-label">🛰️ სატელიტური ხედი</div>
         <button class="basemap-btn basemap-btn-active" data-basemap="esri_satellite" onclick="setBasemap('esri_satellite'); closeBasemapDropdown();">
           <span class="bm-icon">🛰️</span>
-          <div><div class="bm-name">სატელიტი (ESRI)</div><div class="bm-desc">ESRI World Imagery — მაღალი რეზოლუციის ორთოფოტო</div></div>
+          <div><div class="bm-name">სატელიტი (ESRI)</div><div class="bm-desc">ESRI World Imagery + საზღვრები და სახელწოდებები</div></div>
+        </button>
+        <button class="basemap-btn" data-basemap="esri_ortho" onclick="setBasemap('esri_ortho'); closeBasemapDropdown();">
+          <span class="bm-icon">📷</span>
+          <div><div class="bm-name">სუფთა ორთოფოტო</div><div class="bm-desc">მაღალი რეზოლუციის აეროფოტო წარწერების გარეშე</div></div>
         </button>
 
         <div class="bm-sep"></div>
@@ -1372,9 +1401,17 @@
           <span class="bm-icon">🏘️</span>
           <div><div class="bm-name">OSM Humanitarian</div><div class="bm-desc">ნათელი კონტრასტული შენობები და ქუჩები</div></div>
         </button>
+        <button class="basemap-btn" data-basemap="osm_fr" onclick="setBasemap('osm_fr'); closeBasemapDropdown();">
+          <span class="bm-icon">🎨</span>
+          <div><div class="bm-name">OSM France</div><div class="bm-desc">OpenStreetMap France — ევროპული კარტოგრაფიული დიზაინი</div></div>
+        </button>
         <button class="basemap-btn" data-basemap="cyclosm" onclick="setBasemap('cyclosm'); closeBasemapDropdown();">
           <span class="bm-icon">🚲</span>
           <div><div class="bm-name">CyclOSM საინჟინრო</div><div class="bm-desc">დეტალური გზები, ბილიკები და ინფრასტრუქტურა</div></div>
+        </button>
+        <button class="basemap-btn" data-basemap="opnv" onclick="setBasemap('opnv'); closeBasemapDropdown();">
+          <span class="bm-icon">🚊</span>
+          <div><div class="bm-name">ÖPNV ტრანსპორტი</div><div class="bm-desc">საზოგადოებრივი ტრანსპორტი, რკინიგზა და ხაზები</div></div>
         </button>
 
         <div class="bm-sep"></div>
@@ -1384,6 +1421,14 @@
         <button class="basemap-btn" data-basemap="esri_dark_gray" onclick="setBasemap('esri_dark_gray'); closeBasemapDropdown();">
           <span class="bm-icon">⬛</span>
           <div><div class="bm-name">ESRI Dark Gray (CAD)</div><div class="bm-desc">მუქი ფონი CAD და BIM ხაზების მკვეთრად გამოსაჩენად</div></div>
+        </button>
+        <button class="basemap-btn" data-basemap="osm_night" onclick="setBasemap('osm_night'); closeBasemapDropdown();">
+          <span class="bm-icon">🌙</span>
+          <div><div class="bm-name">OSM Night CAD</div><div class="bm-desc">შავ-თეთრი ღამის რეჟიმი — მაღალი კონტრასტი CAD ხაზებისთვის</div></div>
+        </button>
+        <button class="basemap-btn" data-basemap="osm_blueprint" onclick="setBasemap('osm_blueprint'); closeBasemapDropdown();">
+          <span class="bm-icon">📐</span>
+          <div><div class="bm-name">CAD Blueprint (ლურჯი)</div><div class="bm-desc">არქიტექტურული ლურჯი ბლუპრინტი საინჟინრო გენგეგმისთვის</div></div>
         </button>
         <button class="basemap-btn" data-basemap="esri_gray" onclick="setBasemap('esri_gray'); closeBasemapDropdown();">
           <span class="bm-icon">🩶</span>
@@ -1395,7 +1440,7 @@
         <!-- Group: ტოპოგრაფია & რელიეფი -->
         <div class="basemap-group-label">⛰️ ტოპოგრაფია &amp; რელიეფი</div>
         <button class="basemap-btn" data-basemap="opentopomap" onclick="setBasemap('opentopomap'); closeBasemapDropdown();">
-          <span class="bm-icon">📐</span>
+          <span class="bm-icon">📏</span>
           <div><div class="bm-name">OpenTopoMap</div><div class="bm-desc">სიმაღლის იზოჰიფსები (Contour lines) და რელიეფი</div></div>
         </button>
         <button class="basemap-btn" data-basemap="esri_topo" onclick="setBasemap('esri_topo'); closeBasemapDropdown();">
@@ -1405,6 +1450,22 @@
         <button class="basemap-btn" data-basemap="esri_shaded_relief" onclick="setBasemap('esri_shaded_relief'); closeBasemapDropdown();">
           <span class="bm-icon">🏔️</span>
           <div><div class="bm-name">ESRI Shaded Relief</div><div class="bm-desc">3D რელიეფური სიმაღლეების დაჩრდილვა</div></div>
+        </button>
+        <button class="basemap-btn" data-basemap="esri_terrain" onclick="setBasemap('esri_terrain'); closeBasemapDropdown();">
+          <span class="bm-icon">🏞️</span>
+          <div><div class="bm-name">ESRI Terrain Base</div><div class="bm-desc">რელიეფური ზედაპირის და ფერდობების მოდელი</div></div>
+        </button>
+        <button class="basemap-btn" data-basemap="esri_physical" onclick="setBasemap('esri_physical'); closeBasemapDropdown();">
+          <span class="bm-icon">🌲</span>
+          <div><div class="bm-name">ESRI ფიზიკური რუკა</div><div class="bm-desc">ბუნებრივი ლანდშაფტები, მწვერვალები და ტყის მასივები</div></div>
+        </button>
+        <button class="basemap-btn" data-basemap="natgeo" onclick="setBasemap('natgeo'); closeBasemapDropdown();">
+          <span class="bm-icon">🌍</span>
+          <div><div class="bm-name">National Geographic</div><div class="bm-desc">კლასიკური მსოფლიო ატლასის კარტოგრაფია</div></div>
+        </button>
+        <button class="basemap-btn" data-basemap="esri_ocean" onclick="setBasemap('esri_ocean'); closeBasemapDropdown();">
+          <span class="bm-icon">🌊</span>
+          <div><div class="bm-name">ESRI ოკეანოგრაფია</div><div class="bm-desc">ჰიდროლოგიური და სიღრმითი ბათიმეტრია</div></div>
         </button>
       </div>
     </div>

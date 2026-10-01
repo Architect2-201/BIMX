@@ -160,23 +160,44 @@
   // Basemap Registry — all supported tile providers
   // ----------------------------------------------------------------
   const BASEMAP_REGISTRY = {
+    // --- 1. სატელიტური ორთოფოტოები ---
     esri_satellite: {
       label: 'სატელიტი (ESRI)',
       icon: '🛰️',
       group: 'satellite',
-      description: 'ESRI World Imagery — მაღალი რეზოლუციის ორთოფოტო',
+      description: 'ESRI World Imagery — მაღალი რეზოლუციის ორთოფოტო საზღვრებით',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 19, maxNativeZoom: 19 } },
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 19 } }
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 19, maxZoom: 22 } },
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 19, maxZoom: 22 } }
       ]
     },
+    esri_ortho: {
+      label: 'სუფთა ორთოფოტო',
+      icon: '📷',
+      group: 'satellite',
+      description: 'სუფთა სატელიტური ფოტო წარწერების გარეშე (იდეალურია CAD-ისთვის)',
+      layers: [
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 19, maxZoom: 22 } }
+      ]
+    },
+    esri_satellite_pure: {
+      label: 'სუფთა ორთოფოტო',
+      icon: '📷',
+      group: 'satellite',
+      description: 'სუფთა სატელიტური ფოტო წარწერების გარეშე (იდეალურია CAD-ისთვის)',
+      layers: [
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 19, maxZoom: 22 } }
+      ]
+    },
+
+    // --- 2. საგზაო / ქუჩის რუკები ---
     osm: {
-      label: 'OpenStreetMap',
+      label: 'OpenStreetMap (OSM)',
       icon: '🗺️',
       group: 'road',
       description: 'OSM Standard — ღია გლობალური საგზაო რუკა',
       layers: [
-        { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxZoom: 19 } }
+        { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxNativeZoom: 19, maxZoom: 22 } }
       ]
     },
     esri_street: {
@@ -185,7 +206,7 @@
       group: 'road',
       description: 'ESRI World Street Map — დეტალური საგზაო და სამისამართო რუკა',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 19 } }
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 19, maxZoom: 22 } }
       ]
     },
     osm_hot: {
@@ -194,45 +215,94 @@
       group: 'road',
       description: 'OSM HOT — ნათელი კონტრასტული შენობები და ქუჩები',
       layers: [
-        { url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxZoom: 19 } }
+        { url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxNativeZoom: 19, maxZoom: 22 } }
+      ]
+    },
+    osm_fr: {
+      label: 'OSM France დეტალური',
+      icon: '🎨',
+      group: 'road',
+      description: 'OSM France — დახვეწილი კლასიკური ევროპული კარტოგრაფია',
+      layers: [
+        { url: 'https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxNativeZoom: 19, maxZoom: 22 } }
       ]
     },
     cyclosm: {
       label: 'CyclOSM საინჟინრო',
       icon: '🚲',
       group: 'road',
-      description: 'CyclOSM — საინჟინრო და ინფრასტრუქტურული დეტალური რუკა',
+      description: 'CyclOSM — საინჟინრო, სატრანსპორტო და ბილიკების დეტალური ქსელი',
       layers: [
-        { url: 'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxZoom: 18 } }
+        { url: 'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxNativeZoom: 18, maxZoom: 22 } }
       ]
     },
+    opnv: {
+      label: 'ÖPNV ტრანსპორტი',
+      icon: '🚊',
+      group: 'road',
+      description: 'საზოგადოებრივი ტრანსპორტის, რკინიგზის და გზატკეცილების ქსელი',
+      layers: [
+        { url: 'https://tile.memomaps.de/tilegen/{z}/{x}/{y}.png', opts: { maxNativeZoom: 18, maxZoom: 22 } }
+      ]
+    },
+    memomaps_opnv: {
+      label: 'ÖPNV ტრანსპორტი',
+      icon: '🚊',
+      group: 'road',
+      description: 'საზოგადოებრივი ტრანსპორტის, რკინიგზის და გზატკეცილების ქსელი',
+      layers: [
+        { url: 'https://tile.memomaps.de/tilegen/{z}/{x}/{y}.png', opts: { maxNativeZoom: 18, maxZoom: 22 } }
+      ]
+    },
+
+    // --- 3. მუქი & CAD რეჟიმი ---
     esri_dark_gray: {
       label: 'ESRI Dark Gray (CAD)',
       icon: '⬛',
       group: 'dark',
-      description: 'ESRI Dark Canvas — მუქი ფონი CAD და BIM ხაზებისთვის',
+      description: 'ESRI Dark Canvas — მუქი ფონი CAD და BIM ხაზების მკვეთრად გამოსაჩენად',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 16 } },
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 16 } }
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 16, maxZoom: 22 } },
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 16, maxZoom: 22 } }
+      ]
+    },
+    osm_night: {
+      label: 'OSM Night CAD',
+      icon: '🌙',
+      group: 'dark',
+      description: 'შავ-თეთრი ღამის რეჟიმი — მაღალი კონტრასტი CAD ხაზებისთვის',
+      layers: [
+        { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxNativeZoom: 19, maxZoom: 22, className: 'tile-filter-night' } }
+      ]
+    },
+    osm_blueprint: {
+      label: 'CAD Blueprint (ლურჯი)',
+      icon: '📐',
+      group: 'dark',
+      description: 'არქიტექტურული ლურჯი ბლუპრინტი საინჟინრო გენგეგმისთვის',
+      layers: [
+        { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxNativeZoom: 19, maxZoom: 22, className: 'tile-filter-blueprint' } }
       ]
     },
     esri_gray: {
       label: 'ESRI Light Gray',
       icon: '🩶',
       group: 'neutral',
-      description: 'ESRI Light Canvas — ნეიტრალური ნაცრისფერი ფონი',
+      description: 'ESRI Light Canvas — ნეიტრალური ნაცრისფერი ფონი CAD-ისთვის',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 16 } },
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 16 } }
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 16, maxZoom: 22 } },
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 16, maxZoom: 22 } }
       ]
     },
+
+    // --- 4. ტოპოგრაფია & რელიეფი ---
     opentopomap: {
       label: 'OpenTopoMap',
-      icon: '📐',
+      icon: '📏',
       group: 'topo',
-      description: 'OpenTopoMap — სიმაღლის იზოჰიფსებით და Hillshade-ით',
+      description: 'OpenTopoMap — სიმაღლის იზოჰიფსებით (Contour lines) და რელიეფით',
       layers: [
-        { url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxZoom: 17 } }
+        { url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxNativeZoom: 17, maxZoom: 22 } }
       ]
     },
     esri_topo: {
@@ -241,16 +311,52 @@
       group: 'topo',
       description: 'ESRI World Topo Map — გეოდეზიური და ტოპოგრაფიული რუკა',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 19 } }
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 19, maxZoom: 22 } }
       ]
     },
     esri_shaded_relief: {
-      label: 'ESRI რელიეფი',
+      label: 'ESRI Shaded Relief',
       icon: '🏔️',
       group: 'topo',
       description: 'ESRI Shaded Relief — 3D რელიეფური სიმაღლეების დაჩრდილვა',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 13 } }
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 13, maxZoom: 22 } }
+      ]
+    },
+    esri_terrain: {
+      label: 'ESRI Terrain Base',
+      icon: '🏞️',
+      group: 'topo',
+      description: 'ESRI Terrain Base — რელიეფური ზედაპირის და ფერდობების მოდელი',
+      layers: [
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 13, maxZoom: 22 } }
+      ]
+    },
+    esri_physical: {
+      label: 'ESRI ფიზიკური რუკა',
+      icon: '🌲',
+      group: 'topo',
+      description: 'ბუნებრივი ლანდშაფტები, მწვერვალები, ტყის მასივები და მდინარეები',
+      layers: [
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 12, maxZoom: 22 } }
+      ]
+    },
+    natgeo: {
+      label: 'National Geographic',
+      icon: '🌍',
+      group: 'topo',
+      description: 'National Geographic World Map — კლასიკური მსოფლიო ატლასის სტილი',
+      layers: [
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 16, maxZoom: 22 } }
+      ]
+    },
+    esri_ocean: {
+      label: 'ESRI ოკეანოგრაფია',
+      icon: '🌊',
+      group: 'topo',
+      description: 'ESRI Ocean Base — ჰიდროლოგიური და სიღრმითი ბათიმეტრია',
+      layers: [
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 13, maxZoom: 22 } }
       ]
     }
   };
@@ -268,9 +374,19 @@
     // Remove existing base tile layers
     _activeTileLayers.forEach(l => { if (tsinareMap.hasLayer(l)) tsinareMap.removeLayer(l); });
     _activeTileLayers = [];
-    // Add new layers
+    // Add new layers with bulletproof zoom retention and tile stretching
     cfg.layers.forEach(def => {
-      const layer = L.tileLayer(def.url, def.opts || {});
+      const opts = Object.assign({
+        minZoom: 1,
+        maxZoom: 22,
+        maxNativeZoom: (def.opts && (def.opts.maxNativeZoom || def.opts.maxZoom)) || 19,
+        keepBuffer: 8,
+        updateWhenZooming: false,
+        updateWhenIdle: true
+      }, def.opts || {});
+      // Ensure maxZoom is always 22 so leaflet stretches native tiles rather than disappearing
+      opts.maxZoom = 22;
+      const layer = L.tileLayer(def.url, opts);
       layer.addTo(tsinareMap);
       _activeTileLayers.push(layer);
     });
@@ -297,14 +413,14 @@
     const mapContainer = document.getElementById('tsinareLeafletMap');
     if (!mapContainer || tsinareMap) return;
 
-    // Center of Georgia: 42.0° N, 43.85° E, zoom 7.5
+    // Center of Georgia: 42.0° N, 43.85° E, zoom 7.5 (Support full zoom range 2 to 22)
     tsinareMap = L.map('tsinareLeafletMap', {
       center: [42.0, 43.85],
       zoom: 7.5,
       zoomControl: false,
       attributionControl: false,
-      minZoom: 6,
-      maxZoom: 20,
+      minZoom: 2,
+      maxZoom: 22,
       zoomSnap: 0,
       zoomDelta: 0.1,
       wheelPxPerZoomLevel: 120
@@ -2704,11 +2820,13 @@
       dropdown.style.top = (rect.bottom + 6) + 'px';
       let left = rect.left;
       // Clamp so it doesn't go off right edge
-      const dropW = 340;
+      const dropW = 350;
       if (left + dropW > window.innerWidth - 12) {
         left = Math.max(8, window.innerWidth - dropW - 12);
       }
       dropdown.style.left = left + 'px';
+      const maxH = Math.max(260, window.innerHeight - rect.bottom - 16);
+      dropdown.style.maxHeight = maxH + 'px';
     }
     dropdown.classList.remove('hidden');
   };
@@ -4225,7 +4343,7 @@
     const cosLat = Math.cos((lat * Math.PI) / 180);
     const metersPerPixelAtZoom0 = 156543.03392 * cosLat;
     const targetZoom = Math.log2(Math.max(0.001, state.zoomScale) * metersPerPixelAtZoom0);
-    const clampedZoom = Math.max(6, Math.min(20, targetZoom));
+    const clampedZoom = Math.max(2, Math.min(22, targetZoom));
 
     tsinareMap.setView([lat, lng], clampedZoom, { animate: false });
   }
