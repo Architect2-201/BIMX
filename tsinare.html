@@ -1367,48 +1367,44 @@
     }
 
 
-    /* Modern Responsive CAD Ribbon Horizontal Scrolling */
+    /* Modern Responsive CAD Ribbon Dock (Completely hidden desktop scrollbars) */
     .cad-scroll-row {
       overflow-x: auto;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(56, 189, 248, 0.45) rgba(15, 23, 42, 0.7);
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
       -webkit-overflow-scrolling: touch;
     }
     .cad-scroll-row::-webkit-scrollbar {
-      height: 4px;
-    }
-    .cad-scroll-row::-webkit-scrollbar-track {
-      background: rgba(11, 19, 34, 0.8);
-      border-radius: 2px;
-    }
-    .cad-scroll-row::-webkit-scrollbar-thumb {
-      background: rgba(56, 189, 248, 0.4);
-      border-radius: 2px;
-    }
-    .cad-scroll-row::-webkit-scrollbar-thumb:hover {
-      background: rgba(56, 189, 248, 0.85);
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
     }
 
-    /* Ribbon scroll arrow buttons */
+    /* Ribbon scroll arrow buttons (hidden on desktops where everything fits, subtle fallback) */
     .btn-ribbon-scroll {
+      display: none;
       flex: none;
-      width: 20px;
-      height: 28px;
-      background: rgba(15, 23, 42, 0.8);
-      border: 1px solid rgba(56, 189, 248, 0.2);
+      width: 18px;
+      height: 26px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.25);
       border-radius: 4px;
       color: #94a3b8;
-      display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       transition: all 0.15s ease;
       z-index: 25;
     }
+    @media (max-width: 1200px) {
+      .btn-ribbon-scroll {
+        display: flex;
+      }
+    }
     .btn-ribbon-scroll:hover {
-      background: rgba(30, 48, 80, 0.9);
+      background: rgba(30, 48, 80, 0.95);
       color: #38bdf8;
-      border-color: rgba(56, 189, 248, 0.5);
+      border-color: rgba(56, 189, 248, 0.6);
     }
 
     /* Collapsed Sidebar States */
@@ -1761,165 +1757,9 @@
   </header>
 
   <!-- =========================================================================
-       2. MAIN STUDIO WORKSPACE (3-COLUMN LAYOUT)
+       CAD RIBBON DOCK: FULL-WIDTH ARCHITECTURAL COMMAND BAR
        ========================================================================= -->
-  <div class="flex-1 flex overflow-hidden relative">
-
-    <!-- =======================================================================
-         LEFT PANEL: CADASTRAL DATA & OFFICIAL PASSPORT
-         ======================================================================= -->
-    <aside id="leftCadastralSidebar" class="w-72 sm:w-80 flex-none bg-[#0a101d] border-r border-[#1f2e4d] flex flex-col overflow-y-auto z-20 transition-all duration-300">
-      
-      <!-- Panel Header -->
-      <div class="p-3 border-b border-[#1f2e4d] flex items-center justify-between bg-[#0e1628]">
-        <div class="flex items-center gap-2">
-          <i class="fa-solid fa-id-card text-sky-400 text-sm"></i>
-          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-200">საკადასტრო პასპორტი</h2>
-        </div>
-        <div class="flex items-center gap-1.5">
-          <span id="naprStatusBadge" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">
-            მზადაა
-          </span>
-          <button type="button" onclick="toggleLeftSidebar()" class="h-6 w-6 rounded bg-[#162238] hover:bg-[#1e2f4f] border border-[#243557] text-slate-400 hover:text-white flex items-center justify-center transition" title="მარცხენა პანელის ჩაკეცვა">
-            <i class="fa-solid fa-angles-left text-[11px]"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- Cadastral Details List -->
-      <div class="p-3 space-y-3 text-xs">
-        
-        <!-- Cadastral Code Card -->
-        <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254]">
-          <div class="flex items-center justify-between mb-1">
-            <span class="text-slate-400 text-[11px]">საკადასტრო კოდი:</span>
-            <button type="button" onclick="copyCadastralCode()" class="text-sky-400 hover:text-sky-300 text-[10px] flex items-center gap-1 font-mono">
-              <i class="fa-regular fa-copy"></i> კოპირება
-            </button>
-          </div>
-          <div id="lblCadastralCode" class="font-mono text-sm sm:text-base font-bold text-slate-400 tracking-wide">
-            —
-          </div>
-        </div>
-
-        <!-- Address -->
-        <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254]">
-          <div class="text-slate-400 text-[11px] mb-1">რეგისტრირებული მისამართი:</div>
-          <div id="lblAddress" class="font-medium text-slate-400 leading-snug">
-            —
-          </div>
-        </div>
-
-        <!-- Land Area Metrics (Official vs Geometric) -->
-        <div class="grid grid-cols-2 gap-2">
-          <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254]">
-            <div class="text-slate-400 text-[10px] uppercase font-mono">რეგისტრირებული:</div>
-            <div class="flex items-baseline gap-1 mt-0.5">
-              <span id="lblOfficialArea" class="font-mono text-base sm:text-lg font-extrabold text-sky-400">—</span>
-              <span class="text-xs text-slate-400 font-mono">მ²</span>
-            </div>
-          </div>
-          <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254]">
-            <div class="text-slate-400 text-[10px] uppercase font-mono">გეომეტრიული:</div>
-            <div class="flex items-baseline gap-1 mt-0.5">
-              <span id="lblGeometricArea" class="font-mono text-base sm:text-lg font-extrabold text-slate-400">—</span>
-              <span class="text-xs text-slate-400 font-mono">მ²</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Land Category & Ownership Form -->
-        <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254] space-y-2">
-          <div class="flex items-center justify-between border-b border-white/5 pb-1">
-            <span class="text-slate-400">მიწის სტატუსი:</span>
-            <span id="lblLandType" class="font-semibold text-slate-400 font-mono">—</span>
-          </div>
-          <div class="flex items-center justify-between border-b border-white/5 pb-1">
-            <span class="text-slate-400">საკუთრების ფორმა:</span>
-            <span id="lblOwnershipType" class="font-semibold text-slate-400">—</span>
-          </div>
-          <div>
-            <div class="text-slate-400 text-[11px] mb-1">მესაკუთრე(ები):</div>
-            <div id="lblOwnersList" class="font-medium text-slate-400 bg-[#0c1424] p-1.5 rounded border border-white/5 leading-tight">
-              —
-            </div>
-          </div>
-        </div>
-
-        <!-- Urban Functional Zoning -->
-        <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254]">
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-slate-400">ურბანული ზონა:</span>
-            <span id="lblZoneBadge" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-500/20 text-slate-400 border border-slate-500/30">
-              მოლოდინის რეჟიმი
-            </span>
-          </div>
-          <p id="lblZoneDescription" class="text-[11px] text-slate-400 leading-relaxed">
-            ნაკვეთის მოძიების შემდეგ გამოჩნდება ოფიციალური ფუნქციური ზონა და რეგლამენტი.
-          </p>
-        </div>
-
-        <!-- Cadastral Coordinates Table (Corner Nodes) -->
-        <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254]">
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-slate-300 font-semibold text-xs flex items-center gap-1.5">
-              <i class="fa-solid fa-draw-polygon text-sky-400"></i> კუთხის წერტილები (<span id="lblCornerCount">0</span>)
-            </span>
-            <div class="flex items-center gap-1 flex-wrap">
-              <button type="button" onclick="exportTsinareDxf('local')" title="Autodesk Revit / AutoCAD 1:1 Vector CAD (დახურული პოლიხაზი 14,911მ² ზუსტი კონტურით Toposolid / Property Line-ისთვის)" class="px-2 py-0.5 bg-sky-600/30 hover:bg-sky-600/50 border border-sky-500/40 text-sky-300 rounded text-[10px] font-semibold transition flex items-center gap-1">
-                <i class="fa-solid fa-cube text-[9px]"></i> Revit 1:1 DXF
-              </button>
-              <button type="button" onclick="exportCoordinatesCsv('revit_local')" title="Revit Points File (ლოკალური 0,0 მეტრებში, დუბლიკატების გარეშე)" class="px-1.5 py-0.5 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 text-blue-300 rounded text-[10px] font-mono transition">
-                CSV (0,0)
-              </button>
-              <button type="button" onclick="exportCoordinatesCsv('revit_utm')" title="Revit UTM 38N გეოდეზიური კოორდინატები" class="text-slate-400 hover:text-white text-[10px] font-mono px-1">
-                UTM
-              </button>
-              <button type="button" onclick="exportCoordinatesCsv('gps')" title="WGS-84 GPS კოორდინატები (Lat, Lon)" class="text-slate-400 hover:text-white text-[10px] font-mono px-1">
-                GPS
-              </button>
-            </div>
-          </div>
-          <div class="text-[9.5px] text-slate-400 mb-1 leading-tight flex items-center gap-1">
-            <i class="fa-solid fa-circle-info text-sky-400"></i> <span>Revit Toposolid/Property Line-ის 100% ზუსტი 1:1 კონტურისთვის გამოიყენეთ <b>Revit 1:1 DXF</b> (Insert ➔ Link CAD).</span>
-          </div>
-          <div class="max-h-36 overflow-y-auto border border-white/5 rounded">
-            <table class="w-full text-[10px] font-mono text-left">
-              <thead class="bg-[#0b1222] text-slate-400 sticky top-0">
-                <tr>
-                  <th class="p-1">#</th>
-                  <th class="p-1">Latitude (Y)</th>
-                  <th class="p-1">Longitude (X)</th>
-                </tr>
-              </thead>
-              <tbody id="tblCoordinatesBody" class="divide-y divide-white/5 text-slate-400">
-                <tr><td colspan="3" class="text-center py-4 text-slate-500 font-sans">მონაცემები არ არის ჩატვირთული</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-      </div>
-    </aside>
-
-    <!-- =======================================================================
-         CENTER: INTERACTIVE 2D CAD WORKSPACE & DRAWING ENGINE
-         ======================================================================= -->
-    <main class="flex-1 flex flex-col relative overflow-hidden bg-[#070c17]">
-
-      <!-- Floating Expand Triggers when sidebars are collapsed -->
-      <button type="button" id="btnExpandLeftSidebar" onclick="toggleLeftSidebar()" class="hidden absolute left-3 top-24 z-30 px-3 py-1.5 rounded-lg bg-[#0d1629]/95 backdrop-blur border border-sky-500/50 text-sky-300 hover:text-white hover:bg-sky-600/30 text-xs font-semibold shadow-xl items-center gap-1.5 transition active:scale-95" title="საკადასტრო პასპორტის გახსნა">
-        <i class="fa-solid fa-id-card text-sky-400"></i>
-        <span>პასპორტი</span>
-        <i class="fa-solid fa-angles-right text-[10px]"></i>
-      </button>
-
-      <button type="button" id="btnExpandRightSidebar" onclick="toggleRightSidebar()" class="hidden absolute right-3 top-24 z-30 px-3 py-1.5 rounded-lg bg-[#0d1629]/95 backdrop-blur border border-purple-500/50 text-purple-300 hover:text-white hover:bg-purple-600/30 text-xs font-semibold shadow-xl items-center gap-1.5 transition active:scale-95" title="კოეფიციენტების პანელის გახსნა">
-        <i class="fa-solid fa-angles-left text-[10px]"></i>
-        <span>კოეფიციენტები</span>
-        <i class="fa-solid fa-chart-pie text-purple-400"></i>
-      </button>
-
+  <div id="topCadRibbonDock" class="flex-none bg-[#0b1322] border-b border-[#1f2e4d] z-40 select-none shadow-md">
       <!-- =====================================================================
            CAD DOCK: ROW 1 - ARCHITECTURAL CATEGORY TABS & GLOBAL CONTROLS
            ===================================================================== -->
@@ -2862,7 +2702,7 @@
           <!-- Tool Status Hint (რეალურ დროში ინსტრუქცია) -->
           <div class="flex items-center gap-1.5 px-2 shrink-0 ml-auto">
             <span class="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
-            <span id="lblRibbonToolStatusHint" class="font-medium text-sky-300 text-[11px] truncate max-w-[150px] sm:max-w-[220px] md:max-w-xs inline-block" title="მიმდინარე სტატუსი">
+            <span id="lblRibbonToolStatusHint" class="font-medium text-sky-300 text-[11px] truncate max-w-xs sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-3xl inline-block" title="მიმდინარე სტატუსი">
               მზადაა: აირჩიეთ ინსტრუმენტი ან გადააადგილეთ ლაქა
             </span>
           </div>
@@ -2874,6 +2714,167 @@
           <i class="fa-solid fa-chevron-right text-[10px]"></i>
         </button>
       </div>
+  </div>
+
+  <!-- =========================================================================
+       2. MAIN STUDIO WORKSPACE (3-COLUMN LAYOUT)
+       ========================================================================= -->
+  <div class="flex-1 flex overflow-hidden relative">
+
+    <!-- =======================================================================
+         LEFT PANEL: CADASTRAL DATA & OFFICIAL PASSPORT
+         ======================================================================= -->
+    <aside id="leftCadastralSidebar" class="w-72 sm:w-80 flex-none bg-[#0a101d] border-r border-[#1f2e4d] flex flex-col overflow-y-auto z-20 transition-all duration-300">
+      
+      <!-- Panel Header -->
+      <div class="p-3 border-b border-[#1f2e4d] flex items-center justify-between bg-[#0e1628]">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-id-card text-sky-400 text-sm"></i>
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-200">საკადასტრო პასპორტი</h2>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span id="naprStatusBadge" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">
+            მზადაა
+          </span>
+          <button type="button" onclick="toggleLeftSidebar()" class="h-6 w-6 rounded bg-[#162238] hover:bg-[#1e2f4f] border border-[#243557] text-slate-400 hover:text-white flex items-center justify-center transition" title="მარცხენა პანელის ჩაკეცვა">
+            <i class="fa-solid fa-angles-left text-[11px]"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Cadastral Details List -->
+      <div class="p-3 space-y-3 text-xs">
+        
+        <!-- Cadastral Code Card -->
+        <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254]">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-slate-400 text-[11px]">საკადასტრო კოდი:</span>
+            <button type="button" onclick="copyCadastralCode()" class="text-sky-400 hover:text-sky-300 text-[10px] flex items-center gap-1 font-mono">
+              <i class="fa-regular fa-copy"></i> კოპირება
+            </button>
+          </div>
+          <div id="lblCadastralCode" class="font-mono text-sm sm:text-base font-bold text-slate-400 tracking-wide">
+            —
+          </div>
+        </div>
+
+        <!-- Address -->
+        <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254]">
+          <div class="text-slate-400 text-[11px] mb-1">რეგისტრირებული მისამართი:</div>
+          <div id="lblAddress" class="font-medium text-slate-400 leading-snug">
+            —
+          </div>
+        </div>
+
+        <!-- Land Area Metrics (Official vs Geometric) -->
+        <div class="grid grid-cols-2 gap-2">
+          <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254]">
+            <div class="text-slate-400 text-[10px] uppercase font-mono">რეგისტრირებული:</div>
+            <div class="flex items-baseline gap-1 mt-0.5">
+              <span id="lblOfficialArea" class="font-mono text-base sm:text-lg font-extrabold text-sky-400">—</span>
+              <span class="text-xs text-slate-400 font-mono">მ²</span>
+            </div>
+          </div>
+          <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254]">
+            <div class="text-slate-400 text-[10px] uppercase font-mono">გეომეტრიული:</div>
+            <div class="flex items-baseline gap-1 mt-0.5">
+              <span id="lblGeometricArea" class="font-mono text-base sm:text-lg font-extrabold text-slate-400">—</span>
+              <span class="text-xs text-slate-400 font-mono">მ²</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Land Category & Ownership Form -->
+        <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254] space-y-2">
+          <div class="flex items-center justify-between border-b border-white/5 pb-1">
+            <span class="text-slate-400">მიწის სტატუსი:</span>
+            <span id="lblLandType" class="font-semibold text-slate-400 font-mono">—</span>
+          </div>
+          <div class="flex items-center justify-between border-b border-white/5 pb-1">
+            <span class="text-slate-400">საკუთრების ფორმა:</span>
+            <span id="lblOwnershipType" class="font-semibold text-slate-400">—</span>
+          </div>
+          <div>
+            <div class="text-slate-400 text-[11px] mb-1">მესაკუთრე(ები):</div>
+            <div id="lblOwnersList" class="font-medium text-slate-400 bg-[#0c1424] p-1.5 rounded border border-white/5 leading-tight">
+              —
+            </div>
+          </div>
+        </div>
+
+        <!-- Urban Functional Zoning -->
+        <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254]">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-slate-400">ურბანული ზონა:</span>
+            <span id="lblZoneBadge" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-500/20 text-slate-400 border border-slate-500/30">
+              მოლოდინის რეჟიმი
+            </span>
+          </div>
+          <p id="lblZoneDescription" class="text-[11px] text-slate-400 leading-relaxed">
+            ნაკვეთის მოძიების შემდეგ გამოჩნდება ოფიციალური ფუნქციური ზონა და რეგლამენტი.
+          </p>
+        </div>
+
+        <!-- Cadastral Coordinates Table (Corner Nodes) -->
+        <div class="bg-[#121c33] p-2.5 rounded-lg border border-[#213254]">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-slate-300 font-semibold text-xs flex items-center gap-1.5">
+              <i class="fa-solid fa-draw-polygon text-sky-400"></i> კუთხის წერტილები (<span id="lblCornerCount">0</span>)
+            </span>
+            <div class="flex items-center gap-1 flex-wrap">
+              <button type="button" onclick="exportTsinareDxf('local')" title="Autodesk Revit / AutoCAD 1:1 Vector CAD (დახურული პოლიხაზი 14,911მ² ზუსტი კონტურით Toposolid / Property Line-ისთვის)" class="px-2 py-0.5 bg-sky-600/30 hover:bg-sky-600/50 border border-sky-500/40 text-sky-300 rounded text-[10px] font-semibold transition flex items-center gap-1">
+                <i class="fa-solid fa-cube text-[9px]"></i> Revit 1:1 DXF
+              </button>
+              <button type="button" onclick="exportCoordinatesCsv('revit_local')" title="Revit Points File (ლოკალური 0,0 მეტრებში, დუბლიკატების გარეშე)" class="px-1.5 py-0.5 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 text-blue-300 rounded text-[10px] font-mono transition">
+                CSV (0,0)
+              </button>
+              <button type="button" onclick="exportCoordinatesCsv('revit_utm')" title="Revit UTM 38N გეოდეზიური კოორდინატები" class="text-slate-400 hover:text-white text-[10px] font-mono px-1">
+                UTM
+              </button>
+              <button type="button" onclick="exportCoordinatesCsv('gps')" title="WGS-84 GPS კოორდინატები (Lat, Lon)" class="text-slate-400 hover:text-white text-[10px] font-mono px-1">
+                GPS
+              </button>
+            </div>
+          </div>
+          <div class="text-[9.5px] text-slate-400 mb-1 leading-tight flex items-center gap-1">
+            <i class="fa-solid fa-circle-info text-sky-400"></i> <span>Revit Toposolid/Property Line-ის 100% ზუსტი 1:1 კონტურისთვის გამოიყენეთ <b>Revit 1:1 DXF</b> (Insert ➔ Link CAD).</span>
+          </div>
+          <div class="max-h-36 overflow-y-auto border border-white/5 rounded">
+            <table class="w-full text-[10px] font-mono text-left">
+              <thead class="bg-[#0b1222] text-slate-400 sticky top-0">
+                <tr>
+                  <th class="p-1">#</th>
+                  <th class="p-1">Latitude (Y)</th>
+                  <th class="p-1">Longitude (X)</th>
+                </tr>
+              </thead>
+              <tbody id="tblCoordinatesBody" class="divide-y divide-white/5 text-slate-400">
+                <tr><td colspan="3" class="text-center py-4 text-slate-500 font-sans">მონაცემები არ არის ჩატვირთული</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- =======================================================================
+         CENTER: INTERACTIVE 2D CAD WORKSPACE & DRAWING ENGINE
+         ======================================================================= -->
+    <main class="flex-1 flex flex-col relative overflow-hidden bg-[#070c17]">
+
+      <!-- Floating Expand Triggers when sidebars are collapsed -->
+      <button type="button" id="btnExpandLeftSidebar" onclick="toggleLeftSidebar()" class="hidden absolute left-3 top-3 z-30 px-3 py-1.5 rounded-lg bg-[#0d1629]/95 backdrop-blur border border-sky-500/50 text-sky-300 hover:text-white hover:bg-sky-600/30 text-xs font-semibold shadow-xl items-center gap-1.5 transition active:scale-95" title="საკადასტრო პასპორტის გახსნა">
+        <i class="fa-solid fa-id-card text-sky-400"></i>
+        <span>პასპორტი</span>
+        <i class="fa-solid fa-angles-right text-[10px]"></i>
+      </button>
+
+      <button type="button" id="btnExpandRightSidebar" onclick="toggleRightSidebar()" class="hidden absolute right-3 top-3 z-30 px-3 py-1.5 rounded-lg bg-[#0d1629]/95 backdrop-blur border border-purple-500/50 text-purple-300 hover:text-white hover:bg-purple-600/30 text-xs font-semibold shadow-xl items-center gap-1.5 transition active:scale-95" title="კოეფიციენტების პანელის გახსნა">
+        <i class="fa-solid fa-angles-left text-[10px]"></i>
+        <span>კოეფიციენტები</span>
+        <i class="fa-solid fa-chart-pie text-purple-400"></i>
+      </button>
 
       <!-- Main Interactive 2D Vector CAD Stage & Geographic GIS Stage -->
       <div class="flex-1 relative overflow-hidden style-blueprint" id="cadCanvasWrapper">
@@ -3198,7 +3199,7 @@
     <!-- =======================================================================
          RIGHT PANEL: LIVE K1, K2, K3 COEFFICIENTS & BUILDING PARAMS
          ======================================================================= -->
-    <aside id="rightZoningSidebar" class="w-80 sm:w-96 flex-none bg-[#0a101d] border-l border-[#1f2e4d] flex flex-col overflow-y-auto z-20 transition-all duration-300">
+    <aside id="rightZoningSidebar" class="w-72 sm:w-80 lg:w-84 xl:w-92 flex-none bg-[#0a101d] border-l border-[#1f2e4d] flex flex-col overflow-y-auto z-20 transition-all duration-300">
       
       <!-- Panel Header -->
       <div class="p-3 border-b border-[#1f2e4d] flex items-center justify-between bg-[#0e1628]">
