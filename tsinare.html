@@ -1762,11 +1762,11 @@
               </button>
               <div id="dropdownLayersMenu" class="cad-menu-popup hidden absolute right-0 top-full mt-1 min-w-[280px] max-w-xs bg-[#0d1629] border border-[#243557] rounded-lg shadow-2xl p-2.5 z-50 space-y-2 text-xs">
                 <label class="flex items-center gap-2 text-slate-200 cursor-pointer hover:text-white font-medium bg-amber-500/10 p-1 rounded border border-amber-500/20">
-                  <input type="checkbox" id="chkLayerTopography" checked onchange="toggleLayer('topography', this.checked)" class="accent-amber-400">
+                  <input type="checkbox" id="chkLayerTopography" onchange="toggleLayer('topography', this.checked)" class="accent-amber-400">
                   <span>🗺️ ტოპოგრაფია &amp; რელიეფი</span>
                 </label>
                 <label class="flex items-center gap-2 text-slate-200 cursor-pointer hover:text-white font-medium bg-sky-500/10 p-1 rounded border border-sky-500/20">
-                  <input type="checkbox" id="chkLayerNeighborhood" checked onchange="toggleLayer('neighborhood', this.checked)" class="accent-sky-400">
+                  <input type="checkbox" id="chkLayerNeighborhood" onchange="toggleLayer('neighborhood', this.checked)" class="accent-sky-400">
                   <span>🏘️ სამეზობლო ნაკვეთები &amp; შენობები</span>
                 </label>
                 <label class="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white">
@@ -1848,101 +1848,28 @@
           </div>
           <div class="h-4 w-px bg-slate-700/60 flex-none mx-0.5"></div>
 
-          <!-- SUBPANEL 0: ყველა ხელსაწყო (ALL TOOLS - COMPLETE ARCHITECTURAL PALETTE) -->
-          <div id="panel_all_tools" class="cad-subpanel flex items-center gap-2 flex-nowrap shrink-0">
-            <!-- Group A: ხაზვა (Drafting) -->
-            <div class="flex items-center gap-1 bg-[#0b1424] px-1.5 py-0.5 rounded-lg border border-[#1d2d4a] shrink-0">
-              <span class="text-[10px] text-cyan-400 font-bold uppercase tracking-wider px-1">ხაზვა:</span>
-              <button type="button" id="allToolBtn_line" onclick="setCadActiveTool('draw_cad_line')" class="btn-cad-tool h-7 px-2 rounded bg-[#121c33] border border-[#213254] text-xs font-medium flex items-center gap-1 hover:bg-[#1a2846] text-cyan-300 transition" title="ხაზი [L]: სიგრძე და კუთხე">
-                <i class="fa-solid fa-slash text-cyan-400 text-xs"></i><span>ხაზი [L]</span>
-              </button>
-              <button type="button" id="allToolBtn_polyline" onclick="setCadActiveTool('draw_cad_polyline')" class="btn-cad-tool h-7 px-2 rounded bg-[#121c33] border border-[#213254] text-xs font-medium flex items-center gap-1 hover:bg-[#1a2846] text-sky-200 transition" title="პოლიხაზი [PL]">
-                <i class="fa-solid fa-chart-line text-sky-400 text-xs"></i><span>პოლიხაზი</span>
-              </button>
-              <button type="button" id="allToolBtn_arc" onclick="setCadActiveTool('draw_cad_arc')" class="btn-cad-tool h-7 px-2 rounded bg-[#121c33] border border-[#213254] text-xs font-medium flex items-center gap-1 hover:bg-[#1a2846] text-amber-300 transition" title="რკალი [A]">
-                <i class="fa-solid fa-bezier-curve text-amber-400 text-xs"></i><span>რკალი [A]</span>
-              </button>
-              <button type="button" id="allToolBtn_circle" onclick="setCadActiveTool('draw_cad_circle')" class="btn-cad-tool h-7 px-2 rounded bg-[#121c33] border border-[#213254] text-xs font-medium flex items-center gap-1 hover:bg-[#1a2846] text-emerald-300 transition" title="წრე [C]">
-                <i class="fa-regular fa-circle text-emerald-400 text-xs"></i><span>წრე [C]</span>
-              </button>
-              <button type="button" id="allToolBtn_hatch" onclick="setCadActiveTool('draw_cad_hatch')" class="btn-cad-tool h-7 px-2 rounded bg-[#121c33] border border-[#213254] text-xs font-medium flex items-center gap-1 hover:bg-[#1a2846] text-purple-300 transition" title="შტრიხი">
-                <i class="fa-solid fa-border-all text-purple-400 text-xs"></i><span>შტრიხი</span>
-              </button>
+          <!-- Quick Default Context Bar (when in pan / selection mode) -->
+          <div id="panel_default_quick" class="flex items-center gap-2 flex-nowrap shrink-0">
+            <button type="button" onclick="setCadActiveTool('draw_rect_footprint')" class="h-7 px-2.5 rounded bg-sky-500/20 border border-sky-500/40 text-xs font-semibold text-sky-300 hover:bg-sky-500/30 flex items-center gap-1.5 transition" title="შენობის ლაქის მოხაზვა">
+              <i class="fa-solid fa-vector-square text-sky-400"></i>
+              <span>✏️ ლაქის მოხაზვა</span>
+            </button>
+            <button type="button" onclick="activateFootprintStamp()" class="h-7 px-2.5 rounded bg-[#121c33] border border-[#213254] text-xs font-medium text-cyan-300 hover:bg-[#1a2846] flex items-center gap-1.5 transition" title="შენობის ბლოკის ჩასმა [B]">
+              <i class="fa-solid fa-stamp text-cyan-400"></i>
+              <span>🏢 ბლოკი [B]</span>
+            </button>
+            <div class="flex items-center gap-1 bg-[#121c33] px-2 py-0.5 rounded border border-[#213254] text-[11px] font-mono text-slate-300">
+              <span class="text-sky-400 font-sans font-bold">W:</span>
+              <input type="number" id="quickDefaultBldW" step="1" min="4" max="150" value="15" oninput="if(els.inputNumBuildingWidth) { els.inputNumBuildingWidth.value = this.value; state.stampWidth = parseFloat(this.value); }" class="w-10 bg-[#09101f] border border-white/10 rounded px-1 text-center text-sky-300 font-bold outline-none">
+              <span class="text-slate-400">მ</span>
+              <span class="text-sky-400 font-sans font-bold ml-1">L:</span>
+              <input type="number" id="quickDefaultBldL" step="1" min="4" max="150" value="12" oninput="if(els.inputNumBuildingLength) { els.inputNumBuildingLength.value = this.value; state.stampLength = parseFloat(this.value); }" class="w-10 bg-[#09101f] border border-white/10 rounded px-1 text-center text-sky-300 font-bold outline-none">
+              <span class="text-slate-400">მ</span>
             </div>
-
-            <!-- Group B: შენობები (Buildings) -->
-            <div class="flex items-center gap-1 bg-[#0b1424] px-1.5 py-0.5 rounded-lg border border-[#1d2d4a] shrink-0">
-              <span class="text-[10px] text-sky-400 font-bold uppercase tracking-wider px-1">შენობა:</span>
-              <button type="button" id="allToolBtn_rectFp" onclick="setCadActiveTool('draw_rect_footprint')" class="btn-cad-tool h-7 px-2 rounded bg-[#121c33] border border-sky-500/40 text-xs font-bold flex items-center gap-1 hover:bg-[#1a2846] text-sky-300 transition" title="ლაქის მოხაზვა">
-                <i class="fa-solid fa-vector-square text-sky-400 text-xs"></i><span>✏️ ლაქა</span>
-              </button>
-              <button type="button" id="allToolBtn_polyFp" onclick="setCadActiveTool('draw_polygon')" class="btn-cad-tool h-7 px-2 rounded bg-[#121c33] border border-[#213254] text-xs font-medium flex items-center gap-1 hover:bg-[#1a2846] text-purple-300 transition" title="პოლიგონალური ლაქა">
-                <i class="fa-solid fa-draw-polygon text-purple-400 text-xs"></i><span>📐 პოლიგონი</span>
-              </button>
-              <button type="button" id="allToolBtn_stamp" onclick="activateFootprintStamp()" class="btn-cad-tool h-7 px-2 rounded bg-[#121c33] border border-[#213254] text-xs font-medium flex items-center gap-1 hover:bg-[#1a2846] text-cyan-300 transition" title="ბლოკის ჩასმა [B]">
-                <i class="fa-solid fa-stamp text-cyan-400 text-xs"></i><span>🏢 ბლოკი [B]</span>
-              </button>
-            </div>
-
-            <!-- Group C: მოდიფიკაცია (Modify) -->
-            <div class="flex items-center gap-1 bg-[#0b1424] px-1.5 py-0.5 rounded-lg border border-[#1d2d4a] shrink-0">
-              <span class="text-[10px] text-amber-400 font-bold uppercase tracking-wider px-1">მოდიფიკაცია:</span>
-              <button type="button" id="allToolBtn_offset" onclick="setCadActiveTool('cad_offset')" class="btn-cad-tool h-7 px-2 rounded bg-[#121c33] border border-amber-500/40 text-xs font-bold flex items-center gap-1 hover:bg-[#1a2846] text-amber-300 transition" title="ოფსეტი [O]">
-                <i class="fa-solid fa-arrows-left-right text-amber-400 text-xs"></i><span>↔️ ოფსეტი [O]</span>
-              </button>
-              <button type="button" id="allToolBtn_trim" onclick="setCadActiveTool('cad_trim')" class="btn-cad-tool h-7 px-2 rounded bg-[#121c33] border border-[#213254] text-xs font-medium flex items-center gap-1 hover:bg-[#1a2846] text-rose-300 transition" title="მოჭრა">
-                <i class="fa-solid fa-crop-simple text-rose-400 text-xs"></i><span>✂️ მოჭრა</span>
-              </button>
-              <button type="button" id="allToolBtn_extend" onclick="setCadActiveTool('cad_extend')" class="btn-cad-tool h-7 px-2 rounded bg-[#121c33] border border-[#213254] text-xs font-medium flex items-center gap-1 hover:bg-[#1a2846] text-sky-300 transition" title="გაგრძელება">
-                <i class="fa-solid fa-arrow-right-long text-sky-400 text-xs"></i><span>➡️ გაგრძელება</span>
-              </button>
-              <button type="button" id="allToolBtn_mirror" onclick="cadMirrorSelected()" class="btn-cad-tool h-7 px-2 rounded bg-[#121c33] border border-[#213254] text-xs font-medium flex items-center gap-1 hover:bg-[#1a2846] text-purple-300 transition" title="სარკე">
-                <i class="fa-solid fa-clone text-purple-400 text-xs"></i><span>🪞 სარკე</span>
-              </button>
-              <button type="button" id="allToolBtn_array" onclick="cadArraySelected()" class="btn-cad-tool h-7 px-2 rounded bg-[#121c33] border border-[#213254] text-xs font-medium flex items-center gap-1 hover:bg-[#1a2846] text-emerald-300 transition" title="მასივი">
-                <i class="fa-solid fa-table-cells text-emerald-400 text-xs"></i><span>🔲 მასივი</span>
-              </button>
-            </div>
-
-            <!-- Group D: კონტური (Contour) -->
-            <div class="flex items-center gap-1 bg-[#0b1424] px-1.5 py-0.5 rounded-lg border border-[#1d2d4a] shrink-0">
-              <span class="text-[10px] text-purple-400 font-bold uppercase tracking-wider px-1">კონტური:</span>
-              <button type="button" id="allToolBtn_vertex" onclick="enableFootprintVertexMode()" class="btn-cad-tool h-7 px-2 rounded bg-[#121c33] border border-purple-500/40 text-xs font-bold flex items-center gap-1 hover:bg-[#1a2846] text-purple-300 transition" title="კუთხეების მართვა">
-                <i class="fa-solid fa-draw-polygon text-purple-400 text-xs"></i><span>🎯 კუთხეები</span>
-              </button>
-              <button type="button" id="allToolBtn_fillet" onclick="applyFootprintFillet()" class="h-7 px-2 rounded bg-[#121c33] border border-[#213254] text-xs font-medium flex items-center gap-1 hover:bg-[#1a2846] text-sky-300 transition" title="კუთხის მომრგვალება">
-                <i class="fa-solid fa-circle-notch text-sky-400 text-xs"></i><span>🔘 Fillet</span>
-              </button>
-              <button type="button" id="allToolBtn_cutout" onclick="setCadActiveTool('footprint_cutout')" class="btn-cad-tool h-7 px-2 rounded bg-[#121c33] border border-cyan-500/40 text-xs font-bold flex items-center gap-1 hover:bg-[#1a2846] text-cyan-300 transition" title="ეზო / ატრიუმი">
-                <i class="fa-solid fa-square-full text-cyan-400 text-xs"></i><span>🕳️ ატრიუმი</span>
-              </button>
-            </div>
-
-            <!-- Group E: გენგეგმა & გარემო (Site & Landscaping) -->
-            <div class="flex items-center gap-1 bg-[#0b1424] px-1.5 py-0.5 rounded-lg border border-[#1d2d4a] shrink-0">
-              <span class="text-[10px] text-emerald-400 font-bold uppercase tracking-wider px-1">გენგეგმა:</span>
-              <button type="button" id="allToolBtn_road" onclick="setCadActiveTool('draw_road')" class="btn-cad-tool h-7 px-2 rounded bg-[#121c33] border border-[#213254] text-xs font-medium flex items-center gap-1 hover:bg-[#1a2846] text-slate-200 transition" title="გზა [G]">
-                <i class="fa-solid fa-road text-slate-400 text-xs"></i><span>გზა [G]</span>
-              </button>
-              <button type="button" id="allToolBtn_walkway" onclick="setCadActiveTool('walkway')" class="btn-cad-tool h-7 px-2 rounded bg-[#121c33] border border-[#213254] text-xs font-medium flex items-center gap-1 hover:bg-[#1a2846] text-teal-300 transition" title="ბილიკი [K]">
-                <i class="fa-solid fa-shoe-prints text-teal-400 text-xs"></i><span>ბილიკი</span>
-              </button>
-              <button type="button" id="allToolBtn_parking" onclick="setCadActiveTool('parking')" class="btn-cad-tool h-7 px-2 rounded bg-[#121c33] border border-[#213254] text-xs font-medium flex items-center gap-1 hover:bg-[#1a2846] text-blue-300 transition" title="პარკინგი [P]">
-                <i class="fa-solid fa-square-parking text-blue-400 text-xs"></i><span>პარკინგი</span>
-              </button>
-              <button type="button" id="allToolBtn_tree" onclick="setCadActiveTool('tree')" class="btn-cad-tool h-7 px-2 rounded bg-[#121c33] border border-[#213254] text-xs font-medium flex items-center gap-1 hover:bg-[#1a2846] text-emerald-300 transition" title="ხე [T]">
-                <i class="fa-solid fa-tree text-emerald-400 text-xs"></i><span>ხე [T]</span>
-              </button>
-              <button type="button" id="allToolBtn_water" onclick="setCadActiveTool('water')" class="btn-cad-tool h-7 px-2 rounded bg-[#121c33] border border-[#213254] text-xs font-medium flex items-center gap-1 hover:bg-[#1a2846] text-cyan-300 transition" title="აუზი [W]">
-                <i class="fa-solid fa-water-ladder text-cyan-400 text-xs"></i><span>აუზი</span>
-              </button>
-              <button type="button" id="allToolBtn_terrace" onclick="setCadActiveTool('terrace')" class="btn-cad-tool h-7 px-2 rounded bg-[#121c33] border border-[#213254] text-xs font-medium flex items-center gap-1 hover:bg-[#1a2846] text-amber-300 transition" title="ტერასა">
-                <i class="fa-solid fa-sun-plant-wilt text-amber-400 text-xs"></i><span>ტერასა</span>
-              </button>
-              <button type="button" id="allToolBtn_ruler" onclick="setCadActiveTool('ruler')" class="btn-cad-tool h-7 px-2 rounded bg-[#121c33] border border-[#213254] text-xs font-medium flex items-center gap-1 hover:bg-[#1a2846] text-amber-300 transition" title="საზომი [R]">
-                <i class="fa-solid fa-ruler text-amber-400 text-xs"></i><span>საზომი [R]</span>
-              </button>
-            </div>
+            <button type="button" onclick="setCadActiveTool('ruler')" class="h-7 px-2 rounded bg-[#121c33] border border-[#213254] text-xs font-medium text-amber-300 hover:bg-[#1a2846] flex items-center gap-1 transition" title="საზომი [R]">
+              <i class="fa-solid fa-ruler text-amber-400 text-xs"></i>
+              <span>საზომი [R]</span>
+            </button>
           </div>
 
           <!-- SUBPANEL 1: ზუსტი ხაზვა (CAD DRAWING TOOLS) -->
@@ -2886,6 +2813,6 @@
   </div>
 
   <!-- Core JavaScript Logic -->
-  <script src="tsinare.js?v=20261001_1110"></script>
+  <script src="tsinare.js?v=20261001_1130"></script>
 </body>
 </html>

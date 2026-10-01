@@ -98,8 +98,8 @@
     
     // Layer Visibility
     layers: {
-      topography: true,
-      neighborhood: true,
+      topography: false,
+      neighborhood: false,
       boundary: true,
       setback: true,
       setbackLabels: false,
@@ -462,209 +462,27 @@
       if (digits.length === 12) {
         return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4, 6)}.${digits.slice(6, 9)}.${digits.slice(9)}`;
       }
-      if (digits.length >= 13) {
-        return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4, 6)}.${digits.slice(6, 9)}.${digits.slice(9, 12)}`;
-      }
-      if (digits.length === 9 || digits.length === 10) {
-        if (digits.length === 9) digits = '0' + digits;
+      if (digits.length === 10) {
         return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4, 6)}.${digits.slice(6)}`;
       }
     }
-    if (parts.length >= 5) {
-      return [
-        parts[0].padStart(2, '0'),
-        parts[1].padStart(2, '0'),
-        parts[2].padStart(2, '0'),
-        parts[3].padStart(3, '0'),
-        parts[4].padStart(3, '0')
-      ].join('.');
-    }
-    if (parts.length === 4) {
-      return [
-        parts[0].padStart(2, '0'),
-        parts[1].padStart(2, '0'),
-        parts[2].padStart(2, '0'),
-        parts[3].padStart(3, '0')
-      ].join('.');
+    const reg = parts[0].padStart(2, '0');
+    const isCity5 = ['01', '02', '03', '04', '05'].includes(reg);
+
+    if (isCity5) {
+      if (parts.length >= 5) {
+        return [reg, parts[1].padStart(2, '0'), parts[2].padStart(2, '0'), parts[3].padStart(3, '0'), parts[4].padStart(3, '0')].join('.');
+      }
+      if (parts.length === 4) {
+        return [reg, parts[1].padStart(2, '0'), parts[2].padStart(2, '0'), parts[3].padStart(3, '0')].join('.');
+      }
+    } else {
+      // Regional district parcel: standard land parcel has 4 parts
+      if (parts.length >= 4) {
+        return [reg, parts[1].padStart(2, '0'), parts[2].padStart(2, '0'), parts[3].padStart(3, '0')].join('.');
+      }
     }
     return parts.join('.');
-  }
-
-  // Pre-cached verified official cadastral parcels across Georgia (Instant offline/fail-safe load)
-  const VERIFIED_CADASTRAL_CACHE = {
-    "01.15.05.070.108": {
-      status: true,
-      cadastralCode: "01.15.05.070.108",
-      address: "ქალაქი თბილისი, გერგეტის შესახვევი, N 8; ქალაქი თბილისი, გერგეტის შესახვევი, N 6",
-      areaSqm: 3485,
-      officialAreaSqm: 3485,
-      geometricAreaSqm: 3479,
-      landType: "არასასოფლო სამეურნეო",
-      ownershipType: "საკუთრება",
-      owners: ["შპს დიღომი სითი"],
-      coordinates: [[41.6912508778104,44.7948214280578],[41.6912646267448,44.7948393254576],[41.6913231724169,44.7948404011996],[41.6914508809371,44.7947832759352],[41.6915670703662,44.7947312942312],[41.6918263973147,44.794613547671],[41.6917583475279,44.7943355789848],[41.6917352285531,44.7942513541249],[41.6917257558976,44.7942177370164],[41.6917244882131,44.79421299799],[41.6917195378738,44.7942134944431],[41.6915927809814,44.7942239325181],[41.691541532763,44.7942252975303],[41.6913678417007,44.7942560133004],[41.6912789626917,44.7943183621174],[41.6911734204585,44.7944053994429],[41.6911014138613,44.7944840381731],[41.6910330791794,44.7945756419457],[41.690999938015,44.7946536147574],[41.6909871497117,44.7947297743488],[41.6910283676062,44.794736491666],[41.6910319904201,44.7947486735571],[41.6910200689796,44.7947539519615],[41.6910580817972,44.7949068033645],[41.6910377967421,44.7949214080794],[41.6910440018229,44.7949416318116],[41.6910445908218,44.7949436127071],[41.6910456327484,44.794947034176],[41.6910741031141,44.795028650584],[41.6911592532797,44.794923238214],[41.6911875632285,44.7948881794385],[41.6912276106848,44.7948704488147],[41.6912189465962,44.7948355675464],[41.6912508778104,44.7948214280578]],
-      centroid: [41.69129, 44.794647],
-      zoning: { zoneCode: "სზ-5", mainZoneKa: "საცხოვრებელი ზონა 5 (სზ-5)", k1: 0.5, k2: 2.1, k3: 0.3 }
-    },
-    "01.14.11.059.039": {
-      status: true,
-      cadastralCode: "01.14.11.059.039",
-      address: "ქალაქი თბილისი, გიორგი შატბერაშვილის ქუჩა, N 5",
-      areaSqm: 820,
-      officialAreaSqm: 820,
-      geometricAreaSqm: 820,
-      landType: "არასასოფლო სამეურნეო",
-      ownershipType: "თანასაკუთრება",
-      owners: ["შპს \"მონოლით გრუპ\""],
-      coordinates: [[41.7049131063683,44.7751093527957],[41.7049552229369,44.7751821683075],[41.7050881132608,44.7754120975979],[41.7051099175624,44.7753922065682],[41.7051062570042,44.7753235177337],[41.7050855787117,44.7750276089785],[41.7050678383739,44.7747931247788],[41.7050117259444,44.7748171032992],[41.7049922030045,44.7748244587556],[41.7049767901432,44.7748323395368],[41.7049737647399,44.7748231913436],[41.7048716969279,44.7748774493824],[41.7048390842531,44.7748904875289],[41.7048304255294,44.7748940766541],[41.7049131063683,44.7751093527957]],
-      centroid: [41.704982, 44.775021],
-      zoning: { zoneCode: "სზ-2", mainZoneKa: "საცხოვრებელი ზონა 2 (სზ-2)", k1: 0.4, k2: 0.8, k3: 0.4 }
-    },
-    "72.13.12.125": {
-      status: true,
-      cadastralCode: "72.13.12.125",
-      address: "ქალაქი თბილისი, მუხიანი 2-ის დასახლება, ვარდისუბნის IV ჩიხი, N 3",
-      areaSqm: 578,
-      officialAreaSqm: 578,
-      coordinates: [[41.7828212290691,44.8430585027598],[41.7828473200466,44.8430225239849],[41.7828956086675,44.8429548334422],[41.782931841388,44.8429049390906],[41.7829668800561,44.8428585554845],[41.7830055713226,44.8428024996674],[41.7829756282934,44.8427780428663],[41.782915790371,44.8427294324691],[41.7828864050366,44.8427064208478],[41.7828487555144,44.8426786182973],[41.7826675422588,44.8429383499964],[41.7828082061383,44.843048831594],[41.7828212290691,44.8430585027598]],
-      centroid: [41.782876, 44.842888],
-      zoning: { zoneCode: "სზ-1", mainZoneKa: "საცხოვრებელი ზონა 1 (სზ-1)", k1: 0.5, k2: 0.8, k3: 0.3 }
-    },
-    "01.15.02.038.003": {
-      status: true,
-      cadastralCode: "01.15.02.038.003",
-      address: "ქალაქი თბილისი, ვასილ ბარნოვის ქუჩა, N 10ა",
-      areaSqm: 397,
-      officialAreaSqm: 397,
-      coordinates: [[41.7032616,44.7879273],[41.7032345,44.7879695],[41.7033213,44.7880585],[41.7034578,44.7880972],[41.7034573,44.7880901],[41.703445,44.787919],[41.7034389,44.7878611],[41.703435,44.7878074],[41.703288,44.7878256],[41.7032889,44.7878738],[41.7032616,44.7879273]],
-      centroid: [41.703354, 44.787942],
-      zoning: { zoneCode: "სზ-5", mainZoneKa: "საცხოვრებელი ზონა 5 (სზ-5)", k1: 0.5, k2: 2.1, k3: 0.3 }
-    },
-    "01.10.15.005.002": {
-      status: true,
-      cadastralCode: "01.10.15.005.002",
-      address: "ქალაქი თბილისი, ქუჩა ნუცუბიძე, N 34, კორპუსი 2",
-      areaSqm: 1381,
-      officialAreaSqm: 1381,
-      coordinates: [[41.7245,44.7380],[41.7252,44.7392],[41.7246,44.7401],[41.7239,44.7389],[41.7245,44.7380]],
-      centroid: [41.72455, 44.73905],
-      zoning: { zoneCode: "სზ-6", mainZoneKa: "საცხოვრებელი ზონა 6 (სზ-6)", k1: 0.5, k2: 2.5, k3: 0.2 }
-    },
-    "01.11.13.002.264": {
-      status: true,
-      cadastralCode: "01.11.13.002.264",
-      address: "ქალაქი თბილისი, ვაჟა-ფშაველას გამზირი, საბურთალო",
-      areaSqm: 1140,
-      officialAreaSqm: 1140,
-      coordinates: [[41.7262,44.7451],[41.7269,44.7463],[41.7263,44.7471],[41.7256,44.7459],[41.7262,44.7451]],
-      centroid: [41.72625, 44.7461],
-      zoning: { zoneCode: "სზ-6", mainZoneKa: "საცხოვრებელი ზონა 6 (სზ-6)", k1: 0.5, k2: 2.5, k3: 0.2 }
-    },
-    "01.16.01.013.031": {
-      status: true,
-      cadastralCode: "01.16.01.013.031",
-      address: "ქალაქი თბილისი, ჩუღურეთი, ქუჩა ი. ჯავახიშვილი, N 89",
-      areaSqm: 554,
-      officialAreaSqm: 554,
-      coordinates: [[41.7139285,44.7986605],[41.7140354,44.7989177],[41.7141130,44.7991023],[41.7142181,44.7990287],[41.7141469,44.7988650],[41.7140644,44.7986577],[41.7140358,44.7985862],[41.7139828,44.7986212],[41.7139285,44.7986605]],
-      centroid: [41.71407, 44.79884],
-      zoning: { zoneCode: "სზ-4", mainZoneKa: "საცხოვრებელი ზონა 4 (სზ-4)", k1: 0.5, k2: 1.8, k3: 0.3 }
-    },
-    "01.17.01.010.001": {
-      status: true,
-      cadastralCode: "01.17.01.010.001",
-      address: "ქალაქი თბილისი, გამზირი წმინდა ქეთევან დედოფალი, კორპუსი 2",
-      areaSqm: 1800,
-      officialAreaSqm: 1800,
-      coordinates: [[41.6910,44.8270],[41.6918,44.8282],[41.6912,44.8290],[41.6904,44.8278],[41.6910,44.8270]],
-      centroid: [41.6911, 44.8280],
-      zoning: { zoneCode: "სზ-5", mainZoneKa: "საცხოვრებელი ზონა 5 (სზ-5)", k1: 0.5, k2: 2.1, k3: 0.3 }
-    },
-    "02.01.01.001.001": {
-      status: true,
-      cadastralCode: "02.01.01.001.001",
-      address: "ქალაქი რუსთავი, მერაბ კოსტავას გამზირი, N 1",
-      areaSqm: 2400,
-      officialAreaSqm: 2400,
-      coordinates: [[41.5451,45.0040],[41.5458,45.0052],[41.5452,45.0060],[41.5445,45.0048],[41.5451,45.0040]],
-      centroid: [41.54515, 45.0050],
-      zoning: { zoneCode: "სზ-6", mainZoneKa: "საცხოვრებელი ზონა 6 (სზ-6)", k1: 0.5, k2: 2.5, k3: 0.2 }
-    },
-    "03.02.05.018.009": {
-      status: true,
-      cadastralCode: "03.02.05.018.009",
-      address: "ქალაქი ქუთაისი, აკაკი წერეთლის ქუჩა, N 45",
-      areaSqm: 1600,
-      officialAreaSqm: 1600,
-      coordinates: [[42.2658,42.7048],[42.2665,42.7056],[42.2660,42.7064],[42.2653,42.7056],[42.2658,42.7048]],
-      centroid: [42.2659, 42.7056],
-      zoning: { zoneCode: "სზ-5", mainZoneKa: "საცხოვრებელი ზონა 5 (სზ-5)", k1: 0.5, k2: 2.0, k3: 0.3 }
-    },
-    "05.21.11.002.040": {
-      status: true,
-      cadastralCode: "05.21.11.002.040",
-      address: "ქალაქი ბათუმი, შოთა რუსთაველის გამზირი, N 12",
-      areaSqm: 1850,
-      officialAreaSqm: 1850,
-      coordinates: [[41.6515,41.6360],[41.6520,41.6368],[41.6514,41.6375],[41.6509,41.6367],[41.6515,41.6360]],
-      centroid: [41.65145, 41.63675],
-      zoning: { zoneCode: "სზ-6", mainZoneKa: "საცხოვრებელი ზონა 6 (სზ-6)", k1: 0.5, k2: 2.5, k3: 0.2 }
-    }
-  };
-
-  // Fail-safe procedural parcel synthesis for any location across Georgia
-  function synthesizeDistrictParcel(cleanCode) {
-    const regCode = (cleanCode.split('.')[0] || '01').padStart(2, '0');
-    const REGIONS = {
-      '01': { lat: 41.7151, lng: 44.7838, name: 'ქალაქი თბილისი', zone: 'სზ-2', k1: 0.4, k2: 0.8, k3: 0.4 },
-      '02': { lat: 41.5451, lng: 45.0040, name: 'ქალაქი რუსთავი', zone: 'სზ-3', k1: 0.5, k2: 1.2, k3: 0.3 },
-      '03': { lat: 42.2658, lng: 42.7048, name: 'ქალაქი ქუთაისი', zone: 'სზ-2', k1: 0.4, k2: 0.8, k3: 0.4 },
-      '04': { lat: 42.1462, lng: 41.6720, name: 'ქალაქი ფოთი', zone: 'სზ-2', k1: 0.4, k2: 0.8, k3: 0.4 },
-      '05': { lat: 41.6423, lng: 41.6360, name: 'ქალაქი ბათუმი', zone: 'სზ-5', k1: 0.5, k2: 2.1, k3: 0.3 },
-      '64': { lat: 41.7450, lng: 44.1150, name: 'ხაშური', zone: 'სზ-1', k1: 0.5, k2: 0.8, k3: 0.3 },
-      '66': { lat: 41.6410, lng: 42.9820, name: 'ახალციხე', zone: 'სზ-1', k1: 0.5, k2: 0.8, k3: 0.3 },
-      '67': { lat: 41.9198, lng: 45.4732, name: 'თელავი', zone: 'სზ-1', k1: 0.5, k2: 0.8, k3: 0.3 },
-      '71': { lat: 41.9842, lng: 44.1158, name: 'გორი', zone: 'სზ-1', k1: 0.5, k2: 0.8, k3: 0.3 },
-      '72': { lat: 41.8436, lng: 44.7214, name: 'მცხეთის მუნიციპალიტეტი', zone: 'სზ-1', k1: 0.5, k2: 0.8, k3: 0.3 },
-      '74': { lat: 42.0280, lng: 44.7050, name: 'დუშეთი', zone: 'სზ-1', k1: 0.5, k2: 0.8, k3: 0.3 },
-      '81': { lat: 41.8200, lng: 41.7760, name: 'ქობულეთი', zone: 'სზ-2', k1: 0.4, k2: 0.8, k3: 0.4 }
-    };
-    const reg = REGIONS[regCode] || REGIONS['01'];
-    let hash = 0;
-    for (let i = 0; i < cleanCode.length; i++) hash = (hash * 31 + cleanCode.charCodeAt(i)) & 0xffffff;
-    const offsetLat = ((hash % 100) - 50) * 0.00018;
-    const offsetLng = (((hash >> 4) % 100) - 50) * 0.00025;
-    const cLat = reg.lat + offsetLat;
-    const cLng = reg.lng + offsetLng;
-    const dLat = 0.00028;
-    const dLng = 0.00036;
-    const coords = [
-      [Number((cLat - dLat).toFixed(7)), Number((cLng - dLng).toFixed(7))],
-      [Number((cLat - dLat).toFixed(7)), Number((cLng + dLng).toFixed(7))],
-      [Number((cLat + dLat * 1.15).toFixed(7)), Number((cLng + dLng * 0.9).toFixed(7))],
-      [Number((cLat + dLat * 0.85).toFixed(7)), Number((cLng - dLng).toFixed(7))],
-      [Number((cLat - dLat).toFixed(7)), Number((cLng - dLng).toFixed(7))]
-    ];
-    return {
-      status: true,
-      cadastralCode: cleanCode,
-      address: `${reg.name}, საკადასტრო ნაკვეთი №${cleanCode}`,
-      areaSqm: 1450,
-      officialAreaSqm: 1450,
-      geometricAreaSqm: 1450,
-      landType: "არასასოფლო სამეურნეო",
-      ownershipType: "საკუთრება",
-      owners: ["საკადასტრო მესაკუთრე"],
-      coordinates: coords,
-      centroid: [cLat, cLng],
-      zoning: {
-        zoneCode: reg.zone,
-        mainZoneKa: `${reg.name} — ${reg.zone}`,
-        k1: reg.k1,
-        k2: reg.k2,
-        k3: reg.k3
-      }
-    };
   }
 
   // --- Nationwide NAPR Parcel Retrieval ---
@@ -680,52 +498,79 @@
       els.btnSearchCadastral.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-[11px]"></i> <span>ძებნა...</span>';
     }
     if (els.naprStatusBadge) {
-      els.naprStatusBadge.innerText = 'FETCHING...';
+      els.naprStatusBadge.innerText = 'NAPR FETCHING...';
       els.naprStatusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30';
     }
 
     try {
       let data = null;
 
-      // 1. Instant check in verified cache
-      if (VERIFIED_CADASTRAL_CACHE[cleanCode]) {
-        data = VERIFIED_CADASTRAL_CACHE[cleanCode];
+      // 1. Direct Live Fetch from local proxy or production endpoint
+      const candidateUrls = [
+        `/api/parcel?code=${encodeURIComponent(cleanCode)}&t=${Date.now()}`,
+        `https://architect2.ge/api/parcel?code=${encodeURIComponent(cleanCode)}&t=${Date.now()}`
+      ];
+      if (rawInput !== cleanCode) {
+        candidateUrls.push(`/api/parcel?code=${encodeURIComponent(rawInput)}&t=${Date.now()}`);
+        candidateUrls.push(`https://architect2.ge/api/parcel?code=${encodeURIComponent(rawInput)}&t=${Date.now()}`);
       }
 
-      // 2. Fetch live data from cloud proxies
-      if (!data) {
-        const candidateUrls = [
-          `https://architect2.ge/api/parcel?code=${encodeURIComponent(cleanCode)}&t=${Date.now()}`,
-          `/api/parcel?code=${encodeURIComponent(cleanCode)}&t=${Date.now()}`,
-          `https://www.architect2.ge/api/parcel?code=${encodeURIComponent(cleanCode)}&t=${Date.now()}`
-        ];
-
-        for (const url of candidateUrls) {
-          try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 6000);
-            const res = await fetch(url, { signal: controller.signal });
-            clearTimeout(timeoutId);
-            if (res.ok) {
-              const ct = res.headers.get('content-type') || '';
-              if (ct.includes('application/json')) {
-                const json = await res.json();
-                const payload = (json && json.data && json.data.coordinates) ? json.data : json;
-                if (payload && payload.coordinates && payload.coordinates.length >= 3) {
-                  data = payload;
-                  break;
-                }
+      for (const url of candidateUrls) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 7000);
+          const res = await fetch(url, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (res.ok) {
+            const ct = res.headers.get('content-type') || '';
+            if (ct.includes('application/json')) {
+              const json = await res.json();
+              const payload = (json && json.data && json.data.coordinates) ? json.data : json;
+              if (payload && payload.coordinates && payload.coordinates.length >= 3) {
+                data = payload;
+                break;
               }
             }
-          } catch (fetchErr) {
-            console.warn('[Tsinare] Candidate fetch failed for', url, fetchErr);
           }
+        } catch (fetchErr) {
+          console.warn('[Tsinare] Candidate fetch failed for', url, fetchErr);
         }
       }
 
-      // 3. Guaranteed Geographic Synthesizer Fallback if offline/NAPR unavailable
-      if (!data || !data.coordinates || data.coordinates.length < 3) {
-        data = synthesizeDistrictParcel(cleanCode);
+      // 2. If not found yet and code has sub-unit/sub-parcel, attempt parent search
+      if (!data) {
+        const parts = cleanCode.split('.');
+        let parentCandidate = null;
+        if (parts.length > 5 && ['01','02','03','04','05'].includes(parts[0])) {
+          parentCandidate = parts.slice(0, 5).join('.');
+        } else if (parts.length > 4 && !['01','02','03','04','05'].includes(parts[0])) {
+          parentCandidate = parts.slice(0, 4).join('.');
+        }
+        if (parentCandidate) {
+          const pUrls = [
+            `/api/parcel?code=${encodeURIComponent(parentCandidate)}&t=${Date.now()}`,
+            `https://architect2.ge/api/parcel?code=${encodeURIComponent(parentCandidate)}&t=${Date.now()}`
+          ];
+          for (const url of pUrls) {
+            try {
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 6000);
+              const res = await fetch(url, { signal: controller.signal });
+              clearTimeout(timeoutId);
+              if (res.ok) {
+                const ct = res.headers.get('content-type') || '';
+                if (ct.includes('application/json')) {
+                  const json = await res.json();
+                  const payload = (json && json.data && json.data.coordinates) ? json.data : json;
+                  if (payload && payload.coordinates && payload.coordinates.length >= 3) {
+                    data = payload;
+                    break;
+                  }
+                }
+              }
+            } catch (pErr) {}
+          }
+        }
       }
 
       if (data && data.coordinates && data.coordinates.length >= 3) {
@@ -796,31 +641,22 @@
           els.naprStatusBadge.innerText = 'NAPR VERIFIED';
           els.naprStatusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
         }
+      } else {
+        if (els.naprStatusBadge) {
+          els.naprStatusBadge.innerText = 'NOT FOUND';
+          els.naprStatusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30';
+        }
+        updateToolStatus(`⚠️ საკადასტრო კოდი "${cleanCode}" საჯარო რეესტრის (NAPR) ოფიციალურ ბაზაში ვერ მოიძებნა. გადაამოწმეთ კოდი.`);
+        alert(`საკადასტრო კოდი "${cleanCode}" საჯარო რეესტრის (NAPR) ოფიციალურ ბაზაში ვერ მოიძებნა.\nგთხოვთ გადაამოწმოთ კოდის სისწორე.`);
       }
     } catch (err) {
-      console.warn('[Tsinare] Search error handled smoothly:', err);
-      // Fallback guarantees rendering
-      const fallbackData = synthesizeDistrictParcel(cleanCode);
-      state.cadastralCode = fallbackData.cadastralCode;
-      state.address = fallbackData.address;
-      state.officialAreaSqm = fallbackData.officialAreaSqm;
-      state.geometricAreaSqm = fallbackData.geometricAreaSqm;
-      state.rawCoordinates = fallbackData.coordinates;
-      state.centroidLatLng = fallbackData.centroid;
-      convertGeoToMetric(fallbackData.coordinates);
-      generateDefaultFootprint();
-      generateDefaultLandscaping();
-      if (els.georgiaOverviewOverlay) els.georgiaOverviewOverlay.style.display = 'none';
-      if (els.cadSvgContainer) els.cadSvgContainer.style.display = 'block';
-      if (tsinareMap && state.centroidLatLng) tsinareMap.setView(state.centroidLatLng, 18);
-      updateCadastralSidebarUI();
-      updateZoningCoefficientsUI();
-      cadZoomReset();
-      renderCadWorld();
+      console.warn('[Tsinare] Search error:', err);
       if (els.naprStatusBadge) {
-        els.naprStatusBadge.innerText = 'GIS LOADED';
-        els.naprStatusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-500/20 text-sky-400 border border-sky-500/30';
+        els.naprStatusBadge.innerText = 'ERROR';
+        els.naprStatusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30';
       }
+      updateToolStatus(`⚠️ საჯარო რეესტრის სერვერთან კავშირი შეფერხდა: ${err.message || ''}`);
+      alert(`საჯარო რეესტრის სერვერთან კავშირი შეფერხდა.\nგთხოვთ სცადოთ ხელახლა.`);
     } finally {
       if (els.btnSearchCadastral) {
         els.btnSearchCadastral.disabled = false;
@@ -2549,14 +2385,17 @@
 
   // --- CAD Ribbon Tab Switcher ---
   window.switchCadRibbonTab = function (tabName) {
-    state.activeRibbonTab = tabName || 'all_tools';
-    const tabs = ['all_tools', 'cad_draw', 'buildings', 'cad_modify', 'contour_edit', 'site_env'];
+    state.activeRibbonTab = tabName || 'default';
+    const tabs = ['cad_draw', 'buildings', 'cad_modify', 'contour_edit', 'site_env'];
+    const quickPanel = document.getElementById('panel_default_quick');
+    let anyTabActive = false;
     tabs.forEach(t => {
       const panel = document.getElementById(`panel_${t}`);
       const btn = document.getElementById(`tabBtn_${t}`);
       if (panel) {
         if (t === state.activeRibbonTab) {
           panel.classList.remove('hidden');
+          anyTabActive = true;
         } else {
           panel.classList.add('hidden');
         }
@@ -2569,6 +2408,13 @@
         }
       }
     });
+    if (quickPanel) {
+      if (anyTabActive) {
+        quickPanel.classList.add('hidden');
+      } else {
+        quickPanel.classList.remove('hidden');
+      }
+    }
   };
 
   // --- Quick Parameter Helpers for Ribbon Tier 2 Inputs ---
@@ -2622,7 +2468,7 @@
     if (els.cadDynamicHud) els.cadDynamicHud.classList.add('hidden');
     if (els.cadOsnapTooltip) els.cadOsnapTooltip.classList.add('hidden');
 
-    // Auto-switch ribbon tab based on active tool category ONLY if user isn't in 'all_tools'
+    // Auto-switch ribbon tab based on active tool category
     const toolToTabMap = {
       'draw_cad_line': 'cad_draw',
       'draw_cad_polyline': 'cad_draw',
@@ -2652,7 +2498,9 @@
       'split': 'site_env',
       'ruler': 'site_env'
     };
-    if (state.activeRibbonTab !== 'all_tools' && toolToTabMap[toolName]) {
+    if (toolName === 'pan' || toolName === 'delete') {
+      window.switchCadRibbonTab('default');
+    } else if (toolToTabMap[toolName]) {
       window.switchCadRibbonTab(toolToTabMap[toolName]);
     }
 
@@ -5508,12 +5356,20 @@
     const poly = state.boundaryMeters;
     const n = poly.length;
 
+    // Smart distance filter to avoid visual badge collisions on high-vertex boundaries
+    let minDist = 3.0;
+    if (n > 24) {
+      minDist = pxToM < 0.35 ? 4.5 : 8.5;
+    } else if (n > 12) {
+      minDist = pxToM < 0.35 ? 3.5 : 6.0;
+    }
+
     for (let i = 0; i < n; i++) {
       const p1 = poly[i];
       const p2 = poly[(i + 1) % n];
       const dist = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]);
 
-      if (dist < 2.5) continue;
+      if (dist < minDist) continue;
 
       const midX = (p1[0] + p2[0]) / 2;
       const midY = (p1[1] + p2[1]) / 2;
@@ -5523,18 +5379,18 @@
       const nx = -dy / dist;
       const ny = dx / dist;
 
-      const offsetDist = 5.5 * pxToM;
+      const offsetDist = 5.0 * pxToM;
       const tx = midX + nx * offsetDist;
       const ty = midY + ny * offsetDist;
 
       const textStr = `${dist.toFixed(1)}მ`;
-      const pillW = (textStr.length * 6 + 6) * pxToM;
-      const pillH = 14 * pxToM;
+      const pillW = (textStr.length * 5.2 + 5) * pxToM;
+      const pillH = 12 * pxToM;
 
       dimSvg += `
         <g>
-          <rect x="${tx - pillW / 2}" y="${ty - pillH / 2}" width="${pillW}" height="${pillH}" rx="${2.5 * pxToM}" fill="var(--canvas-bg)" stroke="var(--grid-major)" stroke-width="${0.6 * pxToM}" opacity="0.95" />
-          <text x="${tx}" y="${ty + 3.5 * pxToM}" text-anchor="middle" fill="var(--text-color)" font-size="${8.5 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">${textStr}</text>
+          <rect x="${tx - pillW / 2}" y="${ty - pillH / 2}" width="${pillW}" height="${pillH}" rx="${2 * pxToM}" fill="#080e1a" stroke="#0ea5e9" stroke-width="${0.6 * pxToM}" opacity="0.92" />
+          <text x="${tx}" y="${ty + 3 * pxToM}" text-anchor="middle" fill="#38bdf8" font-size="${7.5 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="600">${textStr}</text>
         </g>
       `;
     }
