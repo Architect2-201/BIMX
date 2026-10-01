@@ -1456,11 +1456,15 @@
         // Reset elements & create default footprint & sample landscaping
         state.subParcels = [];
         state.trees = [];
+        state.roads = [];
         state.waterBodies = [];
         state.terraces = [];
         generateDefaultFootprint();
-        generateDefaultLandscaping();
         generateDefaultUtilities();
+
+        // Asynchronously detect real roads from OSM and real trees from satellite orthophoto
+        detectRealRoadsAndEdgeTypes();
+        detectTreesFromSatellite();
 
         // Reveal CAD SVG Container and hide Georgia overview HUD
         if (els.georgiaOverviewOverlay) els.georgiaOverviewOverlay.style.display = 'none';
@@ -1776,7 +1780,7 @@
     // Step 1: fast geometric fallback (immediate, synchronous)
     state.boundaryEdgeTypes = detectBoundaryEdgeTypes(state.boundaryMeters, state.roads);
     // Step 2: async OSM refinement — overwrites with accurate road data once fetched
-    detectEdgeTypesFromOSM();
+    detectRealRoadsAndEdgeTypes();
   }
 
   // --- Generate Default Building Footprint upon parcel load ---
@@ -1950,96 +1954,438 @@
     return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
   }
 
-  // --- Boundary Edge Classification: Road/Public (0m setback) vs Neighbor (3.0m setback) ---
-  // Async: Queries OpenStreetMap Overpass API for nearby streets/roads and classifies each parcel edge.
-  async function detectEdgeTypesFromOSM() {
+  // --- REAL ROAD EXTRACTION & BOUNDARY CLASSIFICATION (OSM & Geospatial Vector Engine) ---
+  async function detectRealRoadsAndEdgeTypes() {
     if (!state.centroidLatLng || !state.boundaryMeters || state.boundaryMeters.length < 3) return;
     const [cLat, cLng] = state.centroidLatLng;
     const metersPerDegLat = 111132.954;
     const metersPerDegLng = 111132.954 * Math.cos((cLat * Math.PI) / 180);
 
-    const endpoints = [
-      'https://overpass-api.de/api/interpreter',
-      'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
-      'https://overpass.kumi.systems/api/interpreter'
-    ];
+    const marginDeg = 0.0012; // ~120m bounding box
+    const minLng = cLng - marginDeg;
+    const maxLng = cLng + marginDeg;
+    const minLat = cLat - marginDeg;
+    const maxLat = cLat + marginDeg;
 
-    const radius = 70;
-    const query = `[out:json][timeout:8];(way(around:${radius},${cLat},${cLng})[highway];);out geom;`;
+    let parsedWays = [];
 
-    for (const ep of endpoints) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4500);
+    // 1. Direct Official OpenStreetMap Map API (fastest, most reliable)
+    try {
+      const osmUrl = `https://api.openstreetmap.org/api/0.6/map?bbox=${minLng.toFixed(6)},${minLat.toFixed(6)},${maxLng.toFixed(6)},${maxLat.toFixed(6)}`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4500);
 
-        const res = await fetch(ep, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-            'Accept': 'application/json, */*'
-          },
-          body: 'data=' + encodeURIComponent(query),
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
+      const res = await fetch(osmUrl, {
+        headers: { 'Accept': 'application/xml, text/xml, */*' },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
 
-        if (!res.ok) continue;
-        const text = await res.text();
-        if (!text || text.trim().startsWith('<')) continue; // Guard against XML/HTML error responses
-        const data = JSON.parse(text);
-
-        // Convert OSM road geometry to local meter coordinates (same frame as boundaryMeters)
-        const roadSegments = [];
-        (data.elements || []).forEach(way => {
-          const hw = way.tags ? way.tags.highway : '';
-          if (hw === 'steps') return; // ignore outdoor staircases
-          const geom = way.geometry || [];
-          for (let i = 0; i < geom.length - 1; i++) {
-            const p1 = [
-              (geom[i].lon - cLng) * metersPerDegLng,
-              -(geom[i].lat - cLat) * metersPerDegLat
-            ];
-            const p2 = [
-              (geom[i + 1].lon - cLng) * metersPerDegLng,
-              -(geom[i + 1].lat - cLat) * metersPerDegLat
-            ];
-            roadSegments.push({ p1, p2, name: (way.tags && (way.tags.name || way.tags.highway)) || 'გზა' });
+      if (res.ok) {
+        const xml = await res.text();
+        if (xml && xml.includes('<osm')) {
+          const nodes = {};
+          for (const m of xml.matchAll(/<node id="(\d+)"[^>]*lat="([^"]+)"[^>]*lon="([^"]+)"/g)) {
+            nodes[m[1]] = [parseFloat(m[2]), parseFloat(m[3])];
           }
-        });
 
-        if (roadSegments.length === 0) continue;
+          const wayBlocks = xml.split('</way>');
+          for (const wb of wayBlocks) {
+            if (!wb.includes('k="highway"')) continue;
+            const nameMatch = wb.match(/k="(name|name:ka)" v="([^"]+)"/);
+            const hwMatch = wb.match(/k="highway" v="([^"]+)"/);
+            const hw = hwMatch ? hwMatch[1] : 'residential';
+            if (hw === 'steps') continue;
 
-        const poly = state.boundaryMeters;
-        const n = poly.length;
-        const threshold = 12.0; // 12 meters from road centerline
-        const newTypes = new Array(n).fill('neighbor');
-        let roadCount = 0;
+            const ndMatches = [...wb.matchAll(/<nd ref="(\d+)"/g)].map(m => m[1]);
+            const geoPts = ndMatches.map(id => nodes[id]).filter(Boolean);
+            if (geoPts.length < 2) continue;
 
-        for (let i = 0; i < n; i++) {
-          const midX = (poly[i][0] + poly[(i + 1) % n][0]) / 2;
-          const midY = (poly[i][1] + poly[(i + 1) % n][1]) / 2;
-          for (const seg of roadSegments) {
-            const d = distPointToSegment([midX, midY], seg.p1, seg.p2);
-            if (d <= threshold) {
-              newTypes[i] = 'road';
-              roadCount++;
-              break;
-            }
+            const metricPts = geoPts.map(pt => [
+              (pt[1] - cLng) * metersPerDegLng,
+              -(pt[0] - cLat) * metersPerDegLat
+            ]);
+
+            let width = 6.0;
+            if (['motorway', 'trunk', 'primary'].includes(hw)) width = 9.0;
+            else if (['secondary', 'tertiary'].includes(hw)) width = 7.5;
+            else if (['service', 'living_street'].includes(hw)) width = 4.5;
+            else if (['path', 'footway', 'cycleway', 'track'].includes(hw)) width = 3.0;
+
+            const roadName = (nameMatch && nameMatch[2]) ? nameMatch[2] : (hw === 'residential' ? 'მისასვლელი გზა' : 'საავტომობილო გზა');
+
+            parsedWays.push({
+              id: 'road_osm_' + Math.floor(Math.random() * 100000),
+              name: roadName,
+              highwayType: hw,
+              width: width,
+              points: metricPts,
+              isExternal: true,
+              isReal: true
+            });
           }
         }
-
-        // Safety: ensure at least 1 edge is recognized as road
-        if (roadCount === 0) {
-          continue; // Try next endpoint or keep geometric fallback
-        }
-
-        state.boundaryEdgeTypes = newTypes;
-        renderCadWorld();
-        updateToolStatus(`ავტომატურად ამოცნობილია ${roadCount} საგზაო/საზოგადოებრივი კიდე (0მ) და ${n - roadCount} სამეზობლო მიჯნა (${state.setbackDistance}მ).`);
-        return; // Successfully updated from OSM
-      } catch (e) {
-        // Continue to next endpoint
       }
+    } catch (osmErr) {
+      console.warn('[Tsinare] OSM 0.6 Map API failed, attempting Overpass fallback:', osmErr.message);
+    }
+
+    // 2. Overpass API Fallback if OSM 0.6 didn't return ways
+    if (parsedWays.length === 0) {
+      const endpoints = [
+        'https://overpass-api.de/api/interpreter',
+        'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+        'https://overpass.kumi.systems/api/interpreter'
+      ];
+      const radius = 90;
+      const query = `[out:json][timeout:6];(way(around:${radius},${cLat},${cLng})[highway];);out geom;`;
+
+      for (const ep of endpoints) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          const res = await fetch(ep, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+              'Accept': 'application/json, */*'
+            },
+            body: 'data=' + encodeURIComponent(query),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+
+          if (!res.ok) continue;
+          const text = await res.text();
+          if (!text || text.trim().startsWith('<')) continue;
+          const data = JSON.parse(text);
+
+          (data.elements || []).forEach(way => {
+            const hw = way.tags ? way.tags.highway : 'residential';
+            if (hw === 'steps') return;
+            const geom = way.geometry || [];
+            if (geom.length < 2) return;
+
+            const metricPts = geom.map(g => [
+              (g.lon - cLng) * metersPerDegLng,
+              -(g.lat - cLat) * metersPerDegLat
+            ]);
+
+            let width = 6.0;
+            if (['motorway', 'trunk', 'primary'].includes(hw)) width = 9.0;
+            else if (['secondary', 'tertiary'].includes(hw)) width = 7.5;
+            else if (['service', 'living_street'].includes(hw)) width = 4.5;
+            else if (['path', 'footway', 'cycleway', 'track'].includes(hw)) width = 3.0;
+
+            const roadName = (way.tags && (way.tags['name:ka'] || way.tags.name)) || (hw === 'residential' ? 'მისასვლელი გზა' : 'საავტომობილო გზა');
+
+            parsedWays.push({
+              id: 'road_overpass_' + (way.id || Math.floor(Math.random() * 100000)),
+              name: roadName,
+              highwayType: hw,
+              width: width,
+              points: metricPts,
+              isExternal: true,
+              isReal: true
+            });
+          });
+
+          if (parsedWays.length > 0) break;
+        } catch (e) {}
+      }
+    }
+
+    // Filter ways within 75m of parcel boundary
+    const poly = state.boundaryMeters;
+    const n = poly.length;
+    const validRoads = [];
+
+    parsedWays.forEach(rw => {
+      let isNear = false;
+      for (const pt of rw.points) {
+        for (let i = 0; i < n; i++) {
+          if (distPointToSegment(pt, poly[i], poly[(i + 1) % n]) < 75) {
+            isNear = true;
+            break;
+          }
+        }
+        if (isNear) break;
+      }
+      if (isNear) validRoads.push(rw);
+    });
+
+    if (validRoads.length > 0) {
+      state.roads = validRoads;
+    }
+
+    // Classify each boundary edge based on proximity to real roads
+    const newTypes = new Array(n).fill('neighbor');
+    let roadEdgeCount = 0;
+    let minOverallDist = Infinity;
+    let closestEdgeIdx = 0;
+
+    for (let i = 0; i < n; i++) {
+      const midX = (poly[i][0] + poly[(i + 1) % n][0]) / 2;
+      const midY = (poly[i][1] + poly[(i + 1) % n][1]) / 2;
+      let minEdgeDist = Infinity;
+
+      for (const r of state.roads || []) {
+        for (let k = 0; k < r.points.length - 1; k++) {
+          const d = distPointToSegment([midX, midY], r.points[k], r.points[k + 1]);
+          if (d < minEdgeDist) minEdgeDist = d;
+          if (d <= (r.width / 2 + 5.5)) {
+            newTypes[i] = 'road';
+            roadEdgeCount++;
+            break;
+          }
+        }
+        if (newTypes[i] === 'road') break;
+      }
+
+      if (minEdgeDist < minOverallDist) {
+        minOverallDist = minEdgeDist;
+        closestEdgeIdx = i;
+      }
+    }
+
+    // Ensure at least the edge closest to the road corridor is marked as road
+    if (roadEdgeCount === 0 && (state.roads || []).length > 0) {
+      newTypes[closestEdgeIdx] = 'road';
+      roadEdgeCount = 1;
+    }
+
+    if (roadEdgeCount > 0) {
+      state.boundaryEdgeTypes = newTypes;
+    }
+
+    renderCadWorld();
+    updateZoningCoefficientsUI();
+    if (validRoads.length > 0) {
+      updateToolStatus(`ამოცნობილია ${validRoads.length} რეალური გზა და ${roadEdgeCount} საგზაო მიჯნა.`);
+    }
+  }
+
+  // --- REAL TREE & GREENERY DETECTION FROM SATELLITE (EXG / ORTHOPHOTO NDVI ANALYSIS) ---
+  async function detectTreesFromSatellite() {
+    if (!state.centroidLatLng || !state.boundaryMeters || state.boundaryMeters.length < 3) return;
+    const [cLat, cLng] = state.centroidLatLng;
+    const metersPerDegLat = 111132.954;
+    const metersPerDegLng = 111132.954 * Math.cos((cLat * Math.PI) / 180);
+
+    const xs = state.boundaryMeters.map(p => p[0]);
+    const ys = state.boundaryMeters.map(p => p[1]);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+
+    // Lat/Lng bounding box with 6m buffer
+    const bufferM = 6;
+    const minLat = cLat - (maxY + bufferM) / metersPerDegLat;
+    const maxLat = cLat - (minY - bufferM) / metersPerDegLat;
+    const minLng = cLng + (minX - bufferM) / metersPerDegLng;
+    const maxLng = cLng + (maxX + bufferM) / metersPerDegLng;
+
+    const zoom = 19;
+    function latLngToTile(lat, lng, z) {
+      const n = Math.pow(2, z);
+      const rad = (lat * Math.PI) / 180;
+      const tx = Math.floor(((lng + 180) / 360) * n);
+      const ty = Math.floor(((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * n);
+      return { x: tx, y: ty, z };
+    }
+
+    const tMin = latLngToTile(maxLat, minLng, zoom);
+    const tMax = latLngToTile(minLat, maxLng, zoom);
+
+    const tilesW = tMax.x - tMin.x + 1;
+    const tilesH = tMax.y - tMin.y + 1;
+
+    // Safety guard against massive bbox
+    if (tilesW > 4 || tilesH > 4) return;
+
+    const offCanvas = document.createElement('canvas');
+    offCanvas.width = tilesW * 256;
+    offCanvas.height = tilesH * 256;
+    const ctx = offCanvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return;
+
+    // Load satellite tiles asynchronously
+    const loadTile = (tx, ty) => {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve({ img, tx, ty, ok: true });
+        img.onerror = () => resolve({ ok: false });
+        img.src = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${zoom}/${ty}/${tx}`;
+      });
+    };
+
+    const tilePromises = [];
+    for (let ty = tMin.y; ty <= tMax.y; ty++) {
+      for (let tx = tMin.x; tx <= tMax.x; tx++) {
+        tilePromises.push(loadTile(tx, ty));
+      }
+    }
+
+    const results = await Promise.all(tilePromises);
+    let anyOk = false;
+    results.forEach(r => {
+      if (r && r.ok) {
+        anyOk = true;
+        const ox = (r.tx - tMin.x) * 256;
+        const oy = (r.ty - tMin.y) * 256;
+        ctx.drawImage(r.img, ox, oy, 256, 256);
+      }
+    });
+
+    if (!anyOk) {
+      console.warn('[Tsinare] Satellite tiles failed to load for tree analysis.');
+      return;
+    }
+
+    let imgData;
+    try {
+      imgData = ctx.getImageData(0, 0, offCanvas.width, offCanvas.height);
+    } catch (e) {
+      console.warn('[Tsinare] Canvas tainted or read error:', e);
+      return;
+    }
+    const data = imgData.data;
+    const width = offCanvas.width;
+    const height = offCanvas.height;
+
+    // Helper: is point inside parcel polygon
+    function isPointInParcel(pt, poly) {
+      let inside = false;
+      const x = pt[0], y = pt[1];
+      for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        const xi = poly[i][0], yi = poly[i][1];
+        const xj = poly[j][0], yj = poly[j][1];
+        const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    }
+
+    // Helper: distance from point to polygon boundary
+    function minDistToBoundary(pt, poly) {
+      let minD = Infinity;
+      for (let i = 0; i < poly.length; i++) {
+        const p1 = poly[i];
+        const p2 = poly[(i + 1) % poly.length];
+        const d = distPointToSegment(pt, p1, p2);
+        if (d < minD) minD = d;
+      }
+      return minD;
+    }
+
+    const radConst = Math.PI / 180;
+    const nZoom = Math.pow(2, zoom);
+
+    // Sample grid over parcel with step 1.6m
+    const stepM = 1.6;
+    const candidates = [];
+
+    for (let my = minY - 2; my <= maxY + 2; my += stepM) {
+      for (let mx = minX - 2; mx <= maxX + 2; mx += stepM) {
+        const inParcel = isPointInParcel([mx, my], state.boundaryMeters);
+        const nearEdge = minDistToBoundary([mx, my], state.boundaryMeters) <= 3.0;
+        if (!inParcel && !nearEdge) continue;
+
+        // Convert local CAD metric (mx, my) to global lat/lng
+        const lat = cLat - my / metersPerDegLat;
+        const lng = cLng + mx / metersPerDegLng;
+
+        // Convert to canvas pixel (px, py)
+        const rad = lat * radConst;
+        const globalPx = ((lng + 180) / 360) * nZoom * 256;
+        const globalPy = ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * nZoom * 256;
+        const px = Math.floor(globalPx - tMin.x * 256);
+        const py = Math.floor(globalPy - tMin.y * 256);
+
+        if (px < 0 || px >= width || py < 0 || py >= height) continue;
+
+        const idx = (py * width + px) * 4;
+        const r = data[idx];
+        const g = data[idx + 1];
+        const b = data[idx + 2];
+
+        // Excess Green Index (ExG)
+        const exg = 2 * g - r - b;
+        const brightness = (r + g + b) / 3;
+        const grDiff = g - r;
+        const gbDiff = g - b;
+
+        // Tree Canopy criteria:
+        // Vibrant/dense foliage, dark tree canopy shadows, excluded washed out roofs/roads
+        if (exg > 15 && grDiff > 6 && gbDiff > 8 && brightness >= 25 && brightness <= 155) {
+          candidates.push({ x: mx, y: my, exg, r, g, b });
+        }
+      }
+    }
+
+    if (candidates.length === 0) {
+      console.log('[Tsinare] No significant vegetation detected in parcel.');
+      return;
+    }
+
+    // Sort by ExG score descending (densest tree canopies first)
+    candidates.sort((a, b) => b.exg - a.exg);
+
+    // Non-maximum suppression clustering (min distance between tree trunks ~ 3.2m)
+    const detectedTrees = [];
+    const minTreeDist = 3.2;
+
+    for (const cand of candidates) {
+      let tooClose = false;
+      for (const dt of detectedTrees) {
+        if (Math.hypot(cand.x - dt.x, cand.y - dt.y) < minTreeDist) {
+          tooClose = true;
+          break;
+        }
+      }
+      if (tooClose) continue;
+
+      // Count neighbors in 3.8m radius to estimate canopy size
+      let clusterCount = 0;
+      let sumR = 0, sumG = 0, sumB = 0;
+      for (const other of candidates) {
+        if (Math.hypot(cand.x - other.x, cand.y - other.y) <= 3.8) {
+          clusterCount++;
+          sumR += other.r;
+          sumG += other.g;
+          sumB += other.b;
+        }
+      }
+
+      const avgR = sumR / clusterCount;
+      const avgG = sumG / clusterCount;
+      const avgB = sumB / clusterCount;
+
+      // Canopy radius based on cluster spread (2.2m to 4.5m)
+      const radius = Math.min(4.5, Math.max(2.2, 1.8 + Math.sqrt(clusterCount) * 0.4));
+      // Conifer if dark bluish-green, else deciduous
+      const isPine = (avgG < 82 && avgB > 45) || (avgG < 75);
+
+      detectedTrees.push({
+        id: 'tree_sat_' + detectedTrees.length + '_' + Date.now(),
+        x: Math.round(cand.x * 10) / 10,
+        y: Math.round(cand.y * 10) / 10,
+        radius: Math.round(radius * 10) / 10,
+        treeType: isPine ? 'pine' : 'deciduous',
+        isReal: true,
+        source: 'satellite'
+      });
+    }
+
+    if (detectedTrees.length > 0) {
+      state.trees = detectedTrees;
+      // Intelligently relocate default building footprint if overlapping dense tree cluster
+      if (state.footprints.length === 1 && state.footprints[0].name.includes('შენობა 1')) {
+        generateDefaultFootprint();
+      }
+      updateZoningCoefficientsUI();
+      renderCadWorld();
+      updateToolStatus(`სატელიტური ორთოფოტოდან ამოცნობილია ${detectedTrees.length} რეალური ხე/ნარგავი.`);
     }
   }
 
@@ -2514,7 +2860,7 @@
 
     // 3. K-3 (გამწვანება და ღია ეზო - მყარი საფარის გამოკლება)
     const roadsArea = (state.roads || []).reduce((sum, r) => {
-      if (!r.points || r.points.length < 2) return sum;
+      if (!r.points || r.points.length < 2 || r.isExternal) return sum;
       let len = 0;
       for (let i = 0; i < r.points.length - 1; i++) len += Math.hypot(r.points[i+1][0] - r.points[i][0], r.points[i+1][1] - r.points[i][1]);
       return sum + len * (r.width || 6.0);
@@ -6271,39 +6617,100 @@
 
     let html = '';
 
-    // Default parcel entrance access road
-    if (state.boundaryMeters && state.boundaryMeters.length >= 3) {
-      const ys = state.boundaryMeters.map(p => p[1]);
-      const maxY = Math.max(...ys);
-      const roadW = 28;
-      const roadH = 6;
-      const rx = -roadW / 2;
-      const ry = maxY + 1;
-
-      html += `
-        <g>
-          <rect x="${rx}" y="${ry}" width="${roadW}" height="${roadH}" fill="var(--road-fill)" stroke="#475569" stroke-width="${0.8 * pxToM}" rx="${1 * pxToM}"/>
-          <line x1="${rx}" y1="${ry + roadH / 2}" x2="${rx + roadW}" y2="${ry + roadH / 2}" stroke="var(--road-stripe, #facc15)" stroke-width="${0.6 * pxToM}" stroke-dasharray="${3 * pxToM}, ${3 * pxToM}"/>
-          <text x="0" y="${ry + roadH / 2 + 1.2 * pxToM}" text-anchor="middle" fill="#94a3b8" font-size="${8 * pxToM}" font-family="Inter, sans-serif" font-weight="600">მისასვლელი გზა (6.0მ)</text>
-        </g>
-      `;
-    }
-
-    // User drawn roads
-    (state.roads || []).forEach(r => {
+    // Render all real roads (from OSM / satellite) and user-drawn roads
+    const roadsList = state.roads || [];
+    roadsList.forEach(r => {
       if (!r.points || r.points.length < 2) return;
       const ptsStr = r.points.map(p => `${p[0]},${p[1]}`).join(' ');
       const roadW = r.width || 6.0;
 
+      // Find segment closest to parcel centroid for optimal badge placement
+      let bestSegIdx = 0;
+      let minD = Infinity;
+      for (let i = 0; i < r.points.length - 1; i++) {
+        const segMid = [(r.points[i][0] + r.points[i + 1][0]) / 2, (r.points[i][1] + r.points[i + 1][1]) / 2];
+        const d = Math.hypot(segMid[0], segMid[1]);
+        if (d < minD) {
+          minD = d;
+          bestSegIdx = i;
+        }
+      }
+
+      const p1 = r.points[bestSegIdx];
+      const p2 = r.points[bestSegIdx + 1];
+      const midX = (p1[0] + p2[0]) / 2;
+      const midY = (p1[1] + p2[1]) / 2;
+      let angle = (Math.atan2(p2[1] - p1[1], p2[0] - p1[0]) * 180) / Math.PI;
+      if (angle > 90) angle -= 180;
+      if (angle < -90) angle += 180;
+
+      const roadName = r.name || `გზა (${roadW}მ)`;
+      const badgeW = Math.max(50 * pxToM, roadName.length * 6.5 * pxToM + 14 * pxToM);
+      const badgeH = 15 * pxToM;
+
       html += `
         <g class="cursor-pointer" onclick="if(state.activeTool==='delete'){deleteRoad('${r.id}');}">
-          <polyline points="${ptsStr}" fill="none" stroke="var(--road-fill)" stroke-width="${roadW}" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
-          <polyline points="${ptsStr}" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="${roadW}" stroke-linecap="round" stroke-linejoin="round"/>
-          <polyline points="${ptsStr}" fill="none" stroke="var(--road-stripe, #facc15)" stroke-width="${Math.max(0.2, 0.6 * pxToM)}" stroke-dasharray="${4 * pxToM}, ${3 * pxToM}" stroke-linecap="round"/>
-          <polyline points="${ptsStr}" fill="none" stroke="transparent" stroke-width="${roadW + 2 * pxToM}" />
+          <!-- Road Bed / Asphalt -->
+          <polyline points="${ptsStr}" fill="none" stroke="var(--road-fill, #334155)" stroke-width="${roadW}" stroke-linecap="round" stroke-linejoin="round" opacity="0.94"/>
+          <!-- Curb lines -->
+          <polyline points="${ptsStr}" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="${roadW}" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="${ptsStr}" fill="none" stroke="rgba(15,23,42,0.6)" stroke-width="${roadW - 0.7 * pxToM}" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="${ptsStr}" fill="none" stroke="var(--road-fill, #334155)" stroke-width="${roadW - 1.4 * pxToM}" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- Centerline marking -->
+          <polyline points="${ptsStr}" fill="none" stroke="var(--road-stripe, #facc15)" stroke-width="${Math.max(0.25, 0.6 * pxToM)}" stroke-dasharray="${4 * pxToM}, ${3 * pxToM}" stroke-linecap="round"/>
+          <!-- Road Name Badge along road angle -->
+          <g transform="translate(${midX}, ${midY}) rotate(${angle})">
+            <rect x="${-badgeW / 2}" y="${-badgeH / 2}" width="${badgeW}" height="${badgeH}" rx="${3 * pxToM}" fill="rgba(15,23,42,0.88)" stroke="#64748b" stroke-width="${0.6 * pxToM}"/>
+            <text x="0" y="${3.2 * pxToM}" text-anchor="middle" fill="#f8fafc" font-size="${7.5 * pxToM}" font-family="Inter, sans-serif" font-weight="600">${roadName}</text>
+          </g>
+          <!-- Hit area for easy selection or deletion -->
+          <polyline points="${ptsStr}" fill="none" stroke="transparent" stroke-width="${roadW + 3 * pxToM}" />
         </g>
       `;
     });
+
+    // Paved Access Driveway Apron connecting parcel's road boundary edge to the road
+    if (state.boundaryMeters && state.boundaryMeters.length >= 3 && state.boundaryEdgeTypes) {
+      const poly = state.boundaryMeters;
+      const n = poly.length;
+      for (let i = 0; i < n; i++) {
+        if (state.boundaryEdgeTypes[i] !== 'road') continue;
+        const e1 = poly[i];
+        const e2 = poly[(i + 1) % n];
+        const edgeMid = [(e1[0] + e2[0]) / 2, (e1[1] + e2[1]) / 2];
+
+        // Find closest point on road centerline
+        let closestRoadPt = null;
+        let minD = Infinity;
+        (state.roads || []).forEach(r => {
+          for (let k = 0; k < r.points.length - 1; k++) {
+            const pA = r.points[k], pB = r.points[k + 1];
+            const dx = pB[0] - pA[0], dy = pB[1] - pA[1];
+            const lenSq = dx * dx + dy * dy;
+            let t = lenSq === 0 ? 0 : Math.max(0, Math.min(1, ((edgeMid[0] - pA[0]) * dx + (edgeMid[1] - pA[1]) * dy) / lenSq));
+            const projPt = [pA[0] + t * dx, pA[1] + t * dy];
+            const d = Math.hypot(edgeMid[0] - projPt[0], edgeMid[1] - projPt[1]);
+            if (d < minD) {
+              minD = d;
+              closestRoadPt = projPt;
+            }
+          }
+        });
+
+        // Draw apron if road is within 22m and at least 1.5m away
+        if (closestRoadPt && minD >= 1.5 && minD <= 22) {
+          const drivePts = `${edgeMid[0]},${edgeMid[1]} ${closestRoadPt[0]},${closestRoadPt[1]}`;
+          html += `
+            <g>
+              <polyline points="${drivePts}" fill="none" stroke="var(--road-fill, #334155)" stroke-width="5.0" stroke-linecap="round" opacity="0.85"/>
+              <polyline points="${drivePts}" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="5.0" stroke-linecap="round"/>
+              <polyline points="${drivePts}" fill="none" stroke="var(--road-fill, #334155)" stroke-width="4.2" stroke-linecap="round"/>
+              <circle cx="${edgeMid[0]}" cy="${edgeMid[1]}" r="${1.2 * pxToM}" fill="#38bdf8"/>
+            </g>
+          `;
+        }
+      }
+    }
 
     els.roadsLayer.innerHTML = html;
   }
