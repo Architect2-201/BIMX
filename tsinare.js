@@ -167,7 +167,7 @@
       description: 'ESRI World Imagery — მაღალი რეზოლუციის ორთოფოტო',
       layers: [
         { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 19, maxNativeZoom: 19 } },
-        { url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', opts: { subdomains: 'abcd', maxZoom: 20 } }
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 19 } }
       ]
     },
     osm: {
@@ -179,68 +179,78 @@
         { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxZoom: 19 } }
       ]
     },
-    carto_voyager: {
-      label: 'CartoDB Voyager',
+    esri_street: {
+      label: 'ESRI Street Map',
       icon: '🧭',
       group: 'road',
-      description: 'CartoDB Voyager — თანამედროვე ნათელი საგზაო რუკა',
+      description: 'ESRI World Street Map — დეტალური საგზაო და სამისამართო რუკა',
       layers: [
-        { url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', opts: { subdomains: 'abcd', maxZoom: 20 } }
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 19 } }
       ]
     },
-    carto_dark: {
-      label: 'CartoDB Dark Matter',
-      icon: '🌑',
-      group: 'dark',
-      description: 'CartoDB Dark Matter — მუქი ფონი CAD ხაზებისთვის',
+    osm_hot: {
+      label: 'OSM Humanitarian',
+      icon: '🏘️',
+      group: 'road',
+      description: 'OSM HOT — ნათელი კონტრასტული შენობები და ქუჩები',
       layers: [
-        { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', opts: { subdomains: 'abcd', maxZoom: 20 } }
+        { url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxZoom: 19 } }
+      ]
+    },
+    cyclosm: {
+      label: 'CyclOSM საინჟინრო',
+      icon: '🚲',
+      group: 'road',
+      description: 'CyclOSM — საინჟინრო და ინფრასტრუქტურული დეტალური რუკა',
+      layers: [
+        { url: 'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxZoom: 18 } }
+      ]
+    },
+    esri_dark_gray: {
+      label: 'ESRI Dark Gray (CAD)',
+      icon: '⬛',
+      group: 'dark',
+      description: 'ESRI Dark Canvas — მუქი ფონი CAD და BIM ხაზებისთვის',
+      layers: [
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 16 } },
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 16 } }
       ]
     },
     esri_gray: {
-      label: 'ESRI Gray Canvas',
+      label: 'ESRI Light Gray',
       icon: '🩶',
       group: 'neutral',
-      description: 'ESRI World Gray Canvas — ნეიტრალური ნაცრისფერი ფონი',
+      description: 'ESRI Light Canvas — ნეიტრალური ნაცრისფერი ფონი',
       layers: [
         { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 16 } },
         { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 16 } }
-      ]
-    },
-    stamen_toner: {
-      label: 'Stamen Toner',
-      icon: '⬛',
-      group: 'dark',
-      description: 'Stamen Toner — მაღალი კონტრასტის შავ-თეთრი CAD სტილი',
-      layers: [
-        { url: 'https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}{r}.png', opts: { maxZoom: 20 } }
-      ]
-    },
-    stamen_terrain: {
-      label: 'Stamen Terrain',
-      icon: '⛰️',
-      group: 'topo',
-      description: 'Stamen Terrain — რელიეფური ტოპოგრაფიული სტილი',
-      layers: [
-        { url: 'https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}{r}.png', opts: { maxZoom: 18 } }
-      ]
-    },
-    stamen_watercolor: {
-      label: 'Stamen Watercolor',
-      icon: '🎨',
-      group: 'artistic',
-      description: 'Stamen Watercolor — მხატვრული აქვარელის სტილი',
-      layers: [
-        { url: 'https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg', opts: { maxZoom: 16 } }
       ]
     },
     opentopomap: {
       label: 'OpenTopoMap',
       icon: '📐',
       group: 'topo',
-      description: 'OpenTopoMap — ტოპოგრაფიული ნიშნულებით და Hillshade-ით',
+      description: 'OpenTopoMap — სიმაღლის იზოჰიფსებით და Hillshade-ით',
       layers: [
         { url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxZoom: 17 } }
+      ]
+    },
+    esri_topo: {
+      label: 'ESRI Topo Map',
+      icon: '⛰️',
+      group: 'topo',
+      description: 'ESRI World Topo Map — გეოდეზიური და ტოპოგრაფიული რუკა',
+      layers: [
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 19 } }
+      ]
+    },
+    esri_shaded_relief: {
+      label: 'ESRI რელიეფი',
+      icon: '🏔️',
+      group: 'topo',
+      description: 'ESRI Shaded Relief — 3D რელიეფური სიმაღლეების დაჩრდილვა',
+      layers: [
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 13 } }
       ]
     }
   };
@@ -2915,11 +2925,11 @@
         cadSvg.style.display = 'block';
         cadSvg.style.pointerEvents = 'none';
       }
-      // In map mode: if currently on satellite, auto-switch to voyager road map
+      // In map mode: if currently on satellite, auto-switch to OSM road map
       if (tsinareMap) {
         const currentBasemap = BASEMAP_REGISTRY[state.activeBasemap];
         if (!currentBasemap || currentBasemap.group === 'satellite') {
-          window.setBasemap('carto_voyager');
+          window.setBasemap('osm');
         }
         if (state.centroidLatLng) tsinareMap.setView(state.centroidLatLng, 18);
         tsinareMap.invalidateSize();

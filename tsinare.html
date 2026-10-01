@@ -1360,52 +1360,51 @@
 
         <!-- Group: საგზაო რუკები -->
         <div class="basemap-group-label">🧭 საგზაო / ქუჩის რუკები</div>
-        <button class="basemap-btn" data-basemap="carto_voyager" onclick="setBasemap('carto_voyager'); closeBasemapDropdown();">
-          <span class="bm-icon">🧭</span>
-          <div><div class="bm-name">CartoDB Voyager</div><div class="bm-desc">თანამედროვე ნათელი საგზაო რუკა</div></div>
-        </button>
         <button class="basemap-btn" data-basemap="osm" onclick="setBasemap('osm'); closeBasemapDropdown();">
           <span class="bm-icon">🗺️</span>
-          <div><div class="bm-name">OpenStreetMap</div><div class="bm-desc">ღია გლობალური საგზაო რუკა (OSM Standard)</div></div>
+          <div><div class="bm-name">OpenStreetMap (OSM)</div><div class="bm-desc">ღია გლობალური საგზაო რუკა (OSM Standard)</div></div>
+        </button>
+        <button class="basemap-btn" data-basemap="esri_street" onclick="setBasemap('esri_street'); closeBasemapDropdown();">
+          <span class="bm-icon">🧭</span>
+          <div><div class="bm-name">ESRI Street Map</div><div class="bm-desc">დეტალური საგზაო და სამისამართო რუკა</div></div>
+        </button>
+        <button class="basemap-btn" data-basemap="osm_hot" onclick="setBasemap('osm_hot'); closeBasemapDropdown();">
+          <span class="bm-icon">🏘️</span>
+          <div><div class="bm-name">OSM Humanitarian</div><div class="bm-desc">ნათელი კონტრასტული შენობები და ქუჩები</div></div>
+        </button>
+        <button class="basemap-btn" data-basemap="cyclosm" onclick="setBasemap('cyclosm'); closeBasemapDropdown();">
+          <span class="bm-icon">🚲</span>
+          <div><div class="bm-name">CyclOSM საინჟინრო</div><div class="bm-desc">დეტალური გზები, ბილიკები და ინფრასტრუქტურა</div></div>
         </button>
 
         <div class="bm-sep"></div>
 
         <!-- Group: მუქი / CAD -->
         <div class="basemap-group-label">⬛ მუქი / CAD სტილი</div>
-        <button class="basemap-btn" data-basemap="carto_dark" onclick="setBasemap('carto_dark'); closeBasemapDropdown();">
-          <span class="bm-icon">🌑</span>
-          <div><div class="bm-name">CartoDB Dark Matter</div><div class="bm-desc">მუქი ფონი CAD ხაზებისთვის</div></div>
-        </button>
-        <button class="basemap-btn" data-basemap="stamen_toner" onclick="setBasemap('stamen_toner'); closeBasemapDropdown();">
+        <button class="basemap-btn" data-basemap="esri_dark_gray" onclick="setBasemap('esri_dark_gray'); closeBasemapDropdown();">
           <span class="bm-icon">⬛</span>
-          <div><div class="bm-name">Stamen Toner</div><div class="bm-desc">მაღალი კონტრასტის შავ-თეთრი CAD სტილი</div></div>
+          <div><div class="bm-name">ESRI Dark Gray (CAD)</div><div class="bm-desc">მუქი ფონი CAD და BIM ხაზების მკვეთრად გამოსაჩენად</div></div>
         </button>
         <button class="basemap-btn" data-basemap="esri_gray" onclick="setBasemap('esri_gray'); closeBasemapDropdown();">
           <span class="bm-icon">🩶</span>
-          <div><div class="bm-name">ESRI Gray Canvas</div><div class="bm-desc">ნეიტრალური ნაცრისფერი ფონი CAD-ისთვის</div></div>
+          <div><div class="bm-name">ESRI Light Gray</div><div class="bm-desc">ნეიტრალური ნაცრისფერი ფონი CAD-ისთვის</div></div>
         </button>
 
         <div class="bm-sep"></div>
 
-        <!-- Group: ტოპოგრაფია -->
-        <div class="basemap-group-label">⛰️ ტოპოგრაფია / რელიეფი</div>
+        <!-- Group: ტოპოგრაფია & რელიეფი -->
+        <div class="basemap-group-label">⛰️ ტოპოგრაფია &amp; რელიეფი</div>
         <button class="basemap-btn" data-basemap="opentopomap" onclick="setBasemap('opentopomap'); closeBasemapDropdown();">
           <span class="bm-icon">📐</span>
-          <div><div class="bm-name">OpenTopoMap</div><div class="bm-desc">ტოპოგრაფიული ნიშნულებით და Hillshade-ით</div></div>
+          <div><div class="bm-name">OpenTopoMap</div><div class="bm-desc">სიმაღლის იზოჰიფსები (Contour lines) და რელიეფი</div></div>
         </button>
-        <button class="basemap-btn" data-basemap="stamen_terrain" onclick="setBasemap('stamen_terrain'); closeBasemapDropdown();">
+        <button class="basemap-btn" data-basemap="esri_topo" onclick="setBasemap('esri_topo'); closeBasemapDropdown();">
           <span class="bm-icon">⛰️</span>
-          <div><div class="bm-name">Stamen Terrain</div><div class="bm-desc">რელიეფური ტოპოგრაფიული სტილი (Stadia Maps)</div></div>
+          <div><div class="bm-name">ESRI Topo Map</div><div class="bm-desc">გეოდეზიური და ტოპოგრაფიული რუკა</div></div>
         </button>
-
-        <div class="bm-sep"></div>
-
-        <!-- Group: მხატვრული -->
-        <div class="basemap-group-label">🎨 მხატვრული</div>
-        <button class="basemap-btn" data-basemap="stamen_watercolor" onclick="setBasemap('stamen_watercolor'); closeBasemapDropdown();">
-          <span class="bm-icon">🎨</span>
-          <div><div class="bm-name">Stamen Watercolor</div><div class="bm-desc">მხატვრული აქვარელის სტილი (Stadia Maps)</div></div>
+        <button class="basemap-btn" data-basemap="esri_shaded_relief" onclick="setBasemap('esri_shaded_relief'); closeBasemapDropdown();">
+          <span class="bm-icon">🏔️</span>
+          <div><div class="bm-name">ESRI Shaded Relief</div><div class="bm-desc">3D რელიეფური სიმაღლეების დაჩრდილვა</div></div>
         </button>
       </div>
     </div>
