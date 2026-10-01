@@ -489,13 +489,31 @@
         { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 18, maxZoom: 22, className: 'tile-filter-sepia-antique' } }
       ]
     },
+    antique_1887: {
+      label: '1887 რუსეთის იმპერიის ტოპო',
+      icon: '📜',
+      group: 'historical',
+      description: '1887 წლის სამხედრო-ტოპოგრაფიული ერთვერსიანი რუკა (ვინტაჟური სეპია)',
+      layers: [
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 18, maxZoom: 22, className: 'tile-filter-sepia-antique' } }
+      ]
+    },
     hist_1942_soviet: {
       label: '1942 გენშტაბის სამხედრო ტოპო',
       icon: '🎖️',
       group: 'historical',
       description: '1942 წლის წითელი არმიის გენშტაბის სამხედრო-ტოპოგრაფიული რუკა',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 18, maxZoom: 22, className: 'tile-filter-soviet-topo' } }
+        { url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxNativeZoom: 17, maxZoom: 22, className: 'tile-filter-soviet-topo' } }
+      ]
+    },
+    soviet_1942: {
+      label: '1942 გენშტაბის სამხედრო ტოპო',
+      icon: '🎖️',
+      group: 'historical',
+      description: '1942 წლის წითელი არმიის გენშტაბის სამხედრო-ტოპოგრაფიული რუკა',
+      layers: [
+        { url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxNativeZoom: 17, maxZoom: 22, className: 'tile-filter-soviet-topo' } }
       ]
     },
     hist_1975_soviet: {
@@ -505,6 +523,24 @@
       description: '1975 წლის ურბანული გენერალური გეგმის ტოპოგრაფიული საფუძველი',
       layers: [
         { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 18, maxZoom: 22, className: 'tile-filter-soviet-70s' } }
+      ]
+    },
+    soviet_1975: {
+      label: '1975 საბჭოთა გენგეგმის ტოპო',
+      icon: '🏗️',
+      group: 'historical',
+      description: '1975 წლის ურბანული გენერალური გეგმის ტოპოგრაფიული საფუძველი',
+      layers: [
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 18, maxZoom: 22, className: 'tile-filter-soviet-70s' } }
+      ]
+    },
+    arcgis_nav: {
+      label: 'ESRI Navigation Charts',
+      icon: '🧭',
+      group: 'topo',
+      description: 'ESRI Navigation Charts — საინჟინრო ნავიგაციური და ტოპოგრაფიული ჩარტები',
+      layers: [
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Specialty/World_Navigation_Charts/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 13, maxZoom: 22 } }
       ]
     }
   };
@@ -527,23 +563,24 @@
   };
 
   const HISTORICAL_YEARS = [
-    { year: 1887, label: '1887 (რუსეთის იმპერია)', desc: '1887 წლის სამხედრო-ტოპოგრაფიული ერთვერსიანი რუკა (ვინტაჟური სეპია)', basemapKey: 'hist_1887_imperial', filterClass: 'tile-filter-sepia-antique' },
-    { year: 1942, label: '1942 (გენშტაბი II მსოფლიო ომი)', desc: '1942 წლის წითელი არმიის გენშტაბის სამხედრო-ტოპოგრაფიული რუკა', basemapKey: 'hist_1942_soviet', filterClass: 'tile-filter-soviet-topo' },
-    { year: 1975, label: '1975 (საბჭოთა გენგეგმა)', desc: '1975 წლის ურბანული გენერალური გეგმის ტოპოგრაფიული საფუძველი', basemapKey: 'hist_1975_soviet', filterClass: 'tile-filter-soviet-70s' },
-    { year: 2004, label: '2004 (ადრეული სატელიტი)', desc: '2004 წლის Landsat / early NASA სატელიტური ორთოფოტოსურათი', basemapKey: 'esri_satellite', filterClass: 'tile-filter-retro-ortho' },
-    { year: 2014, label: '2014 (ESRI Wayback)', desc: '2014 წლის აეროფოტოგადაღება (Release M=5844)', waybackRelease: 5844 },
-    { year: 2016, label: '2016 (ESRI Wayback)', desc: '2016 წლის აეროფოტოგადაღება (Release M=18966)', waybackRelease: 18966 },
-    { year: 2018, label: '2018 (ESRI Wayback)', desc: '2018 წლის ორთოფოტო (Release M=23448)', waybackRelease: 23448 },
-    { year: 2020, label: '2020 (ESRI Wayback)', desc: '2020 წლის სატელიტური ორთოფოტო (Release M=29260)', waybackRelease: 29260 },
-    { year: 2022, label: '2022 (ESRI Wayback)', desc: '2022 წლის მაღალი სიზუსტის ორთოფოტო (Release M=45134)', waybackRelease: 45134 },
-    { year: 2024, label: '2024 (ESRI Wayback)', desc: '2024 წლის ორთოფოტოგადაღება (Release M=16453)', waybackRelease: 16453 },
-    { year: 2026, label: '2026 (უახლესი 2026)', desc: '2026 წლის უახლესი ორთოფოტო და საჯარო რეესტრის კადასტრი (M=26334)', waybackRelease: 26334 }
+    { year: 1887, label: '1887 (რუსეთის იმპერია)', desc: '1887 წლის სამხედრო-ტოპოგრაფიული ერთვერსიანი რუკა (ვინტაჟური სეპია)', basemapKey: 'hist_1887_imperial', filterClass: 'tile-filter-sepia-antique', maxNativeZoom: 18 },
+    { year: 1942, label: '1942 (გენშტაბი II მსოფლიო ომი)', desc: '1942 წლის წითელი არმიის გენშტაბის სამხედრო-ტოპოგრაფიული რუკა', basemapKey: 'hist_1942_soviet', filterClass: 'tile-filter-soviet-topo', maxNativeZoom: 17 },
+    { year: 1975, label: '1975 (საბჭოთა გენგეგმა)', desc: '1975 წლის ურბანული გენერალური გეგმის ტოპოგრაფიული საფუძველი', basemapKey: 'hist_1975_soviet', filterClass: 'tile-filter-soviet-70s', maxNativeZoom: 18 },
+    { year: 2004, label: '2004 (ადრეული სატელიტი)', desc: '2004 წლის Landsat / early NASA სატელიტური ორთოფოტოსურათი', basemapKey: 'esri_satellite', filterClass: 'tile-filter-retro-ortho', maxNativeZoom: 19 },
+    { year: 2014, label: '2014 (ESRI Wayback)', desc: '2014 წლის აეროფოტოგადაღება (Release M=5844)', waybackRelease: 5844, maxNativeZoom: 17 },
+    { year: 2016, label: '2016 (ESRI Wayback)', desc: '2016 წლის აეროფოტოგადაღება (Release M=18966)', waybackRelease: 18966, maxNativeZoom: 18 },
+    { year: 2018, label: '2018 (ESRI Wayback)', desc: '2018 წლის ორთოფოტო (Release M=23448)', waybackRelease: 23448, maxNativeZoom: 18 },
+    { year: 2020, label: '2020 (ESRI Wayback)', desc: '2020 წლის სატელიტური ორთოფოტო (Release M=29260)', waybackRelease: 29260, maxNativeZoom: 18 },
+    { year: 2022, label: '2022 (ESRI Wayback)', desc: '2022 წლის მაღალი სიზუსტის ორთოფოტო (Release M=45134)', waybackRelease: 45134, maxNativeZoom: 18 },
+    { year: 2024, label: '2024 (ESRI Wayback)', desc: '2024 წლის ორთოფოტოგადაღება (Release M=16453)', waybackRelease: 16453, maxNativeZoom: 18 },
+    { year: 2026, label: '2026 (უახლესი 2026)', desc: '2026 წლის უახლესი ორთოფოტო და საჯარო რეესტრის კადასტრი (M=26334)', waybackRelease: 26334, maxNativeZoom: 19 }
   ];
 
   // Active Leaflet tile layer instances (current basemap)
   let tsinareMap = null;
   let parcelPolygonLayer = null;
   let _activeTileLayers = []; // currently rendered Leaflet tile layers
+  let _histFadeTimer = null;
 
   // Switch the Leaflet basemap to any key in BASEMAP_REGISTRY
   window.setBasemap = function (key) {
@@ -562,6 +599,18 @@
         'tile-filter-matrix',
         'tile-filter-high-contrast'
       );
+    }
+
+    // Sync historical index if selecting a historical basemap
+    if (key === 'antique_1887' || key === 'hist_1887_imperial') {
+      state.historicalYearIndex = 0;
+      if (mapEl) mapEl.classList.add('tile-filter-sepia-antique');
+    } else if (key === 'soviet_1942' || key === 'hist_1942_soviet') {
+      state.historicalYearIndex = 1;
+      if (mapEl) mapEl.classList.add('tile-filter-soviet-topo');
+    } else if (key === 'soviet_1975' || key === 'hist_1975_soviet') {
+      state.historicalYearIndex = 2;
+      if (mapEl) mapEl.classList.add('tile-filter-soviet-70s');
     }
 
     // Remove existing base tile layers
@@ -585,9 +634,12 @@
       _activeTileLayers.push(layer);
     });
 
-    // Update picker UI
+    // Update picker UI (handle both aliases and primary keys)
     document.querySelectorAll('.basemap-btn').forEach(b => {
-      if (b.dataset.basemap === key) {
+      const bm = b.dataset.basemap;
+      if (bm === key || (key === 'antique_1887' && bm === 'hist_1887_imperial') || (key === 'hist_1887_imperial' && bm === 'antique_1887') ||
+          (key === 'soviet_1942' && bm === 'hist_1942_soviet') || (key === 'hist_1942_soviet' && bm === 'soviet_1942') ||
+          (key === 'soviet_1975' && bm === 'hist_1975_soviet') || (key === 'hist_1975_soviet' && bm === 'soviet_1975')) {
         b.classList.add('basemap-btn-active');
       } else {
         b.classList.remove('basemap-btn-active');
@@ -622,12 +674,15 @@
         state.historicalPlaying = false;
         const icon = document.getElementById('iconHistoricalPlay');
         if (icon) icon.className = 'fa-solid fa-play';
+        const playBtn = document.getElementById('btnHistoricalPlay');
+        if (playBtn) playBtn.classList.remove('bg-amber-500/40', 'border-amber-400');
       }
       // Revert to active basemap
       window.setBasemap(state.activeBasemap || 'esri_satellite');
     }
   };
 
+  // Smooth Cross-Fading Historical Map Transition (No white/blank flash)
   window.setHistoricalYear = function (indexOrYear) {
     if (!tsinareMap) return;
     let idx = 0;
@@ -641,9 +696,10 @@
     const item = HISTORICAL_YEARS[idx];
     if (!item) return;
 
-    // Remove existing tile layers
-    _activeTileLayers.forEach(l => { if (tsinareMap.hasLayer(l)) tsinareMap.removeLayer(l); });
-    _activeTileLayers = [];
+    if (_histFadeTimer) {
+      clearTimeout(_histFadeTimer);
+      _histFadeTimer = null;
+    }
 
     const mapEl = document.getElementById('tsinareLeafletMap');
     if (mapEl) {
@@ -658,34 +714,94 @@
       if (item.filterClass) {
         mapEl.classList.add(item.filterClass);
       }
-      mapEl.style.opacity = (state.historicalOpacity ?? 0.95).toString();
     }
 
-    // Add appropriate historical tile layer
+    const targetOpacity = state.historicalOpacity ?? 0.95;
+    const oldLayers = [..._activeTileLayers];
+    const newLayers = [];
+
+    // Build new layer definitions
+    const layerDefs = [];
     if (item.waybackRelease) {
       const waybackUrl = `https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/${item.waybackRelease}/{z}/{y}/{x}`;
-      const layer = L.tileLayer(waybackUrl, {
-        minZoom: 1,
-        maxZoom: 22,
-        maxNativeZoom: 19,
-        crossOrigin: 'anonymous'
+      layerDefs.push({
+        url: waybackUrl,
+        opts: {
+          minZoom: 1,
+          maxZoom: 22,
+          maxNativeZoom: item.maxNativeZoom || 18,
+          keepBuffer: 6,
+          crossOrigin: 'anonymous'
+        }
       });
-      layer.addTo(tsinareMap);
-      _activeTileLayers.push(layer);
     } else if (item.basemapKey && BASEMAP_REGISTRY[item.basemapKey]) {
       const cfg = BASEMAP_REGISTRY[item.basemapKey];
       cfg.layers.forEach(def => {
-        const opts = Object.assign({
-          minZoom: 1,
-          maxZoom: 22,
-          maxNativeZoom: 19,
-          crossOrigin: 'anonymous'
-        }, def.opts || {});
-        const layer = L.tileLayer(def.url, opts);
-        layer.addTo(tsinareMap);
-        _activeTileLayers.push(layer);
+        layerDefs.push({
+          url: def.url,
+          opts: Object.assign({
+            minZoom: 1,
+            maxZoom: 22,
+            maxNativeZoom: item.maxNativeZoom || (def.opts && def.opts.maxNativeZoom) || 18,
+            keepBuffer: 6,
+            crossOrigin: 'anonymous',
+            className: item.filterClass || (def.opts && def.opts.className) || ''
+          }, def.opts || {})
+        });
       });
     }
+
+    // Instantiate and add new layers with initial opacity 0 for smooth cross-dissolve
+    layerDefs.forEach(d => {
+      const opts = Object.assign({}, d.opts, {
+        opacity: 0
+      });
+      const layer = L.tileLayer(d.url, opts);
+      layer.addTo(tsinareMap);
+      newLayers.push(layer);
+
+      const container = layer.getContainer ? layer.getContainer() : null;
+      if (container) {
+        container.style.transition = 'opacity 0.75s cubic-bezier(0.4, 0, 0.2, 1)';
+        container.style.opacity = '0';
+      }
+    });
+
+    // Make old layers transition smoothly to opacity 0
+    oldLayers.forEach(l => {
+      const c = l.getContainer ? l.getContainer() : null;
+      if (c) {
+        c.style.transition = 'opacity 0.75s cubic-bezier(0.4, 0, 0.2, 1)';
+      }
+    });
+
+    // Animate opacity in next animation frames
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        newLayers.forEach(l => {
+          l.setOpacity(targetOpacity);
+          const c = l.getContainer ? l.getContainer() : null;
+          if (c) c.style.opacity = targetOpacity.toString();
+        });
+        oldLayers.forEach(l => {
+          l.setOpacity(0);
+          const c = l.getContainer ? l.getContainer() : null;
+          if (c) c.style.opacity = '0';
+        });
+      });
+    });
+
+    _activeTileLayers = newLayers;
+
+    // After animation duration finishes (800ms), safely remove previous layers
+    _histFadeTimer = setTimeout(() => {
+      oldLayers.forEach(l => {
+        if (tsinareMap && tsinareMap.hasLayer(l)) {
+          tsinareMap.removeLayer(l);
+        }
+      });
+      _histFadeTimer = null;
+    }, 800);
 
     // Update UI elements
     const badgeYear = document.getElementById('badgeCurrentHistoricalYear');
@@ -698,6 +814,18 @@
     if (slider && parseInt(slider.value, 10) !== idx) {
       slider.value = idx;
     }
+
+    // Highlight timeline tick labels
+    document.querySelectorAll('.timeline-year-tick').forEach(t => {
+      const tIdx = parseInt(t.dataset.yearIndex, 10);
+      if (tIdx === idx) {
+        t.classList.add('text-amber-300', 'font-bold', 'scale-110');
+        t.classList.remove('text-slate-400');
+      } else {
+        t.classList.remove('text-amber-300', 'font-bold', 'scale-110');
+        t.classList.add('text-slate-400');
+      }
+    });
 
     updateToolStatus(`ისტორიული რუკა: ${item.label} — ${item.desc}`);
     renderCadWorld();
@@ -718,10 +846,11 @@
   window.onHistoricalOpacityInput = function (val) {
     const op = Math.max(0.1, Math.min(1.0, parseInt(val, 10) / 100));
     state.historicalOpacity = op;
-    const mapEl = document.getElementById('tsinareLeafletMap');
-    if (mapEl) {
-      mapEl.style.opacity = op.toString();
-    }
+    _activeTileLayers.forEach(l => {
+      l.setOpacity(op);
+      const c = l.getContainer ? l.getContainer() : null;
+      if (c) c.style.opacity = op.toString();
+    });
     const lbl = document.getElementById('lblHistoricalOpacityVal');
     if (lbl) lbl.innerText = Math.round(op * 100) + '%';
   };
@@ -729,16 +858,19 @@
   window.toggleHistoricalPlay = function () {
     state.historicalPlaying = !state.historicalPlaying;
     const icon = document.getElementById('iconHistoricalPlay');
+    const playBtn = document.getElementById('btnHistoricalPlay');
     if (state.historicalPlaying) {
       if (icon) icon.className = 'fa-solid fa-pause';
+      if (playBtn) playBtn.classList.add('bg-amber-500/40', 'border-amber-400');
       if (state.historicalTimer) clearInterval(state.historicalTimer);
       state.historicalTimer = setInterval(() => {
         let nextIdx = (state.historicalYearIndex || 0) + 1;
         if (nextIdx >= HISTORICAL_YEARS.length) nextIdx = 0;
         window.setHistoricalYear(nextIdx);
-      }, 2400);
+      }, 2800);
     } else {
       if (icon) icon.className = 'fa-solid fa-play';
+      if (playBtn) playBtn.classList.remove('bg-amber-500/40', 'border-amber-400');
       if (state.historicalTimer) {
         clearInterval(state.historicalTimer);
         state.historicalTimer = null;
