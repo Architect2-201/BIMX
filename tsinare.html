@@ -1759,64 +1759,139 @@
 
             <div class="h-5 w-px bg-slate-700/60 flex-none mx-0.5"></div>
 
-            <!-- Architectural Drawing Styles Select -->
-            <div class="flex items-center gap-1 bg-[#121d33] px-2 py-0.5 rounded border border-[#213254] h-8 shrink-0" title="არქიტექტურული ნახაზის სტილი">
-              <i class="fa-solid fa-palette text-amber-400 text-xs"></i>
-              <select id="selCadDrawingStyle" onchange="setDrawingStyle(this.value)" class="bg-transparent text-xs font-semibold text-slate-200 outline-none cursor-pointer max-w-[130px] sm:max-w-[150px]">
-                <optgroup label="🗺️ ტოპოგრაფიული &amp; რელიეფური იერსახეები">
-                  <option value="topographic">🗺️ ტოპოგრაფიული გეოდეზია</option>
-                  <option value="topo_relief_hypsometric">⛰️ რელიეფური ჰიფსომეტრია</option>
-                  <option value="topo_cad_dark">📐 ტოპო-რელიეფი Dark CAD</option>
-                  <option value="topo_blueprint">📜 ტოპო-რელიეფური ბლუპრინტი</option>
-                  <option value="topo_slope_analysis">📐 რელიეფის ქანობების ანალიზი</option>
-                </optgroup>
-                <optgroup label="🏘️ სამეზობლო გარემო &amp; ურბანული კონტექსტი">
-                  <option value="neighborhood_napr">🏛️ სამეზობლო საკადასტრო GIS</option>
-                  <option value="neighborhood_urban_dark">🏙️ სამეზობლო ურბანული Dark</option>
-                  <option value="neighborhood_masterplan">🌳 სამეზობლო გენგეგმა</option>
-                  <option value="neighborhood_cadplot">📄 სამეზობლო Paper Plot</option>
-                  <option value="neighborhood_satellite">🛰️ სამეზობლო სატელიტური</option>
-                </optgroup>
-                <optgroup label="📋 საპროექტო &amp; ოფიციალური ნახაზები">
-                  <option value="autocad">📐 AutoCAD Model (შავი)</option>
-                  <option value="cadplot">📄 AutoCAD Paper (თეთრი)</option>
-                  <option value="napr">🏛️ საჯარო რეესტრის გეგმა</option>
-                  <option value="vellum">📜 კალკა &amp; ტუში</option>
-                  <option value="masterplan">🌳 საპრეზენტაციო გენგეგმა</option>
-                </optgroup>
-                <optgroup label="🎨 დიზაინ &amp; CAD თემები">
-                  <option value="blueprint">📐 Royal Blueprint (ლურჯი)</option>
-                  <option value="classic">🏛️ არქიტექტურული თეთრი</option>
-                  <option value="presentation">🌿 კლასიკური გენგეგმა</option>
-                  <option value="satellite">🛰️ სატელიტური ორთოფოტო</option>
-                  <option value="dark">🌑 OLED Dark CAD</option>
-                  <option value="sepia">📜 ვინტაჟური პერგამენტი</option>
-                  <option value="mono">🏙️ მონოქრომული გრაფიტი</option>
-                  <option value="aqua">💧 საკურორტო აკვა</option>
-                  <option value="scandi">🌲 სკანდინავიური მწვანე</option>
-                  <option value="terracotta">🧱 ტოსკანური ტერაკოტა</option>
-                  <option value="cyberpunk">🌌 კიბერპანკ ნეონი</option>
-                  <option value="municipal">📑 მუნიციპალური / მერიის</option>
-                  <option value="sunset">🌅 ოქროს საათი</option>
-                  <option value="slate">🪨 ფიქალი &amp; სპილენძი</option>
-                  <option value="pastel">🎨 თანამედროვე პასტელი</option>
-                  <option value="graph">📐 მილიმეტრული ბადე</option>
-                  <option value="nordic">⚪ მინიმალისტური თეთრი</option>
-                  <option value="zen">🏯 იაპონური ზენ / Muji</option>
-                  <option value="bauhaus">🏛️ ბაუჰაუსი</option>
-                  <option value="sketch">✏️ ფანქრის ესკიზი</option>
-                  <option value="desert">🏜️ უდაბნოს ქვიშა</option>
-                  <option value="concrete">🏭 ურბანული ბეტონი</option>
-                  <option value="emerald">💎 ზურმუხტისფერი ლუქსი</option>
-                  <option value="nightglow">🌙 ღამის განათება</option>
-                </optgroup>
+            <!-- Architectural Drawing Styles Dropdown -->
+            <div class="relative shrink-0">
+              <button type="button" id="dropdownBtn_styles" onclick="toggleDropdownMenu('menu_styles_dropdown', event)" class="btn-cad-tool h-8 px-2.5 rounded-lg bg-[#142036] border border-[#223354] text-xs font-semibold text-amber-300 hover:text-white hover:bg-[#1a2846] flex items-center gap-1.5 transition shadow-sm" title="არქიტექტურული ნახაზის სტილი">
+                <i class="fa-solid fa-palette text-amber-400 text-xs"></i>
+                <span id="lblActiveCadStyle">სტილი</span>
+                <i class="fa-solid fa-chevron-down text-[8px] text-slate-400 ml-0.5"></i>
+              </button>
+              <div id="menu_styles_dropdown" class="cad-menu-popup hidden absolute right-0 top-full mt-1.5 w-64 max-h-[70vh] overflow-y-auto bg-[#0d1629]/95 backdrop-blur-xl border border-amber-500/40 rounded-xl shadow-2xl p-2 z-50 space-y-1.5 text-xs">
+                <div class="px-2 py-0.5 text-[10px] font-bold text-amber-400 uppercase tracking-wider border-b border-white/5 flex items-center justify-between">
+                  <span>🗺️ ტოპოგრაფიული &amp; რელიეფი</span>
+                  <button type="button" onclick="window.closeAllDropdowns()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <button type="button" onclick="selectCadStyle('topographic', '🗺️ ტოპოგრაფია')" class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-slate-200 hover:bg-amber-500/20 hover:text-amber-300 transition text-left">
+                  <span>🗺️</span> <span>ტოპოგრაფიული გეოდეზია</span>
+                </button>
+                <button type="button" onclick="selectCadStyle('topo_relief_hypsometric', '⛰️ ჰიფსომეტრია')" class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-slate-200 hover:bg-amber-500/20 hover:text-amber-300 transition text-left">
+                  <span>⛰️</span> <span>რელიეფური ჰიფსომეტრია</span>
+                </button>
+                <button type="button" onclick="selectCadStyle('topo_cad_dark', '📐 Dark CAD')" class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-slate-200 hover:bg-amber-500/20 hover:text-amber-300 transition text-left">
+                  <span>📐</span> <span>ტოპო-რელიეფი Dark CAD</span>
+                </button>
+                <button type="button" onclick="selectCadStyle('topo_blueprint', '📜 ბლუპრინტი')" class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-slate-200 hover:bg-amber-500/20 hover:text-amber-300 transition text-left">
+                  <span>📜</span> <span>ტოპო-რელიეფური ბლუპრინტი</span>
+                </button>
+                <button type="button" onclick="selectCadStyle('topo_slope_analysis', '📐 ქანობები')" class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-slate-200 hover:bg-amber-500/20 hover:text-amber-300 transition text-left">
+                  <span>📐</span> <span>რელიეფის ქანობების ანალიზი</span>
+                </button>
+
+                <div class="px-2 pt-1.5 py-0.5 text-[10px] font-bold text-sky-400 uppercase tracking-wider border-b border-white/5">
+                  🏘️ სამეზობლო &amp; GIS
+                </div>
+                <button type="button" onclick="selectCadStyle('neighborhood_napr', '🏛️ სამეზობლო GIS')" class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-slate-200 hover:bg-sky-500/20 hover:text-sky-300 transition text-left">
+                  <span>🏛️</span> <span>სამეზობლო საკადასტრო GIS</span>
+                </button>
+                <button type="button" onclick="selectCadStyle('neighborhood_urban_dark', '🏙️ ურბანული Dark')" class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-slate-200 hover:bg-sky-500/20 hover:text-sky-300 transition text-left">
+                  <span>🏙️</span> <span>სამეზობლო ურბანული Dark</span>
+                </button>
+                <button type="button" onclick="selectCadStyle('neighborhood_masterplan', '🌳 გენგეგმა')" class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-slate-200 hover:bg-sky-500/20 hover:text-sky-300 transition text-left">
+                  <span>🌳</span> <span>სამეზობლო გენგეგმა</span>
+                </button>
+                <button type="button" onclick="selectCadStyle('neighborhood_cadplot', '📄 Paper Plot')" class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-slate-200 hover:bg-sky-500/20 hover:text-sky-300 transition text-left">
+                  <span>📄</span> <span>სამეზობლო Paper Plot</span>
+                </button>
+                <button type="button" onclick="selectCadStyle('neighborhood_satellite', '🛰️ სატელიტური')" class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-slate-200 hover:bg-sky-500/20 hover:text-sky-300 transition text-left">
+                  <span>🛰️</span> <span>სამეზობლო სატელიტური</span>
+                </button>
+
+                <div class="px-2 pt-1.5 py-0.5 text-[10px] font-bold text-cyan-400 uppercase tracking-wider border-b border-white/5">
+                  📋 საპროექტო ნახაზები
+                </div>
+                <button type="button" onclick="selectCadStyle('blueprint', '📐 Blueprint')" class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-slate-200 hover:bg-cyan-500/20 hover:text-cyan-300 transition text-left">
+                  <span>📐</span> <span>Royal Blueprint (ლურჯი)</span>
+                </button>
+                <button type="button" onclick="selectCadStyle('autocad', '📐 AutoCAD შავი')" class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-slate-200 hover:bg-cyan-500/20 hover:text-cyan-300 transition text-left">
+                  <span>📐</span> <span>AutoCAD Model (შავი)</span>
+                </button>
+                <button type="button" onclick="selectCadStyle('cadplot', '📄 AutoCAD თეთრი')" class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-slate-200 hover:bg-cyan-500/20 hover:text-cyan-300 transition text-left">
+                  <span>📄</span> <span>AutoCAD Paper (თეთრი)</span>
+                </button>
+                <button type="button" onclick="selectCadStyle('napr', '🏛️ რეესტრის გეგმა')" class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-slate-200 hover:bg-cyan-500/20 hover:text-cyan-300 transition text-left">
+                  <span>🏛️</span> <span>საჯარო რეესტრის გეგმა</span>
+                </button>
+                <button type="button" onclick="selectCadStyle('satellite', '🛰️ სატელიტი')" class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-slate-200 hover:bg-cyan-500/20 hover:text-cyan-300 transition text-left">
+                  <span>🛰️</span> <span>სატელიტური ორთოფოტო</span>
+                </button>
+                <button type="button" onclick="selectCadStyle('dark', '🌑 OLED Dark')" class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-slate-200 hover:bg-cyan-500/20 hover:text-cyan-300 transition text-left">
+                  <span>🌑</span> <span>OLED Dark CAD</span>
+                </button>
+                <button type="button" onclick="selectCadStyle('presentation', '🌿 პრეზენტაცია')" class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-slate-200 hover:bg-cyan-500/20 hover:text-cyan-300 transition text-left">
+                  <span>🌿</span> <span>კლასიკური გენგეგმა</span>
+                </button>
+                <button type="button" onclick="selectCadStyle('sketch', '✏️ ესკიზი')" class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-slate-200 hover:bg-cyan-500/20 hover:text-cyan-300 transition text-left">
+                  <span>✏️</span> <span>ფანქრის ესკიზი</span>
+                </button>
+              </div>
+
+              <!-- Hidden native select for fallback compatibility -->
+              <select id="selCadDrawingStyle" onchange="setDrawingStyle(this.value)" class="hidden">
+                <option value="topographic">ტოპოგრაფიული გეოდეზია</option>
+                <option value="topo_relief_hypsometric">რელიეფური ჰიფსომეტრია</option>
+                <option value="topo_cad_dark">ტოპო-რელიეფი Dark CAD</option>
+                <option value="topo_blueprint">ტოპო-რელიეფური ბლუპრინტი</option>
+                <option value="topo_slope_analysis">რელიეფის ქანობების ანალიზი</option>
+                <option value="neighborhood_napr">სამეზობლო საკადასტრო GIS</option>
+                <option value="neighborhood_urban_dark">სამეზობლო ურბანული Dark</option>
+                <option value="neighborhood_masterplan">სამეზობლო გენგეგმა</option>
+                <option value="neighborhood_cadplot">სამეზობლო Paper Plot</option>
+                <option value="neighborhood_satellite">სამეზობლო სატელიტური</option>
+                <option value="blueprint" selected>Royal Blueprint</option>
+                <option value="autocad">AutoCAD Model (შავი)</option>
+                <option value="cadplot">AutoCAD Paper (თეთრი)</option>
+                <option value="napr">საჯარო რეესტრის გეგმა</option>
+                <option value="satellite">სატელიტური ორთოფოტო</option>
+                <option value="dark">OLED Dark CAD</option>
+                <option value="presentation">კლასიკური გენგეგმა</option>
+                <option value="sketch">ფანქრის ესკიზი</option>
               </select>
             </div>
 
-            <!-- Architectural Scale Select -->
-            <div class="flex items-center gap-1 bg-[#121d33] px-2 py-0.5 rounded border border-[#213254] h-8 shrink-0" title="ნახაზის მასშტაბი">
-              <i class="fa-solid fa-ruler-combined text-sky-400 text-xs"></i>
-              <select id="selCadScale" onchange="changeCadScale(this.value)" class="bg-transparent text-xs font-mono text-slate-200 outline-none cursor-pointer">
+            <!-- Architectural Scale Dropdown -->
+            <div class="relative shrink-0">
+              <button type="button" id="dropdownBtn_scale" onclick="toggleDropdownMenu('menu_scale_dropdown', event)" class="btn-cad-tool h-8 px-2.5 rounded-lg bg-[#142036] border border-[#223354] text-xs font-mono font-bold text-sky-300 hover:text-white hover:bg-[#1a2846] flex items-center gap-1.5 transition shadow-sm" title="ნახაზის მასშტაბი">
+                <i class="fa-solid fa-ruler-combined text-sky-400 text-xs"></i>
+                <span id="lblActiveCadScale">1:500</span>
+                <i class="fa-solid fa-chevron-down text-[8px] text-slate-400 ml-0.5"></i>
+              </button>
+              <div id="menu_scale_dropdown" class="cad-menu-popup hidden absolute right-0 top-full mt-1.5 w-32 bg-[#0d1629]/95 backdrop-blur-xl border border-sky-500/40 rounded-xl shadow-2xl p-1.5 z-50 space-y-1 text-xs font-mono">
+                <div class="px-2 py-0.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider font-sans border-b border-white/5 flex items-center justify-between">
+                  <span>მასშტაბი</span>
+                  <button type="button" onclick="window.closeAllDropdowns()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <button type="button" onclick="selectCadScale('1:100')" class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-sky-500/20 hover:text-sky-300 transition text-left">
+                  <span>1:100</span>
+                </button>
+                <button type="button" onclick="selectCadScale('1:200')" class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-sky-500/20 hover:text-sky-300 transition text-left">
+                  <span>1:200</span>
+                </button>
+                <button type="button" onclick="selectCadScale('1:500')" class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-sky-300 font-bold bg-sky-500/20 transition text-left">
+                  <span>1:500</span>
+                </button>
+                <button type="button" onclick="selectCadScale('1:1000')" class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-sky-500/20 hover:text-sky-300 transition text-left">
+                  <span>1:1000</span>
+                </button>
+                <button type="button" onclick="selectCadScale('1:2000')" class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-sky-500/20 hover:text-sky-300 transition text-left">
+                  <span>1:2000</span>
+                </button>
+                <button type="button" onclick="selectCadScale('1:5000')" class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-sky-500/20 hover:text-sky-300 transition text-left">
+                  <span>1:5000</span>
+                </button>
+              </div>
+
+              <!-- Hidden native select for fallback compatibility -->
+              <select id="selCadScale" onchange="changeCadScale(this.value)" class="hidden">
                 <option value="1:100">1:100</option>
                 <option value="1:200">1:200</option>
                 <option value="1:500" selected>1:500</option>
@@ -2086,7 +2161,7 @@
           <!-- Tool Status Hint (რეალურ დროში ინსტრუქცია) -->
           <div class="flex items-center gap-1.5 px-2 shrink-0 ml-auto">
             <span class="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
-            <span id="lblToolStatusHint" class="font-medium text-sky-300 text-[11px] truncate max-w-xs inline-block">
+            <span id="lblRibbonToolStatusHint" class="font-medium text-sky-300 text-[11px] truncate max-w-[150px] sm:max-w-[220px] md:max-w-xs inline-block" title="მიმდინარე სტატუსი">
               მზადაა: აირჩიეთ ინსტრუმენტი ან გადააადგილეთ ლაქა
             </span>
           </div>
@@ -2825,6 +2900,6 @@
   </div>
 
   <!-- Core JavaScript Logic -->
-  <script src="tsinare.js?v=20261001_1155"></script>
+  <script src="tsinare.js?v=20261001_1215"></script>
 </body>
 </html>

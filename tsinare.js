@@ -174,7 +174,10 @@
       zoomControl: false,
       attributionControl: false,
       minZoom: 6,
-      maxZoom: 20
+      maxZoom: 20,
+      zoomSnap: 0,
+      zoomDelta: 0.1,
+      wheelPxPerZoomLevel: 120
     });
 
     // High-resolution satellite basemap (Esri World Imagery)
@@ -747,24 +750,14 @@
         if (els.georgiaOverviewOverlay) els.georgiaOverviewOverlay.style.display = 'none';
         if (els.cadSvgContainer) els.cadSvgContainer.style.display = 'block';
 
-        // Animate Leaflet map flyTo parcel centroid
+        // Align Leaflet map with parcel centroid
         if (tsinareMap && state.centroidLatLng) {
           if (parcelPolygonLayer) {
             tsinareMap.removeLayer(parcelPolygonLayer);
+            parcelPolygonLayer = null;
           }
-          const latLngs = state.rawCoordinates.map(c => [c[0], c[1]]);
-          parcelPolygonLayer = L.polygon(latLngs, {
-            color: '#00e5ff',
-            weight: 3.5,
-            fillColor: '#38bdf8',
-            fillOpacity: 0.25,
-            dashArray: '5, 5'
-          }).addTo(tsinareMap);
-
-          tsinareMap.flyTo(state.centroidLatLng, 18, {
-            duration: 2.0,
-            easeLinearity: 0.25
-          });
+          // Do NOT add duplicate dashed polygon to Leaflet - the CAD SVG layer renders the authoritative boundary!
+          tsinareMap.setView(state.centroidLatLng, 18, { animate: false });
         }
 
         updateCadastralSidebarUI();
@@ -2277,6 +2270,13 @@
       selStyle.value = styleName;
     }
 
+    const lblStyle = document.getElementById('lblActiveCadStyle');
+    if (lblStyle) {
+      const fullLabel = (CAD_STYLE_NAMES && CAD_STYLE_NAMES[styleName]) || 'სტილი';
+      const cleanLabel = fullLabel.split('(')[0].trim();
+      lblStyle.innerText = cleanLabel.length > 13 ? cleanLabel.slice(0, 12) + '…' : cleanLabel;
+    }
+
     // Auto-enable corresponding layers when a specialized theme is chosen
     if (styleName.startsWith('topo') || styleName === 'topographic') {
       state.layers.topography = true;
@@ -2342,6 +2342,23 @@
     window.closeAllDropdowns();
   };
 
+  window.selectCadStyle = function (styleKey, label) {
+    window.setDrawingStyle(styleKey);
+    const lbl = document.getElementById('lblActiveCadStyle');
+    if (lbl && label) {
+      const cleanLabel = label.split('(')[0].trim();
+      lbl.innerText = cleanLabel.length > 13 ? cleanLabel.slice(0, 12) + '…' : cleanLabel;
+    }
+    window.closeAllDropdowns();
+  };
+
+  window.selectCadScale = function (scaleVal) {
+    window.changeCadScale(scaleVal);
+    const lbl = document.getElementById('lblActiveCadScale');
+    if (lbl) lbl.innerText = scaleVal;
+    window.closeAllDropdowns();
+  };
+
   window.updateBldDimensions = function () {
     const wEl = document.getElementById('quickBldW_dd');
     const lEl = document.getElementById('quickBldL_dd');
@@ -2383,6 +2400,11 @@
       state.panY = rect.height / 2 - cy * state.zoomScale;
     }
 
+    const lbl = document.getElementById('lblActiveCadScale');
+    if (lbl) lbl.innerText = `1:${ratio}`;
+    const sel = document.getElementById('selCadScale');
+    if (sel) sel.value = `1:${ratio}`;
+
     applyTransform();
     updateToolStatus(`არჩეულია მასშტაბი M 1:${ratio}`);
   };
@@ -2393,12 +2415,12 @@
     const currentRatio = Math.round(METERS_TO_PIXELS_REAL / Math.max(0.001, state.zoomScale));
     els.lblCurrentScaleRatio.innerText = `M 1:${currentRatio}`;
 
-    if (els.selCadScale) {
-      const standards = [100, 200, 500, 1000, 2000, 5000];
-      const closest = standards.reduce((prev, curr) => Math.abs(curr - currentRatio) < Math.abs(prev - currentRatio) ? curr : prev);
-      if (Math.abs(closest - currentRatio) / closest < 0.18) {
-        els.selCadScale.value = `1:${closest}`;
-      }
+    const standards = [100, 200, 500, 1000, 2000, 5000];
+    const closest = standards.reduce((prev, curr) => Math.abs(curr - currentRatio) < Math.abs(prev - currentRatio) ? curr : prev);
+    if (Math.abs(closest - currentRatio) / closest < 0.18) {
+      if (els.selCadScale) els.selCadScale.value = `1:${closest}`;
+      const lblScale = document.getElementById('lblActiveCadScale');
+      if (lblScale) lblScale.innerText = `1:${closest}`;
     }
 
     const targetPx = 110;
@@ -2837,6 +2859,8 @@
 
   function updateToolStatus(text) {
     if (els.lblToolStatusHint) els.lblToolStatusHint.innerText = text;
+    const ribbonHint = document.getElementById('lblRibbonToolStatusHint');
+    if (ribbonHint) ribbonHint.innerText = text;
   }
 
   // --- Footprint Stamp Activation & Templates ---
@@ -3780,12 +3804,46 @@
     return [x, y];
   }
 
+  function syncMapWithCad() {
+    if (!tsinareMap || !state.centroidLatLng || !els.cadSvgContainer) return;
+    if (state.viewMode !== 'hybrid' && state.viewMode !== 'map') return;
+
+    const rect = els.cadSvgContainer.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+
+    // Center of screen in CAD container coordinates
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+
+    // Convert screen center to CAD metric world coordinates (meters relative to centroid)
+    const worldCenterX = (cx - state.panX) / state.zoomScale;
+    const worldCenterY = (cy - state.panY) / state.zoomScale;
+
+    // Convert CAD metric world coords back to WGS84 Lat/Lng
+    const avgLat = state.centroidLatLng[0];
+    const avgLng = state.centroidLatLng[1];
+    const metersPerDegLat = 111132.954;
+    const metersPerDegLng = 111132.954 * Math.cos((avgLat * Math.PI) / 180);
+
+    const lat = avgLat - (worldCenterY / metersPerDegLat);
+    const lng = avgLng + (worldCenterX / metersPerDegLng);
+
+    // Compute Leaflet zoom level matching state.zoomScale (pixels per meter)
+    const cosLat = Math.cos((lat * Math.PI) / 180);
+    const metersPerPixelAtZoom0 = 156543.03392 * cosLat;
+    const targetZoom = Math.log2(Math.max(0.001, state.zoomScale) * metersPerPixelAtZoom0);
+    const clampedZoom = Math.max(6, Math.min(20, targetZoom));
+
+    tsinareMap.setView([lat, lng], clampedZoom, { animate: false });
+  }
+
   function applyTransform() {
     if (els.worldGroup) {
       els.worldGroup.setAttribute('transform', `translate(${state.panX}, ${state.panY}) scale(${state.zoomScale})`);
     }
     updateGraphicScaleBar();
     renderCadWorld();
+    syncMapWithCad();
   }
 
   function checkFootprintHit(worldPos) {
