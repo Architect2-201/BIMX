@@ -1040,6 +1040,10 @@
       display: none !important;
     }
 
+    #cadRibbonRow1 {
+      overflow: visible !important;
+    }
+
     /* Modern Responsive CAD Ribbon Horizontal Scrolling */
     .cad-scroll-row {
       overflow-x: auto;
@@ -1383,7 +1387,7 @@
           <i class="fa-solid fa-chevron-left text-[10px]"></i>
         </button>
 
-        <div id="cadRibbonRow1" class="cad-scroll-row flex-1 flex items-center gap-2 overflow-x-auto text-xs flex-nowrap py-1">
+        <div id="cadRibbonRow1" class="flex-1 flex items-center gap-2 overflow-visible text-xs flex-nowrap py-1">
           <!-- Left Group: Navigation & History -->
           <div class="flex items-center gap-1 shrink-0">
             <button type="button" id="toolBtnPan" onclick="setCadActiveTool('pan')" class="btn-cad-tool btn-tool-active h-8 px-2.5 rounded bg-[#162238] border border-[#243557] text-xs font-medium flex items-center gap-1.5 hover:bg-[#1e2f4f] text-slate-200 transition" title="არჩევა &amp; გადაადგილება [Space / V]">
@@ -1404,32 +1408,266 @@
 
           <div class="h-5 w-px bg-slate-700/60 flex-none mx-0.5"></div>
 
-          <!-- Center Group: CAD Category Switcher Tabs -->
-          <div class="flex items-center gap-1 bg-[#070d1a] p-1 rounded-lg border border-[#1b2b48] shrink-0">
-            <button type="button" id="tabBtn_all_tools" onclick="switchCadRibbonTab('all_tools')" class="btn-ribbon-tab h-7 px-2.5 rounded text-xs flex items-center gap-1.5 transition bg-sky-500/25 border border-sky-400 text-sky-300 font-bold" title="ყველა ხელსაწყო ერთ ხედში (შენობა, ხაზვა, მოდიფიკაცია, გენგეგმა)">
-              <i class="fa-solid fa-toolbox text-xs text-sky-400"></i>
-              <span>ყველა ხელსაწყო</span>
-            </button>
-            <button type="button" id="tabBtn_cad_draw" onclick="switchCadRibbonTab('cad_draw')" class="btn-ribbon-tab h-7 px-2.5 rounded text-xs flex items-center gap-1.5 transition bg-[#142036] border border-[#223354] text-slate-300 hover:text-white" title="ზუსტი ხაზვა: ხაზი, პოლიხაზი, რკალი, წრე, შტრიხი">
-              <i class="fa-solid fa-pen-ruler text-xs text-sky-400"></i>
-              <span>ზუსტი ხაზვა</span>
-            </button>
-            <button type="button" id="tabBtn_buildings" onclick="switchCadRibbonTab('buildings')" class="btn-ribbon-tab h-7 px-2.5 rounded text-xs flex items-center gap-1.5 transition bg-[#142036] border border-[#223354] text-slate-300 hover:text-white" title="შენობის ლაქები &amp; არქიტექტურული ფორმები">
-              <i class="fa-solid fa-building text-xs text-sky-400"></i>
-              <span>შენობები</span>
-            </button>
-            <button type="button" id="tabBtn_cad_modify" onclick="switchCadRibbonTab('cad_modify')" class="btn-ribbon-tab h-7 px-2.5 rounded text-xs flex items-center gap-1.5 transition bg-[#142036] border border-[#223354] text-slate-300 hover:text-white" title="CAD მოდიფიკაცია: ოფსეტი, მოჭრა, გაგრძელება, სარკე, მასივი">
-              <i class="fa-solid fa-arrows-split-up-and-left text-xs text-amber-400"></i>
-              <span>მოდიფიკაცია</span>
-            </button>
-            <button type="button" id="tabBtn_contour_edit" onclick="switchCadRibbonTab('contour_edit')" class="btn-ribbon-tab h-7 px-2.5 rounded text-xs flex items-center gap-1.5 transition bg-[#142036] border border-[#223354] text-slate-300 hover:text-white" title="კონტურის დამუშავება: კუთხეები, მომრგვალება, ჩამოჭრა, გაერთიანება, ატრიუმი">
-              <i class="fa-solid fa-shapes text-xs text-purple-400"></i>
-              <span>კონტური</span>
-            </button>
-            <button type="button" id="tabBtn_site_env" onclick="switchCadRibbonTab('site_env')" class="btn-ribbon-tab h-7 px-2.5 rounded text-xs flex items-center gap-1.5 transition bg-[#142036] border border-[#223354] text-slate-300 hover:text-white" title="გენგეგმა &amp; გარემო: გზა, ბილიკი, პარკინგი, ხეები, აუზი">
-              <i class="fa-solid fa-tree text-xs text-emerald-400"></i>
-              <span>გენგეგმა</span>
-            </button>
+          <!-- Center Group: CAD Category Dropdown Menus (ჩამოსაშლელი ხელსაწყოები) -->
+          <div class="flex items-center gap-1.5 shrink-0">
+            <!-- 1. ხაზვა Dropdown -->
+            <div class="relative shrink-0">
+              <button type="button" id="dropdownBtn_draw" onclick="toggleDropdownMenu('menu_draw_dropdown', event)" class="btn-cad-tool h-8 px-2.5 rounded-lg bg-[#142036] border border-[#223354] text-xs font-semibold text-cyan-300 hover:text-white hover:bg-[#1a2846] flex items-center gap-1.5 transition shadow-sm" title="ზუსტი ხაზვის ხელსაწყოები: ხაზი, პოლიხაზი, რკალი, წრე, შტრიხი [L, PL, A, C]">
+                <i class="fa-solid fa-pen-ruler text-cyan-400"></i>
+                <span id="lblActive_draw_Tool">ხაზვა</span>
+                <i class="fa-solid fa-chevron-down text-[8px] text-slate-400 ml-0.5"></i>
+              </button>
+              <div id="menu_draw_dropdown" class="cad-menu-popup hidden absolute left-0 top-full mt-1.5 w-64 bg-[#0d1629]/95 backdrop-blur-xl border border-cyan-500/40 rounded-xl shadow-2xl p-2 z-50 space-y-1 text-xs">
+                <div class="px-2 py-1 text-[10px] font-bold text-cyan-400 uppercase tracking-wider border-b border-white/5 flex items-center justify-between">
+                  <span>📐 ზუსტი ხაზვა</span>
+                  <span class="text-slate-400 font-mono text-[9px]">[L, PL, A, C]</span>
+                </div>
+                <button type="button" onclick="selectDropdownTool('draw', 'draw_cad_line', 'ხაზი [L]', '<i class=\'fa-solid fa-slash text-cyan-400\'></i>')" class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-cyan-500/20 hover:text-cyan-300 transition text-left">
+                  <i class="fa-solid fa-slash text-cyan-400 text-sm w-4 text-center"></i>
+                  <div class="flex-1">
+                    <div class="font-bold flex items-center justify-between"><span>ხაზი (Line)</span><span class="text-[10px] font-mono text-cyan-400">[L]</span></div>
+                    <div class="text-[10px] text-slate-400">2-წერტილიანი CAD ხაზი</div>
+                  </div>
+                </button>
+                <button type="button" onclick="selectDropdownTool('draw', 'draw_cad_polyline', 'პოლიხაზი [PL]', '<i class=\'fa-solid fa-chart-line text-sky-400\'></i>')" class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-sky-500/20 hover:text-sky-300 transition text-left">
+                  <i class="fa-solid fa-chart-line text-sky-400 text-sm w-4 text-center"></i>
+                  <div class="flex-1">
+                    <div class="font-bold flex items-center justify-between"><span>პოლიხაზი (Polyline)</span><span class="text-[10px] font-mono text-sky-400">[PL]</span></div>
+                    <div class="text-[10px] text-slate-400">უწყვეტი სეგმენტები, დასრულება Enter</div>
+                  </div>
+                </button>
+                <button type="button" onclick="selectDropdownTool('draw', 'draw_cad_arc', 'რკალი [A]', '<i class=\'fa-solid fa-bezier-curve text-amber-400\'></i>')" class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-amber-500/20 hover:text-amber-300 transition text-left">
+                  <i class="fa-solid fa-bezier-curve text-amber-400 text-sm w-4 text-center"></i>
+                  <div class="flex-1">
+                    <div class="font-bold flex items-center justify-between"><span>რკალი (Arc)</span><span class="text-[10px] font-mono text-amber-400">[A]</span></div>
+                    <div class="text-[10px] text-slate-400">3-წერტილიანი რადიუსული რკალი</div>
+                  </div>
+                </button>
+                <button type="button" onclick="selectDropdownTool('draw', 'draw_cad_circle', 'წრე [C]', '<i class=\'fa-regular fa-circle text-emerald-400\'></i>')" class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-emerald-500/20 hover:text-emerald-300 transition text-left">
+                  <i class="fa-regular fa-circle text-emerald-400 text-sm w-4 text-center"></i>
+                  <div class="flex-1">
+                    <div class="font-bold flex items-center justify-between"><span>წრე (Circle)</span><span class="text-[10px] font-mono text-emerald-400">[C]</span></div>
+                    <div class="text-[10px] text-slate-400">ცენტრი და რადიუსი</div>
+                  </div>
+                </button>
+                <button type="button" onclick="selectDropdownTool('draw', 'draw_cad_hatch', 'შტრიხი', '<i class=\'fa-solid fa-border-all text-purple-400\'></i>')" class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-purple-500/20 hover:text-purple-300 transition text-left">
+                  <i class="fa-solid fa-border-all text-purple-400 text-sm w-4 text-center"></i>
+                  <div class="flex-1">
+                    <div class="font-bold">შტრიხი (Hatch)</div>
+                    <div class="text-[10px] text-slate-400">დაშტრიხვა / გრაფიკული შევსება</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <!-- 2. შენობები Dropdown -->
+            <div class="relative shrink-0">
+              <button type="button" id="dropdownBtn_buildings" onclick="toggleDropdownMenu('menu_buildings_dropdown', event)" class="btn-cad-tool h-8 px-2.5 rounded-lg bg-[#142036] border border-[#223354] text-xs font-semibold text-sky-300 hover:text-white hover:bg-[#1a2846] flex items-center gap-1.5 transition shadow-sm" title="შენობის ლაქები, პოლიგონები &amp; ბლოკის შტამპი [B]">
+                <i class="fa-solid fa-building text-sky-400"></i>
+                <span id="lblActive_buildings_Tool">შენობა</span>
+                <i class="fa-solid fa-chevron-down text-[8px] text-slate-400 ml-0.5"></i>
+              </button>
+              <div id="menu_buildings_dropdown" class="cad-menu-popup hidden absolute left-0 top-full mt-1.5 w-72 bg-[#0d1629]/95 backdrop-blur-xl border border-sky-500/40 rounded-xl shadow-2xl p-2 z-50 space-y-1 text-xs">
+                <div class="px-2 py-1 text-[10px] font-bold text-sky-400 uppercase tracking-wider border-b border-white/5 flex items-center justify-between">
+                  <span>🏢 შენობების არქიტექტურა</span>
+                  <span class="text-slate-400 font-mono text-[9px]">[B, ✏️]</span>
+                </div>
+                <button type="button" onclick="selectDropdownTool('buildings', 'draw_rect_footprint', 'მართკუთხა ლაქა', '<i class=\'fa-solid fa-vector-square text-sky-400\'></i>')" class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-sky-500/20 hover:text-sky-300 transition text-left">
+                  <i class="fa-solid fa-vector-square text-sky-400 text-sm w-4 text-center"></i>
+                  <div class="flex-1">
+                    <div class="font-bold">მართკუთხა ლაქა</div>
+                    <div class="text-[10px] text-slate-400">2-წერტილიანი დიაგონალური მოხაზვა</div>
+                  </div>
+                </button>
+                <button type="button" onclick="selectDropdownTool('buildings', 'draw_polygon', 'პოლიგონალური ლაქა', '<i class=\'fa-solid fa-draw-polygon text-purple-400\'></i>')" class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-purple-500/20 hover:text-purple-300 transition text-left">
+                  <i class="fa-solid fa-draw-polygon text-purple-400 text-sm w-4 text-center"></i>
+                  <div class="flex-1">
+                    <div class="font-bold">თავისუფალი პოლიგონი</div>
+                    <div class="text-[10px] text-slate-400">მრავალკუთხა კონტური, ორმაგი კლიკით</div>
+                  </div>
+                </button>
+                <button type="button" onclick="selectDropdownTool('buildings', 'stamp_footprint', 'ბლოკი [B]', '<i class=\'fa-solid fa-stamp text-cyan-400\'></i>')" class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-cyan-500/20 hover:text-cyan-300 transition text-left">
+                  <i class="fa-solid fa-stamp text-cyan-400 text-sm w-4 text-center"></i>
+                  <div class="flex-1">
+                    <div class="font-bold flex items-center justify-between"><span>ბლოკის შტამპი</span><span class="text-[10px] font-mono text-cyan-400">[B]</span></div>
+                    <div class="text-[10px] text-slate-400">მზა პარამეტრული შენობის 1-კლიკით დასმა</div>
+                  </div>
+                </button>
+                <div class="mt-2 pt-2 border-t border-white/5 px-2 space-y-1.5 bg-[#090f1d] rounded-lg p-2">
+                  <div class="text-[10px] font-mono text-slate-400 uppercase font-semibold">შტამპის პარამეტრები:</div>
+                  <div class="grid grid-cols-3 gap-1.5">
+                    <div>
+                      <span class="text-[9px] text-slate-400">სიგანე</span>
+                      <input type="number" id="quickBldW_dd" value="15" step="1" min="3" onchange="updateBldDimensions()" class="w-full bg-[#121c33] border border-[#213254] rounded px-1.5 py-0.5 font-mono text-sky-300 text-xs">
+                    </div>
+                    <div>
+                      <span class="text-[9px] text-slate-400">სიგრძე</span>
+                      <input type="number" id="quickBldL_dd" value="12" step="1" min="3" onchange="updateBldDimensions()" class="w-full bg-[#121c33] border border-[#213254] rounded px-1.5 py-0.5 font-mono text-sky-300 text-xs">
+                    </div>
+                    <div>
+                      <span class="text-[9px] text-slate-400">სართული</span>
+                      <input type="number" id="quickBldFloors_dd" value="4" step="1" min="1" max="25" onchange="updateBldDimensions()" class="w-full bg-[#121c33] border border-[#213254] rounded px-1.5 py-0.5 font-mono text-amber-300 text-xs">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. მოდიფიკაცია Dropdown -->
+            <div class="relative shrink-0">
+              <button type="button" id="dropdownBtn_modify" onclick="toggleDropdownMenu('menu_modify_dropdown', event)" class="btn-cad-tool h-8 px-2.5 rounded-lg bg-[#142036] border border-[#223354] text-xs font-semibold text-amber-300 hover:text-white hover:bg-[#1a2846] flex items-center gap-1.5 transition shadow-sm" title="CAD მოდიფიკაციის ხელსაწყოები [O, X, Mirror, Array]">
+                <i class="fa-solid fa-arrows-split-up-and-left text-amber-400"></i>
+                <span id="lblActive_modify_Tool">მოდიფიკაცია</span>
+                <i class="fa-solid fa-chevron-down text-[8px] text-slate-400 ml-0.5"></i>
+              </button>
+              <div id="menu_modify_dropdown" class="cad-menu-popup hidden absolute left-0 top-full mt-1.5 w-64 bg-[#0d1629]/95 backdrop-blur-xl border border-amber-500/40 rounded-xl shadow-2xl p-2 z-50 space-y-1 text-xs">
+                <div class="px-2 py-1 text-[10px] font-bold text-amber-400 uppercase tracking-wider border-b border-white/5 flex items-center justify-between">
+                  <span>↔️ CAD მოდიფიკაცია</span>
+                  <span class="text-slate-400 font-mono text-[9px]">[O, X]</span>
+                </div>
+                <button type="button" onclick="selectDropdownTool('modify', 'cad_offset', 'ოფსეტი [O]', '<i class=\'fa-solid fa-arrows-left-right text-amber-400\'></i>')" class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-amber-500/20 hover:text-amber-300 transition text-left">
+                  <i class="fa-solid fa-arrows-left-right text-amber-400 text-sm w-4 text-center"></i>
+                  <div class="flex-1">
+                    <div class="font-bold flex items-center justify-between"><span>ოფსეტი (Offset)</span><span class="text-[10px] font-mono text-amber-400">[O]</span></div>
+                    <div class="text-[10px] text-slate-400">პარალელური კონტურის გადატანა</div>
+                  </div>
+                </button>
+                <button type="button" onclick="selectDropdownTool('modify', 'cad_trim', 'მოჭრა (Trim)', '<i class=\'fa-solid fa-crop-simple text-rose-400\'></i>')" class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-rose-500/20 hover:text-rose-300 transition text-left">
+                  <i class="fa-solid fa-crop-simple text-rose-400 text-sm w-4 text-center"></i>
+                  <div class="flex-1">
+                    <div class="font-bold flex items-center justify-between"><span>მოჭრა (Trim)</span><span class="text-[10px] font-mono text-rose-400">[X]</span></div>
+                    <div class="text-[10px] text-slate-400">გადამკვეთი ხაზების ჩამოჭრა</div>
+                  </div>
+                </button>
+                <button type="button" onclick="selectDropdownTool('modify', 'cad_extend', 'გაგრძელება', '<i class=\'fa-solid fa-arrow-right-to-bracket text-sky-400\'></i>')" class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-sky-500/20 hover:text-sky-300 transition text-left">
+                  <i class="fa-solid fa-arrow-right-to-bracket text-sky-400 text-sm w-4 text-center"></i>
+                  <div class="flex-1">
+                    <div class="font-bold">გაგრძელება (Extend)</div>
+                    <div class="text-[10px] text-slate-400">ხაზის საზღვრამდე გაგრძელება</div>
+                  </div>
+                </button>
+                <button type="button" onclick="selectDropdownTool('modify', 'cad_mirror', 'სარკე (Mirror)', '<i class=\'fa-solid fa-arrows-split-up-and-left text-purple-400\'></i>')" class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-purple-500/20 hover:text-purple-300 transition text-left">
+                  <i class="fa-solid fa-arrows-split-up-and-left text-purple-400 text-sm w-4 text-center"></i>
+                  <div class="flex-1">
+                    <div class="font-bold">სარკე (Mirror)</div>
+                    <div class="text-[10px] text-slate-400">ობიექტის სიმეტრიული არეკვლა</div>
+                  </div>
+                </button>
+                <button type="button" onclick="selectDropdownTool('modify', 'cad_array', 'მასივი (Array)', '<i class=\'fa-solid fa-table-cells text-cyan-400\'></i>')" class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-cyan-500/20 hover:text-cyan-300 transition text-left">
+                  <i class="fa-solid fa-table-cells text-cyan-400 text-sm w-4 text-center"></i>
+                  <div class="flex-1">
+                    <div class="font-bold">მართკუთხა მასივი</div>
+                    <div class="text-[10px] text-slate-400">რიგებად და სვეტებად გამრავლება</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <!-- 4. კონტური Dropdown -->
+            <div class="relative shrink-0">
+              <button type="button" id="dropdownBtn_contour" onclick="toggleDropdownMenu('menu_contour_dropdown', event)" class="btn-cad-tool h-8 px-2.5 rounded-lg bg-[#142036] border border-[#223354] text-xs font-semibold text-purple-300 hover:text-white hover:bg-[#1a2846] flex items-center gap-1.5 transition shadow-sm" title="კონტურის დამუშავება: კუთხეები, Fillet, Chamfer, ატრიუმი">
+                <i class="fa-solid fa-shapes text-purple-400"></i>
+                <span id="lblActive_contour_Tool">კონტური</span>
+                <i class="fa-solid fa-chevron-down text-[8px] text-slate-400 ml-0.5"></i>
+              </button>
+              <div id="menu_contour_dropdown" class="cad-menu-popup hidden absolute left-0 top-full mt-1.5 w-64 bg-[#0d1629]/95 backdrop-blur-xl border border-purple-500/40 rounded-xl shadow-2xl p-2 z-50 space-y-1 text-xs">
+                <div class="px-2 py-1 text-[10px] font-bold text-purple-400 uppercase tracking-wider border-b border-white/5 flex items-center justify-between">
+                  <span>🔘 კონტურის რედაქტირება</span>
+                </div>
+                <button type="button" onclick="selectDropdownTool('contour', 'footprint_vertex', 'კუთხეები/წვეროები', '<i class=\'fa-solid fa-crosshairs text-sky-400\'></i>')" class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-sky-500/20 hover:text-sky-300 transition text-left">
+                  <i class="fa-solid fa-crosshairs text-sky-400 text-sm w-4 text-center"></i>
+                  <div class="flex-1">
+                    <div class="font-bold">🎯 წვეროების მართვა</div>
+                    <div class="text-[10px] text-slate-400">კუთხეების გადაადგილება და დამატება</div>
+                  </div>
+                </button>
+                <button type="button" onclick="selectDropdownTool('contour', 'footprint_vertex', 'Fillet (მომრგვალება)', '<i class=\'fa-regular fa-circle-dot text-amber-400\'></i>'); quickFillet();" class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-amber-500/20 hover:text-amber-300 transition text-left">
+                  <i class="fa-regular fa-circle-dot text-amber-400 text-sm w-4 text-center"></i>
+                  <div class="flex-1">
+                    <div class="font-bold">🔘 Fillet (მომრგვალება)</div>
+                    <div class="text-[10px] text-slate-400">კუთხეების რადიუსული მომრგვალება (2.0მ)</div>
+                  </div>
+                </button>
+                <button type="button" onclick="selectDropdownTool('contour', 'footprint_vertex', 'Chamfer (ჩამოჭრა)', '<i class=\'fa-solid fa-draw-polygon text-emerald-400\'></i>'); quickChamfer();" class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-emerald-500/20 hover:text-emerald-300 transition text-left">
+                  <i class="fa-solid fa-draw-polygon text-emerald-400 text-sm w-4 text-center"></i>
+                  <div class="flex-1">
+                    <div class="font-bold">📐 Chamfer (ჩამოჭრა)</div>
+                    <div class="text-[10px] text-slate-400">კუთხეების სწორხაზოვანი ჩამოჭრა (1.5მ)</div>
+                  </div>
+                </button>
+                <button type="button" onclick="selectDropdownTool('contour', 'footprint_cutout', 'ატრიუმი / ეზო', '<i class=\'fa-solid fa-ring text-rose-400\'></i>')" class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-rose-500/20 hover:text-rose-300 transition text-left">
+                  <i class="fa-solid fa-ring text-rose-400 text-sm w-4 text-center"></i>
+                  <div class="flex-1">
+                    <div class="font-bold">🕳️ ატრიუმის ამოჭრა</div>
+                    <div class="text-[10px] text-slate-400">შიდა გამჭოლი ეზოს მოხაზვა ლაქაში</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <!-- 5. გენგეგმა & გარემო Dropdown -->
+            <div class="relative shrink-0">
+              <button type="button" id="dropdownBtn_site" onclick="toggleDropdownMenu('menu_site_dropdown', event)" class="btn-cad-tool h-8 px-2.5 rounded-lg bg-[#142036] border border-[#223354] text-xs font-semibold text-emerald-300 hover:text-white hover:bg-[#1a2846] flex items-center gap-1.5 transition shadow-sm" title="გენგეგმის ელემენტები: გზა, ბილიკი, პარკინგი, ხეები, აუზი, ტერასა [G, K, P, T, W, R]">
+                <i class="fa-solid fa-tree text-emerald-400"></i>
+                <span id="lblActive_site_Tool">გენგეგმა</span>
+                <i class="fa-solid fa-chevron-down text-[8px] text-slate-400 ml-0.5"></i>
+              </button>
+              <div id="menu_site_dropdown" class="cad-menu-popup hidden absolute left-0 top-full mt-1.5 w-64 bg-[#0d1629]/95 backdrop-blur-xl border border-emerald-500/40 rounded-xl shadow-2xl p-2 z-50 space-y-1 text-xs">
+                <div class="px-2 py-1 text-[10px] font-bold text-emerald-400 uppercase tracking-wider border-b border-white/5 flex items-center justify-between">
+                  <span>🌳 გენგეგმა &amp; გარემო</span>
+                  <span class="text-slate-400 font-mono text-[9px]">[G, K, P, T, W, R]</span>
+                </div>
+                <button type="button" onclick="selectDropdownTool('site', 'draw_road', 'სამანქანო გზა [G]', '<i class=\'fa-solid fa-road text-blue-400\'></i>')" class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-blue-500/20 hover:text-blue-300 transition text-left">
+                  <i class="fa-solid fa-road text-blue-400 text-sm w-4 text-center"></i>
+                  <div class="flex-1">
+                    <div class="font-bold flex items-center justify-between"><span>გზა (Road)</span><span class="text-[10px] font-mono text-blue-400">[G]</span></div>
+                    <div class="text-[10px] text-slate-400">სამანქანო / სახანძრო გზა (6.0მ)</div>
+                  </div>
+                </button>
+                <button type="button" onclick="selectDropdownTool('site', 'walkway', 'საფეხმავლო ბილიკი [K]', '<i class=\'fa-solid fa-shoe-prints text-cyan-400\'></i>')" class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-cyan-500/20 hover:text-cyan-300 transition text-left">
+                  <i class="fa-solid fa-shoe-prints text-cyan-400 text-sm w-4 text-center"></i>
+                  <div class="flex-1">
+                    <div class="font-bold flex items-center justify-between"><span>ბილიკი (Walkway)</span><span class="text-[10px] font-mono text-cyan-400">[K]</span></div>
+                    <div class="text-[10px] text-slate-400">მოპირკეთებული საფეხმავლო (1.8მ)</div>
+                  </div>
+                </button>
+                <button type="button" onclick="selectDropdownTool('site', 'parking', 'პარკინგი [P]', '<i class=\'fa-solid fa-square-parking text-sky-400\'></i>')" class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-sky-500/20 hover:text-sky-300 transition text-left">
+                  <i class="fa-solid fa-square-parking text-sky-400 text-sm w-4 text-center"></i>
+                  <div class="flex-1">
+                    <div class="font-bold flex items-center justify-between"><span>პარკინგი (Parking)</span><span class="text-[10px] font-mono text-sky-400">[P]</span></div>
+                    <div class="text-[10px] text-slate-400">სტანდარტული ავტოსადგომი (2.5×5მ)</div>
+                  </div>
+                </button>
+                <button type="button" onclick="selectDropdownTool('site', 'tree', 'ხეები & გამწვანება [T]', '<i class=\'fa-solid fa-tree text-emerald-400\'></i>')" class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-emerald-500/20 hover:text-emerald-300 transition text-left">
+                  <i class="fa-solid fa-tree text-emerald-400 text-sm w-4 text-center"></i>
+                  <div class="flex-1">
+                    <div class="font-bold flex items-center justify-between"><span>ხე &amp; გამწვანება</span><span class="text-[10px] font-mono text-emerald-400">[T]</span></div>
+                    <div class="text-[10px] text-slate-400">ხეების დარგვა და K-3 კოეფიციენტი</div>
+                  </div>
+                </button>
+                <button type="button" onclick="selectDropdownTool('site', 'water', 'აუზი & წყალი [W]', '<i class=\'fa-solid fa-water-ladder text-cyan-400\'></i>')" class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-cyan-500/20 hover:text-cyan-300 transition text-left">
+                  <i class="fa-solid fa-water-ladder text-cyan-400 text-sm w-4 text-center"></i>
+                  <div class="flex-1">
+                    <div class="font-bold flex items-center justify-between"><span>აუზი &amp; წყალი</span><span class="text-[10px] font-mono text-cyan-400">[W]</span></div>
+                    <div class="text-[10px] text-slate-400">საცურაო აუზი და წყლის სარკე</div>
+                  </div>
+                </button>
+                <button type="button" onclick="selectDropdownTool('site', 'terrace', 'ხის ტერასა', '<i class=\'fa-solid fa-layer-group text-amber-400\'></i>')" class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-amber-500/20 hover:text-amber-300 transition text-left">
+                  <i class="fa-solid fa-layer-group text-amber-400 text-sm w-4 text-center"></i>
+                  <div class="flex-1">
+                    <div class="font-bold">ხის ტერასა (Deck)</div>
+                    <div class="text-[10px] text-slate-400">გარე ტერასები და ფანჩატურები</div>
+                  </div>
+                </button>
+                <button type="button" onclick="selectDropdownTool('site', 'ruler', 'საზომი [R]', '<i class=\'fa-solid fa-ruler-combined text-amber-400\'></i>')" class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-amber-500/20 hover:text-amber-300 transition text-left">
+                  <i class="fa-solid fa-ruler-combined text-amber-400 text-sm w-4 text-center"></i>
+                  <div class="flex-1">
+                    <div class="font-bold flex items-center justify-between"><span>მანძილის საზომი</span><span class="text-[10px] font-mono text-amber-400">[R]</span></div>
+                    <div class="text-[10px] text-slate-400">წერტილებს შორის მანძილის გაზომვა</div>
+                  </div>
+                </button>
+              </div>
+            </div>
           </div>
 
           <div class="h-5 w-px bg-slate-700/60 flex-none mx-0.5"></div>
@@ -1602,6 +1840,14 @@
 
         <div id="cadRibbonRow2" class="cad-scroll-row flex-1 flex items-center gap-2 overflow-x-auto text-xs flex-nowrap py-1">
           
+          <!-- Active Tool Indicator Pill -->
+          <div id="cadActiveToolBadge" class="flex items-center gap-1.5 bg-[#0e172a] px-2.5 py-1 rounded-lg border border-sky-500/40 text-xs font-semibold text-sky-300 shrink-0 shadow-sm" title="მიმდინარე აქტიური ხელსაწყო">
+            <span class="text-[10px] text-slate-400 uppercase tracking-wider font-normal">არჩეულია:</span>
+            <span id="activeToolIcon"><i class="fa-solid fa-arrow-pointer text-sky-400"></i></span>
+            <span id="activeToolName" class="text-white font-bold">არჩევა [V]</span>
+          </div>
+          <div class="h-4 w-px bg-slate-700/60 flex-none mx-0.5"></div>
+
           <!-- SUBPANEL 0: ყველა ხელსაწყო (ALL TOOLS - COMPLETE ARCHITECTURAL PALETTE) -->
           <div id="panel_all_tools" class="cad-subpanel flex items-center gap-2 flex-nowrap shrink-0">
             <!-- Group A: ხაზვა (Drafting) -->
@@ -2640,6 +2886,6 @@
   </div>
 
   <!-- Core JavaScript Logic -->
-  <script src="tsinare.js?v=20260930_1852"></script>
+  <script src="tsinare.js?v=20261001_1110"></script>
 </body>
 </html>
