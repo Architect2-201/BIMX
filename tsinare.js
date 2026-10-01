@@ -1003,29 +1003,11 @@
           </div>`;
       } else {
         list.innerHTML = `
-          <div class="sh-empty pb-3">
+          <div class="sh-empty py-4">
             <i class="fa-solid fa-clock-rotate-left text-sky-400 text-lg mb-1.5 block"></i>
             <div class="text-slate-200 font-bold text-xs mb-1">ძებნის ისტორია ცარიელია</div>
-            <div class="text-[10.5px] text-slate-400">მოძებნილი საკადასტრო კოდები შეინახება აქ სწრაფი წვდომისთვის.</div>
-          </div>
-          <div class="sh-section-label" style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px;">
-            <i class="fa-solid fa-bolt text-amber-400 mr-1"></i>სწრაფი ნიმუშები
-          </div>
-          <button type="button" class="sh-item" onclick="selectHistoryItem('01.15.05.070.108')">
-            <i class="sh-icon fa-solid fa-location-dot text-sky-400"></i>
-            <span class="sh-code">01.15.05.070.108</span>
-            <span class="sh-addr">თბილისი, ჭავჭავაძის გამზ.</span>
-          </button>
-          <button type="button" class="sh-item" onclick="selectHistoryItem('01.14.11.059.039')">
-            <i class="sh-icon fa-solid fa-location-dot text-sky-400"></i>
-            <span class="sh-code">01.14.11.059.039</span>
-            <span class="sh-addr">თბილისი, წერეთლის გამზ.</span>
-          </button>
-          <button type="button" class="sh-item" onclick="selectHistoryItem('72.13.12.125')">
-            <i class="sh-icon fa-solid fa-location-dot text-sky-400"></i>
-            <span class="sh-code">72.13.12.125</span>
-            <span class="sh-addr">მცხეთის რაიონი</span>
-          </button>`;
+            <div class="text-[10.5px] text-slate-400">მოძებნილი საკადასტრო კოდები ავტომატურად შეინახება აქ.</div>
+          </div>`;
       }
       return;
     }
