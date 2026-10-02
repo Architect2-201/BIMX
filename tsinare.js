@@ -57,11 +57,13 @@
     bikePaths: [], // [{ id, points: [[x,y]...], width: 2.0 }]
     hedges: [], // [{ id, points: [[x,y]...], width: 1.0 }]
     fountains: [], // [{ id, x, y, radius: 2.5 }]
-    parkingBays: [], // [{ id, center: [x,y], width: 2.5, length: 5.0, rotation: 0 }]
+    parkingBays: [], // [{ id, center: [x,y], width: 2.5, length: 5.0, rotation: 0, isAccessible: false }]
     selectedParkingId: null,
     activeParkingWidth: 2.5,
     activeParkingLength: 5.0,
     activeParkingRotation: 0,
+    parkingBatchCount: 1, // Number of bays placed together (1, 3, 5, 10)
+    parkingAccessible: false, // Accessible/Disabled bay toggle (3.5x5.0m + ♿)
     isDraggingParking: false,
     isRotatingParking: false,
     isResizingParking: false,
@@ -4388,12 +4390,13 @@
     updateToolStatus(`შენობა "${newFp.name}" (${state.stampWidth}×${state.stampLength}მ, ${state.stampFloors} სართ.) განთავსდა ნაკვეთზე. შეგიძლიათ მართოთ პარამეტრები.`);
   };
 
-  window.addParkingRow = function () {
+  window.addParkingRow = function (customCount, customAccessible) {
     saveUndoSnapshot();
     const cx = state.centerPoint ? state.centerPoint[0] : 0;
     const cy = state.centerPoint ? state.centerPoint[1] + 10 : 0;
-    const count = 5;
-    const stallW = state.activeParkingWidth || 2.5;
+    const count = customCount || state.parkingBatchCount || 5;
+    const isAcc = (customAccessible !== undefined) ? !!customAccessible : !!state.parkingAccessible;
+    const stallW = state.activeParkingWidth || (isAcc ? 3.5 : 2.5);
     const stallL = state.activeParkingLength || 5.0;
     const rot = state.activeParkingRotation || 0;
     const rad = (rot * Math.PI) / 180;
@@ -4401,22 +4404,28 @@
     const sin = Math.sin(rad);
 
     const startOffset = -((count - 1) * stallW) / 2;
+    let lastId = null;
 
     for (let i = 0; i < count; i++) {
       const offset = startOffset + i * stallW;
       const bx = cx + offset * cos;
       const by = cy + offset * sin;
+      lastId = 'park_' + Date.now() + '_' + i;
       state.parkingBays.push({
-        id: 'park_' + Date.now() + '_' + i,
+        id: lastId,
         center: [Math.round(bx * 10) / 10, Math.round(by * 10) / 10],
         width: stallW,
         length: stallL,
-        rotation: rot
+        rotation: rot,
+        isAccessible: isAcc
       });
     }
+    if (lastId) state.selectedParkingId = lastId;
+    if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
     updateZoningCoefficientsUI();
     renderCadWorld();
-    updateToolStatus(`განთავსდა ${count}-ადგილიანი პარკინგის რიგი (${stallW}×${stallL}მ, ${rot}°).`);
+    const typeStr = isAcc ? 'შშმ პირთა ♿' : 'სტანდარტული';
+    updateToolStatus(`განთავსდა ${count}-ადგილიანი პარკინგის რიგი (${typeStr}, ${stallW}×${stallL}მ, ${rot}°).`);
   };
 
   // --- Walkway, Road, Bike Path & Hedge Finish Helpers ---
@@ -4897,27 +4906,45 @@
         return;
       }
 
-      // 9. PARKING TOOL
+      // 9. PARKING TOOL (SINGLE OR MULTI-BAY BATCH)
       if (state.activeTool === 'parking') {
         saveUndoSnapshot();
-        const w = state.activeParkingWidth || 2.5;
+        const isAcc = !!state.parkingAccessible;
+        const w = state.activeParkingWidth || (isAcc ? 3.5 : 2.5);
         const l = state.activeParkingLength || 5.0;
         const rot = state.activeParkingRotation || 0;
-        const newBay = {
-          id: 'park_' + Date.now(),
-          center: [Math.round(worldPos[0] * 10) / 10, Math.round(worldPos[1] * 10) / 10],
-          width: w,
-          length: l,
-          rotation: rot
-        };
-        state.parkingBays.push(newBay);
-        state.selectedParkingId = newBay.id;
+        const count = Math.max(1, parseInt(state.parkingBatchCount, 10) || 1);
+        const rad = (rot * Math.PI) / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+
+        const startOffset = -((count - 1) * w) / 2;
+        let lastCreatedId = null;
+
+        for (let i = 0; i < count; i++) {
+          const offset = startOffset + i * w;
+          const bx = Math.round((worldPos[0] + offset * cos) * 10) / 10;
+          const by = Math.round((worldPos[1] + offset * sin) * 10) / 10;
+          const bayId = 'park_' + Date.now() + '_' + i;
+          state.parkingBays.push({
+            id: bayId,
+            center: [bx, by],
+            width: w,
+            length: l,
+            rotation: rot,
+            isAccessible: isAcc
+          });
+          lastCreatedId = bayId;
+        }
+
+        state.selectedParkingId = lastCreatedId;
         state.selectedFootprintId = null;
         setCadActiveTool('pan');
         if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
         updateZoningCoefficientsUI();
         renderCadWorld();
-        updateToolStatus(`განთავსდა ავტოსადგომი (${w}×${l}მ, ${rot}°). მოქაჩეთ სახელურები ან დააჭირეთ R-ს (+45°).`);
+        const typeStr = isAcc ? 'შშმ პირთა ♿' : 'სტანდარტული';
+        updateToolStatus(`განთავსდა ${count > 1 ? count + '-ადგილიანი რიგი' : 'ავტოსადგომი'} (${typeStr}, ${w}×${l}მ, ${rot}°). მოქაჩეთ სახელურები ან დააჭირეთ R-ს (+45°).`);
         return;
       }
 
@@ -7044,6 +7071,134 @@
     renderCadWorld();
   };
 
+  // --- Parking Dimensions Prompt & Type Typing ---
+  window.promptParkingDimension = function (dim) {
+    const p = state.parkingBays.find(x => x.id === state.selectedParkingId);
+    if (dim === 'width') {
+      const cur = p ? p.width : (state.activeParkingWidth || 2.5);
+      const ans = prompt(`შეიყვანეთ პარკინგის სიგანე (W) მეტრებში [ნორმა: 2.3 - 15.0მ]:`, cur);
+      if (ans !== null && ans.trim() !== '') {
+        const v = parseFloat(ans.replace(',', '.'));
+        if (!isNaN(v) && v > 0) window.setParkingDimensions(v, null);
+      }
+    } else if (dim === 'length') {
+      const cur = p ? p.length : (state.activeParkingLength || 5.0);
+      const ans = prompt(`შეიყვანეთ პარკინგის სიგრძე (L) მეტრებში [ნორმა: 2.5 - 25.0მ]:`, cur);
+      if (ans !== null && ans.trim() !== '') {
+        const v = parseFloat(ans.replace(',', '.'));
+        if (!isNaN(v) && v > 0) window.setParkingDimensions(null, v);
+      }
+    } else {
+      const curW = p ? p.width : (state.activeParkingWidth || 2.5);
+      const curL = p ? p.length : (state.activeParkingLength || 5.0);
+      const ans = prompt(`შეიყვანეთ პარკინგის ზომები (სიგანე × სიგრძე) მეტრებში (მაგ: 2.5x5.0 ან 3.5x5):`, `${curW}x${curL}`);
+      if (ans !== null && ans.trim() !== '') {
+        const clean = ans.toLowerCase().replace('×', 'x').replace('*', 'x');
+        const parts = clean.split('x');
+        const w = parseFloat(parts[0].replace(',', '.'));
+        const l = parts[1] ? parseFloat(parts[1].replace(',', '.')) : null;
+        if (!isNaN(w) && w > 0) window.setParkingDimensions(w, l && !isNaN(l) ? l : null);
+      }
+    }
+  };
+
+  // --- Accessible (შშმ პირთა) Parking Toggle ---
+  window.toggleSelectedParkingAccessible = function () {
+    const p = state.parkingBays.find(x => x.id === state.selectedParkingId);
+    if (p) {
+      saveUndoSnapshot();
+      p.isAccessible = !p.isAccessible;
+      if (p.isAccessible) {
+        if ((p.width || 2.5) < 3.5) p.width = 3.5;
+        state.activeParkingWidth = p.width;
+        updateToolStatus('♿ პარკინგი გადაკეთდა შშმ პირთა ადგილად (3.5×5.0მ ♿).');
+      } else {
+        p.width = 2.5;
+        state.activeParkingWidth = 2.5;
+        updateToolStatus('🚗 პარკინგი დაბრუნდა სტანდარტულ ტიპზე (2.5×5.0მ).');
+      }
+      if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
+      updateZoningCoefficientsUI();
+      renderCadWorld();
+    } else {
+      state.parkingAccessible = !state.parkingAccessible;
+      if (state.parkingAccessible) {
+        state.activeParkingWidth = 3.5;
+        updateToolStatus('♿ შშმ პარკინგის რეჟიმი გააქტიურდა (3.5×5.0მ). დააკლიკეთ დასასმელად.');
+      } else {
+        state.activeParkingWidth = 2.5;
+        updateToolStatus('🚗 სტანდარტული პარკინგის რეჟიმი გააქტიურდა (2.5×5.0მ).');
+      }
+      if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
+    }
+  };
+
+  window.activateAccessibleParkingTool = function () {
+    state.parkingAccessible = true;
+    state.activeParkingWidth = 3.5;
+    state.activeParkingLength = 5.0;
+    setCadActiveTool('parking');
+    if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
+    updateToolStatus('♿ არჩეულია შშმ პირთა პარკინგი (3.5×5.0მ). დააკლიკეთ რუკაზე განსათავსებლად.');
+  };
+
+  // --- Add Multiple Parking Stalls to Row ---
+  window.addStallsToSelectedRow = function (count = 1) {
+    const p = state.parkingBays.find(x => x.id === state.selectedParkingId);
+    if (!p) {
+      window.addParkingRow(count);
+      return;
+    }
+    saveUndoSnapshot();
+    const rad = ((p.rotation || 0) * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    const stallW = p.width || 2.5;
+    const stallL = p.length || 5.0;
+    const rot = p.rotation || 0;
+
+    let lastX = p.center[0];
+    let lastY = p.center[1];
+    let lastId = null;
+
+    for (let i = 1; i <= count; i++) {
+      const nx = Math.round((lastX + i * stallW * cos) * 10) / 10;
+      const ny = Math.round((lastY + i * stallW * sin) * 10) / 10;
+      lastId = 'park_' + Date.now() + '_' + i;
+      state.parkingBays.push({
+        id: lastId,
+        center: [nx, ny],
+        width: stallW,
+        length: stallL,
+        rotation: rot,
+        isAccessible: p.isAccessible || false
+      });
+    }
+    if (lastId) state.selectedParkingId = lastId;
+    if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
+    updateZoningCoefficientsUI();
+    renderCadWorld();
+    updateToolStatus(`მწკრივს დაემატა ${count} პარკინგის ადგილი (${stallW}×${stallL}მ).`);
+  };
+
+  window.setParkingBatchCount = function (n) {
+    state.parkingBatchCount = Math.max(1, Math.min(50, parseInt(n, 10) || 1));
+    ['1', '3', '5', '10'].forEach(c => {
+      const el = document.getElementById('btnParkCount' + c);
+      const elSide = document.getElementById('btnSideParkCount' + c);
+      const isActive = (state.parkingBatchCount === parseInt(c, 10));
+      if (el) {
+        if (isActive) el.className = 'px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-500/30 text-sky-300 border border-sky-400/40';
+        else el.className = 'px-1.5 py-0.5 rounded text-[10px] font-bold text-slate-400 hover:text-white';
+      }
+      if (elSide) {
+        if (isActive) elSide.className = 'flex-1 py-1 rounded text-[10px] font-bold bg-sky-500/30 text-sky-300 border border-sky-400/40';
+        else elSide.className = 'flex-1 py-1 rounded text-[10px] font-bold bg-white/5 text-slate-400 hover:text-white';
+      }
+    });
+    updateToolStatus(`🅿️ პარკინგის ერთდროული რაოდენობა: ${state.parkingBatchCount} ადგილი.`);
+  };
+
   function renderParking(pxToM) {
     if (!els.parkingLayer) return;
     if (!state.layers.roads || !state.parkingBays || state.parkingBays.length === 0) {
@@ -7056,19 +7211,33 @@
       const l = p.length || 5.0;
       const rot = p.rotation || 0;
       const isSelected = (state.selectedParkingId === p.id);
+      const isAcc = !!p.isAccessible;
 
       let stallHtml = `
         <g class="cursor-pointer" data-parking-element="true" transform="rotate(${rot}, ${p.center[0]}, ${p.center[1]})" onmousedown="window.startParkingDrag(event, '${p.id}');">
           <!-- Stall asphalt/paving surface -->
-          <rect x="${p.center[0] - w / 2}" y="${p.center[1] - l / 2}" width="${w}" height="${l}" fill="var(--parking-fill)" opacity="0.92" stroke="${isSelected ? '#38bdf8' : 'var(--parking-line, #ffffff)'}" stroke-width="${isSelected ? 1.6 * pxToM : 0.5 * pxToM}" ${isSelected ? `stroke-dasharray="${3 * pxToM} ${2 * pxToM}"` : ''} rx="${0.4 * pxToM}"/>
+          <rect x="${p.center[0] - w / 2}" y="${p.center[1] - l / 2}" width="${w}" height="${l}" fill="${isAcc ? '#0369a1' : 'var(--parking-fill)'}" opacity="${isAcc ? 0.95 : 0.92}" stroke="${isSelected ? '#38bdf8' : (isAcc ? '#38bdf8' : 'var(--parking-line, #ffffff)')}" stroke-width="${isSelected ? 1.6 * pxToM : 0.6 * pxToM}" ${isSelected ? `stroke-dasharray="${3 * pxToM} ${2 * pxToM}"` : ''} rx="${0.4 * pxToM}"/>
           <!-- Stall divider lines on sides -->
-          <line x1="${p.center[0] - w / 2}" y1="${p.center[1] - l / 2}" x2="${p.center[0] - w / 2}" y2="${p.center[1] + l / 2}" stroke="${isSelected ? '#38bdf8' : 'var(--parking-line, #ffffff)'}" stroke-width="${0.8 * pxToM}" />
-          <line x1="${p.center[0] + w / 2}" y1="${p.center[1] - l / 2}" x2="${p.center[0] + w / 2}" y2="${p.center[1] + l / 2}" stroke="${isSelected ? '#38bdf8' : 'var(--parking-line, #ffffff)'}" stroke-width="${0.8 * pxToM}" />
+          <line x1="${p.center[0] - w / 2}" y1="${p.center[1] - l / 2}" x2="${p.center[0] - w / 2}" y2="${p.center[1] + l / 2}" stroke="${isSelected ? '#38bdf8' : (isAcc ? '#38bdf8' : 'var(--parking-line, #ffffff)')}" stroke-width="${0.8 * pxToM}" />
+          <line x1="${p.center[0] + w / 2}" y1="${p.center[1] - l / 2}" x2="${p.center[0] + w / 2}" y2="${p.center[1] + l / 2}" stroke="${isSelected ? '#38bdf8' : (isAcc ? '#38bdf8' : 'var(--parking-line, #ffffff)')}" stroke-width="${0.8 * pxToM}" />
           <!-- Wheel stop bar -->
-          <rect x="${p.center[0] - w / 2 + 0.3}" y="${p.center[1] + l / 2 - 0.7}" width="${Math.max(0.5, w - 0.6)}" height="${0.3}" fill="#cbd5e1" rx="${0.1}"/>
-          <!-- 'P' Badge -->
-          <circle cx="${p.center[0]}" cy="${p.center[1] - 0.5}" r="${Math.min(1.4, w * 0.4)}" fill="rgba(15,23,42,0.6)"/>
-          <text x="${p.center[0]}" y="${p.center[1] - 0.5 + 2.5 * pxToM}" text-anchor="middle" fill="#ffffff" font-size="${Math.min(7 * pxToM, w * 0.5)}" font-weight="bold" font-family="'JetBrains Mono', monospace">P</text>
+          <rect x="${p.center[0] - w / 2 + 0.3}" y="${p.center[1] + l / 2 - 0.7}" width="${Math.max(0.5, w - 0.6)}" height="${0.3}" fill="${isAcc ? '#facc15' : '#cbd5e1'}" rx="${0.1}"/>
+          
+          ${isAcc ? `
+            <!-- Accessible Yellow Safety Aisle Hatch -->
+            ${w >= 3.2 ? `
+              <line x1="${p.center[0] + w / 2 - 0.9}" y1="${p.center[1] - l / 2}" x2="${p.center[0] + w / 2 - 0.9}" y2="${p.center[1] + l / 2}" stroke="#facc15" stroke-width="${0.8 * pxToM}" stroke-dasharray="${1.5 * pxToM} ${1.5 * pxToM}" />
+              <line x1="${p.center[0] + w / 2 - 0.45}" y1="${p.center[1] - l / 2 + 0.5}" x2="${p.center[0] + w / 2 - 0.45}" y2="${p.center[1] + l / 2 - 0.5}" stroke="#facc15" stroke-width="${0.5 * pxToM}" stroke-dasharray="${1 * pxToM} ${2 * pxToM}" />
+            ` : ''}
+            <!-- ♿ International Symbol of Access (შშმ პირთა) -->
+            <circle cx="${p.center[0]}" cy="${p.center[1] - 0.4}" r="${Math.min(1.4, w * 0.38)}" fill="#0284c7" stroke="#ffffff" stroke-width="${0.8 * pxToM}"/>
+            <text x="${p.center[0]}" y="${p.center[1] - 0.4 + 3.2 * pxToM}" text-anchor="middle" fill="#ffffff" font-size="${Math.min(8.5 * pxToM, w * 0.52)}" font-weight="bold">♿</text>
+            <text x="${p.center[0]}" y="${p.center[1] + 1.2 * pxToM + 2.2 * pxToM}" text-anchor="middle" fill="#38bdf8" font-size="${Math.min(4.8 * pxToM, w * 0.28)}" font-weight="bold" font-family="'JetBrains Mono', monospace">შშმ</text>
+          ` : `
+            <!-- 'P' Standard Badge -->
+            <circle cx="${p.center[0]}" cy="${p.center[1] - 0.5}" r="${Math.min(1.4, w * 0.4)}" fill="rgba(15,23,42,0.6)"/>
+            <text x="${p.center[0]}" y="${p.center[1] - 0.5 + 2.5 * pxToM}" text-anchor="middle" fill="#ffffff" font-size="${Math.min(7 * pxToM, w * 0.5)}" font-weight="bold" font-family="'JetBrains Mono', monospace">P</text>
+          `}
       `;
 
       if (isSelected) {
@@ -7113,39 +7282,59 @@
           <circle cx="${rightX}" cy="${botY}" r="${10 * pxToM}" fill="transparent" class="cursor-nwse-resize" onmousedown="window.startParkingResize(event, '${p.id}', 'corner');" />
           <circle cx="${rightX}" cy="${botY}" r="${4.5 * pxToM}" fill="#f59e0b" stroke="#ffffff" stroke-width="${1 * pxToM}" class="cursor-nwse-resize hover:fill-amber-300" onmousedown="window.startParkingResize(event, '${p.id}', 'corner');" />
 
-          <!-- Dimensions Badges -->
-          <rect x="${p.center[0] - 24 * pxToM}" y="${botY + 4 * pxToM}" width="${48 * pxToM}" height="${13 * pxToM}" rx="${2 * pxToM}" fill="#080e1c" fill-opacity="0.92" stroke="#38bdf8" stroke-width="${0.6 * pxToM}" />
-          <text x="${p.center[0]}" y="${botY + 13.5 * pxToM}" text-anchor="middle" fill="#38bdf8" font-size="${7.5 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">W: ${w.toFixed(1)}მ</text>
+          <!-- Dimensions Badges with Click-to-Type -->
+          <g class="cursor-pointer" onmousedown="event.stopPropagation(); event.preventDefault(); window.promptParkingDimension('width');" title="დააკლიკეთ სიგანის ჩასაწერად">
+            <rect x="${p.center[0] - 28 * pxToM}" y="${botY + 4 * pxToM}" width="${56 * pxToM}" height="${14 * pxToM}" rx="${3 * pxToM}" fill="#080e1c" fill-opacity="0.95" stroke="#38bdf8" stroke-width="${0.8 * pxToM}" class="hover:stroke-amber-400" />
+            <text x="${p.center[0]}" y="${botY + 14 * pxToM}" text-anchor="middle" fill="#38bdf8" font-size="${7.5 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">W: ${w.toFixed(1)}მ ✎</text>
+          </g>
 
-          <rect x="${rightX + 4 * pxToM}" y="${p.center[1] - 6.5 * pxToM}" width="${48 * pxToM}" height="${13 * pxToM}" rx="${2 * pxToM}" fill="#080e1c" fill-opacity="0.92" stroke="#38bdf8" stroke-width="${0.6 * pxToM}" />
-          <text x="${rightX + 28 * pxToM}" y="${p.center[1] + 3 * pxToM}" text-anchor="middle" fill="#38bdf8" font-size="${7.5 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">L: ${l.toFixed(1)}მ</text>
+          <g class="cursor-pointer" onmousedown="event.stopPropagation(); event.preventDefault(); window.promptParkingDimension('length');" title="დააკლიკეთ სიგრძის ჩასაწერად">
+            <rect x="${rightX + 4 * pxToM}" y="${p.center[1] - 7 * pxToM}" width="${56 * pxToM}" height="${14 * pxToM}" rx="${3 * pxToM}" fill="#080e1c" fill-opacity="0.95" stroke="#38bdf8" stroke-width="${0.8 * pxToM}" class="hover:stroke-amber-400" />
+            <text x="${rightX + 32 * pxToM}" y="${p.center[1] + 3 * pxToM}" text-anchor="middle" fill="#38bdf8" font-size="${7.5 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">L: ${l.toFixed(1)}მ ✎</text>
+          </g>
 
           <!-- Angle badge -->
           <rect x="${p.center[0] - 18 * pxToM}" y="${rotHandleY - 14 * pxToM}" width="${36 * pxToM}" height="${11 * pxToM}" rx="${2 * pxToM}" fill="#080e1c" fill-opacity="0.92" stroke="#f59e0b" stroke-width="${0.6 * pxToM}" />
           <text x="${p.center[0]}" y="${rotHandleY - 5 * pxToM}" text-anchor="middle" fill="#f59e0b" font-size="${7 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">${Math.round(rot)}°</text>
 
-          <!-- Floating Mini Action Bar: Rotate +45, +90, Size +/-, Delete -->
-          <g transform="translate(${p.center[0] - 70 * pxToM}, ${rotHandleY - 34 * pxToM})" class="cursor-pointer font-sans" onmousedown="event.stopPropagation(); event.preventDefault();">
-            <rect x="0" y="0" width="${140 * pxToM}" height="${18 * pxToM}" rx="${4 * pxToM}" fill="#0b1222" fill-opacity="0.96" stroke="#38bdf8" stroke-width="${0.8 * pxToM}" />
-            <g onmousedown="event.stopPropagation(); event.preventDefault(); window.rotateSelectedParking(45);" onclick="event.stopPropagation(); window.rotateSelectedParking(45);">
-              <rect x="${2 * pxToM}" y="${2 * pxToM}" width="${30 * pxToM}" height="${14 * pxToM}" rx="${2 * pxToM}" fill="#1e293b" />
-              <text x="${17 * pxToM}" y="${12 * pxToM}" text-anchor="middle" fill="#38bdf8" font-size="${7.5 * pxToM}" font-weight="bold">⟳45°</text>
+          <!-- Floating Mini Action Bar: Rotate, Size, Accessible, Row Add, Delete -->
+          <g transform="translate(${p.center[0] - 110 * pxToM}, ${rotHandleY - 34 * pxToM})" class="cursor-pointer font-sans" onmousedown="event.stopPropagation(); event.preventDefault();">
+            <rect x="0" y="0" width="${220 * pxToM}" height="${18 * pxToM}" rx="${4 * pxToM}" fill="#0b1222" fill-opacity="0.96" stroke="#38bdf8" stroke-width="${0.8 * pxToM}" />
+            
+            <!-- Rotate 45 -->
+            <g onmousedown="event.stopPropagation(); event.preventDefault(); window.rotateSelectedParking(45);" onclick="event.stopPropagation(); window.rotateSelectedParking(45);" title="ტრიალი +45°">
+              <rect x="${2 * pxToM}" y="${2 * pxToM}" width="${26 * pxToM}" height="${14 * pxToM}" rx="${2 * pxToM}" fill="#1e293b" />
+              <text x="${15 * pxToM}" y="${12 * pxToM}" text-anchor="middle" fill="#38bdf8" font-size="${7.5 * pxToM}" font-weight="bold">⟳45°</text>
             </g>
-            <g onmousedown="event.stopPropagation(); event.preventDefault(); window.rotateSelectedParking(90);" onclick="event.stopPropagation(); window.rotateSelectedParking(90);">
-              <rect x="${34 * pxToM}" y="${2 * pxToM}" width="${30 * pxToM}" height="${14 * pxToM}" rx="${2 * pxToM}" fill="#1e293b" />
-              <text x="${49 * pxToM}" y="${12 * pxToM}" text-anchor="middle" fill="#38bdf8" font-size="${7.5 * pxToM}" font-weight="bold">⟳90°</text>
+            <!-- Rotate 90 -->
+            <g onmousedown="event.stopPropagation(); event.preventDefault(); window.rotateSelectedParking(90);" onclick="event.stopPropagation(); window.rotateSelectedParking(90);" title="ტრიალი +90°">
+              <rect x="${30 * pxToM}" y="${2 * pxToM}" width="${26 * pxToM}" height="${14 * pxToM}" rx="${2 * pxToM}" fill="#1e293b" />
+              <text x="${43 * pxToM}" y="${12 * pxToM}" text-anchor="middle" fill="#38bdf8" font-size="${7.5 * pxToM}" font-weight="bold">⟳90°</text>
             </g>
-            <g onmousedown="event.stopPropagation(); event.preventDefault(); window.resizeSelectedParking(0.5, 0.5);" onclick="event.stopPropagation(); window.resizeSelectedParking(0.5, 0.5);">
-              <rect x="${66 * pxToM}" y="${2 * pxToM}" width="${25 * pxToM}" height="${14 * pxToM}" rx="${2 * pxToM}" fill="#1e293b" />
-              <text x="${78.5 * pxToM}" y="${12 * pxToM}" text-anchor="middle" fill="#10b981" font-size="${7.5 * pxToM}" font-weight="bold">+0.5</text>
+            <!-- Type Dimension Size -->
+            <g onmousedown="event.stopPropagation(); event.preventDefault(); window.promptParkingDimension('all');" onclick="event.stopPropagation(); window.promptParkingDimension('all');" title="ზომის ჩაწერა (W x L)">
+              <rect x="${58 * pxToM}" y="${2 * pxToM}" width="${36 * pxToM}" height="${14 * pxToM}" rx="${2 * pxToM}" fill="#1e293b" />
+              <text x="${76 * pxToM}" y="${12 * pxToM}" text-anchor="middle" fill="#34d399" font-size="${7.5 * pxToM}" font-weight="bold">📏 ზომა</text>
             </g>
-            <g onmousedown="event.stopPropagation(); event.preventDefault(); window.resizeSelectedParking(-0.5, -0.5);" onclick="event.stopPropagation(); window.resizeSelectedParking(-0.5, -0.5);">
-              <rect x="${93 * pxToM}" y="${2 * pxToM}" width="${25 * pxToM}" height="${14 * pxToM}" rx="${2 * pxToM}" fill="#1e293b" />
-              <text x="${105.5 * pxToM}" y="${12 * pxToM}" text-anchor="middle" fill="#f59e0b" font-size="${7.5 * pxToM}" font-weight="bold">-0.5</text>
+            <!-- Accessible / შშმ Toggle -->
+            <g onmousedown="event.stopPropagation(); event.preventDefault(); window.toggleSelectedParkingAccessible();" onclick="event.stopPropagation(); window.toggleSelectedParkingAccessible();" title="შშმ პირთა პარკინგის რეჟიმი (3.5×5მ ♿)">
+              <rect x="${96 * pxToM}" y="${2 * pxToM}" width="${42 * pxToM}" height="${14 * pxToM}" rx="${2 * pxToM}" fill="${isAcc ? '#0284c7' : '#1e293b'}" />
+              <text x="${117 * pxToM}" y="${12 * pxToM}" text-anchor="middle" fill="${isAcc ? '#ffffff' : '#38bdf8'}" font-size="${7.5 * pxToM}" font-weight="bold">♿ ${isAcc ? 'შშმ ✓' : 'შშმ'}</text>
             </g>
-            <g onmousedown="event.stopPropagation(); event.preventDefault(); window.deleteSelectedParking();" onclick="event.stopPropagation(); window.deleteSelectedParking();">
-              <rect x="${120 * pxToM}" y="${2 * pxToM}" width="${18 * pxToM}" height="${14 * pxToM}" rx="${2 * pxToM}" fill="#ef4444" fill-opacity="0.3" />
-              <text x="${129 * pxToM}" y="${12 * pxToM}" text-anchor="middle" fill="#ef4444" font-size="${8.5 * pxToM}" font-weight="bold">✕</text>
+            <!-- Add +1 stall to row -->
+            <g onmousedown="event.stopPropagation(); event.preventDefault(); window.addStallsToSelectedRow(1);" onclick="event.stopPropagation(); window.addStallsToSelectedRow(1);" title="მწკრივში +1 ადგილის დამატება">
+              <rect x="${140 * pxToM}" y="${2 * pxToM}" width="${26 * pxToM}" height="${14 * pxToM}" rx="${2 * pxToM}" fill="#1e293b" />
+              <text x="${153 * pxToM}" y="${12 * pxToM}" text-anchor="middle" fill="#f59e0b" font-size="${7.5 * pxToM}" font-weight="bold">➕1</text>
+            </g>
+            <!-- Add +5 stalls to row -->
+            <g onmousedown="event.stopPropagation(); event.preventDefault(); window.addStallsToSelectedRow(5);" onclick="event.stopPropagation(); window.addStallsToSelectedRow(5);" title="მწკრივში +5 ადგილის დამატება">
+              <rect x="${168 * pxToM}" y="${2 * pxToM}" width="${32 * pxToM}" height="${14 * pxToM}" rx="${2 * pxToM}" fill="#1e293b" />
+              <text x="${184 * pxToM}" y="${12 * pxToM}" text-anchor="middle" fill="#f59e0b" font-size="${7.5 * pxToM}" font-weight="bold">+5 რიგი</text>
+            </g>
+            <!-- Delete -->
+            <g onmousedown="event.stopPropagation(); event.preventDefault(); window.deleteSelectedParking();" onclick="event.stopPropagation(); window.deleteSelectedParking();" title="წაშლა">
+              <rect x="${202 * pxToM}" y="${2 * pxToM}" width="${16 * pxToM}" height="${14 * pxToM}" rx="${2 * pxToM}" fill="#ef4444" fill-opacity="0.3" />
+              <text x="${210 * pxToM}" y="${12 * pxToM}" text-anchor="middle" fill="#ef4444" font-size="${8.5 * pxToM}" font-weight="bold">✕</text>
             </g>
           </g>
         `;
@@ -7164,7 +7353,9 @@
       state.activeParkingWidth = p.width;
       state.activeParkingLength = p.length;
       state.activeParkingRotation = p.rotation;
-      updateToolStatus(`🅿️ მონიშნულია ავტოსადგომი: ${p.width.toFixed(1)}×${p.length.toFixed(1)}მ, ${p.rotation}°. R=ტრიალი (+45°).`);
+      state.parkingAccessible = !!p.isAccessible;
+      const typeStr = p.isAccessible ? '♿ შშმ პირთა' : 'სტანდარტული';
+      updateToolStatus(`🅿️ მონიშნულია ავტოსადგომი: ${typeStr} (${p.width.toFixed(1)}×${p.length.toFixed(1)}მ, ${p.rotation}°). R=ტრიალი (+45°).`);
     }
     if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
     renderCadWorld();
@@ -7235,19 +7426,21 @@
 
   window.applyParkingPreset = function (type) {
     saveUndoSnapshot();
-    let w = 2.5, l = 5.0, name = 'სტანდარტული';
-    if (type === 'standard') { w = 2.5; l = 5.0; name = 'სტანდარტული (2.5×5.0მ)'; }
-    else if (type === 'disabled' || type === 'inclusive') { w = 3.5; l = 5.0; name = 'შშმ პირთა / ინკლუზიური (3.5×5.0მ)'; }
-    else if (type === 'compact') { w = 2.3; l = 4.5; name = 'კომპაქტური (2.3×4.5მ)'; }
-    else if (type === 'parallel') { w = 2.5; l = 6.5; name = 'პარალელური (2.5×6.5მ)'; }
-    else if (type === 'cargo' || type === 'truck') { w = 3.5; l = 8.5; name = 'სატვირთო / მიკროავტობუსი (3.5×8.5მ)'; }
+    let w = 2.5, l = 5.0, name = 'სტანდარტული', isAcc = false;
+    if (type === 'standard') { w = 2.5; l = 5.0; name = 'სტანდარტული (2.5×5.0მ)'; isAcc = false; }
+    else if (type === 'disabled' || type === 'inclusive') { w = 3.5; l = 5.0; name = 'შშმ პირთა / ინკლუზიური (3.5×5.0მ ♿)'; isAcc = true; }
+    else if (type === 'compact') { w = 2.3; l = 4.5; name = 'კომპაქტური (2.3×4.5მ)'; isAcc = false; }
+    else if (type === 'parallel') { w = 2.5; l = 6.5; name = 'პარალელური (2.5×6.5მ)'; isAcc = false; }
+    else if (type === 'cargo' || type === 'truck') { w = 3.5; l = 8.5; name = 'სატვირთო / მიკროავტობუსი (3.5×8.5მ)'; isAcc = false; }
 
     state.activeParkingWidth = w;
     state.activeParkingLength = l;
+    state.parkingAccessible = isAcc;
     const p = state.parkingBays.find(x => x.id === state.selectedParkingId);
     if (p) {
       p.width = w;
       p.length = l;
+      p.isAccessible = isAcc;
       updateZoningCoefficientsUI();
       renderCadWorld();
     }
@@ -7271,18 +7464,24 @@
     const w = p ? p.width : (state.activeParkingWidth || 2.5);
     const l = p ? p.length : (state.activeParkingLength || 5.0);
     const rot = p ? p.rotation : (state.activeParkingRotation || 0);
+    const isAcc = p ? !!p.isAccessible : !!state.parkingAccessible;
 
     const elW = document.getElementById('inputSiteParkingW');
     const elL = document.getElementById('inputSiteParkingL');
     const elRot = document.getElementById('sliderSiteParkingRot');
     const elNumRot = document.getElementById('inputNumSiteParkingRot');
     const elLblRot = document.getElementById('lblSiteParkingRotVal');
+    const elAccBadge = document.getElementById('badgeSiteParkingType');
 
     if (elW && document.activeElement !== elW) elW.value = w;
     if (elL && document.activeElement !== elL) elL.value = l;
     if (elRot && document.activeElement !== elRot) elRot.value = rot;
     if (elNumRot && document.activeElement !== elNumRot) elNumRot.value = rot;
     if (elLblRot) elLblRot.innerText = `${Math.round(rot)}°`;
+    if (elAccBadge) {
+      elAccBadge.innerText = isAcc ? '♿ შშმ პირთა' : '🚗 სტანდარტული';
+      elAccBadge.className = isAcc ? 'text-[10px] font-bold text-sky-400 bg-sky-500/20 px-1.5 py-0.5 rounded border border-sky-400/30' : 'text-[10px] font-bold text-slate-300 bg-white/5 px-1.5 py-0.5 rounded';
+    }
   };
 
   function deleteParking(id) {

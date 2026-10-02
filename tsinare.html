@@ -2806,6 +2806,17 @@
               <i class="fa-solid fa-square-parking text-blue-400 text-xs"></i>
               <span>პარკინგი [P]</span>
             </button>
+            <button type="button" id="toolBtnParkingAccessible" onclick="window.activateAccessibleParkingTool()" class="btn-cad-tool h-7 px-2 rounded bg-[#121c33] border border-[#213254] text-xs font-medium flex items-center gap-1 hover:bg-[#1a2846] text-sky-300 transition" title="შშმ პირთა პარკინგი (3.5×5.0მ ♿)">
+              <span class="text-sky-400 font-bold">♿</span>
+              <span>შშმ [3.5მ]</span>
+            </button>
+            <div class="flex items-center gap-0.5 bg-[#0b1222] border border-[#213254] rounded h-7 px-1 text-xs" title="ერთდროულად დასასმელი პარკინგის ადგილების რაოდენობა">
+              <span class="text-[9px] text-slate-400 font-bold px-1">რაოდ:</span>
+              <button type="button" onclick="window.setParkingBatchCount(1)" id="btnParkCount1" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-500/30 text-sky-300 border border-sky-400/40">1</button>
+              <button type="button" onclick="window.setParkingBatchCount(3)" id="btnParkCount3" class="px-1.5 py-0.5 rounded text-[10px] font-bold text-slate-400 hover:text-white">3</button>
+              <button type="button" onclick="window.setParkingBatchCount(5)" id="btnParkCount5" class="px-1.5 py-0.5 rounded text-[10px] font-bold text-slate-400 hover:text-white">5</button>
+              <button type="button" onclick="window.setParkingBatchCount(10)" id="btnParkCount10" class="px-1.5 py-0.5 rounded text-[10px] font-bold text-slate-400 hover:text-white">10</button>
+            </div>
             <button type="button" id="toolBtnTree" onclick="setCadActiveTool('tree')" class="btn-cad-tool h-7 px-2 rounded bg-[#121c33] border border-[#213254] text-xs font-medium flex items-center gap-1 hover:bg-[#1a2846] text-emerald-300 transition">
               <i class="fa-solid fa-tree text-emerald-400 text-xs"></i>
               <span>ხე [T]</span>
@@ -3811,22 +3822,38 @@
           </div>
 
                     <!-- Parking Bay Dimensions & Rotation Controls -->
+          <!-- Parking Bay Dimensions & Rotation Controls -->
           <div class="bg-[#0b1222] p-2.5 rounded-lg border border-sky-500/20 space-y-2">
             <div class="flex items-center justify-between text-[11px] text-sky-300 font-bold border-b border-white/5 pb-1">
               <span class="flex items-center gap-1.5"><i class="fa-solid fa-square-parking text-sky-400"></i> პარკინგი (ზომა &amp; ტრიალი):</span>
-              <button type="button" onclick="setCadActiveTool('parking')" class="text-xs bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 px-2 py-0.5 rounded font-semibold border border-sky-500/30 transition flex items-center gap-1">
-                <i class="fa-solid fa-plus text-[10px]"></i> დასმა
-              </button>
+              <div class="flex items-center gap-1">
+                <span id="badgeSiteParkingType" class="text-[10px] font-bold text-slate-300 bg-white/5 px-1.5 py-0.5 rounded">🚗 სტანდარტული</span>
+                <button type="button" onclick="setCadActiveTool('parking')" class="text-xs bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 px-2 py-0.5 rounded font-semibold border border-sky-500/30 transition flex items-center gap-1">
+                  <i class="fa-solid fa-plus text-[10px]"></i> დასმა
+                </button>
+              </div>
             </div>
 
             <!-- Dimensions (Width x Length) -->
             <div class="flex items-center justify-between text-[10px]">
               <span class="text-slate-400">ზომები (W × L):</span>
-              <div class="flex items-center gap-1.5 font-mono">
+              <div class="flex items-center gap-1 font-mono">
                 <input type="number" id="inputSiteParkingW" value="2.5" step="0.1" min="1.5" max="15" onchange="window.setParkingDimensions(this.value, null)" oninput="window.setParkingDimensions(this.value, null)" class="w-12 bg-[#121c33] border border-white/10 rounded px-1 text-center text-sky-300 text-xs font-bold focus:border-sky-400 outline-none">
                 <span class="text-slate-500">×</span>
                 <input type="number" id="inputSiteParkingL" value="5.0" step="0.1" min="2.5" max="25" onchange="window.setParkingDimensions(null, this.value)" oninput="window.setParkingDimensions(null, this.value)" class="w-12 bg-[#121c33] border border-white/10 rounded px-1 text-center text-sky-300 text-xs font-bold focus:border-sky-400 outline-none">
                 <span class="text-slate-400 text-[10px]">მ</span>
+                <button type="button" onclick="window.promptParkingDimension('all')" class="text-[10px] px-1 py-0.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 rounded border border-emerald-500/30 ml-1 font-sans" title="ზომების ხელით ჩაწერა">✎ ჩაწერა</button>
+              </div>
+            </div>
+
+            <!-- Placement Count (ერთდროულად დასმა) -->
+            <div class="flex items-center justify-between text-[10px]">
+              <span class="text-slate-400">დასმის რაოდენობა:</span>
+              <div class="flex items-center gap-1 font-mono">
+                <button type="button" onclick="window.setParkingBatchCount(1)" id="btnSideParkCount1" class="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/30 text-sky-300 border border-sky-400/40">1</button>
+                <button type="button" onclick="window.setParkingBatchCount(3)" id="btnSideParkCount3" class="px-2 py-0.5 rounded text-[10px] font-bold bg-white/5 text-slate-400 hover:text-white">3</button>
+                <button type="button" onclick="window.setParkingBatchCount(5)" id="btnSideParkCount5" class="px-2 py-0.5 rounded text-[10px] font-bold bg-white/5 text-slate-400 hover:text-white">5</button>
+                <button type="button" onclick="window.setParkingBatchCount(10)" id="btnSideParkCount10" class="px-2 py-0.5 rounded text-[10px] font-bold bg-white/5 text-slate-400 hover:text-white">10</button>
               </div>
             </div>
 
@@ -3856,8 +3883,8 @@
                 <button type="button" onclick="window.applyParkingPreset('standard')" class="px-1.5 py-1 rounded bg-white/5 hover:bg-white/10 text-slate-200 text-left truncate flex items-center gap-1">
                   <span>🚗</span> <span>სტანდარტი 2.5×5</span>
                 </button>
-                <button type="button" onclick="window.applyParkingPreset('disabled')" class="px-1.5 py-1 rounded bg-white/5 hover:bg-white/10 text-slate-200 text-left truncate flex items-center gap-1">
-                  <span>♿</span> <span>შშმ 3.5×5</span>
+                <button type="button" onclick="window.applyParkingPreset('disabled')" class="px-1.5 py-1 rounded bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-400/30 text-left truncate flex items-center gap-1 font-semibold">
+                  <span>♿</span> <span>შშმ პირთა 3.5×5</span>
                 </button>
                 <button type="button" onclick="window.applyParkingPreset('compact')" class="px-1.5 py-1 rounded bg-white/5 hover:bg-white/10 text-slate-200 text-left truncate flex items-center gap-1">
                   <span>🚙</span> <span>კომპაქტი 2.3×4.5</span>
@@ -3868,10 +3895,13 @@
               </div>
             </div>
 
-            <!-- Quick Add 5 Bays & Delete Selected -->
+            <!-- Quick Add Bays & Row Extension -->
             <div class="pt-1 border-t border-white/5 flex items-center justify-between gap-1 text-[10px]">
-              <button type="button" onclick="window.addParkingRow()" class="flex-1 py-1 rounded bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 font-semibold flex items-center justify-center gap-1">
-                <i class="fa-solid fa-list-ol"></i> + 5-იანი რიგი
+              <button type="button" onclick="window.addStallsToSelectedRow(1)" class="flex-1 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 font-semibold flex items-center justify-center gap-1" title="მწკრივში +1 ადგილის დამატება">
+                <i class="fa-solid fa-plus text-[10px]"></i> 1 ადგილი
+              </button>
+              <button type="button" onclick="window.addStallsToSelectedRow(5)" class="flex-1 py-1 rounded bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 font-semibold flex items-center justify-center gap-1" title="მწკრივში +5 ადგილის დამატება">
+                <i class="fa-solid fa-list-ol"></i> +5 რიგი
               </button>
               <button type="button" onclick="window.deleteSelectedParking()" class="px-2 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 font-semibold flex items-center gap-1" title="მონიშნული პარკინგის წაშლა">
                 <i class="fa-solid fa-trash-can"></i>
@@ -3927,6 +3957,6 @@
   </div>
 
   <!-- Core JavaScript Logic -->
-  <script src="tsinare.js?v=20261002_parking_rotate_v2"></script>
+  <script src="tsinare.js?v=20261002_parking_features_v3"></script>
 </body>
 </html>
