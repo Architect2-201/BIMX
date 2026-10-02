@@ -208,13 +208,13 @@
     },
 
     // --- 2. საგზაო / ქუჩის / ურბანული რუკები (100% უფასო) ---
-    carto_voyager: {
-      label: 'CARTO Voyager',
+    osm_urban: {
+      label: 'OSM ურბანული (Modern Bright)',
       icon: '🏙️',
       group: 'road',
-      description: 'CARTO Voyager — დახვეწილი ურბანული ქუჩები, კვარტლები და შენობების კონტურები',
+      description: 'მაღალი ხილვადობის თანამედროვე ურბანული ქუჩები, კვარტლები და შენობების კონტურები (100% უფასო)',
       layers: [
-        { url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', opts: { subdomains: 'abcd', maxNativeZoom: 19, maxZoom: 22 } }
+        { url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxNativeZoom: 19, maxZoom: 22 } }
       ]
     },
     osm: {
@@ -283,13 +283,14 @@
     },
 
     // --- 3. მუქი & CAD რეჟიმი (100% უფასო) ---
-    carto_dark: {
-      label: 'CARTO Dark Matter',
-      icon: '🌑',
+    cad_obsidian: {
+      label: 'CAD Obsidian (ობსიდიანი)',
+      icon: '🖤',
       group: 'dark',
-      description: 'CARTO Dark Matter — მუქი გრაფიტის ფონი მაღალი კონტრასტის CAD ხაზებისთვის',
+      description: 'ულტრა-მუქი ობსიდიანის საინჟინრო ფონი CAD და BIM ხაზების მკვეთრად გამოსაჩენად (100% უფასო)',
       layers: [
-        { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', opts: { subdomains: 'abcd', maxNativeZoom: 19, maxZoom: 22 } }
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 16, maxZoom: 22, className: 'tile-filter-obsidian' } },
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 16, maxZoom: 22 } }
       ]
     },
     esri_dark_gray: {
@@ -320,22 +321,13 @@
         { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxNativeZoom: 19, maxZoom: 22, className: 'tile-filter-blueprint' } }
       ]
     },
-    carto_positron: {
-      label: 'CARTO Positron (მინიმალისტური)',
+    osm_monochrome: {
+      label: 'OSM Monochrome (მინიმალისტური)',
       icon: '⚪',
       group: 'neutral',
-      description: 'CARTO Positron — სუფთა თეთრი მინიმალისტური ფონი საპროექტო გენგეგმისთვის',
+      description: 'სუფთა შავ-თეთრი მინიმალისტური ფონი საპროექტო ხაზებისა და გენგეგმისთვის (100% უფასო)',
       layers: [
-        { url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', opts: { subdomains: 'abcd', maxNativeZoom: 19, maxZoom: 22 } }
-      ]
-    },
-    carto_light: {
-      label: 'CARTO Positron (მინიმალისტური)',
-      icon: '⚪',
-      group: 'neutral',
-      description: 'CARTO Positron — სუფთა თეთრი მინიმალისტური ფონი საპროექტო გენგეგმისთვის',
-      layers: [
-        { url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', opts: { subdomains: 'abcd', maxNativeZoom: 19, maxZoom: 22 } }
+        { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxNativeZoom: 19, maxZoom: 22, className: 'tile-filter-monochrome' } }
       ]
     },
     esri_gray: {
@@ -519,6 +511,10 @@
 
   // Switch the Leaflet basemap to any key in BASEMAP_REGISTRY
   window.setBasemap = function (key) {
+    if (key === 'carto_voyager') key = 'osm_urban';
+    if (key === 'carto_dark') key = 'cad_obsidian';
+    if (key === 'carto_positron' || key === 'carto_light') key = 'osm_monochrome';
+
     const cfg = BASEMAP_REGISTRY[key];
     if (!cfg || !tsinareMap) return;
     state.activeBasemap = key;
@@ -537,7 +533,9 @@
         'tile-filter-soviet-70s',
         'tile-filter-retro-ortho',
         'tile-filter-matrix',
-        'tile-filter-high-contrast'
+        'tile-filter-high-contrast',
+        'tile-filter-monochrome',
+        'tile-filter-obsidian'
       );
     }
 

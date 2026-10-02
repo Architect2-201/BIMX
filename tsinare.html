@@ -1476,6 +1476,14 @@
     #tsinareLeafletMap.tile-filter-high-contrast .leaflet-tile-pane {
       filter: grayscale(100%) contrast(200%) brightness(90%);
     }
+    .leaflet-tile.tile-filter-monochrome,
+    #tsinareLeafletMap.tile-filter-monochrome .leaflet-tile-pane {
+      filter: grayscale(100%) contrast(115%) brightness(102%);
+    }
+    .leaflet-tile.tile-filter-obsidian,
+    #tsinareLeafletMap.tile-filter-obsidian .leaflet-tile-pane {
+      filter: brightness(80%) contrast(125%) hue-rotate(200deg) saturate(120%);
+    }
 
     /* Historical Timeline Bar styling */
     .timeline-year-tick {
@@ -1679,9 +1687,9 @@
 
         <!-- Group 2: საგზაო / ქუჩის / ურბანული რუკები -->
         <div class="basemap-group-label">🧭 საგზაო &amp; ურბანული რუკები</div>
-        <button class="basemap-btn" data-basemap="carto_voyager" onclick="setBasemap('carto_voyager'); closeBasemapDropdown();">
+        <button class="basemap-btn" data-basemap="osm_urban" onclick="setBasemap('osm_urban'); closeBasemapDropdown();">
           <span class="bm-icon">🏙️</span>
-          <div><div class="bm-name">CARTO Voyager</div><div class="bm-desc">ულტრა-დეტალური ურბანული ქუჩები, კვარტლები და ინფრასტრუქტურა</div></div>
+          <div><div class="bm-name">OSM ურბანული (Modern Bright)</div><div class="bm-desc">მაღალი ხილვადობის თანამედროვე ურბანული ქუჩები და კვარტლები</div></div>
         </button>
         <button class="basemap-btn" data-basemap="osm" onclick="setBasemap('osm'); closeBasemapDropdown();">
           <span class="bm-icon">🗺️</span>
@@ -1716,9 +1724,9 @@
 
         <!-- Group 3: მუქი / CAD სტილი -->
         <div class="basemap-group-label">⬛ მუქი / CAD სტილი</div>
-        <button class="basemap-btn" data-basemap="carto_dark" onclick="setBasemap('carto_dark'); closeBasemapDropdown();">
+        <button class="basemap-btn" data-basemap="cad_obsidian" onclick="setBasemap('cad_obsidian'); closeBasemapDropdown();">
           <span class="bm-icon">🖤</span>
-          <div><div class="bm-name">CARTO Dark Matter</div><div class="bm-desc">შავი მატერია — CAD და BIM ხაზების ექსტრემალური კონტრასტი</div></div>
+          <div><div class="bm-name">CAD Obsidian (ობსიდიანი)</div><div class="bm-desc">ულტრა-მუქი საინჟინრო ფონი — CAD &amp; BIM ხაზების ექსტრემალური კონტრასტი</div></div>
         </button>
         <button class="basemap-btn" data-basemap="esri_dark_gray" onclick="setBasemap('esri_dark_gray'); closeBasemapDropdown();">
           <span class="bm-icon">⬛</span>
@@ -1732,9 +1740,9 @@
           <span class="bm-icon">📐</span>
           <div><div class="bm-name">CAD Blueprint (ლურჯი)</div><div class="bm-desc">არქიტექტურული ლურჯი ბლუპრინტი საინჟინრო გენგეგმისთვის</div></div>
         </button>
-        <button class="basemap-btn" data-basemap="carto_positron" onclick="setBasemap('carto_positron'); closeBasemapDropdown();">
+        <button class="basemap-btn" data-basemap="osm_monochrome" onclick="setBasemap('osm_monochrome'); closeBasemapDropdown();">
           <span class="bm-icon">⚪</span>
-          <div><div class="bm-name">CARTO Positron (ნათელი)</div><div class="bm-desc">სუფთა მინიმალისტური თეთრი ფონი საპროექტო ხაზებისთვის</div></div>
+          <div><div class="bm-name">OSM Monochrome (ნათელი)</div><div class="bm-desc">სუფთა შავ-თეთრი მინიმალისტური ფონი საპროექტო ხაზებისთვის</div></div>
         </button>
         <button class="basemap-btn" data-basemap="esri_gray" onclick="setBasemap('esri_gray'); closeBasemapDropdown();">
           <span class="bm-icon">🩶</span>
@@ -3850,6 +3858,6 @@
   </div>
 
   <!-- Core JavaScript Logic -->
-  <script src="tsinare.js?v=20261002_1615"></script>
+  <script src="tsinare.js?v=20261002_nocarto_v1"></script>
 </body>
 </html>

@@ -297,11 +297,10 @@ document.addEventListener('DOMContentLoaded', () => {
       attributionControl: false
     });
 
-    // Architectural Dark Matter (CartoDB Dark)
-    tileLayerDark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    // Architectural Dark Mode (ESRI Dark Gray Canvas - 100% Free)
+    tileLayerDark = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: 20,
-      subdomains: 'abcd',
-      attribution: '&copy; CartoDB &copy; OpenStreetMap'
+      attribution: '&copy; Esri &copy; OpenStreetMap'
     });
 
     // Esri World Imagery Satellite
@@ -309,10 +308,11 @@ document.addEventListener('DOMContentLoaded', () => {
       maxZoom: 19
     });
 
-    // CartoDB Voyager (Urban GIS)
-    tileLayerVoyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    // OSM Humanitarian / Urban (100% Free)
+    tileLayerVoyager = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
       maxZoom: 20,
-      subdomains: 'abcd'
+      subdomains: 'abc',
+      attribution: '&copy; OpenStreetMap contributors'
     });
     tileLayerVector = tileLayerVoyager;
 
