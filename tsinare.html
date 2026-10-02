@@ -2817,6 +2817,15 @@
               <button type="button" onclick="window.setParkingBatchCount(5)" id="btnParkCount5" class="px-1.5 py-0.5 rounded text-[10px] font-bold text-slate-400 hover:text-white">5</button>
               <button type="button" onclick="window.setParkingBatchCount(10)" id="btnParkCount10" class="px-1.5 py-0.5 rounded text-[10px] font-bold text-slate-400 hover:text-white">10</button>
             </div>
+            <button type="button" id="btnSelectAllParkingRibbon" onclick="window.selectAllParking()" class="btn-cad-tool h-7 px-2 rounded bg-sky-950/80 border border-sky-600/40 text-xs font-medium flex items-center gap-1.5 hover:bg-sky-800 text-sky-200 transition" title="ყველა პარკინგის ერთიანად მონიშვნა (Ctrl+A / 👥)">
+              <i class="fa-solid fa-object-group text-sky-400 text-xs"></i>
+              <span>ყველას მონიშვნა</span>
+            </button>
+            <div class="flex items-center gap-1 bg-[#0b1222] border border-[#213254] rounded h-7 px-1 text-xs" title="ყველა მონიშნული პარკინგის დატრიალება">
+              <button type="button" onclick="window.rotateSelectedParking(-45)" class="px-1.5 py-0.5 rounded text-[10px] font-bold text-slate-300 hover:text-white hover:bg-white/10" title="დატრიალება -45°">⟲-45°</button>
+              <button type="button" onclick="window.rotateSelectedParking(45)" class="px-1.5 py-0.5 rounded text-[10px] font-bold text-sky-300 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/30" title="დატრიალება +45° (R)">⟳+45°</button>
+              <button type="button" onclick="window.rotateSelectedParking(90)" class="px-1.5 py-0.5 rounded text-[10px] font-bold text-slate-300 hover:text-white hover:bg-white/10" title="დატრიალება +90°">⟳90°</button>
+            </div>
             <button type="button" id="toolBtnTree" onclick="setCadActiveTool('tree')" class="btn-cad-tool h-7 px-2 rounded bg-[#121c33] border border-[#213254] text-xs font-medium flex items-center gap-1 hover:bg-[#1a2846] text-emerald-300 transition">
               <i class="fa-solid fa-tree text-emerald-400 text-xs"></i>
               <span>ხე [T]</span>
@@ -3834,6 +3843,17 @@
               </div>
             </div>
 
+            <!-- Multi-Select & Batch Actions -->
+            <div class="flex items-center gap-1.5 pt-0.5">
+              <button type="button" id="btnSelectAllParkingSidebar" onclick="window.selectAllParking()" class="flex-1 py-1.5 px-2 rounded bg-sky-500/20 text-sky-200 border border-sky-500/40 hover:bg-sky-500/30 text-xs font-bold flex items-center justify-center gap-1.5 transition" title="ყველა პარკინგის ერთიანად მონიშვნა (Ctrl+A)">
+                <i class="fa-solid fa-object-group text-sky-400"></i>
+                <span id="lblSelectAllParkingText">ყველა პარკინგის მონიშვნა</span>
+              </button>
+              <button type="button" onclick="window.clearParkingSelection()" class="py-1.5 px-2 rounded bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-xs font-semibold" title="მონიშვნის მოხსნა">
+                ✕
+              </button>
+            </div>
+
             <!-- Dimensions (Width x Length) -->
             <div class="flex items-center justify-between text-[10px]">
               <span class="text-slate-400">ზომები (W × L):</span>
@@ -3871,8 +3891,8 @@
               <div class="grid grid-cols-4 gap-1 pt-1">
                 <button type="button" onclick="window.setParkingRotation(0)" class="py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono">0° ვერტ</button>
                 <button type="button" onclick="window.setParkingRotation(90)" class="py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono">90° ჰორიზ</button>
-                <button type="button" onclick="window.setParkingRotation(45)" class="py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono">45° დიაგ</button>
-                <button type="button" onclick="window.rotateSelectedParking(45)" class="py-0.5 rounded bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 text-[10px] font-bold border border-sky-500/30">🔄 +45°</button>
+                <button type="button" onclick="window.rotateSelectedParking(-45)" class="py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono" title="-45° დატრიალება">⟲ -45°</button>
+                <button type="button" onclick="window.rotateSelectedParking(45)" class="py-0.5 rounded bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 text-[10px] font-bold border border-sky-500/30" title="+45° დატრიალება (R)">🔄 +45°</button>
               </div>
             </div>
 
@@ -3957,6 +3977,6 @@
   </div>
 
   <!-- Core JavaScript Logic -->
-  <script src="tsinare.js?v=20261002_parking_features_v3"></script>
+  <script src="tsinare.js?v=20261002_parking_multiselect_v4"></script>
 </body>
 </html>

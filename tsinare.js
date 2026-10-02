@@ -59,6 +59,7 @@
     fountains: [], // [{ id, x, y, radius: 2.5 }]
     parkingBays: [], // [{ id, center: [x,y], width: 2.5, length: 5.0, rotation: 0, isAccessible: false }]
     selectedParkingId: null,
+    selectedParkingIds: [], // Multi-selection support for group rotate/drag/delete
     activeParkingWidth: 2.5,
     activeParkingLength: 5.0,
     activeParkingRotation: 0,
@@ -71,6 +72,9 @@
     parkingResizeType: null,
     parkingDragStartPos: { x: 0, y: 0 },
     parkingDragStartCenter: [0, 0],
+    parkingGroupDragInitial: [], // [{ id, center: [x, y] }]
+    parkingGroupCentroid: [0, 0],
+    parkingGroupInitial: [], // [{ id, center: [x, y], rotation }]
     parkingRotateStartAngle: 0,
     parkingInitialRot: 0,
     parkingInitialWidth: 2.5,
@@ -1877,7 +1881,7 @@
 
   // --- DELETE CURRENT SELECTED OBJECT ---
   window.deleteSelectedObject = function () {
-    if (state.selectedParkingId) {
+    if (state.selectedParkingId || (state.selectedParkingIds && state.selectedParkingIds.length > 0)) {
       window.deleteSelectedParking();
       return;
     }
@@ -4714,38 +4718,21 @@
         // A. Parking Rotate Handle check
         const parkRotTarget = checkParkingRotationHandleHit(worldPos);
         if (parkRotTarget) {
-          saveUndoSnapshot();
-          state.isRotatingParking = true;
-          state.draggedParkingId = parkRotTarget.id;
-          state.parkingRotateStartAngle = Math.atan2(worldPos[1] - parkRotTarget.center[1], worldPos[0] - parkRotTarget.center[0]);
-          state.parkingInitialRot = parkRotTarget.rotation || 0;
+          window.startParkingRotate(e, parkRotTarget.id);
           return;
         }
 
         // B. Parking Resize Handle check
         const parkResizeTarget = checkParkingResizeHandleHit(worldPos);
         if (parkResizeTarget) {
-          saveUndoSnapshot();
-          state.isResizingParking = true;
-          state.draggedParkingId = parkResizeTarget.parking.id;
-          state.parkingResizeType = parkResizeTarget.type;
-          state.parkingInitialWidth = parkResizeTarget.parking.width || 2.5;
-          state.parkingInitialLength = parkResizeTarget.parking.length || 5.0;
+          window.startParkingResize(e, parkResizeTarget.parking.id, parkResizeTarget.type);
           return;
         }
 
         // C. Parking Body Drag / Select check
         const hitPark = checkParkingHit(worldPos);
         if (hitPark) {
-          saveUndoSnapshot();
-          state.isDraggingParking = true;
-          state.draggedParkingId = hitPark.id;
-          state.selectedParkingId = hitPark.id;
-          state.selectedFootprintId = null;
-          state.parkingDragStartPos = { x: worldPos[0], y: worldPos[1] };
-          state.parkingDragStartCenter = [hitPark.center[0], hitPark.center[1]];
-          if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
-          renderCadWorld();
+          window.startParkingDrag(e, hitPark.id);
           return;
         }
 
@@ -4774,8 +4761,9 @@
           return;
         }
 
-        if (state.selectedParkingId && !e.shiftKey) {
+        if ((state.selectedParkingId || (state.selectedParkingIds && state.selectedParkingIds.length > 0)) && !e.shiftKey) {
           state.selectedParkingId = null;
+          state.selectedParkingIds = [];
           if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
           renderCadWorld();
         }
@@ -5238,20 +5226,51 @@
 
       // Parking Bay Dragging, Rotating, and Resizing
       if (state.isRotatingParking && state.draggedParkingId) {
-        const p = state.parkingBays.find(x => x.id === state.draggedParkingId);
-        if (p) {
-          const dx = worldPos[0] - p.center[0];
-          const dy = worldPos[1] - p.center[1];
-          const rad = Math.atan2(dy, dx);
-          let deg = Math.round((rad * 180 / Math.PI) + 90);
-          deg = ((deg % 360) + 360) % 360;
-          if (e.shiftKey) deg = Math.round(deg / 15) * 15;
-          p.rotation = deg;
-          state.activeParkingRotation = deg;
-          if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
-          renderCadWorld();
-          updateToolStatus(`🅿️ ავტოსადგომის კუთხე: ${deg}°`);
+        const cx = (state.parkingGroupCentroid && state.parkingGroupCentroid[0] !== undefined) ? state.parkingGroupCentroid[0] : 0;
+        const cy = (state.parkingGroupCentroid && state.parkingGroupCentroid[1] !== undefined) ? state.parkingGroupCentroid[1] : 0;
+        const currentAngle = Math.atan2(worldPos[1] - cy, worldPos[0] - cx);
+        let deltaDeg = ((currentAngle - state.parkingRotateStartAngle) * 180) / Math.PI;
+        if (e.shiftKey) deltaDeg = Math.round(deltaDeg / 15) * 15;
+        const rad = (deltaDeg * Math.PI) / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+
+        if (state.parkingGroupInitial && state.parkingGroupInitial.length > 0) {
+          state.parkingGroupInitial.forEach(init => {
+            const p = state.parkingBays.find(x => x.id === init.id);
+            if (p) {
+              p.rotation = Math.round(((init.rotation + deltaDeg) % 360 + 360) % 360);
+              if (state.parkingGroupInitial.length > 1) {
+                const dx = init.center[0] - cx;
+                const dy = init.center[1] - cy;
+                p.center[0] = Math.round((cx + dx * cos - dy * sin) * 10) / 10;
+                p.center[1] = Math.round((cy + dx * sin + dy * cos) * 10) / 10;
+              }
+            }
+          });
+          const activeP = state.parkingBays.find(x => x.id === state.draggedParkingId);
+          if (activeP) {
+            state.activeParkingRotation = activeP.rotation;
+            if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
+            const groupCount = state.parkingGroupInitial.length;
+            updateToolStatus(`🅿️ პარკინგის კუთხე: ${activeP.rotation}° ${groupCount > 1 ? `(${groupCount} ადგილი ერთად)` : ''}`);
+          }
+        } else {
+          const p = state.parkingBays.find(x => x.id === state.draggedParkingId);
+          if (p) {
+            const dx = worldPos[0] - p.center[0];
+            const dy = worldPos[1] - p.center[1];
+            const pRad = Math.atan2(dy, dx);
+            let deg = Math.round((pRad * 180 / Math.PI) + 90);
+            deg = ((deg % 360) + 360) % 360;
+            if (e.shiftKey) deg = Math.round(deg / 15) * 15;
+            p.rotation = deg;
+            state.activeParkingRotation = deg;
+            if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
+            updateToolStatus(`🅿️ ავტოსადგომის კუთხე: ${deg}°`);
+          }
         }
+        renderCadWorld();
         return;
       }
 
@@ -5283,14 +5302,24 @@
       }
 
       if (state.isDraggingParking && state.draggedParkingId) {
-        const p = state.parkingBays.find(x => x.id === state.draggedParkingId);
-        if (p) {
-          const dx = worldPos[0] - state.parkingDragStartPos.x;
-          const dy = worldPos[1] - state.parkingDragStartPos.y;
-          p.center[0] = Math.round((state.parkingDragStartCenter[0] + dx) * 10) / 10;
-          p.center[1] = Math.round((state.parkingDragStartCenter[1] + dy) * 10) / 10;
-          renderCadWorld();
+        const dx = worldPos[0] - state.parkingDragStartPos.x;
+        const dy = worldPos[1] - state.parkingDragStartPos.y;
+        if (state.parkingGroupDragInitial && state.parkingGroupDragInitial.length > 0) {
+          state.parkingGroupDragInitial.forEach(init => {
+            const p = state.parkingBays.find(x => x.id === init.id);
+            if (p) {
+              p.center[0] = Math.round((init.center[0] + dx) * 10) / 10;
+              p.center[1] = Math.round((init.center[1] + dy) * 10) / 10;
+            }
+          });
+        } else {
+          const p = state.parkingBays.find(x => x.id === state.draggedParkingId);
+          if (p) {
+            p.center[0] = Math.round((state.parkingDragStartCenter[0] + dx) * 10) / 10;
+            p.center[1] = Math.round((state.parkingDragStartCenter[1] + dy) * 10) / 10;
+          }
         }
+        renderCadWorld();
         return;
       }
 
@@ -7013,6 +7042,45 @@
   }
 
   // 6. Parking Bays (+ ავტოსადგომი)
+  window.getSelectedParkingBays = function () {
+    if (state.selectedParkingIds && state.selectedParkingIds.length > 0) {
+      const bays = state.parkingBays.filter(p => state.selectedParkingIds.includes(p.id));
+      if (bays.length > 0) return bays;
+    }
+    if (state.selectedParkingId) {
+      const p = state.parkingBays.find(x => x.id === state.selectedParkingId);
+      return p ? [p] : [];
+    }
+    return [];
+  };
+
+  window.selectAllParking = function () {
+    if (!state.parkingBays || state.parkingBays.length === 0) {
+      updateToolStatus('ნაკვეთზე პარკინგის ადგილები არ არის განთავსებული.');
+      return;
+    }
+    state.selectedParkingIds = state.parkingBays.map(p => p.id);
+    state.selectedParkingId = state.selectedParkingIds[0];
+    state.selectedFootprintId = null;
+    const p = state.parkingBays.find(x => x.id === state.selectedParkingId);
+    if (p) {
+      state.activeParkingWidth = p.width;
+      state.activeParkingLength = p.length;
+      state.activeParkingRotation = p.rotation;
+    }
+    if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
+    renderCadWorld();
+    updateToolStatus(`🅿️ ერთიანად მონიშნულია ყველა პარკინგი (${state.parkingBays.length} ადგილი). R / ⟳45° = ჯგუფური დატრიალება.`);
+  };
+
+  window.clearParkingSelection = function () {
+    state.selectedParkingIds = [];
+    state.selectedParkingId = null;
+    if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
+    renderCadWorld();
+    updateToolStatus('პარკინგის მონიშვნა მოხსნილია.');
+  };
+
   window.startParkingRotate = function (e, id) {
     if (e) {
       if (typeof e.stopPropagation === 'function') e.stopPropagation();
@@ -7021,12 +7089,31 @@
     const p = state.parkingBays.find(x => x.id === id);
     if (!p) return;
     saveUndoSnapshot();
-    state.selectedParkingId = id;
+
+    let groupBays = [];
+    if (state.selectedParkingIds && state.selectedParkingIds.includes(id) && state.selectedParkingIds.length > 1) {
+      groupBays = state.parkingBays.filter(x => state.selectedParkingIds.includes(x.id));
+    } else {
+      state.selectedParkingIds = [id];
+      state.selectedParkingId = id;
+      groupBays = [p];
+    }
+
     state.selectedFootprintId = null;
     state.isRotatingParking = true;
     state.draggedParkingId = id;
+
+    const cx = groupBays.reduce((sum, b) => sum + b.center[0], 0) / groupBays.length;
+    const cy = groupBays.reduce((sum, b) => sum + b.center[1], 0) / groupBays.length;
+    state.parkingGroupCentroid = [cx, cy];
+    state.parkingGroupInitial = groupBays.map(b => ({
+      id: b.id,
+      center: [b.center[0], b.center[1]],
+      rotation: b.rotation || 0
+    }));
+
     const worldPos = screenToWorld(e.clientX, e.clientY);
-    state.parkingRotateStartAngle = Math.atan2(worldPos[1] - p.center[1], worldPos[0] - p.center[0]);
+    state.parkingRotateStartAngle = Math.atan2(worldPos[1] - cy, worldPos[0] - cx);
     state.parkingInitialRot = p.rotation || 0;
     if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
     renderCadWorld();
@@ -7060,10 +7147,36 @@
     const p = state.parkingBays.find(x => x.id === id);
     if (!p) return;
     saveUndoSnapshot();
-    state.selectedParkingId = id;
+
+    if (e && e.shiftKey) {
+      if (!state.selectedParkingIds) state.selectedParkingIds = [];
+      const idx = state.selectedParkingIds.indexOf(id);
+      if (idx >= 0) {
+        state.selectedParkingIds.splice(idx, 1);
+        state.selectedParkingId = state.selectedParkingIds[0] || null;
+      } else {
+        state.selectedParkingIds.push(id);
+        state.selectedParkingId = id;
+      }
+      renderCadWorld();
+      return;
+    }
+
+    if (!state.selectedParkingIds || !state.selectedParkingIds.includes(id)) {
+      state.selectedParkingIds = [id];
+      state.selectedParkingId = id;
+    }
+
     state.selectedFootprintId = null;
     state.isDraggingParking = true;
     state.draggedParkingId = id;
+
+    const groupBays = state.parkingBays.filter(x => (state.selectedParkingIds || []).includes(x.id));
+    state.parkingGroupDragInitial = groupBays.map(b => ({
+      id: b.id,
+      center: [b.center[0], b.center[1]]
+    }));
+
     const worldPos = screenToWorld(e.clientX, e.clientY);
     state.parkingDragStartPos = { x: worldPos[0], y: worldPos[1] };
     state.parkingDragStartCenter = [p.center[0], p.center[1]];
@@ -7206,11 +7319,16 @@
       return;
     }
 
+    const selIds = state.selectedParkingIds && state.selectedParkingIds.length > 0 ? state.selectedParkingIds : (state.selectedParkingId ? [state.selectedParkingId] : []);
+    const selectedCount = selIds.length;
+    const totalCount = state.parkingBays.length;
+
     els.parkingLayer.innerHTML = state.parkingBays.map(p => {
       const w = p.width || 2.5;
       const l = p.length || 5.0;
       const rot = p.rotation || 0;
-      const isSelected = (state.selectedParkingId === p.id);
+      const isSelected = selIds.includes(p.id);
+      const isLead = (state.selectedParkingId === p.id) || (!state.selectedParkingId && selIds[0] === p.id);
       const isAcc = !!p.isAccessible;
 
       let stallHtml = `
@@ -7240,7 +7358,7 @@
           `}
       `;
 
-      if (isSelected) {
+      if (isSelected && isLead) {
         const topY = p.center[1] - l / 2;
         const botY = p.center[1] + l / 2;
         const leftX = p.center[0] - w / 2;
@@ -7294,15 +7412,15 @@
           </g>
 
           <!-- Angle badge -->
-          <rect x="${p.center[0] - 18 * pxToM}" y="${rotHandleY - 14 * pxToM}" width="${36 * pxToM}" height="${11 * pxToM}" rx="${2 * pxToM}" fill="#080e1c" fill-opacity="0.92" stroke="#f59e0b" stroke-width="${0.6 * pxToM}" />
-          <text x="${p.center[0]}" y="${rotHandleY - 5 * pxToM}" text-anchor="middle" fill="#f59e0b" font-size="${7 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">${Math.round(rot)}°</text>
+          <rect x="${p.center[0] - (selectedCount > 1 ? 34 : 18) * pxToM}" y="${rotHandleY - 14 * pxToM}" width="${(selectedCount > 1 ? 68 : 36) * pxToM}" height="${11 * pxToM}" rx="${2 * pxToM}" fill="#080e1c" fill-opacity="0.92" stroke="#f59e0b" stroke-width="${0.6 * pxToM}" />
+          <text x="${p.center[0]}" y="${rotHandleY - 5 * pxToM}" text-anchor="middle" fill="#f59e0b" font-size="${7 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">${Math.round(rot)}° ${selectedCount > 1 ? `(${selectedCount} ადგილი)` : ''}</text>
 
-          <!-- Floating Mini Action Bar: Rotate, Size, Accessible, Row Add, Delete -->
-          <g transform="translate(${p.center[0] - 110 * pxToM}, ${rotHandleY - 34 * pxToM})" class="cursor-pointer font-sans" onmousedown="event.stopPropagation(); event.preventDefault();">
-            <rect x="0" y="0" width="${220 * pxToM}" height="${18 * pxToM}" rx="${4 * pxToM}" fill="#0b1222" fill-opacity="0.96" stroke="#38bdf8" stroke-width="${0.8 * pxToM}" />
+          <!-- Floating Mini Action Bar: Rotate, Size, Accessible, Row Add, Multi-Select All, Delete -->
+          <g transform="translate(${p.center[0] - 135 * pxToM}, ${rotHandleY - 34 * pxToM})" class="cursor-pointer font-sans" onmousedown="event.stopPropagation(); event.preventDefault();">
+            <rect x="0" y="0" width="${270 * pxToM}" height="${18 * pxToM}" rx="${4 * pxToM}" fill="#0b1222" fill-opacity="0.96" stroke="#38bdf8" stroke-width="${0.8 * pxToM}" />
             
             <!-- Rotate 45 -->
-            <g onmousedown="event.stopPropagation(); event.preventDefault(); window.rotateSelectedParking(45);" onclick="event.stopPropagation(); window.rotateSelectedParking(45);" title="ტრიალი +45°">
+            <g onmousedown="event.stopPropagation(); event.preventDefault(); window.rotateSelectedParking(45);" onclick="event.stopPropagation(); window.rotateSelectedParking(45);" title="ტრიალი +45° (R)">
               <rect x="${2 * pxToM}" y="${2 * pxToM}" width="${26 * pxToM}" height="${14 * pxToM}" rx="${2 * pxToM}" fill="#1e293b" />
               <text x="${15 * pxToM}" y="${12 * pxToM}" text-anchor="middle" fill="#38bdf8" font-size="${7.5 * pxToM}" font-weight="bold">⟳45°</text>
             </g>
@@ -7331,10 +7449,15 @@
               <rect x="${168 * pxToM}" y="${2 * pxToM}" width="${32 * pxToM}" height="${14 * pxToM}" rx="${2 * pxToM}" fill="#1e293b" />
               <text x="${184 * pxToM}" y="${12 * pxToM}" text-anchor="middle" fill="#f59e0b" font-size="${7.5 * pxToM}" font-weight="bold">+5 რიგი</text>
             </g>
+            <!-- Multi-Select Toggle / Select All -->
+            <g onmousedown="event.stopPropagation(); event.preventDefault(); if((state.selectedParkingIds||[]).length >= state.parkingBays.length){ window.clearParkingSelection(); } else { window.selectAllParking(); }" onclick="event.stopPropagation(); if((state.selectedParkingIds||[]).length >= state.parkingBays.length){ window.clearParkingSelection(); } else { window.selectAllParking(); }" title="ყველა პარკინგის ერთიანად მონიშვნა (Ctrl+A / 👥)">
+              <rect x="${202 * pxToM}" y="${2 * pxToM}" width="${48 * pxToM}" height="${14 * pxToM}" rx="${2 * pxToM}" fill="${selectedCount > 1 ? '#0284c7' : '#1e293b'}" />
+              <text x="${226 * pxToM}" y="${12 * pxToM}" text-anchor="middle" fill="${selectedCount > 1 ? '#ffffff' : '#38bdf8'}" font-size="${7.5 * pxToM}" font-weight="bold">👥 ${selectedCount > 1 ? `ყველა (${selectedCount})` : 'ყველა'}</text>
+            </g>
             <!-- Delete -->
             <g onmousedown="event.stopPropagation(); event.preventDefault(); window.deleteSelectedParking();" onclick="event.stopPropagation(); window.deleteSelectedParking();" title="წაშლა">
-              <rect x="${202 * pxToM}" y="${2 * pxToM}" width="${16 * pxToM}" height="${14 * pxToM}" rx="${2 * pxToM}" fill="#ef4444" fill-opacity="0.3" />
-              <text x="${210 * pxToM}" y="${12 * pxToM}" text-anchor="middle" fill="#ef4444" font-size="${8.5 * pxToM}" font-weight="bold">✕</text>
+              <rect x="${252 * pxToM}" y="${2 * pxToM}" width="${16 * pxToM}" height="${14 * pxToM}" rx="${2 * pxToM}" fill="#ef4444" fill-opacity="0.3" />
+              <text x="${260 * pxToM}" y="${12 * pxToM}" text-anchor="middle" fill="#ef4444" font-size="${8.5 * pxToM}" font-weight="bold">✕</text>
             </g>
           </g>
         `;
@@ -7345,66 +7468,138 @@
     }).join('');
   }
 
-  window.selectParking = function (id) {
-    state.selectedParkingId = id;
+  window.selectParking = function (id, multi = false) {
     state.selectedFootprintId = null;
-    const p = state.parkingBays.find(x => x.id === id);
+    if (multi) {
+      if (!state.selectedParkingIds) state.selectedParkingIds = [];
+      const idx = state.selectedParkingIds.indexOf(id);
+      if (idx >= 0) {
+        state.selectedParkingIds.splice(idx, 1);
+        state.selectedParkingId = state.selectedParkingIds[0] || null;
+      } else {
+        state.selectedParkingIds.push(id);
+        state.selectedParkingId = id;
+      }
+    } else {
+      state.selectedParkingId = id;
+      state.selectedParkingIds = [id];
+    }
+
+    const p = state.parkingBays.find(x => x.id === state.selectedParkingId);
     if (p) {
       state.activeParkingWidth = p.width;
       state.activeParkingLength = p.length;
       state.activeParkingRotation = p.rotation;
       state.parkingAccessible = !!p.isAccessible;
+    }
+    const count = (state.selectedParkingIds || []).length;
+    if (count > 1) {
+      updateToolStatus(`🅿️ ერთიანად მონიშნულია ${count} პარკინგი. R / ⟳45° = ჯგუფური დატრიალება.`);
+    } else if (p) {
       const typeStr = p.isAccessible ? '♿ შშმ პირთა' : 'სტანდარტული';
-      updateToolStatus(`🅿️ მონიშნულია ავტოსადგომი: ${typeStr} (${p.width.toFixed(1)}×${p.length.toFixed(1)}მ, ${p.rotation}°). R=ტრიალი (+45°).`);
+      updateToolStatus(`🅿️ მონიშნულია: ${typeStr} (${p.width.toFixed(1)}×${p.length.toFixed(1)}მ, ${p.rotation}°). R=ტრიალი (+45°).`);
     }
     if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
     renderCadWorld();
   };
 
   window.rotateSelectedParking = function (deltaDeg) {
-    const p = state.parkingBays.find(x => x.id === state.selectedParkingId);
-    if (p) {
+    let targets = window.getSelectedParkingBays();
+    if (targets.length === 0 && state.parkingBays && state.parkingBays.length > 0) {
+      targets = [...state.parkingBays];
+      state.selectedParkingIds = targets.map(p => p.id);
+      state.selectedParkingId = targets[0].id;
+    }
+
+    if (targets.length > 0) {
       saveUndoSnapshot();
-      p.rotation = ((p.rotation + deltaDeg) % 360 + 360) % 360;
-      state.activeParkingRotation = p.rotation;
+      const cx = targets.reduce((sum, p) => sum + p.center[0], 0) / targets.length;
+      const cy = targets.reduce((sum, p) => sum + p.center[1], 0) / targets.length;
+      const rad = (deltaDeg * Math.PI) / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+
+      targets.forEach(p => {
+        p.rotation = Math.round(((p.rotation || 0) + deltaDeg) % 360 + 360) % 360;
+        if (targets.length > 1) {
+          const dx = p.center[0] - cx;
+          const dy = p.center[1] - cy;
+          p.center[0] = Math.round((cx + dx * cos - dy * sin) * 10) / 10;
+          p.center[1] = Math.round((cy + dx * sin + dy * cos) * 10) / 10;
+        }
+      });
+      state.activeParkingRotation = targets[0].rotation;
       if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
       renderCadWorld();
-      updateToolStatus(`🅿️ ავტოსადგომი დატრიალდა: ${p.rotation}°`);
+      updateToolStatus(`🅿️ ერთიანად დატრიალდა ${targets.length} პარკინგი (${deltaDeg > 0 ? '+' : ''}${deltaDeg}°, ახალი კუთხე: ${targets[0].rotation}°).`);
     } else {
       state.activeParkingRotation = ((state.activeParkingRotation + deltaDeg) % 360 + 360) % 360;
       if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
       renderCadWorld();
-      updateToolStatus(`🅿️ ავტოსადგომის კუთხე: ${state.activeParkingRotation}°`);
+      updateToolStatus(`🅿️ პარკინგის კუთხე: ${state.activeParkingRotation}°`);
     }
   };
 
   window.resizeSelectedParking = function (deltaW, deltaL) {
-    const p = state.parkingBays.find(x => x.id === state.selectedParkingId);
-    if (p) {
+    let targets = window.getSelectedParkingBays();
+    if (targets.length === 0 && state.parkingBays && state.parkingBays.length > 0) {
+      targets = [...state.parkingBays];
+      state.selectedParkingIds = targets.map(p => p.id);
+      state.selectedParkingId = targets[0].id;
+    }
+
+    if (targets.length > 0) {
       saveUndoSnapshot();
-      p.width = Math.max(1.5, Math.min(15, Math.round((p.width + deltaW) * 10) / 10));
-      p.length = Math.max(2.5, Math.min(25, Math.round((p.length + deltaL) * 10) / 10));
-      state.activeParkingWidth = p.width;
-      state.activeParkingLength = p.length;
+      targets.forEach(p => {
+        p.width = Math.max(1.5, Math.min(15, Math.round((p.width + deltaW) * 10) / 10));
+        p.length = Math.max(2.5, Math.min(25, Math.round((p.length + deltaL) * 10) / 10));
+      });
+      state.activeParkingWidth = targets[0].width;
+      state.activeParkingLength = targets[0].length;
       if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
       updateZoningCoefficientsUI();
       renderCadWorld();
-      updateToolStatus(`🅿️ ავტოსადგომის ზომა: ${p.width.toFixed(1)} × ${p.length.toFixed(1)}მ`);
+      updateToolStatus(`🅿️ პარკინგის (${targets.length}) ზომა: ${targets[0].width.toFixed(1)} × ${targets[0].length.toFixed(1)}მ`);
     } else {
       state.activeParkingWidth = Math.max(1.5, Math.min(15, Math.round((state.activeParkingWidth + deltaW) * 10) / 10));
       state.activeParkingLength = Math.max(2.5, Math.min(25, Math.round((state.activeParkingLength + deltaL) * 10) / 10));
       if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
-      updateToolStatus(`🅿️ ავტოსადგომის ზომა: ${state.activeParkingWidth.toFixed(1)} × ${state.activeParkingLength.toFixed(1)}მ`);
+      updateToolStatus(`🅿️ პარკინგის ზომა: ${state.activeParkingWidth.toFixed(1)} × ${state.activeParkingLength.toFixed(1)}მ`);
     }
   };
 
   window.setParkingRotation = function (deg) {
     const rot = ((parseInt(deg, 10) || 0) % 360 + 360) % 360;
+    const oldRot = state.activeParkingRotation || 0;
+    const deltaDeg = rot - oldRot;
     state.activeParkingRotation = rot;
-    const p = state.parkingBays.find(x => x.id === state.selectedParkingId);
-    if (p) {
+
+    let targets = window.getSelectedParkingBays();
+    if (targets.length === 0 && state.parkingBays && state.parkingBays.length > 0) {
+      targets = [...state.parkingBays];
+      state.selectedParkingIds = targets.map(p => p.id);
+      state.selectedParkingId = targets[0].id;
+    }
+
+    if (targets.length > 0) {
       saveUndoSnapshot();
-      p.rotation = rot;
+      if (targets.length === 1) {
+        targets[0].rotation = rot;
+      } else {
+        const cx = targets.reduce((sum, p) => sum + p.center[0], 0) / targets.length;
+        const cy = targets.reduce((sum, p) => sum + p.center[1], 0) / targets.length;
+        const rad = (deltaDeg * Math.PI) / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+
+        targets.forEach(p => {
+          p.rotation = Math.round(((p.rotation || 0) + deltaDeg) % 360 + 360) % 360;
+          const dx = p.center[0] - cx;
+          const dy = p.center[1] - cy;
+          p.center[0] = Math.round((cx + dx * cos - dy * sin) * 10) / 10;
+          p.center[1] = Math.round((cy + dx * sin + dy * cos) * 10) / 10;
+        });
+      }
       renderCadWorld();
     }
     if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
@@ -7413,13 +7608,23 @@
   window.setParkingDimensions = function (w, l) {
     if (w != null && w !== '') state.activeParkingWidth = Math.max(1.5, Math.min(15, parseFloat(w) || 2.5));
     if (l != null && l !== '') state.activeParkingLength = Math.max(2.5, Math.min(25, parseFloat(l) || 5.0));
-    const p = state.parkingBays.find(x => x.id === state.selectedParkingId);
-    if (p) {
+
+    let targets = window.getSelectedParkingBays();
+    if (targets.length === 0 && state.parkingBays && state.parkingBays.length > 0) {
+      targets = [...state.parkingBays];
+      state.selectedParkingIds = targets.map(p => p.id);
+      state.selectedParkingId = targets[0].id;
+    }
+
+    if (targets.length > 0) {
       saveUndoSnapshot();
-      if (w != null && w !== '') p.width = state.activeParkingWidth;
-      if (l != null && l !== '') p.length = state.activeParkingLength;
+      targets.forEach(p => {
+        if (w != null && w !== '') p.width = state.activeParkingWidth;
+        if (l != null && l !== '') p.length = state.activeParkingLength;
+      });
       updateZoningCoefficientsUI();
       renderCadWorld();
+      updateToolStatus(`🅿️ განახლდა ${targets.length} პარკინგის ზომა (${state.activeParkingWidth}×${state.activeParkingLength}მ).`);
     }
     if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
   };
@@ -7436,27 +7641,36 @@
     state.activeParkingWidth = w;
     state.activeParkingLength = l;
     state.parkingAccessible = isAcc;
-    const p = state.parkingBays.find(x => x.id === state.selectedParkingId);
-    if (p) {
-      p.width = w;
-      p.length = l;
-      p.isAccessible = isAcc;
+
+    let targets = window.getSelectedParkingBays();
+    if (targets.length > 0) {
+      targets.forEach(p => {
+        p.width = w;
+        p.length = l;
+        p.isAccessible = isAcc;
+      });
       updateZoningCoefficientsUI();
       renderCadWorld();
+      updateToolStatus(`არჩეულია პარკინგის პრესეტი ${targets.length} ადგილისთვის: ${name}`);
+    } else {
+      updateToolStatus(`არჩეულია პარკინგის პრესეტი: ${name}`);
     }
     if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
-    updateToolStatus(`არჩეულია პარკინგის პრესეტი: ${name}`);
   };
 
   window.deleteSelectedParking = function () {
-    if (!state.selectedParkingId) return;
+    const targets = window.getSelectedParkingBays();
+    if (targets.length === 0) return;
     saveUndoSnapshot();
-    state.parkingBays = (state.parkingBays || []).filter(p => p.id !== state.selectedParkingId);
+    const count = targets.length;
+    const targetIds = targets.map(p => p.id);
+    state.parkingBays = (state.parkingBays || []).filter(p => !targetIds.includes(p.id));
     state.selectedParkingId = null;
+    state.selectedParkingIds = [];
     if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
     updateZoningCoefficientsUI();
     renderCadWorld();
-    updateToolStatus('ავტოსადგომი წაიშალა.');
+    updateToolStatus(`წაიშალა ${count} ავტოსადგომი.`);
   };
 
   window.syncParkingParamsUI = function () {
@@ -7465,6 +7679,8 @@
     const l = p ? p.length : (state.activeParkingLength || 5.0);
     const rot = p ? p.rotation : (state.activeParkingRotation || 0);
     const isAcc = p ? !!p.isAccessible : !!state.parkingAccessible;
+    const selCount = (state.selectedParkingIds || []).length;
+    const totalCount = (state.parkingBays || []).length;
 
     const elW = document.getElementById('inputSiteParkingW');
     const elL = document.getElementById('inputSiteParkingL');
@@ -7472,15 +7688,46 @@
     const elNumRot = document.getElementById('inputNumSiteParkingRot');
     const elLblRot = document.getElementById('lblSiteParkingRotVal');
     const elAccBadge = document.getElementById('badgeSiteParkingType');
+    const elSelText = document.getElementById('lblSelectAllParkingText');
+    const elSelRibbon = document.getElementById('btnSelectAllParkingRibbon');
 
     if (elW && document.activeElement !== elW) elW.value = w;
     if (elL && document.activeElement !== elL) elL.value = l;
     if (elRot && document.activeElement !== elRot) elRot.value = rot;
     if (elNumRot && document.activeElement !== elNumRot) elNumRot.value = rot;
-    if (elLblRot) elLblRot.innerText = `${Math.round(rot)}°`;
+    if (elLblRot) {
+      if (selCount > 1) {
+        elLblRot.innerText = `${Math.round(rot)}° (${selCount} მონიშნულია)`;
+      } else {
+        elLblRot.innerText = `${Math.round(rot)}°`;
+      }
+    }
     if (elAccBadge) {
-      elAccBadge.innerText = isAcc ? '♿ შშმ პირთა' : '🚗 სტანდარტული';
-      elAccBadge.className = isAcc ? 'text-[10px] font-bold text-sky-400 bg-sky-500/20 px-1.5 py-0.5 rounded border border-sky-400/30' : 'text-[10px] font-bold text-slate-300 bg-white/5 px-1.5 py-0.5 rounded';
+      if (selCount > 1) {
+        elAccBadge.innerText = `👥 ${selCount} მონიშნულია`;
+        elAccBadge.className = 'text-[10px] font-bold text-sky-300 bg-sky-500/20 px-1.5 py-0.5 rounded border border-sky-400/40';
+      } else {
+        elAccBadge.innerText = isAcc ? '♿ შშმ პირთა' : '🚗 სტანდარტული';
+        elAccBadge.className = isAcc ? 'text-[10px] font-bold text-sky-400 bg-sky-500/20 px-1.5 py-0.5 rounded border border-sky-400/30' : 'text-[10px] font-bold text-slate-300 bg-white/5 px-1.5 py-0.5 rounded';
+      }
+    }
+    if (elSelText) {
+      if (selCount > 0 && selCount === totalCount && totalCount > 0) {
+        elSelText.innerText = `ყველა (${totalCount}) მონიშნულია ✓`;
+      } else if (selCount > 1) {
+        elSelText.innerText = `მონიშნულია ${selCount} / ${totalCount} (ყველა)`;
+      } else {
+        elSelText.innerText = totalCount > 0 ? `ყველა პარკინგის მონიშვნა (${totalCount})` : 'ყველა პარკინგის მონიშვნა';
+      }
+    }
+    if (elSelRibbon) {
+      if (selCount > 0 && selCount === totalCount && totalCount > 0) {
+        elSelRibbon.className = 'btn-cad-tool h-7 px-2 rounded bg-sky-600 text-white border border-sky-400 text-xs font-semibold flex items-center gap-1.5 transition shadow-sm';
+      } else if (selCount > 1) {
+        elSelRibbon.className = 'btn-cad-tool h-7 px-2 rounded bg-sky-800 text-sky-200 border border-sky-400/50 text-xs font-medium flex items-center gap-1.5 transition';
+      } else {
+        elSelRibbon.className = 'btn-cad-tool h-7 px-2 rounded bg-sky-950/80 border border-sky-600/40 text-xs font-medium flex items-center gap-1.5 hover:bg-sky-800 text-sky-200 transition';
+      }
     }
   };
 
@@ -7488,6 +7735,7 @@
     saveUndoSnapshot();
     state.parkingBays = (state.parkingBays || []).filter(p => p.id !== id);
     if (state.selectedParkingId === id) state.selectedParkingId = null;
+    if (state.selectedParkingIds) state.selectedParkingIds = state.selectedParkingIds.filter(x => x !== id);
     if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
     updateZoningCoefficientsUI();
     renderCadWorld();
@@ -9567,9 +9815,16 @@
           return;
         }
       }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+        if (state.activeTool === 'parking' || state.selectedParkingId || (state.selectedParkingIds && state.selectedParkingIds.length > 0)) {
+          e.preventDefault();
+          window.selectAllParking();
+          return;
+        }
+      }
       if (e.key.toLowerCase() === 'r') {
         e.preventDefault();
-        if (state.selectedParkingId) {
+        if (state.selectedParkingId || (state.selectedParkingIds && state.selectedParkingIds.length > 0)) {
           window.rotateSelectedParking(45);
         } else if (state.activeTool === 'parking') {
           window.rotateSelectedParking(45);
