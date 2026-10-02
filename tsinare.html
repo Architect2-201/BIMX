@@ -3810,6 +3810,75 @@
             </div>
           </div>
 
+                    <!-- Parking Bay Dimensions & Rotation Controls -->
+          <div class="bg-[#0b1222] p-2.5 rounded-lg border border-sky-500/20 space-y-2">
+            <div class="flex items-center justify-between text-[11px] text-sky-300 font-bold border-b border-white/5 pb-1">
+              <span class="flex items-center gap-1.5"><i class="fa-solid fa-square-parking text-sky-400"></i> პარკინგი (ზომა &amp; ტრიალი):</span>
+              <button type="button" onclick="setCadActiveTool('parking')" class="text-xs bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 px-2 py-0.5 rounded font-semibold border border-sky-500/30 transition flex items-center gap-1">
+                <i class="fa-solid fa-plus text-[10px]"></i> დასმა
+              </button>
+            </div>
+
+            <!-- Dimensions (Width x Length) -->
+            <div class="flex items-center justify-between text-[10px]">
+              <span class="text-slate-400">ზომები (W × L):</span>
+              <div class="flex items-center gap-1.5 font-mono">
+                <input type="number" id="inputSiteParkingW" value="2.5" step="0.1" min="1.5" max="15" onchange="window.setParkingDimensions(this.value, null)" oninput="window.setParkingDimensions(this.value, null)" class="w-12 bg-[#121c33] border border-white/10 rounded px-1 text-center text-sky-300 text-xs font-bold focus:border-sky-400 outline-none">
+                <span class="text-slate-500">×</span>
+                <input type="number" id="inputSiteParkingL" value="5.0" step="0.1" min="2.5" max="25" onchange="window.setParkingDimensions(null, this.value)" oninput="window.setParkingDimensions(null, this.value)" class="w-12 bg-[#121c33] border border-white/10 rounded px-1 text-center text-sky-300 text-xs font-bold focus:border-sky-400 outline-none">
+                <span class="text-slate-400 text-[10px]">მ</span>
+              </div>
+            </div>
+
+            <!-- Rotation / Angle Control -->
+            <div class="space-y-1">
+              <div class="flex items-center justify-between text-[10px]">
+                <span class="text-slate-400 flex items-center gap-1"><i class="fa-solid fa-rotate text-sky-400"></i> ტრიალი (კუთხე):</span>
+                <span id="lblSiteParkingRotVal" class="text-amber-400 font-mono font-bold text-xs">0°</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <input type="range" id="sliderSiteParkingRot" min="0" max="360" value="0" step="5" oninput="window.setParkingRotation(this.value)" class="flex-1 accent-sky-400 h-1.5 bg-slate-800 rounded">
+                <input type="number" id="inputNumSiteParkingRot" min="0" max="360" value="0" oninput="window.setParkingRotation(this.value)" class="w-12 bg-[#121c33] border border-white/10 rounded px-1 text-center text-amber-300 text-xs font-mono font-bold focus:border-sky-400 outline-none">
+              </div>
+              <!-- Quick Angle Buttons -->
+              <div class="grid grid-cols-4 gap-1 pt-1">
+                <button type="button" onclick="window.setParkingRotation(0)" class="py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono">0° ვერტ</button>
+                <button type="button" onclick="window.setParkingRotation(90)" class="py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono">90° ჰორიზ</button>
+                <button type="button" onclick="window.setParkingRotation(45)" class="py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono">45° დიაგ</button>
+                <button type="button" onclick="window.rotateSelectedParking(45)" class="py-0.5 rounded bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 text-[10px] font-bold border border-sky-500/30">🔄 +45°</button>
+              </div>
+            </div>
+
+            <!-- Standard Norms Presets -->
+            <div class="pt-1 border-t border-white/5 space-y-1">
+              <span class="text-[9px] uppercase tracking-wider text-slate-400 font-bold block">სტანდარტული ნორმები:</span>
+              <div class="grid grid-cols-2 gap-1 text-[10px]">
+                <button type="button" onclick="window.applyParkingPreset('standard')" class="px-1.5 py-1 rounded bg-white/5 hover:bg-white/10 text-slate-200 text-left truncate flex items-center gap-1">
+                  <span>🚗</span> <span>სტანდარტი 2.5×5</span>
+                </button>
+                <button type="button" onclick="window.applyParkingPreset('disabled')" class="px-1.5 py-1 rounded bg-white/5 hover:bg-white/10 text-slate-200 text-left truncate flex items-center gap-1">
+                  <span>♿</span> <span>შშმ 3.5×5</span>
+                </button>
+                <button type="button" onclick="window.applyParkingPreset('compact')" class="px-1.5 py-1 rounded bg-white/5 hover:bg-white/10 text-slate-200 text-left truncate flex items-center gap-1">
+                  <span>🚙</span> <span>კომპაქტი 2.3×4.5</span>
+                </button>
+                <button type="button" onclick="window.applyParkingPreset('cargo')" class="px-1.5 py-1 rounded bg-white/5 hover:bg-white/10 text-slate-200 text-left truncate flex items-center gap-1">
+                  <span>🚚</span> <span>სატვირთო 3.5×8.5</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Quick Add 5 Bays & Delete Selected -->
+            <div class="pt-1 border-t border-white/5 flex items-center justify-between gap-1 text-[10px]">
+              <button type="button" onclick="window.addParkingRow()" class="flex-1 py-1 rounded bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 font-semibold flex items-center justify-center gap-1">
+                <i class="fa-solid fa-list-ol"></i> + 5-იანი რიგი
+              </button>
+              <button type="button" onclick="window.deleteSelectedParking()" class="px-2 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 font-semibold flex items-center gap-1" title="მონიშნული პარკინგის წაშლა">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </div>
+
           <!-- Pool Dimensions -->
           <div class="bg-[#0b1222] p-2 rounded border border-white/5 space-y-1">
             <div class="flex items-center justify-between text-[10px] text-slate-300 font-medium">
@@ -3858,6 +3927,6 @@
   </div>
 
   <!-- Core JavaScript Logic -->
-  <script src="tsinare.js?v=20261002_nocarto_v1"></script>
+  <script src="tsinare.js?v=20261002_parking_rotate_v1"></script>
 </body>
 </html>
