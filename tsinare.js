@@ -186,12 +186,12 @@
   // Basemap Registry — all supported tile providers
   // ----------------------------------------------------------------
   const BASEMAP_REGISTRY = {
-    // --- 1. სატელიტური ორთოფოტოები ---
+    // --- 1. სატელიტური ორთოფოტოები (100% უფასო) ---
     esri_satellite: {
       label: 'სატელიტი (ESRI)',
       icon: '🛰️',
       group: 'satellite',
-      description: 'ESRI World Imagery — მაღალი რეზოლუციის ორთოფოტო საზღვრებით',
+      description: 'ESRI World Imagery — მაღალი რეზოლუციის ორთოფოტო საზღვრებით და სახელწოდებებით',
       layers: [
         { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 19, maxZoom: 22 } },
         { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 19, maxZoom: 22 } }
@@ -201,27 +201,27 @@
       label: 'სუფთა ორთოფოტო',
       icon: '📷',
       group: 'satellite',
-      description: 'სუფთა სატელიტური ფოტო წარწერების გარეშე (იდეალურია CAD-ისთვის)',
-      layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 19, maxZoom: 22 } }
-      ]
-    },
-    esri_satellite_pure: {
-      label: 'სუფთა ორთოფოტო',
-      icon: '📷',
-      group: 'satellite',
-      description: 'სუფთა სატელიტური ფოტო წარწერების გარეშე (იდეალურია CAD-ისთვის)',
+      description: 'სუფთა სატელიტური ორთოფოტო წარწერების გარეშე (იდეალურია CAD-ისთვის)',
       layers: [
         { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 19, maxZoom: 22 } }
       ]
     },
 
-    // --- 2. საგზაო / ქუჩის რუკები ---
+    // --- 2. საგზაო / ქუჩის / ურბანული რუკები (100% უფასო) ---
+    carto_voyager: {
+      label: 'CARTO Voyager',
+      icon: '🏙️',
+      group: 'road',
+      description: 'CARTO Voyager — დახვეწილი ურბანული ქუჩები, კვარტლები და შენობების კონტურები',
+      layers: [
+        { url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', opts: { subdomains: 'abcd', maxNativeZoom: 19, maxZoom: 22 } }
+      ]
+    },
     osm: {
       label: 'OpenStreetMap (OSM)',
       icon: '🗺️',
       group: 'road',
-      description: 'OSM Standard — ღია გლობალური საგზაო რუკა',
+      description: 'OSM Standard — ღია გლობალური საგზაო რუკა და მისამართები',
       layers: [
         { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxNativeZoom: 19, maxZoom: 22 } }
       ]
@@ -230,16 +230,16 @@
       label: 'ESRI Street Map',
       icon: '🧭',
       group: 'road',
-      description: 'ESRI World Street Map — დეტალური საგზაო და სამისამართო რუკა',
+      description: 'ESRI World Street Map — დეტალური საგზაო და სამისამართო ინფრასტრუქტურა',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 19, maxZoom: 22 } }
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 16, maxZoom: 22 } }
       ]
     },
     osm_hot: {
       label: 'OSM Humanitarian',
       icon: '🏘️',
       group: 'road',
-      description: 'OSM HOT — ნათელი კონტრასტული შენობები და ქუჩები',
+      description: 'OSM Humanitarian — ნათელი კონტრასტული შენობები, ქუჩები და დასახლებები',
       layers: [
         { url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxNativeZoom: 19, maxZoom: 22 } }
       ]
@@ -248,18 +248,28 @@
       label: 'OSM France დეტალური',
       icon: '🎨',
       group: 'road',
-      description: 'OSM France — დახვეწილი კლასიკური ევროპული კარტოგრაფია',
+      description: 'OSM France — კლასიკური ევროპული კარტოგრაფიული დიზაინი',
       layers: [
         { url: 'https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxNativeZoom: 19, maxZoom: 22 } }
       ]
     },
-    cyclosm: {
-      label: 'CyclOSM საინჟინრო',
-      icon: '🚲',
+    osm_de: {
+      label: 'OSM გერმანული (High-Res)',
+      icon: '📐',
       group: 'road',
-      description: 'CyclOSM — საინჟინრო, სატრანსპორტო და ბილიკების დეტალური ქსელი',
+      description: 'OSM German Style — გერმანული საინჟინრო კარტოგრაფიის მაღალი დეტალურობა',
       layers: [
-        { url: 'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxNativeZoom: 18, maxZoom: 22 } }
+        { url: 'https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxNativeZoom: 19, maxZoom: 22 } }
+      ]
+    },
+    openrailwaymap: {
+      label: 'OpenRailwayMap (რკინიგზა)',
+      icon: '🚆',
+      group: 'road',
+      description: 'საინჟინრო რკინიგზის, ლოჯისტიკური ლიანდაგების და სადგურების ქსელი',
+      layers: [
+        { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxNativeZoom: 19, maxZoom: 22 } },
+        { url: 'https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxNativeZoom: 19, maxZoom: 22 } }
       ]
     },
     opnv: {
@@ -271,17 +281,17 @@
         { url: 'https://tile.memomaps.de/tilegen/{z}/{x}/{y}.png', opts: { maxNativeZoom: 18, maxZoom: 22 } }
       ]
     },
-    memomaps_opnv: {
-      label: 'ÖPNV ტრანსპორტი',
-      icon: '🚊',
-      group: 'road',
-      description: 'საზოგადოებრივი ტრანსპორტის, რკინიგზის და გზატკეცილების ქსელი',
+
+    // --- 3. მუქი & CAD რეჟიმი (100% უფასო) ---
+    carto_dark: {
+      label: 'CARTO Dark Matter',
+      icon: '🌑',
+      group: 'dark',
+      description: 'CARTO Dark Matter — მუქი გრაფიტის ფონი მაღალი კონტრასტის CAD ხაზებისთვის',
       layers: [
-        { url: 'https://tile.memomaps.de/tilegen/{z}/{x}/{y}.png', opts: { maxNativeZoom: 18, maxZoom: 22 } }
+        { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', opts: { subdomains: 'abcd', maxNativeZoom: 19, maxZoom: 22 } }
       ]
     },
-
-    // --- 3. მუქი & CAD რეჟიმი ---
     esri_dark_gray: {
       label: 'ESRI Dark Gray (CAD)',
       icon: '⬛',
@@ -310,6 +320,24 @@
         { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxNativeZoom: 19, maxZoom: 22, className: 'tile-filter-blueprint' } }
       ]
     },
+    carto_positron: {
+      label: 'CARTO Positron (მინიმალისტური)',
+      icon: '⚪',
+      group: 'neutral',
+      description: 'CARTO Positron — სუფთა თეთრი მინიმალისტური ფონი საპროექტო გენგეგმისთვის',
+      layers: [
+        { url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', opts: { subdomains: 'abcd', maxNativeZoom: 19, maxZoom: 22 } }
+      ]
+    },
+    carto_light: {
+      label: 'CARTO Positron (მინიმალისტური)',
+      icon: '⚪',
+      group: 'neutral',
+      description: 'CARTO Positron — სუფთა თეთრი მინიმალისტური ფონი საპროექტო გენგეგმისთვის',
+      layers: [
+        { url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', opts: { subdomains: 'abcd', maxNativeZoom: 19, maxZoom: 22 } }
+      ]
+    },
     esri_gray: {
       label: 'ESRI Light Gray',
       icon: '🩶',
@@ -321,7 +349,7 @@
       ]
     },
 
-    // --- 4. ტოპოგრაფია & რელიეფი ---
+    // --- 4. ტოპოგრაფია & რელიეფი (100% უფასო) ---
     opentopomap: {
       label: 'OpenTopoMap',
       icon: '📏',
@@ -337,7 +365,7 @@
       group: 'topo',
       description: 'ESRI World Topo Map — გეოდეზიური და ტოპოგრაფიული რუკა',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 19, maxZoom: 22 } }
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 15, maxZoom: 22 } }
       ]
     },
     esri_shaded_relief: {
@@ -373,7 +401,16 @@
       group: 'topo',
       description: 'National Geographic World Map — კლასიკური მსოფლიო ატლასის სტილი',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 16, maxZoom: 22 } }
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 12, maxZoom: 22 } }
+      ]
+    },
+    arcgis_nav: {
+      label: 'ESRI Navigation Charts',
+      icon: '🧭',
+      group: 'topo',
+      description: 'ESRI Navigation Charts — საინჟინრო ნავიგაციური და ტოპოგრაფიული ჩარტები',
+      layers: [
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Specialty/World_Navigation_Charts/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 13, maxZoom: 22 } }
       ]
     },
     esri_ocean: {
@@ -386,108 +423,14 @@
       ]
     },
 
-    // --- 5. თანამედროვე & კარტოგრაფიული რუკები ---
-    carto_voyager: {
-      label: 'CARTO Voyager',
-      icon: '🧭',
-      group: 'neutral',
-      description: 'CARTO Voyager — ელეგანტური ურბანული რუკა შენობების კონტურებით',
-      layers: [
-        { url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', opts: { subdomains: 'abcd', maxNativeZoom: 19, maxZoom: 22 } }
-      ]
-    },
-    carto_dark: {
-      label: 'CARTO Dark Matter',
-      icon: '🌑',
-      group: 'dark',
-      description: 'CARTO Dark Matter — მუქი გრაფიტის ფონი მაღალი კონტრასტის CAD ხაზებისთვის',
-      layers: [
-        { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', opts: { subdomains: 'abcd', maxNativeZoom: 19, maxZoom: 22 } }
-      ]
-    },
-    carto_positron: {
-      label: 'CARTO Positron (მინიმალისტური)',
-      icon: '⚪',
-      group: 'neutral',
-      description: 'CARTO Positron — სუფთა თეთრი მინიმალისტური ფონი საპროექტო გენგეგმისთვის',
-      layers: [
-        { url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', opts: { subdomains: 'abcd', maxNativeZoom: 19, maxZoom: 22 } }
-      ]
-    },
-    esri_clarity: {
-      label: 'ESRI Clarity Ortho',
-      icon: '✨',
-      group: 'satellite',
-      description: 'ESRI Clarity — უმაღლესი სიცხადის ორთოფოტო ღრუბლების გარეშე',
-      layers: [
-        { url: 'https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 19, maxZoom: 22 } }
-      ]
-    },
-    esri_firefly: {
-      label: 'ESRI Firefly Imagery',
-      icon: '🪲',
-      group: 'satellite',
-      description: 'ESRI Firefly — დაბალანსებული მუქი ორთოფოტო CAD ვექტორების გასანათებლად',
-      layers: [
-        { url: 'https://fly.maptiles.arcgis.com/arcgis/rest/services/World_Imagery_Firefly/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 19, maxZoom: 22 } }
-      ]
-    },
-    esri_nav_charts: {
-      label: 'ESRI ნავიგაციის რუკა',
-      icon: '⚓',
-      group: 'topo',
-      description: 'ESRI Navigation Charts — საინჟინრო ნავიგაციური და ტოპოგრაფიული ჩარტები',
-      layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Specialty/World_Navigation_Charts/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 13, maxZoom: 22 } }
-      ]
-    },
-    osm_de: {
-      label: 'OpenStreetMap გერმანია',
-      icon: '🇩🇪',
-      group: 'road',
-      description: 'OSM German Style — გერმანული საინჟინრო კარტოგრაფიის დეტალურობა',
-      layers: [
-        { url: 'https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxNativeZoom: 19, maxZoom: 22 } }
-      ]
-    },
-
-    arcgis_clarity: {
-      label: 'ESRI Clarity Ortho',
-      icon: '💎',
-      group: 'satellite',
-      description: 'ESRI Clarity — უმაღლესი სიცხადის ორთოფოტო',
-      layers: [
-        { url: 'https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 19, maxZoom: 22 } }
-      ]
-    },
-    arcgis_firefly: {
-      label: 'ESRI Firefly Imagery',
-      icon: '🪲',
-      group: 'satellite',
-      description: 'ESRI Firefly — დაბალანსებული მუქი ორთოფოტო CAD ვექტორებისთვის',
-      layers: [
-        { url: 'https://fly.maptiles.arcgis.com/arcgis/rest/services/World_Imagery_Firefly/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 19, maxZoom: 22 } }
-      ]
-    },
-    carto_light: {
-      label: 'CARTO Positron (ღია)',
-      icon: '⚪',
-      group: 'neutral',
-      description: 'CARTO Positron — სუფთა ნათელი ფონი',
-      layers: [
-        { url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', opts: { subdomains: 'abcd', maxNativeZoom: 19, maxZoom: 22 } }
-      ]
-    },
-
-    // --- 6. ისტორიული რუკები & რეტრო ტოპოგრაფია ---
-    // --- 6. ისტორიული რუკები & რეტრო ტოპოგრაფია ---
+    // --- 5. ისტორიული რუკები & რეტრო ტოპოგრაფია (100% გამართული & უფასო) ---
     hist_1887_imperial: {
       label: '1887 რუსეთის იმპერიის ტოპო',
       icon: '📜',
       group: 'historical',
       description: '1887 წლის სამხედრო-ტოპოგრაფიული ერთვერსიანი რუკა (ვინტაჟური სეპია)',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 16, maxZoom: 22, className: 'tile-filter-sepia-antique' } }
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 15, maxZoom: 22, className: 'tile-filter-sepia-antique' } }
       ]
     },
     antique_1887: {
@@ -496,7 +439,7 @@
       group: 'historical',
       description: '1887 წლის სამხედრო-ტოპოგრაფიული ერთვერსიანი რუკა (ვინტაჟური სეპია)',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 16, maxZoom: 22, className: 'tile-filter-sepia-antique' } }
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 15, maxZoom: 22, className: 'tile-filter-sepia-antique' } }
       ]
     },
     hist_1942_soviet: {
@@ -505,7 +448,7 @@
       group: 'historical',
       description: '1942 წლის წითელი არმიის გენშტაბის სამხედრო-ტოპოგრაფიული რუკა',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 16, maxZoom: 22, className: 'tile-filter-soviet-topo' } }
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 15, maxZoom: 22, className: 'tile-filter-soviet-topo' } }
       ]
     },
     soviet_1942: {
@@ -514,7 +457,7 @@
       group: 'historical',
       description: '1942 წლის წითელი არმიის გენშტაბის სამხედრო-ტოპოგრაფიული რუკა',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 16, maxZoom: 22, className: 'tile-filter-soviet-topo' } }
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 15, maxZoom: 22, className: 'tile-filter-soviet-topo' } }
       ]
     },
     hist_1975_soviet: {
@@ -523,7 +466,7 @@
       group: 'historical',
       description: '1975 წლის ურბანული გენერალური გეგმის ტოპოგრაფიული საფუძველი',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 17, maxZoom: 22, className: 'tile-filter-soviet-70s' } }
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 16, maxZoom: 22, className: 'tile-filter-soviet-70s' } }
       ]
     },
     soviet_1975: {
@@ -532,16 +475,7 @@
       group: 'historical',
       description: '1975 წლის ურბანული გენერალური გეგმის ტოპოგრაფიული საფუძველი',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 17, maxZoom: 22, className: 'tile-filter-soviet-70s' } }
-      ]
-    },
-    arcgis_nav: {
-      label: 'ESRI Navigation Charts',
-      icon: '🧭',
-      group: 'topo',
-      description: 'ESRI Navigation Charts — საინჟინრო ნავიგაციური და ტოპოგრაფიული ჩარტები',
-      layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Specialty/World_Navigation_Charts/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 13, maxZoom: 22 } }
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 16, maxZoom: 22, className: 'tile-filter-soviet-70s' } }
       ]
     }
   };
@@ -564,16 +498,16 @@
   };
 
   const HISTORICAL_YEARS = [
-    { year: 1887, label: '1887 (რუსეთის იმპერია)', desc: '1887 წლის სამხედრო-ტოპოგრაფიული ერთვერსიანი რუკა (ვინტაჟური სეპია)', basemapKey: 'hist_1887_imperial', filterClass: 'tile-filter-sepia-antique', maxNativeZoom: 18 },
-    { year: 1942, label: '1942 (გენშტაბი II მსოფლიო ომი)', desc: '1942 წლის წითელი არმიის გენშტაბის სამხედრო-ტოპოგრაფიული რუკა', basemapKey: 'hist_1942_soviet', filterClass: 'tile-filter-soviet-topo', maxNativeZoom: 17 },
-    { year: 1975, label: '1975 (საბჭოთა გენგეგმა)', desc: '1975 წლის ურბანული გენერალური გეგმის ტოპოგრაფიული საფუძველი', basemapKey: 'hist_1975_soviet', filterClass: 'tile-filter-soviet-70s', maxNativeZoom: 18 },
-    { year: 2004, label: '2004 (ადრეული სატელიტი)', desc: '2004 წლის Landsat / early NASA სატელიტური ორთოფოტოსურათი', basemapKey: 'esri_satellite', filterClass: 'tile-filter-retro-ortho', maxNativeZoom: 19 },
-    { year: 2014, label: '2014 (ESRI Wayback)', desc: '2014 წლის აეროფოტოგადაღება (Release M=5844)', waybackRelease: 5844, maxNativeZoom: 17 },
-    { year: 2016, label: '2016 (ESRI Wayback)', desc: '2016 წლის აეროფოტოგადაღება (Release M=18966)', waybackRelease: 18966, maxNativeZoom: 18 },
-    { year: 2018, label: '2018 (ESRI Wayback)', desc: '2018 წლის ორთოფოტო (Release M=23448)', waybackRelease: 23448, maxNativeZoom: 18 },
-    { year: 2020, label: '2020 (ESRI Wayback)', desc: '2020 წლის სატელიტური ორთოფოტო (Release M=29260)', waybackRelease: 29260, maxNativeZoom: 18 },
-    { year: 2022, label: '2022 (ESRI Wayback)', desc: '2022 წლის მაღალი სიზუსტის ორთოფოტო (Release M=45134)', waybackRelease: 45134, maxNativeZoom: 18 },
-    { year: 2024, label: '2024 (ESRI Wayback)', desc: '2024 წლის ორთოფოტოგადაღება (Release M=16453)', waybackRelease: 16453, maxNativeZoom: 18 },
+    { year: 1887, label: '1887 (რუსეთის იმპერია)', desc: '1887 წლის სამხედრო-ტოპოგრაფიული ერთვერსიანი რუკა (ვინტაჟური სეპია)', basemapKey: 'hist_1887_imperial', filterClass: 'tile-filter-sepia-antique', maxNativeZoom: 15 },
+    { year: 1942, label: '1942 (გენშტაბი II მსოფლიო ომი)', desc: '1942 წლის წითელი არმიის გენშტაბის სამხედრო-ტოპოგრაფიული რუკა', basemapKey: 'hist_1942_soviet', filterClass: 'tile-filter-soviet-topo', maxNativeZoom: 15 },
+    { year: 1975, label: '1975 (საბჭოთა გენგეგმა)', desc: '1975 წლის ურბანული გენერალური გეგმის ტოპოგრაფიული საფუძველი', basemapKey: 'hist_1975_soviet', filterClass: 'tile-filter-soviet-70s', maxNativeZoom: 16 },
+    { year: 2004, label: '2004 (ადრეული სატელიტი)', desc: '2004 წლის Landsat / early NASA სატელიტური ორთოფოტოსურათი', basemapKey: 'esri_satellite', filterClass: 'tile-filter-retro-ortho', maxNativeZoom: 16 },
+    { year: 2014, label: '2014 (ESRI Wayback)', desc: '2014 წლის აეროფოტოგადაღება (Release M=30195)', waybackRelease: 30195, maxNativeZoom: 16 },
+    { year: 2016, label: '2016 (ESRI Wayback)', desc: '2016 წლის აეროფოტოგადაღება (Release M=18966)', waybackRelease: 18966, maxNativeZoom: 16 },
+    { year: 2018, label: '2018 (ESRI Wayback)', desc: '2018 წლის ორთოფოტო (Release M=23448)', waybackRelease: 23448, maxNativeZoom: 16 },
+    { year: 2020, label: '2020 (ESRI Wayback)', desc: '2020 წლის სატელიტური ორთოფოტო (Release M=29260)', waybackRelease: 29260, maxNativeZoom: 16 },
+    { year: 2022, label: '2022 (ESRI Wayback)', desc: '2022 წლის მაღალი სიზუსტის ორთოფოტო (Release M=45134)', waybackRelease: 45134, maxNativeZoom: 16 },
+    { year: 2024, label: '2024 (ESRI Wayback)', desc: '2024 წლის ორთოფოტოგადაღება (Release M=16453)', waybackRelease: 16453, maxNativeZoom: 16 },
     { year: 2026, label: '2026 (უახლესი 2026)', desc: '2026 წლის უახლესი ორთოფოტო და საჯარო რეესტრის კადასტრი (M=26334)', waybackRelease: 26334, maxNativeZoom: 19 }
   ];
 
@@ -588,6 +522,11 @@
     const cfg = BASEMAP_REGISTRY[key];
     if (!cfg || !tsinareMap) return;
     state.activeBasemap = key;
+
+    // Auto-switch to hybrid if user was in pure CAD mode so map is immediately visible
+    if (state.viewMode === 'cad' && typeof window.setViewMode === 'function') {
+      window.setViewMode('hybrid');
+    }
 
     // Reset any historical CSS filters on leaflet container
     const mapEl = document.getElementById('tsinareLeafletMap');
@@ -687,6 +626,11 @@
   // Smooth Reliable Historical Map Transition
   window.setHistoricalYear = function (indexOrYear) {
     if (!tsinareMap) return;
+
+    // Auto-switch to hybrid if user was in pure CAD mode so historical map is immediately visible
+    if (state.viewMode === 'cad' && typeof window.setViewMode === 'function') {
+      window.setViewMode('hybrid');
+    }
     let idx = 0;
     if (typeof indexOrYear === 'number' && indexOrYear < HISTORICAL_YEARS.length) {
       idx = indexOrYear;
@@ -3531,6 +3475,14 @@
     'concrete': '🏭 ურბანული ბეტონი',
     'emerald': '💎 ზურმუხტისფერი ლუქსი',
     'nightglow': '🌙 ღამის განათება',
+
+    // Exclusive Free Architectural & CAD Visual Styles
+    'gold_navy': '👑 Royal Gold & Navy (ოქრო & მუქი ლურჯი)',
+    'copper': '🥉 Copper Blueprint (სპილენძის ბლუპრინტი)',
+    'eco_green': '🌿 Emerald Eco-Architecture (ეკო-არქიტექტურა)',
+    'synthwave': '🔮 Cyberpunk Neon Synthwave (ნეონ-სინთვეივი)',
+    'ink': '🖋️ Fountain Pen Ink & Vellum (ტუში & კალკა)',
+    'graph_amber': '📟 Retro Engineering Amber (ქარვისფერი CAD)',
 
     // New Curated Architectural Themes & Engineering Palettes
     'vintage_archival': '📜 ძველი საარქივო ნახაზი (1890s)',
