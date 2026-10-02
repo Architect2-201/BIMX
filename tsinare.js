@@ -4526,6 +4526,9 @@
 
     // Mouse Down
     container.addEventListener('mousedown', (e) => {
+      if (e.target && e.target.closest && (e.target.closest('#parkingLayer') || e.target.closest('[data-parking-element]'))) {
+        return;
+      }
       const worldPos = screenToWorld(e.clientX, e.clientY);
 
       // 1. ERASER TOOL MODE (DELETE ON CLICK)
@@ -4910,10 +4913,11 @@
         state.parkingBays.push(newBay);
         state.selectedParkingId = newBay.id;
         state.selectedFootprintId = null;
+        setCadActiveTool('pan');
         if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
         updateZoningCoefficientsUI();
         renderCadWorld();
-        updateToolStatus(`განთავსდა ავტოსადგომი (${w}×${l}მ, ${rot}°). R = ტრიალი (+45°).`);
+        updateToolStatus(`განთავსდა ავტოსადგომი (${w}×${l}მ, ${rot}°). მოქაჩეთ სახელურები ან დააჭირეთ R-ს (+45°).`);
         return;
       }
 
@@ -5205,6 +5209,64 @@
         els.lblMouseCoords.innerText = `X: ${worldPos[0].toFixed(1)}მ | Y: ${(-worldPos[1]).toFixed(1)}მ`;
       }
 
+      // Parking Bay Dragging, Rotating, and Resizing
+      if (state.isRotatingParking && state.draggedParkingId) {
+        const p = state.parkingBays.find(x => x.id === state.draggedParkingId);
+        if (p) {
+          const dx = worldPos[0] - p.center[0];
+          const dy = worldPos[1] - p.center[1];
+          const rad = Math.atan2(dy, dx);
+          let deg = Math.round((rad * 180 / Math.PI) + 90);
+          deg = ((deg % 360) + 360) % 360;
+          if (e.shiftKey) deg = Math.round(deg / 15) * 15;
+          p.rotation = deg;
+          state.activeParkingRotation = deg;
+          if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
+          renderCadWorld();
+          updateToolStatus(`🅿️ ავტოსადგომის კუთხე: ${deg}°`);
+        }
+        return;
+      }
+
+      if (state.isResizingParking && state.draggedParkingId) {
+        const p = state.parkingBays.find(x => x.id === state.draggedParkingId);
+        if (p) {
+          const rad = ((p.rotation || 0) * Math.PI) / 180;
+          const dx = worldPos[0] - p.center[0];
+          const dy = worldPos[1] - p.center[1];
+          const cos = Math.cos(rad);
+          const sin = Math.sin(rad);
+          const localX = dx * cos + dy * sin;
+          const localY = -dx * sin + dy * cos;
+
+          if (state.parkingResizeType === 'width' || state.parkingResizeType === 'corner') {
+            p.width = Math.max(1.5, Math.min(15, Math.round(Math.abs(localX) * 2 * 10) / 10));
+            state.activeParkingWidth = p.width;
+          }
+          if (state.parkingResizeType === 'length' || state.parkingResizeType === 'corner') {
+            p.length = Math.max(2.5, Math.min(25, Math.round(Math.abs(localY) * 2 * 10) / 10));
+            state.activeParkingLength = p.length;
+          }
+          if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
+          updateZoningCoefficientsUI();
+          renderCadWorld();
+          updateToolStatus(`🅿️ ავტოსადგომის ზომა: ${p.width.toFixed(1)} × ${p.length.toFixed(1)}მ`);
+        }
+        return;
+      }
+
+      if (state.isDraggingParking && state.draggedParkingId) {
+        const p = state.parkingBays.find(x => x.id === state.draggedParkingId);
+        if (p) {
+          const dx = worldPos[0] - state.parkingDragStartPos.x;
+          const dy = worldPos[1] - state.parkingDragStartPos.y;
+          p.center[0] = Math.round((state.parkingDragStartCenter[0] + dx) * 10) / 10;
+          p.center[1] = Math.round((state.parkingDragStartCenter[1] + dy) * 10) / 10;
+          renderCadWorld();
+        }
+        return;
+      }
+
       if (state.isPanning) {
         state.panX = e.clientX - state.panStart.x;
         state.panY = e.clientY - state.panStart.y;
@@ -5280,11 +5342,17 @@
       }
 
       const wasDragging = state.isDraggingFootprint || state.isRotatingFootprint;
+      const wasDraggingParking = state.isDraggingParking || state.isRotatingParking || state.isResizingParking;
       state.isPanning = false;
       state.isDraggingFootprint = false;
       state.isRotatingFootprint = false;
-      if (wasDragging) {
+      state.isDraggingParking = false;
+      state.isRotatingParking = false;
+      state.isResizingParking = false;
+      state.draggedParkingId = null;
+      if (wasDragging || wasDraggingParking) {
         updateZoningCoefficientsUI();
+        renderCadWorld();
       }
 
       if (state.isDrawingRect && state.activeTool === 'draw_rect_footprint') {
@@ -6918,6 +6986,64 @@
   }
 
   // 6. Parking Bays (+ ავტოსადგომი)
+  window.startParkingRotate = function (e, id) {
+    if (e) {
+      if (typeof e.stopPropagation === 'function') e.stopPropagation();
+      if (typeof e.preventDefault === 'function') e.preventDefault();
+    }
+    const p = state.parkingBays.find(x => x.id === id);
+    if (!p) return;
+    saveUndoSnapshot();
+    state.selectedParkingId = id;
+    state.selectedFootprintId = null;
+    state.isRotatingParking = true;
+    state.draggedParkingId = id;
+    const worldPos = screenToWorld(e.clientX, e.clientY);
+    state.parkingRotateStartAngle = Math.atan2(worldPos[1] - p.center[1], worldPos[0] - p.center[0]);
+    state.parkingInitialRot = p.rotation || 0;
+    if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
+    renderCadWorld();
+  };
+
+  window.startParkingResize = function (e, id, type) {
+    if (e) {
+      if (typeof e.stopPropagation === 'function') e.stopPropagation();
+      if (typeof e.preventDefault === 'function') e.preventDefault();
+    }
+    const p = state.parkingBays.find(x => x.id === id);
+    if (!p) return;
+    saveUndoSnapshot();
+    state.selectedParkingId = id;
+    state.selectedFootprintId = null;
+    state.isResizingParking = true;
+    state.draggedParkingId = id;
+    state.parkingResizeType = type;
+    state.parkingInitialWidth = p.width || 2.5;
+    state.parkingInitialLength = p.length || 5.0;
+    if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
+    renderCadWorld();
+  };
+
+  window.startParkingDrag = function (e, id) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    if (state.activeTool === 'delete') {
+      deleteParking(id);
+      return;
+    }
+    const p = state.parkingBays.find(x => x.id === id);
+    if (!p) return;
+    saveUndoSnapshot();
+    state.selectedParkingId = id;
+    state.selectedFootprintId = null;
+    state.isDraggingParking = true;
+    state.draggedParkingId = id;
+    const worldPos = screenToWorld(e.clientX, e.clientY);
+    state.parkingDragStartPos = { x: worldPos[0], y: worldPos[1] };
+    state.parkingDragStartCenter = [p.center[0], p.center[1]];
+    if (typeof window.syncParkingParamsUI === 'function') window.syncParkingParamsUI();
+    renderCadWorld();
+  };
+
   function renderParking(pxToM) {
     if (!els.parkingLayer) return;
     if (!state.layers.roads || !state.parkingBays || state.parkingBays.length === 0) {
@@ -6932,7 +7058,7 @@
       const isSelected = (state.selectedParkingId === p.id);
 
       let stallHtml = `
-        <g class="cursor-pointer" transform="rotate(${rot}, ${p.center[0]}, ${p.center[1]})" onclick="if(state.activeTool==='delete'){deleteParking('${p.id}');}else{selectParking('${p.id}');}">
+        <g class="cursor-pointer" data-parking-element="true" transform="rotate(${rot}, ${p.center[0]}, ${p.center[1]})" onmousedown="window.startParkingDrag(event, '${p.id}');">
           <!-- Stall asphalt/paving surface -->
           <rect x="${p.center[0] - w / 2}" y="${p.center[1] - l / 2}" width="${w}" height="${l}" fill="var(--parking-fill)" opacity="0.92" stroke="${isSelected ? '#38bdf8' : 'var(--parking-line, #ffffff)'}" stroke-width="${isSelected ? 1.6 * pxToM : 0.5 * pxToM}" ${isSelected ? `stroke-dasharray="${3 * pxToM} ${2 * pxToM}"` : ''} rx="${0.4 * pxToM}"/>
           <!-- Stall divider lines on sides -->
@@ -6954,24 +7080,38 @@
         const rotHandleY = topY - rotStemH;
 
         stallHtml += `
-          <!-- Rotation Stem & Handle -->
-          <line x1="${p.center[0]}" y1="${topY}" x2="${p.center[0]}" y2="${rotHandleY}" stroke="#38bdf8" stroke-width="${1.2 * pxToM}" stroke-dasharray="${2 * pxToM} ${1.5 * pxToM}" />
-          <circle cx="${p.center[0]}" cy="${rotHandleY}" r="${7.5 * pxToM}" fill="#0284c7" stroke="#ffffff" stroke-width="${1.5 * pxToM}" class="cursor-grab hover:fill-sky-400" />
+          <!-- Rotation Stem & Handle with generous hit area -->
+          <line x1="${p.center[0]}" y1="${topY}" x2="${p.center[0]}" y2="${rotHandleY}" stroke="#38bdf8" stroke-width="${1.5 * pxToM}" stroke-dasharray="${2 * pxToM} ${1.5 * pxToM}" />
+          <circle cx="${p.center[0]}" cy="${rotHandleY}" r="${14 * pxToM}" fill="transparent" class="cursor-grab" onmousedown="window.startParkingRotate(event, '${p.id}');" />
+          <circle cx="${p.center[0]}" cy="${rotHandleY}" r="${8 * pxToM}" fill="#0284c7" stroke="#ffffff" stroke-width="${1.5 * pxToM}" class="cursor-grab hover:fill-sky-400" onmousedown="window.startParkingRotate(event, '${p.id}');" />
           <text x="${p.center[0]}" y="${rotHandleY + 3.2 * pxToM}" text-anchor="middle" fill="#ffffff" font-size="${9 * pxToM}" font-weight="bold" pointer-events="none">⟳</text>
 
-          <!-- Width Resize Handles (Left & Right) -->
-          <rect x="${rightX - 3.5 * pxToM}" y="${p.center[1] - 8 * pxToM}" width="${7 * pxToM}" height="${16 * pxToM}" rx="${2 * pxToM}" fill="#f59e0b" stroke="#ffffff" stroke-width="${1 * pxToM}" class="cursor-ew-resize hover:fill-amber-300" />
-          <rect x="${leftX - 3.5 * pxToM}" y="${p.center[1] - 8 * pxToM}" width="${7 * pxToM}" height="${16 * pxToM}" rx="${2 * pxToM}" fill="#f59e0b" stroke="#ffffff" stroke-width="${1 * pxToM}" class="cursor-ew-resize hover:fill-amber-300" />
+          <!-- Width Resize Handles (Left & Right) with invisible hit area -->
+          <rect x="${rightX - 8 * pxToM}" y="${p.center[1] - 14 * pxToM}" width="${16 * pxToM}" height="${28 * pxToM}" fill="transparent" class="cursor-ew-resize" onmousedown="window.startParkingResize(event, '${p.id}', 'width');" />
+          <rect x="${rightX - 3.5 * pxToM}" y="${p.center[1] - 9 * pxToM}" width="${7 * pxToM}" height="${18 * pxToM}" rx="${2 * pxToM}" fill="#f59e0b" stroke="#ffffff" stroke-width="${1 * pxToM}" class="cursor-ew-resize hover:fill-amber-300" onmousedown="window.startParkingResize(event, '${p.id}', 'width');" />
 
-          <!-- Length Resize Handles (Top & Bottom) -->
-          <rect x="${p.center[0] - 8 * pxToM}" y="${botY - 3.5 * pxToM}" width="${16 * pxToM}" height="${7 * pxToM}" rx="${2 * pxToM}" fill="#f59e0b" stroke="#ffffff" stroke-width="${1 * pxToM}" class="cursor-ns-resize hover:fill-amber-300" />
-          <rect x="${p.center[0] - 8 * pxToM}" y="${topY - 3.5 * pxToM}" width="${16 * pxToM}" height="${7 * pxToM}" rx="${2 * pxToM}" fill="#f59e0b" stroke="#ffffff" stroke-width="${1 * pxToM}" class="cursor-ns-resize hover:fill-amber-300" />
+          <rect x="${leftX - 8 * pxToM}" y="${p.center[1] - 14 * pxToM}" width="${16 * pxToM}" height="${28 * pxToM}" fill="transparent" class="cursor-ew-resize" onmousedown="window.startParkingResize(event, '${p.id}', 'width');" />
+          <rect x="${leftX - 3.5 * pxToM}" y="${p.center[1] - 9 * pxToM}" width="${7 * pxToM}" height="${18 * pxToM}" rx="${2 * pxToM}" fill="#f59e0b" stroke="#ffffff" stroke-width="${1 * pxToM}" class="cursor-ew-resize hover:fill-amber-300" onmousedown="window.startParkingResize(event, '${p.id}', 'width');" />
 
-          <!-- 4 Corner Handles -->
-          <circle cx="${leftX}" cy="${topY}" r="${4 * pxToM}" fill="#f59e0b" stroke="#ffffff" stroke-width="${1 * pxToM}" />
-          <circle cx="${rightX}" cy="${topY}" r="${4 * pxToM}" fill="#f59e0b" stroke="#ffffff" stroke-width="${1 * pxToM}" />
-          <circle cx="${leftX}" cy="${botY}" r="${4 * pxToM}" fill="#f59e0b" stroke="#ffffff" stroke-width="${1 * pxToM}" />
-          <circle cx="${rightX}" cy="${botY}" r="${4 * pxToM}" fill="#f59e0b" stroke="#ffffff" stroke-width="${1 * pxToM}" />
+          <!-- Length Resize Handles (Top & Bottom) with invisible hit area -->
+          <rect x="${p.center[0] - 14 * pxToM}" y="${botY - 8 * pxToM}" width="${28 * pxToM}" height="${16 * pxToM}" fill="transparent" class="cursor-ns-resize" onmousedown="window.startParkingResize(event, '${p.id}', 'length');" />
+          <rect x="${p.center[0] - 9 * pxToM}" y="${botY - 3.5 * pxToM}" width="${18 * pxToM}" height="${7 * pxToM}" rx="${2 * pxToM}" fill="#f59e0b" stroke="#ffffff" stroke-width="${1 * pxToM}" class="cursor-ns-resize hover:fill-amber-300" onmousedown="window.startParkingResize(event, '${p.id}', 'length');" />
+
+          <rect x="${p.center[0] - 14 * pxToM}" y="${topY - 8 * pxToM}" width="${28 * pxToM}" height="${16 * pxToM}" fill="transparent" class="cursor-ns-resize" onmousedown="window.startParkingResize(event, '${p.id}', 'length');" />
+          <rect x="${p.center[0] - 9 * pxToM}" y="${topY - 3.5 * pxToM}" width="${18 * pxToM}" height="${7 * pxToM}" rx="${2 * pxToM}" fill="#f59e0b" stroke="#ffffff" stroke-width="${1 * pxToM}" class="cursor-ns-resize hover:fill-amber-300" onmousedown="window.startParkingResize(event, '${p.id}', 'length');" />
+
+          <!-- 4 Corner Handles with invisible hit area -->
+          <circle cx="${leftX}" cy="${topY}" r="${10 * pxToM}" fill="transparent" class="cursor-nwse-resize" onmousedown="window.startParkingResize(event, '${p.id}', 'corner');" />
+          <circle cx="${leftX}" cy="${topY}" r="${4.5 * pxToM}" fill="#f59e0b" stroke="#ffffff" stroke-width="${1 * pxToM}" class="cursor-nwse-resize hover:fill-amber-300" onmousedown="window.startParkingResize(event, '${p.id}', 'corner');" />
+
+          <circle cx="${rightX}" cy="${topY}" r="${10 * pxToM}" fill="transparent" class="cursor-nesw-resize" onmousedown="window.startParkingResize(event, '${p.id}', 'corner');" />
+          <circle cx="${rightX}" cy="${topY}" r="${4.5 * pxToM}" fill="#f59e0b" stroke="#ffffff" stroke-width="${1 * pxToM}" class="cursor-nesw-resize hover:fill-amber-300" onmousedown="window.startParkingResize(event, '${p.id}', 'corner');" />
+
+          <circle cx="${leftX}" cy="${botY}" r="${10 * pxToM}" fill="transparent" class="cursor-nesw-resize" onmousedown="window.startParkingResize(event, '${p.id}', 'corner');" />
+          <circle cx="${leftX}" cy="${botY}" r="${4.5 * pxToM}" fill="#f59e0b" stroke="#ffffff" stroke-width="${1 * pxToM}" class="cursor-nesw-resize hover:fill-amber-300" onmousedown="window.startParkingResize(event, '${p.id}', 'corner');" />
+
+          <circle cx="${rightX}" cy="${botY}" r="${10 * pxToM}" fill="transparent" class="cursor-nwse-resize" onmousedown="window.startParkingResize(event, '${p.id}', 'corner');" />
+          <circle cx="${rightX}" cy="${botY}" r="${4.5 * pxToM}" fill="#f59e0b" stroke="#ffffff" stroke-width="${1 * pxToM}" class="cursor-nwse-resize hover:fill-amber-300" onmousedown="window.startParkingResize(event, '${p.id}', 'corner');" />
 
           <!-- Dimensions Badges -->
           <rect x="${p.center[0] - 24 * pxToM}" y="${botY + 4 * pxToM}" width="${48 * pxToM}" height="${13 * pxToM}" rx="${2 * pxToM}" fill="#080e1c" fill-opacity="0.92" stroke="#38bdf8" stroke-width="${0.6 * pxToM}" />
@@ -6985,25 +7125,25 @@
           <text x="${p.center[0]}" y="${rotHandleY - 5 * pxToM}" text-anchor="middle" fill="#f59e0b" font-size="${7 * pxToM}" font-family="'JetBrains Mono', monospace" font-weight="bold">${Math.round(rot)}°</text>
 
           <!-- Floating Mini Action Bar: Rotate +45, +90, Size +/-, Delete -->
-          <g transform="translate(${p.center[0] - 70 * pxToM}, ${rotHandleY - 34 * pxToM})" class="cursor-pointer font-sans">
+          <g transform="translate(${p.center[0] - 70 * pxToM}, ${rotHandleY - 34 * pxToM})" class="cursor-pointer font-sans" onmousedown="event.stopPropagation(); event.preventDefault();">
             <rect x="0" y="0" width="${140 * pxToM}" height="${18 * pxToM}" rx="${4 * pxToM}" fill="#0b1222" fill-opacity="0.96" stroke="#38bdf8" stroke-width="${0.8 * pxToM}" />
-            <g onclick="event.stopPropagation(); window.rotateSelectedParking(45);">
+            <g onmousedown="event.stopPropagation(); event.preventDefault(); window.rotateSelectedParking(45);" onclick="event.stopPropagation(); window.rotateSelectedParking(45);">
               <rect x="${2 * pxToM}" y="${2 * pxToM}" width="${30 * pxToM}" height="${14 * pxToM}" rx="${2 * pxToM}" fill="#1e293b" />
               <text x="${17 * pxToM}" y="${12 * pxToM}" text-anchor="middle" fill="#38bdf8" font-size="${7.5 * pxToM}" font-weight="bold">⟳45°</text>
             </g>
-            <g onclick="event.stopPropagation(); window.rotateSelectedParking(90);">
+            <g onmousedown="event.stopPropagation(); event.preventDefault(); window.rotateSelectedParking(90);" onclick="event.stopPropagation(); window.rotateSelectedParking(90);">
               <rect x="${34 * pxToM}" y="${2 * pxToM}" width="${30 * pxToM}" height="${14 * pxToM}" rx="${2 * pxToM}" fill="#1e293b" />
               <text x="${49 * pxToM}" y="${12 * pxToM}" text-anchor="middle" fill="#38bdf8" font-size="${7.5 * pxToM}" font-weight="bold">⟳90°</text>
             </g>
-            <g onclick="event.stopPropagation(); window.resizeSelectedParking(0.5, 0.5);">
+            <g onmousedown="event.stopPropagation(); event.preventDefault(); window.resizeSelectedParking(0.5, 0.5);" onclick="event.stopPropagation(); window.resizeSelectedParking(0.5, 0.5);">
               <rect x="${66 * pxToM}" y="${2 * pxToM}" width="${25 * pxToM}" height="${14 * pxToM}" rx="${2 * pxToM}" fill="#1e293b" />
               <text x="${78.5 * pxToM}" y="${12 * pxToM}" text-anchor="middle" fill="#10b981" font-size="${7.5 * pxToM}" font-weight="bold">+0.5</text>
             </g>
-            <g onclick="event.stopPropagation(); window.resizeSelectedParking(-0.5, -0.5);">
+            <g onmousedown="event.stopPropagation(); event.preventDefault(); window.resizeSelectedParking(-0.5, -0.5);" onclick="event.stopPropagation(); window.resizeSelectedParking(-0.5, -0.5);">
               <rect x="${93 * pxToM}" y="${2 * pxToM}" width="${25 * pxToM}" height="${14 * pxToM}" rx="${2 * pxToM}" fill="#1e293b" />
               <text x="${105.5 * pxToM}" y="${12 * pxToM}" text-anchor="middle" fill="#f59e0b" font-size="${7.5 * pxToM}" font-weight="bold">-0.5</text>
             </g>
-            <g onclick="event.stopPropagation(); window.deleteSelectedParking();">
+            <g onmousedown="event.stopPropagation(); event.preventDefault(); window.deleteSelectedParking();" onclick="event.stopPropagation(); window.deleteSelectedParking();">
               <rect x="${120 * pxToM}" y="${2 * pxToM}" width="${18 * pxToM}" height="${14 * pxToM}" rx="${2 * pxToM}" fill="#ef4444" fill-opacity="0.3" />
               <text x="${129 * pxToM}" y="${12 * pxToM}" text-anchor="middle" fill="#ef4444" font-size="${8.5 * pxToM}" font-weight="bold">✕</text>
             </g>
