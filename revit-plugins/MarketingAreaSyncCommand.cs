@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -20,6 +21,18 @@ using Size = System.Drawing.Size;
 
 namespace BIMXSmartTools
 {
+    /// <summary>
+    /// M AREA - მარკეტინგის გეგმის გენერაცია.
+    ///
+    /// ლოგიკა:
+    ///  1. საწყისი (მთავარი) გეგმიდან იკითხება ყვითელი ფილები (საცხოვრებელი ჯგუფი) და ცხრილები (Generic Annotation "ROOM").
+    ///  2. ცხრილები გადააქვს მარკეტინგის გეგმაზე (ახალი ან არსებული).
+    ///  3. ყოველ ყვითელ ფილას ეძებნება თავისი ცხრილი ცხრილის ლიდერის (leader) ბოლოთი -> t1 (ბინის ნომერი):
+    ///     კენტი = Marketing Blue, ლუწი = Marketing green. ფილა იქმნება ზუსტად ყვითელი კონტურით.
+    ///  4. ბინა იყოფა ოთახებად კედლებით: ბინის კონტურს აკლდება კედლების სისქის კონტურები
+    ///     (Revit-ის Solid Boolean), ამიტომ ოთახები კედლის შიდა წახნაგებამდეა (წმინდა ფართი).
+    ///  5. ყოველ ოთახზე იქმნება INVISIBLE ფილა და იწერება მისი ფართი.
+    /// </summary>
     [Transaction(TransactionMode.Manual)]
     public class MarketingAreaSyncCommand : IExternalCommand
     {
@@ -31,13 +44,20 @@ namespace BIMXSmartTools
         public const string ANNOTATION_FAMILY_NAME = "ROOM";
         public const string ANNOTATION_TYPE_NAME = "Marketing Schedule_Archi";
 
-        // ---- პარამეტრები, რომლებიც საჭიროების შემთხვევაში შეიძლება დაკორექტირდეს ----
-        private const double FT2_TO_M2 = 0.09290304;      // ft² -> მ²
-        private const double WALL_END_TOLERANCE_FT = 1.5;  // კედლის ბოლო რამდენით შეიძლება არ მიდიოდეს კონტურამდე (~45 სმ)
-        private const double MIN_SPLIT_PIECE_SQM = 0.3;    // ამაზე პატარა ნაჭრებს დაყოფისას არ ვქმნით
-        private const double MIN_LABEL_ROOM_SQM = 0.8;     // ამაზე პატარა ნაჭერს ფართის წარწერა არ ეწერება
-        private const int AREA_DECIMALS = 1;               // ოთახის ფართის თანრიგი (13.9 მ²)
+        // ---- პარამეტრები ----
+        private const double FT2_TO_M2 = 0.09290304;       // ft² -> მ²
+        private const double MIN_ROOM_SQM = 0.5;           // ამაზე პატარა ნაჭრები (ღრიჭოები, შახტის ნაშთები) გამოტოვება
+        private const int AREA_DECIMALS = 1;               // 13.9
+        private const string AREA_UNIT_TEXT = "m²";        // ფოტოებზე ოთახებში "m²"-ია (შტამპებში "მ²")
         private const double MIN_SEGMENT_FT = 0.01;        // ამაზე მოკლე სეგმენტები კონტურიდან იშლება
+        private const double LEADER_SNAP_FT = 2.0;         // ლიდერის ბოლო ფილიდან რამდენით შეიძლება იყოს მოშორებით
+        private const double NEIGHBOR_GAP_FT = 1.5;        // ფილების "მეზობლობის" ზღვარი (აივანი <-> ბინა)
+        private const double ROUNDING_FIX_SQM = 0.15;      // დამრგვალების ბალანსი უდიდეს ოთახზე (x1-თან შესაბამისობა)
+        private const string GENERATED_TAG = "BIMX_MAREA";  // ტექსტებზე ნიშანი, რომ განმეორებისას წაიშალოს
+
+        // ფოლბექ-დაყოფისთვის (თუ Solid ოპერაციები ვერ შესრულდა)
+        private const double WALL_END_TOLERANCE_FT = 1.5;
+        private const double MIN_SPLIT_PIECE_SQM = 0.3;
 
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
@@ -69,7 +89,7 @@ namespace BIMXSmartTools
                 .Cast<FilledRegionType>()
                 .ToList();
 
-            FilledRegionType FindType(string name) =>
+            Func<string, FilledRegionType> FindType = name =>
                 allRegionTypes.FirstOrDefault(t => t.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
 
             var mainLivingType = FindType(MAIN_LIVING_TYPE_NAME);
@@ -88,7 +108,7 @@ namespace BIMXSmartTools
                     return Result.Cancelled;
                 }
 
-                // საჭირო ფილის ტიპების შემოწმება (ჩუმად არაფრის გაკეთების ნაცვლად)
+                // საჭირო ფილის ტიპების შემოწმება
                 var missing = new List<string>();
                 if (mainLivingType == null) missing.Add(MAIN_LIVING_TYPE_NAME);
                 if (form.ActionGenerateMarketingRegions)
@@ -116,11 +136,26 @@ namespace BIMXSmartTools
                     {
                         ViewPlan sourcePlan = form.SelectedSourcePlanView;
                         ViewPlan targetPlan = form.SelectedTargetMarketingView;
+                        var log = new RunLog();
 
-                        // 1. ახალი მარკეტინგის გეგმის შექმნა (შტამპები და დეტალები გადმოდის)
+                        // ---- 1. მთავარი გეგმიდან: ყვითელი ფილები + ცხრილები ----
+                        List<ApartmentItem> apartments = CollectApartments(doc, sourcePlan, mainLivingType, log);
+                        if (apartments.Count == 0)
+                        {
+                            t.RollBack();
+                            TaskDialog.Show("M AREA", "საწყის გეგმაზე \"" + sourcePlan.Name + "\" ბინის ფილა (" + MAIN_LIVING_TYPE_NAME + ") ვერ მოიძებნა.");
+                            return Result.Failed;
+                        }
+
+                        List<StampInfo> stamps = ReadStamps(doc, sourcePlan);
+                        if (stamps.Count == 0)
+                            log.Warn("საწყის გეგმაზე ცხრილები (ოჯახი \"" + ANNOTATION_FAMILY_NAME + "\") ვერ მოიძებნა - ფერები მონაცვლეობით დაჯდება.");
+
+                        // ---- 2. სამიზნე გეგმა ----
                         if (form.CreateNewMarketingView)
                         {
-                            ElementId newViewId = sourcePlan.Duplicate(ViewDuplicateOption.WithDetailing);
+                            // Duplicate (დეტალების გარეშე): ახალ გეგმაში გადადის მხოლოდ ცხრილები
+                            ElementId newViewId = sourcePlan.Duplicate(ViewDuplicateOption.Duplicate);
                             targetPlan = doc.GetElement(newViewId) as ViewPlan;
                             if (targetPlan != null)
                                 targetPlan.Name = MakeUniqueViewName(doc, sourcePlan.Name + " მარკეტინგი");
@@ -134,14 +169,23 @@ namespace BIMXSmartTools
                             return Result.Failed;
                         }
 
-                        var log = new RunLog();
+                        bool sameView = targetPlan.Id == sourcePlan.Id;
 
-                        // 2. ბინების (ყვითელი ფილების) წაკითხვა და შტამპებთან დაკავშირება
-                        List<ApartmentItem> apartments = CollectApartments(doc, targetPlan, mainLivingType, log);
-                        List<StampInfo> stamps = ReadStamps(doc, targetPlan);
-                        AssignStamps(apartments, stamps);
+                        // წინა გაშვების შედეგების გასუფთავება (განმეორებისას დუბლირება რომ არ მოხდეს)
+                        var generatedTypeIds = new HashSet<ElementId>();
+                        if (blueType != null) generatedTypeIds.Add(blueType.Id);
+                        if (greenType != null) generatedTypeIds.Add(greenType.Id);
+                        if (invisibleType != null) generatedTypeIds.Add(invisibleType.Id);
+                        int cleared = ClearPreviousResults(doc, targetPlan, generatedTypeIds, log);
 
-                        // ნუმერაციის მიხედვით დალაგება (ფერები მონაცვლეობით დაჯდება)
+                        // ცხრილების გადატანა მთავარი გეგმიდან მარკეტინგის გეგმაზე
+                        int copiedStamps = 0;
+                        if (!sameView)
+                            copiedStamps = CopyStamps(doc, sourcePlan, targetPlan, stamps, log);
+
+                        // ---- 3. ყვითელი ფილა <-> ცხრილი ----
+                        AssignStamps(apartments, stamps, log);
+
                         apartments = apartments
                             .OrderBy(a => a.Number > 0 ? 0 : 1)
                             .ThenBy(a => a.Number)
@@ -149,14 +193,16 @@ namespace BIMXSmartTools
                             .ThenBy(a => a.Centroid.X)
                             .ToList();
 
-                        // 3. კედლები (მხოლოდ სწორი, ხაზოვანი კედლები)
-                        List<WallSeg> wallSegs = form.ActionCreateRoomRegions ? ReadWallSegments(doc, targetPlan) : new List<WallSeg>();
+                        // ---- 4. კედლები, ტექსტის ტიპი, ოთახების სახელები ----
+                        List<Wall> walls = form.ActionCreateRoomRegions
+                            ? new FilteredElementCollector(doc, sourcePlan.Id).OfClass(typeof(Wall)).Cast<Wall>().ToList()
+                            : new List<Wall>();
 
                         TextNoteType textType = null;
                         double textHeight = 0.0;
-                        if (form.ActionWriteRoomAreaText)
+                        if (form.ActionCreateRoomRegions && form.ActionWriteRoomAreaText)
                         {
-                            textType = new FilteredElementCollector(doc).OfClass(typeof(TextNoteType)).Cast<TextNoteType>().FirstOrDefault();
+                            textType = PickTextType(doc);
                             if (textType != null)
                             {
                                 Parameter sizeP = textType.get_Parameter(BuiltInParameter.TEXT_SIZE);
@@ -165,17 +211,20 @@ namespace BIMXSmartTools
                             else log.Warn("TextNoteType ვერ მოიძებნა - ფართის წარწერა გამოტოვებულია.");
                         }
 
-                        int mktCount = 0, roomRegionCount = 0, labelCount = 0, aptWithRooms = 0, aptWithoutStamp = 0;
-                        var yellowToHide = new HashSet<ElementId>();
-                        var yellowToDelete = new HashSet<ElementId>();
+                        List<RoomNameInfo> roomNames = (textType != null && form.ActionWriteRoomNames)
+                            ? ReadRoomNames(doc, sourcePlan)
+                            : new List<RoomNameInfo>();
+
+                        // ---- 5. გენერაცია ----
+                        int mktCount = 0, roomRegionCount = 0, labelCount = 0, approxApts = 0, aptWithoutStamp = 0;
                         bool colorToggle = false;
 
                         foreach (ApartmentItem apt in apartments)
                         {
                             string aptName = apt.Number > 0 ? "ბინა " + apt.Number : "ბინა (ნომრის გარეშე)";
-                            if (apt.Stamp == null) aptWithoutStamp++;
+                            if (apt.Stamp == null) { aptWithoutStamp++; log.Warn(aptName + ": ცხრილი ვერ მოიძებნა (ფერი მონაცვლეობითია)."); }
 
-                            // 🎨 მთლიანი მარკეტინგის ფილა (კენტი = Blue, ლუწი = Green)
+                            // 🎨 მარკეტინგის ფილა ზუსტად ყვითელი კონტურით
                             if (form.ActionGenerateMarketingRegions)
                             {
                                 bool useBlue;
@@ -187,11 +236,6 @@ namespace BIMXSmartTools
                                     FilledRegion.Create(doc, (useBlue ? blueType : greenType).Id, targetPlan.Id,
                                         new List<CurveLoop> { apt.OuterLoop });
                                     mktCount++;
-
-                                    if (apt.SourceRegion.GroupId != ElementId.InvalidElementId)
-                                        yellowToHide.Add(apt.SourceRegion.Id);
-                                    else
-                                        yellowToDelete.Add(apt.SourceRegion.Id);
                                 }
                                 catch (Exception ex)
                                 {
@@ -199,93 +243,64 @@ namespace BIMXSmartTools
                                 }
                             }
 
-                            // 📐 ოთახებად დაყოფა + INVISIBLE ფილები + ფართის წარწერა
-                            if (form.ActionCreateRoomRegions)
+                            // 📐 ოთახები (INVISIBLE ფილა + ფართი)
+                            if (!form.ActionCreateRoomRegions) continue;
+
+                            bool approximate;
+                            List<RoomShape> rooms = BuildRooms(apt, walls, aptName, log, out approximate);
+                            if (approximate) approxApts++;
+                            if (rooms.Count == 0) continue;
+
+                            rooms = rooms
+                                .OrderByDescending(r => Math.Round(r.LabelPoint.Y, 1))
+                                .ThenBy(r => r.LabelPoint.X)
+                                .ToList();
+
+                            ComputeDisplayAreas(rooms, apt, aptName, log);
+
+                            foreach (RoomShape rm in rooms)
                             {
-                                List<List<V2>> pieces = Geo.Partition(
-                                    apt.Polygon,
-                                    wallSegs.Where(w => w.Overlaps(apt.MinX, apt.MinY, apt.MaxX, apt.MaxY, WALL_END_TOLERANCE_FT)).ToList(),
-                                    WALL_END_TOLERANCE_FT,
-                                    MIN_SPLIT_PIECE_SQM / FT2_TO_M2);
+                                if (!CreateRoomRegion(doc, targetPlan, invisibleType, rm, apt.Z, aptName, log)) continue;
+                                roomRegionCount++;
 
-                                var rooms = new List<RoomPiece>();
-                                foreach (var piece in pieces)
+                                if (textType == null) continue;
+
+                                try
                                 {
-                                    List<V2> clean = Geo.Clean(piece, MIN_SEGMENT_FT, 0.002);
-                                    if (clean.Count < 3) continue;
-                                    double a = Math.Abs(Geo.SignedArea(clean));
-                                    if (a < 1e-6) continue;
-                                    rooms.Add(new RoomPiece
+                                    string text = rm.DisplayAreaSqM.ToString("F" + AREA_DECIMALS, CultureInfo.InvariantCulture) + " " + AREA_UNIT_TEXT;
+                                    if (roomNames.Count > 0)
                                     {
-                                        Polygon = clean,
-                                        AreaSqM = a * FT2_TO_M2,
-                                        LabelPoint = Geo.LabelPoint(clean)
-                                    });
-                                }
-
-                                if (rooms.Count == 0)
-                                {
-                                    log.Warn(aptName + ": ოთახებად დაყოფა ვერ მოხერხდა.");
-                                    continue;
-                                }
-
-                                rooms = rooms.OrderByDescending(r => Math.Round(r.LabelPoint.Y, 1)).ThenBy(r => r.LabelPoint.X).ToList();
-
-                                // ფართების დაზუსტება: ჯამი უნდა უდრიდეს შტამპის x1-ს, დამრგვალებით
-                                var labeled = rooms.Where(r => r.AreaSqM >= MIN_LABEL_ROOM_SQM).ToList();
-                                if (labeled.Count > 0)
-                                {
-                                    double targetSqM = apt.Stamp != null && apt.StampAreaSqM > 0 ? apt.StampAreaSqM : 0.0;
-                                    AllocateAreas(labeled, targetSqM, AREA_DECIMALS, aptName, log);
-                                }
-
-                                foreach (RoomPiece rm in rooms)
-                                {
-                                    try
-                                    {
-                                        FilledRegion.Create(doc, invisibleType.Id, targetPlan.Id,
-                                            new List<CurveLoop> { Geo.ToCurveLoop(rm.Polygon, apt.Z) });
-                                        roomRegionCount++;
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        log.Warn(aptName + ": ოთახის ფილა ვერ შეიქმნა - " + ex.Message);
+                                        string name = FindRoomName(roomNames, rm);
+                                        if (!string.IsNullOrEmpty(name)) text = name + "\n" + text;
                                     }
 
-                                    if (textType != null && rm.DisplayAreaSqM > 0)
+                                    var tOpt = new TextNoteOptions(textType.Id)
                                     {
-                                        try
-                                        {
-                                            var tOpt = new TextNoteOptions(textType.Id)
-                                            {
-                                                HorizontalAlignment = HorizontalTextAlignment.Center
-                                            };
-                                            string text = rm.DisplayAreaSqM.ToString("F" + AREA_DECIMALS, CultureInfo.InvariantCulture) + " მ²";
-                                            // ტექსტი ჩამოეკიდება ჩასმის წერტილიდან, ამიტომ ნახევარი სიმაღლით ვწევთ ზევით
-                                            XYZ pos = new XYZ(rm.LabelPoint.X, rm.LabelPoint.Y + textHeight * 0.5, apt.Z);
-                                            TextNote.Create(doc, targetPlan.Id, pos, text, tOpt);
-                                            labelCount++;
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            log.Warn(aptName + ": ფართის წარწერა ვერ შეიქმნა - " + ex.Message);
-                                        }
-                                    }
+                                        HorizontalAlignment = HorizontalTextAlignment.Center
+                                    };
+                                    // ტექსტი ჩასმის წერტილიდან ქვემოთ ეკიდება -> ნახევარი სიმაღლით ზევით
+                                    int lines = text.Split('\n').Length;
+                                    XYZ pos = new XYZ(rm.LabelPoint.X, rm.LabelPoint.Y + textHeight * 0.5 * lines, apt.Z);
+                                    TextNote note = TextNote.Create(doc, targetPlan.Id, pos, text, tOpt);
+                                    MarkGenerated(note);
+                                    labelCount++;
                                 }
-                                aptWithRooms++;
+                                catch (Exception ex)
+                                {
+                                    log.Warn(aptName + ": ფართის წარწერა ვერ შეიქმნა - " + ex.Message);
+                                }
                             }
                         }
 
-                        // ძველი ყვითელი ფილების დამალვა / წაშლა (ერთხელ, ბოლოს)
-                        if (yellowToHide.Count > 0)
+                        // თუ მარკეტინგი იმავე გეგმაზე კეთდება, ყვითელი ფილები იმალება (აღდგენადია)
+                        if (sameView && form.ActionGenerateMarketingRegions && mktCount > 0)
                         {
-                            try { targetPlan.HideElements(yellowToHide.ToList()); }
-                            catch (Exception ex) { log.Warn("ჯგუფში მყოფი ყვითელი ფილები ვერ დაიმალა - " + ex.Message); }
-                        }
-                        if (yellowToDelete.Count > 0)
-                        {
-                            try { doc.Delete(yellowToDelete.ToList()); }
-                            catch (Exception ex) { log.Warn("ძველი ყვითელი ფილები ვერ წაიშალა - " + ex.Message); }
+                            try
+                            {
+                                var ids = apartments.Select(a => a.SourceRegion.Id).Distinct().ToList();
+                                targetPlan.HideElements(ids);
+                            }
+                            catch (Exception ex) { log.Warn("ყვითელი ფილები ვერ დაიმალა - " + ex.Message); }
                         }
 
                         doc.Regenerate();
@@ -295,17 +310,20 @@ namespace BIMXSmartTools
 
                         var sb = new StringBuilder();
                         sb.AppendLine("მარკეტინგის გეგმა მომზადდა!");
-                        if (form.CreateNewMarketingView) sb.AppendLine("• ახალი გეგმა: " + targetPlan.Name);
-                        sb.AppendLine("• ნაპოვნი ბინები: " + apartments.Count + (aptWithoutStamp > 0 ? " (შტამპის გარეშე: " + aptWithoutStamp + ")" : ""));
+                        sb.AppendLine("• გეგმა: " + targetPlan.Name);
+                        sb.AppendLine("• ნაპოვნი ბინის ფილები: " + apartments.Count + (aptWithoutStamp > 0 ? " (ცხრილის გარეშე: " + aptWithoutStamp + ")" : ""));
+                        if (!sameView) sb.AppendLine("• გადმოტანილი ცხრილები: " + copiedStamps);
+                        if (cleared > 0) sb.AppendLine("• წინა გაშვების ელემენტები წაიშალა: " + cleared);
                         sb.AppendLine("• მარკეტინგის ფილა (Blue/Green): " + mktCount);
-                        sb.AppendLine("• ოთახის INVISIBLE ფილა: " + roomRegionCount + " (" + aptWithRooms + " ბინაში)");
+                        sb.AppendLine("• ოთახის INVISIBLE ფილა: " + roomRegionCount);
                         sb.AppendLine("• ფართის წარწერა: " + labelCount);
+                        if (approxApts > 0) sb.AppendLine("• ⚠ მიახლოებითი დაყოფა (კედლის ღერძებით): " + approxApts + " ბინა");
                         if (log.Warnings.Count > 0)
                         {
                             sb.AppendLine();
                             sb.AppendLine("გაფრთხილებები (" + log.Warnings.Count + "):");
-                            foreach (var w in log.Warnings.Take(8)) sb.AppendLine(" - " + w);
-                            if (log.Warnings.Count > 8) sb.AppendLine(" ...");
+                            foreach (var w in log.Warnings.Take(10)) sb.AppendLine(" - " + w);
+                            if (log.Warnings.Count > 10) sb.AppendLine(" ...");
                         }
                         TaskDialog.Show("M AREA", sb.ToString());
                     }
@@ -322,7 +340,7 @@ namespace BIMXSmartTools
         }
 
         // =========================================================================
-        // აქტიური გეგმის განსაზღვრა (გეგმა ან ფურცელზე არსებული პირველი გეგმა)
+        // გეგმის პოვნა / სახელი
         // =========================================================================
         private static ViewPlan DetectActivePlan(Document doc)
         {
@@ -361,7 +379,7 @@ namespace BIMXSmartTools
         // =========================================================================
         // ბინები: ყვითელი ფილების გარე კონტურები
         // =========================================================================
-        private List<ApartmentItem> CollectApartments(Document doc, ViewPlan view, FilledRegionType livingType, RunLog log)
+        private static List<ApartmentItem> CollectApartments(Document doc, ViewPlan view, FilledRegionType livingType, RunLog log)
         {
             var result = new List<ApartmentItem>();
 
@@ -390,7 +408,7 @@ namespace BIMXSmartTools
                     items.Add(new LoopInfo { Loop = loop, Polygon = poly, Z = z, Area = Math.Abs(sa) });
                 }
 
-                // გარე კონტურები = ის კონტურები, რომლებიც სხვა (უფრო დიდ) კონტურშივე არ ძევს; შიდა კონტურები (ნახვრეტები) გამოიტოვება
+                // გარე კონტურები; სხვა კონტურის შიგნით მყოფი (ნახვრეტი) გამოიტოვება
                 foreach (LoopInfo li in items)
                 {
                     V2 probe = Geo.LabelPoint(li.Polygon);
@@ -409,53 +427,54 @@ namespace BIMXSmartTools
                     apt.MaxX = li.Polygon.Max(p => p.X);
                     apt.MinY = li.Polygon.Min(p => p.Y);
                     apt.MaxY = li.Polygon.Max(p => p.Y);
-                    apt.OwnAreaSqM = li.Area * FT2_TO_M2;
                     result.Add(apt);
                 }
             }
-
-            if (result.Count == 0)
-                log.Warn("ბინის ფილა (" + MAIN_LIVING_TYPE_NAME + ") არჩეულ გეგმაზე ვერ მოიძებნა.");
-
             return result;
         }
 
         // =========================================================================
-        // შტამპები (Generic Annotation: ROOM) - t1 = ბინის ნომერი, x1 = შიდა ფართი
+        // ცხრილები (Generic Annotation, ოჯახი "ROOM"): t1 = ბინის ნომერი, x1 = შიდა ფართი, x2 = ლოჯია/აივანი
+        // ბინასთან მათი კავშირი ხდება ლიდერის (leader) ბოლოთი - ცხრილები შენობის გარეთაა
         // =========================================================================
-        private List<StampInfo> ReadStamps(Document doc, ViewPlan view)
+        private static List<StampInfo> ReadStamps(Document doc, ViewPlan view)
         {
             var list = new List<StampInfo>();
 
-            var instances = new FilteredElementCollector(doc, view.Id)
-                .OfClass(typeof(FamilyInstance))
+            var all = new FilteredElementCollector(doc, view.Id)
                 .OfCategory(BuiltInCategory.OST_GenericAnnotation)
-                .Cast<FamilyInstance>()
-                .Where(fi => fi.Symbol != null && fi.Symbol.Family != null &&
-                             fi.Symbol.Family.Name.Equals(ANNOTATION_FAMILY_NAME, StringComparison.OrdinalIgnoreCase));
+                .WhereElementIsNotElementType()
+                .ToElements();
 
-            foreach (FamilyInstance fi in instances)
+            foreach (Element el in all)
             {
-                LocationPoint lp = fi.Location as LocationPoint;
+                ElementType et = doc.GetElement(el.GetTypeId()) as ElementType;
+                if (et == null || !string.Equals(et.FamilyName, ANNOTATION_FAMILY_NAME, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                LocationPoint lp = el.Location as LocationPoint;
                 if (lp == null) continue;
 
-                var info = new StampInfo { Point = new V2(lp.Point.X, lp.Point.Y) };
+                var info = new StampInfo { Element = el, Point = new V2(lp.Point.X, lp.Point.Y) };
 
-                Parameter pT1 = fi.LookupParameter("t1");
+                Parameter pT1 = el.LookupParameter("t1");
                 if (pT1 != null)
                 {
                     string s = pT1.AsString() ?? pT1.AsValueString() ?? "";
                     Match m = Regex.Match(s, @"\d+");
-                    if (m.Success) int.TryParse(m.Value, out info.Number);
+                    int n;
+                    if (m.Success && int.TryParse(m.Value, out n)) info.Number = n;
                 }
 
-                info.AreaSqM = ReadAreaSqM(fi.LookupParameter("x1"));
+                info.AreaX1 = ReadAreaSqM(el.LookupParameter("x1"));
+                info.AreaX2 = ReadAreaSqM(el.LookupParameter("x2"));
+                info.Tips = ReadLeaderTips(el, view, info.Point);
                 list.Add(info);
             }
             return list;
         }
 
-        // "45.37 მ²", "45,37 m²" ან რიცხვითი პარამეტრი -> მ²  (ქართული/ევროპული მძიმით დამწერლობაც იკითხება)
+        // "44.0 მ²", "44,0 m²" ან რიცხვითი პარამეტრი -> მ²
         private static double ReadAreaSqM(Parameter p)
         {
             if (p == null) return 0.0;
@@ -473,102 +492,523 @@ namespace BIMXSmartTools
             return 0.0;
         }
 
-        // თითო შტამპი ენიჭება მხოლოდ ერთ ბინას: ჯერ კონტურის შიგნით მყოფი, შემდეგ უახლოესი
-        private static void AssignStamps(List<ApartmentItem> apartments, List<StampInfo> stamps)
+        // ლიდერის ბოლო წერტილები: 1) API (Leaders -> End, reflection-ით, ვერსიებს შორის განსხვავების გამო),
+        // 2) ცხრილის გეომეტრიის ყველაზე შორეული წერტილი
+        private static List<V2> ReadLeaderTips(Element el, View view, V2 origin)
         {
-            foreach (ApartmentItem apt in apartments)
-            {
-                StampInfo best = stamps
-                    .Where(s => !s.Used && Geo.PointInPolygon(s.Point, apt.Polygon))
-                    .OrderBy(s => s.Point.DistanceTo(apt.Centroid))
-                    .FirstOrDefault();
-                if (best != null) Attach(apt, best);
-            }
+            var tips = new List<V2>();
 
-            foreach (ApartmentItem apt in apartments.Where(a => a.Stamp == null))
+            try
             {
-                double diag = Math.Sqrt((apt.MaxX - apt.MinX) * (apt.MaxX - apt.MinX) + (apt.MaxY - apt.MinY) * (apt.MaxY - apt.MinY));
-                StampInfo best = stamps
-                    .Where(s => !s.Used && s.Point.DistanceTo(apt.Centroid) <= diag * 0.75)
-                    .OrderBy(s => s.Point.DistanceTo(apt.Centroid))
-                    .FirstOrDefault();
-                if (best != null) Attach(apt, best);
+                object leaders = null;
+                Type type = el.GetType();
+                var prop = type.GetProperty("Leaders");
+                if (prop != null) leaders = prop.GetValue(el, null);
+                else
+                {
+                    var method = type.GetMethod("GetLeaders", Type.EmptyTypes);
+                    if (method != null) leaders = method.Invoke(el, null);
+                }
+
+                var en = leaders as IEnumerable;
+                if (en != null)
+                {
+                    foreach (object ld in en)
+                    {
+                        if (ld == null) continue;
+                        var endProp = ld.GetType().GetProperty("End");
+                        XYZ end = endProp != null ? endProp.GetValue(ld, null) as XYZ : null;
+                        if (end != null) tips.Add(new V2(end.X, end.Y));
+                    }
+                }
+            }
+            catch { }
+
+            if (tips.Count > 0) return tips;
+
+            try
+            {
+                var opt = new Options { View = view, ComputeReferences = false, IncludeNonVisibleObjects = false };
+                GeometryElement ge = el.get_Geometry(opt);
+                if (ge != null)
+                {
+                    var pts = new List<V2>();
+                    CollectGeometryPoints(ge, pts);
+                    if (pts.Count > 0)
+                    {
+                        V2 far = pts.OrderByDescending(p => p.DistanceTo(origin)).First();
+                        if (far.DistanceTo(origin) > 2.0) tips.Add(far);
+                    }
+                }
+            }
+            catch { }
+
+            return tips;
+        }
+
+        private static void CollectGeometryPoints(IEnumerable<GeometryObject> objs, List<V2> pts)
+        {
+            foreach (GeometryObject go in objs)
+            {
+                Curve c = go as Curve;
+                if (c != null)
+                {
+                    if (!c.IsBound) continue;
+                    XYZ a = c.GetEndPoint(0), b = c.GetEndPoint(1);
+                    pts.Add(new V2(a.X, a.Y));
+                    pts.Add(new V2(b.X, b.Y));
+                    continue;
+                }
+
+                GeometryInstance gi = go as GeometryInstance;
+                if (gi != null)
+                {
+                    CollectGeometryPoints(gi.GetInstanceGeometry(), pts);
+                }
             }
         }
 
-        private static void Attach(ApartmentItem apt, StampInfo stamp)
+        // ცხრილების კოპირება მთავარი გეგმიდან მარკეტინგის გეგმაზე (იგივე კოორდინატებზე)
+        private static int CopyStamps(Document doc, ViewPlan source, ViewPlan target, List<StampInfo> stamps, RunLog log)
+        {
+            if (stamps.Count == 0) return 0;
+
+            // თუ სამიზნე გეგმაზე უკვე არის ცხრილები, არ ვაკოპირებთ ხელახლა
+            bool targetHasStamps = new FilteredElementCollector(doc, target.Id)
+                .OfCategory(BuiltInCategory.OST_GenericAnnotation)
+                .WhereElementIsNotElementType()
+                .ToElements()
+                .Any(e =>
+                {
+                    ElementType et = doc.GetElement(e.GetTypeId()) as ElementType;
+                    return et != null && string.Equals(et.FamilyName, ANNOTATION_FAMILY_NAME, StringComparison.OrdinalIgnoreCase);
+                });
+
+            if (targetHasStamps)
+            {
+                log.Warn("მარკეტინგის გეგმაზე ცხრილები უკვე არსებობს - ხელახლა არ გადმოტანილა.");
+                return 0;
+            }
+
+            try
+            {
+                var ids = stamps.Select(s => s.Element.Id).ToList();
+                ICollection<ElementId> copied = ElementTransformUtils.CopyElements(source, ids, target, Transform.Identity, new CopyPasteOptions());
+                return copied != null ? copied.Count : 0;
+            }
+            catch (Exception ex)
+            {
+                log.Warn("ცხრილების გადმოტანა ვერ მოხერხდა - " + ex.Message);
+                return 0;
+            }
+        }
+
+        // წინა გაშვების ფილები და ტექსტები (მხოლოდ ჩვენი ტიპები და ჩვენი ნიშნით) სამიზნე გეგმიდან
+        private static int ClearPreviousResults(Document doc, ViewPlan view, HashSet<ElementId> typeIds, RunLog log)
+        {
+            var ids = new List<ElementId>();
+
+            foreach (FilledRegion fr in new FilteredElementCollector(doc, view.Id).OfClass(typeof(FilledRegion)).Cast<FilledRegion>())
+            {
+                if (typeIds.Contains(fr.GetTypeId())) ids.Add(fr.Id);
+            }
+
+            foreach (TextNote tn in new FilteredElementCollector(doc, view.Id).OfClass(typeof(TextNote)).Cast<TextNote>())
+            {
+                Parameter p = tn.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS);
+                if (p != null && p.AsString() == GENERATED_TAG) ids.Add(tn.Id);
+            }
+
+            if (ids.Count == 0) return 0;
+
+            try { doc.Delete(ids); return ids.Count; }
+            catch (Exception ex)
+            {
+                log.Warn("წინა გაშვების ელემენტები ვერ წაიშალა - " + ex.Message);
+                return 0;
+            }
+        }
+
+        private static void MarkGenerated(TextNote note)
+        {
+            try
+            {
+                Parameter p = note.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS);
+                if (p != null && !p.IsReadOnly) p.Set(GENERATED_TAG);
+            }
+            catch { }
+        }
+
+        // =========================================================================
+        // ცხრილების მიბმა ყვითელ ფილებზე
+        // =========================================================================
+        private static void AssignStamps(List<ApartmentItem> apartments, List<StampInfo> stamps, RunLog log)
+        {
+            // 1) ლიდერის ბოლო ეცემა ფილის შიგნით (ან მის გვერდით)
+            foreach (StampInfo s in stamps)
+            {
+                foreach (V2 tip in s.Tips)
+                {
+                    ApartmentItem apt = FindApartmentAt(apartments, tip, LEADER_SNAP_FT);
+                    if (apt != null && apt.Stamp == null) Attach(apt, s, false);
+                }
+            }
+
+            // 2) ცხრილი, რომელსაც ლიდერით ფილა ვერ მოუძებნა: ფილა, რომლის შიგნითაცაა, ან უახლოესი თავისუფალი ფილა
+            foreach (StampInfo s in stamps.Where(x => !x.Used).ToList())
+            {
+                ApartmentItem apt = apartments.FirstOrDefault(a => a.Stamp == null && Geo.PointInPolygon(s.Point, a.Polygon));
+                if (apt == null)
+                {
+                    apt = apartments
+                        .Where(a => a.Stamp == null)
+                        .OrderBy(a => Geo.DistToPolygon(s.Point, a.Polygon))
+                        .FirstOrDefault();
+                    if (apt != null)
+                        log.Warn("ცხრილი" + (s.Number > 0 ? " №" + s.Number : "") + ": ლიდერის ბოლო ვერ ვიპოვე, მიბმულია უახლოეს ფილაზე.");
+                }
+                if (apt != null) Attach(apt, s, false);
+            }
+
+            // 3) ფილა ცხრილის გარეშე (მაგ. ლოჯია/აივანი) იღებს მეზობელი ბინის ცხრილს/ფერს
+            for (int pass = 0; pass < 3; pass++)
+            {
+                bool changed = false;
+                foreach (ApartmentItem apt in apartments.Where(a => a.Stamp == null))
+                {
+                    ApartmentItem nb = apartments
+                        .Where(o => o != apt && o.Stamp != null)
+                        .Select(o => new { O = o, D = Geo.PolygonDistance(apt.Polygon, o.Polygon) })
+                        .Where(x => x.D <= NEIGHBOR_GAP_FT)
+                        .OrderBy(x => x.D)
+                        .Select(x => x.O)
+                        .FirstOrDefault();
+
+                    if (nb != null)
+                    {
+                        apt.Stamp = nb.Stamp;
+                        apt.Number = nb.Number;
+                        apt.Inherited = true;
+                        changed = true;
+                    }
+                }
+                if (!changed) break;
+            }
+        }
+
+        private static ApartmentItem FindApartmentAt(List<ApartmentItem> apartments, V2 pt, double snap)
+        {
+            ApartmentItem inside = apartments.FirstOrDefault(a => Geo.PointInPolygon(pt, a.Polygon));
+            if (inside != null) return inside;
+
+            var near = apartments
+                .Select(a => new { A = a, D = Geo.DistToPolygon(pt, a.Polygon) })
+                .Where(x => x.D <= snap)
+                .OrderBy(x => x.D)
+                .FirstOrDefault();
+            return near != null ? near.A : null;
+        }
+
+        private static void Attach(ApartmentItem apt, StampInfo stamp, bool inherited)
         {
             stamp.Used = true;
             apt.Stamp = stamp;
             apt.Number = stamp.Number;
-            apt.StampAreaSqM = stamp.AreaSqM;
+            apt.Inherited = inherited;
         }
 
         // =========================================================================
-        // კედლები: ცენტრალური ღერძები (მხოლოდ სწორხაზოვანი)
+        // ოთახებად დაყოფა: ბინის კონტური მინუს კედლების სისქის კონტურები (Solid Boolean).
+        // წარუმატებლობის შემთხვევაში - მიახლოებითი დაყოფა კედლის ღერძებით.
         // =========================================================================
-        private static List<WallSeg> ReadWallSegments(Document doc, ViewPlan view)
+        private List<RoomShape> BuildRooms(ApartmentItem apt, List<Wall> walls, string aptName, RunLog log, out bool approximate)
         {
-            var list = new List<WallSeg>();
-            var walls = new FilteredElementCollector(doc, view.Id).OfClass(typeof(Wall)).Cast<Wall>();
+            approximate = false;
 
+            List<Wall> near = walls.Where(w =>
+            {
+                BoundingBoxXYZ bb = w.get_BoundingBox(null);
+                if (bb == null) return false;
+                return bb.Max.X >= apt.MinX && bb.Min.X <= apt.MaxX && bb.Max.Y >= apt.MinY && bb.Min.Y <= apt.MaxY;
+            }).ToList();
+
+            try
+            {
+                List<RoomShape> shapes = BuildRoomsFromSolids(apt, near, aptName, log);
+                if (shapes.Count > 0) return shapes;
+            }
+            catch (Exception ex)
+            {
+                log.Warn(aptName + ": Solid დაყოფა ვერ შესრულდა (" + ex.Message + "), გამოიყენება მიახლოებითი დაყოფა.");
+            }
+
+            approximate = true;
+            return BuildRoomsApproximate(apt, near);
+        }
+
+        private List<RoomShape> BuildRoomsFromSolids(ApartmentItem apt, List<Wall> walls, string aptName, RunLog log)
+        {
+            var shapes = new List<RoomShape>();
+            double z0 = apt.Z;
+
+            CurveLoop aptLoop = ToCcwLoop(apt.OuterLoop);
+            Solid current = GeometryCreationUtilities.CreateExtrusionGeometry(new List<CurveLoop> { aptLoop }, XYZ.BasisZ, 1.0);
+
+            int failed = 0;
             foreach (Wall w in walls)
             {
-                WallType wt = w.WallType;
-                if (wt != null && wt.Kind == WallKind.Curtain) continue;
+                CurveLoop footprint = BuildWallFootprint(w, z0 - 0.5);
+                if (footprint == null) continue;
 
+                try
+                {
+                    Solid wallSolid = GeometryCreationUtilities.CreateExtrusionGeometry(new List<CurveLoop> { footprint }, XYZ.BasisZ, 2.0);
+                    Solid result = BooleanOperationsUtils.ExecuteBooleanOperation(current, wallSolid, BooleanOperationsType.Difference);
+                    if (result != null && result.Volume > 1e-9) current = result;
+                }
+                catch { failed++; }
+            }
+
+            if (failed > 0 && failed * 3 > walls.Count)
+                log.Warn(aptName + ": " + failed + "/" + walls.Count + " კედლის გამოკლება ვერ მოხერხდა - ოთახების კონტური ზუსტი არ იქნება.");
+
+            IList<Solid> parts;
+            try { parts = SolidUtils.SplitVolumes(current); }
+            catch { parts = new List<Solid> { current }; }
+
+            foreach (Solid part in parts)
+            {
+                foreach (Face face in part.Faces)
+                {
+                    PlanarFace pf = face as PlanarFace;
+                    if (pf == null) continue;
+                    if (pf.FaceNormal.Z > -0.999 || Math.Abs(pf.Origin.Z - z0) > 0.01) continue;   // მხოლოდ ქვედა წახნაგი
+
+                    double areaSqM = pf.Area * FT2_TO_M2;
+                    if (areaSqM < MIN_ROOM_SQM) continue;
+
+                    IList<CurveLoop> loops = pf.GetEdgesAsCurveLoops();
+                    if (loops == null || loops.Count == 0) continue;
+
+                    // გარე კონტური = ყველაზე დიდი ფართის მქონე loop
+                    List<V2> outer = null;
+                    double outerArea = -1.0;
+                    foreach (CurveLoop cl in loops)
+                    {
+                        double zz;
+                        List<V2> poly = Geo.LoopToPolygon(cl, MIN_SEGMENT_FT, out zz);
+                        if (poly.Count < 3) continue;
+                        double a = Math.Abs(Geo.SignedArea(poly));
+                        if (a > outerArea) { outerArea = a; outer = poly; }
+                    }
+                    if (outer == null) continue;
+                    if (Geo.SignedArea(outer) < 0) outer.Reverse();
+
+                    shapes.Add(new RoomShape
+                    {
+                        Loops = loops.ToList(),
+                        Polygon = outer,
+                        AreaSqM = areaSqM,
+                        LabelPoint = Geo.LabelPoint(outer)
+                    });
+                }
+            }
+            return shapes;
+        }
+
+        // კედლის სისქის კონტური (ხაზოვანი კედელი ორივე ბოლოში ნახევარი სისქით გრძელდება, რომ კუთხეებში ღრიჭო არ დარჩეს)
+        private static CurveLoop BuildWallFootprint(Wall w, double z)
+        {
+            LocationCurve lc = w.Location as LocationCurve;
+            if (lc == null || lc.Curve == null || !lc.Curve.IsBound) return null;
+
+            Curve c = lc.Curve;
+            double half = Math.Max(w.Width, 0.05) * 0.5;
+
+            Line ln = c as Line;
+            if (ln != null)
+            {
+                XYZ p0 = ln.GetEndPoint(0), p1 = ln.GetEndPoint(1);
+                double dx = p1.X - p0.X, dy = p1.Y - p0.Y;
+                double len = Math.Sqrt(dx * dx + dy * dy);
+                if (len < 1e-4) return null;
+
+                double ux = dx / len, uy = dy / len;
+                double nx = -uy, ny = ux;
+                double ax = p0.X - ux * half, ay = p0.Y - uy * half;
+                double ex = p1.X + ux * half, ey = p1.Y + uy * half;
+
+                XYZ[] q =
+                {
+                    new XYZ(ax - nx * half, ay - ny * half, z),
+                    new XYZ(ex - nx * half, ey - ny * half, z),
+                    new XYZ(ex + nx * half, ey + ny * half, z),
+                    new XYZ(ax + nx * half, ay + ny * half, z)
+                };
+
+                var loop = new CurveLoop();
+                for (int i = 0; i < 4; i++) loop.Append(Line.CreateBound(q[i], q[(i + 1) % 4]));
+                return loop;
+            }
+
+            try
+            {
+                Curve flat = c.CreateTransformed(Transform.CreateTranslation(new XYZ(0, 0, z - c.GetEndPoint(0).Z)));
+                Curve o1 = flat.CreateOffset(half, XYZ.BasisZ);
+                Curve o2 = flat.CreateOffset(-half, XYZ.BasisZ);
+
+                var loop = new CurveLoop();
+                loop.Append(o1);
+                loop.Append(Line.CreateBound(o1.GetEndPoint(1), o2.GetEndPoint(1)));
+                loop.Append(o2.CreateReversed());
+                loop.Append(Line.CreateBound(o2.GetEndPoint(0), o1.GetEndPoint(0)));
+                return ToCcwLoop(loop);
+            }
+            catch { return null; }
+        }
+
+        private static CurveLoop ToCcwLoop(CurveLoop loop)
+        {
+            try
+            {
+                if (loop.IsCounterclockwise(XYZ.BasisZ)) return loop;
+                CurveLoop copy = CurveLoop.CreateViaCopy(loop);
+                copy.Flip();
+                return copy;
+            }
+            catch { return loop; }
+        }
+
+        // ფოლბექი: კედლის ღერძებით დაყოფა (Geo.Partition)
+        private List<RoomShape> BuildRoomsApproximate(ApartmentItem apt, List<Wall> walls)
+        {
+            var segs = new List<WallSeg>();
+            foreach (Wall w in walls)
+            {
                 LocationCurve lc = w.Location as LocationCurve;
                 Line line = lc != null ? lc.Curve as Line : null;
                 if (line == null) continue;
+                XYZ p0 = line.GetEndPoint(0), p1 = line.GetEndPoint(1);
+                segs.Add(new WallSeg(new V2(p0.X, p0.Y), new V2(p1.X, p1.Y)));
+            }
 
-                XYZ p0 = line.GetEndPoint(0);
-                XYZ p1 = line.GetEndPoint(1);
-                list.Add(new WallSeg(new V2(p0.X, p0.Y), new V2(p1.X, p1.Y)));
+            List<List<V2>> pieces = Geo.Partition(apt.Polygon, segs, WALL_END_TOLERANCE_FT, MIN_SPLIT_PIECE_SQM / FT2_TO_M2);
+            var shapes = new List<RoomShape>();
+
+            foreach (var piece in pieces)
+            {
+                List<V2> clean = Geo.Clean(piece, MIN_SEGMENT_FT, 0.002);
+                if (clean.Count < 3) continue;
+                double a = Math.Abs(Geo.SignedArea(clean)) * FT2_TO_M2;
+                if (a < MIN_ROOM_SQM) continue;
+                if (Geo.SignedArea(clean) < 0) clean.Reverse();
+
+                shapes.Add(new RoomShape
+                {
+                    Loops = new List<CurveLoop> { Geo.ToCurveLoop(clean, apt.Z) },
+                    Polygon = clean,
+                    AreaSqM = a,
+                    LabelPoint = Geo.LabelPoint(clean)
+                });
+            }
+            return shapes;
+        }
+
+        // INVISIBLE ფილა ოთახზე; თუ რკალიანი კონტური ვერ შეიქმნა, მრავალკუთხედით
+        private static bool CreateRoomRegion(Document doc, ViewPlan view, FilledRegionType type, RoomShape rm, double z, string aptName, RunLog log)
+        {
+            try
+            {
+                FilledRegion.Create(doc, type.Id, view.Id, rm.Loops);
+                return true;
+            }
+            catch
+            {
+                try
+                {
+                    List<V2> clean = Geo.Clean(rm.Polygon, MIN_SEGMENT_FT, 0.002);
+                    FilledRegion.Create(doc, type.Id, view.Id, new List<CurveLoop> { Geo.ToCurveLoop(clean, z) });
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    log.Warn(aptName + ": ოთახის ფილა ვერ შეიქმნა - " + ex.Message);
+                    return false;
+                }
+            }
+        }
+
+        // =========================================================================
+        // ფართები: ყოველი ოთახი ცალ-ცალკე მრგვალდება (როგორც Revit-ის ოთახის ტეგი),
+        // ჯამი კი თუ ≤0.15 მ²-ით განსხვავდება ცხრილის x1 (ან x1+x2) მნიშვნელობისგან, სხვაობა უდიდეს ოთახს ემატება
+        // =========================================================================
+        private static void ComputeDisplayAreas(List<RoomShape> rooms, ApartmentItem apt, string aptName, RunLog log)
+        {
+            foreach (RoomShape r in rooms)
+                r.DisplayAreaSqM = Math.Round(r.AreaSqM, AREA_DECIMALS, MidpointRounding.AwayFromZero);
+
+            if (apt.Stamp == null || apt.Inherited || apt.Stamp.AreaX1 <= 0) return;
+
+            double sum = rooms.Sum(r => r.DisplayAreaSqM);
+            var candidates = new List<double> { apt.Stamp.AreaX1 };
+            if (apt.Stamp.AreaX2 > 0) candidates.Add(apt.Stamp.AreaX1 + apt.Stamp.AreaX2);
+
+            double best = candidates.OrderBy(c => Math.Abs(sum - c)).First();
+            double diff = Math.Round(best - sum, 2);
+
+            if (Math.Abs(diff) < 0.0001) return;
+
+            if (Math.Abs(diff) <= ROUNDING_FIX_SQM)
+            {
+                RoomShape largest = rooms.OrderByDescending(r => r.AreaSqM).First();
+                largest.DisplayAreaSqM = Math.Round(largest.DisplayAreaSqM + diff, AREA_DECIMALS, MidpointRounding.AwayFromZero);
+            }
+            else
+            {
+                log.Warn(aptName + ": ოთახების ჯამი " + sum.ToString("0.0", CultureInfo.InvariantCulture) +
+                         " მ², ცხრილში x1 = " + apt.Stamp.AreaX1.ToString("0.0", CultureInfo.InvariantCulture) + " მ² - შეამოწმე.");
+            }
+        }
+
+        private static TextNoteType PickTextType(Document doc)
+        {
+            var types = new FilteredElementCollector(doc).OfClass(typeof(TextNoteType)).Cast<TextNoteType>().ToList();
+            return types.FirstOrDefault(t => t.Name.Contains("2.5") || t.Name.Contains("2,5")) ?? types.FirstOrDefault();
+        }
+
+        // =========================================================================
+        // ოთახის სახელები (არასავალდებულო): Revit-ის Room-ებიდან
+        // =========================================================================
+        private static List<RoomNameInfo> ReadRoomNames(Document doc, ViewPlan view)
+        {
+            var list = new List<RoomNameInfo>();
+            ElementId levelId = view.GenLevel != null ? view.GenLevel.Id : ElementId.InvalidElementId;
+
+            foreach (Element e in new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Rooms).WhereElementIsNotElementType())
+            {
+                Room room = e as Room;
+                if (room == null || room.Area <= 0) continue;
+                if (levelId != ElementId.InvalidElementId && room.LevelId != levelId) continue;
+
+                LocationPoint lp = room.Location as LocationPoint;
+                if (lp == null) continue;
+
+                Parameter np = room.get_Parameter(BuiltInParameter.ROOM_NAME);
+                string name = np != null ? np.AsString() : null;
+                if (string.IsNullOrWhiteSpace(name)) continue;
+
+                list.Add(new RoomNameInfo { Point = new V2(lp.Point.X, lp.Point.Y), Name = name.Trim() });
             }
             return list;
         }
 
-        // =========================================================================
-        // ფართების განაწილება: ჯამი = შტამპის x1 (ან ბინის კონტურის ფართი), დამრგვალება
-        // "უდიდესი ნაშთის" მეთოდით, რომ დამრგვალებული ოთახების ჯამი ზუსტად ემთხვეოდეს
-        // =========================================================================
-        private static void AllocateAreas(List<RoomPiece> rooms, double targetSqM, int decimals, string aptName, RunLog log)
+        private static string FindRoomName(List<RoomNameInfo> names, RoomShape shape)
         {
-            double sum = rooms.Sum(r => r.AreaSqM);
-            if (sum <= 0) return;
-
-            if (targetSqM > 0)
-            {
-                // კონტური კედლების ღერძებით იყოფა, ამიტომ გეომეტრიული ჯამი ჩვეულებრივ ≥ წმინდა ფართზე
-                double ratio = targetSqM / sum;
-                if (ratio >= 0.5 && ratio <= 1.2)
-                {
-                    foreach (var r in rooms) r.AreaSqM *= ratio;
-                }
-                else
-                {
-                    log.Warn(aptName + ": შტამპის ფართი (" + targetSqM.ToString("0.00", CultureInfo.InvariantCulture) +
-                             ") და გეომეტრიული ფართი (" + sum.ToString("0.00", CultureInfo.InvariantCulture) +
-                             ") მკვეთრად განსხვავდება - გამოყენებულია გეომეტრიული.");
-                }
-            }
-
-            double unit = Math.Pow(10, decimals);
-            double totalUnitsExact = rooms.Sum(r => r.AreaSqM) * unit;
-            long totalUnits = (long)Math.Round(totalUnitsExact, MidpointRounding.AwayFromZero);
-
-            var floors = rooms.Select(r => (long)Math.Floor(r.AreaSqM * unit)).ToList();
-            long remaining = totalUnits - floors.Sum();
-
-            var order = Enumerable.Range(0, rooms.Count)
-                .OrderByDescending(i => rooms[i].AreaSqM * unit - floors[i])
-                .ToList();
-
-            for (int k = 0; k < order.Count && remaining > 0; k++, remaining--)
-                floors[order[k]]++;
-
-            for (int i = 0; i < rooms.Count; i++)
-                rooms[i].DisplayAreaSqM = floors[i] / unit;
+            return names
+                .Where(n => Geo.PointInPolygon(n.Point, shape.Polygon))
+                .OrderBy(n => n.Point.DistanceTo(shape.LabelPoint))
+                .Select(n => n.Name)
+                .FirstOrDefault();
         }
 
         private class WarningSwallower : IFailuresPreprocessor
@@ -607,9 +1047,12 @@ namespace BIMXSmartTools
 
     internal class StampInfo
     {
+        public Element Element;
         public V2 Point;
+        public List<V2> Tips = new List<V2>();
         public int Number;
-        public double AreaSqM;
+        public double AreaX1;
+        public double AreaX2;
         public bool Used;
     }
 
@@ -621,18 +1064,24 @@ namespace BIMXSmartTools
         public double Z;
         public V2 Centroid;
         public double MinX, MinY, MaxX, MaxY;
-        public double OwnAreaSqM;
         public StampInfo Stamp;
+        public bool Inherited;      // ცხრილი მეზობელი ფილიდანაა აღებული (აივანი/ლოჯია)
         public int Number;
-        public double StampAreaSqM;
     }
 
-    internal class RoomPiece
+    internal class RoomShape
     {
-        public List<V2> Polygon;
-        public double AreaSqM;          // გეომეტრიული / დაზუსტებული
-        public double DisplayAreaSqM;   // დამრგვალებული, წარწერისთვის (0 = წარწერა არ იწერება)
+        public List<CurveLoop> Loops;
+        public List<V2> Polygon;        // გარე კონტური (CCW), წარწერის წერტილისთვის
+        public double AreaSqM;          // ზუსტი ფართი
+        public double DisplayAreaSqM;   // დამრგვალებული, წარწერისთვის
         public V2 LabelPoint;
+    }
+
+    internal class RoomNameInfo
+    {
+        public V2 Point;
+        public string Name;
     }
 
     internal struct V2
@@ -646,12 +1095,6 @@ namespace BIMXSmartTools
     {
         public V2 A, B;
         public WallSeg(V2 a, V2 b) { A = a; B = b; }
-
-        public bool Overlaps(double minX, double minY, double maxX, double maxY, double pad)
-        {
-            return Math.Max(A.X, B.X) >= minX - pad && Math.Min(A.X, B.X) <= maxX + pad &&
-                   Math.Max(A.Y, B.Y) >= minY - pad && Math.Min(A.Y, B.Y) <= maxY + pad;
-        }
     }
 
     // =========================================================================
@@ -705,7 +1148,7 @@ namespace BIMXSmartTools
             return inside;
         }
 
-        private static double DistToSegment(V2 p, V2 a, V2 b)
+        public static double DistToSegment(V2 p, V2 a, V2 b)
         {
             double dx = b.X - a.X, dy = b.Y - a.Y;
             double l2 = dx * dx + dy * dy;
@@ -714,7 +1157,7 @@ namespace BIMXSmartTools
             return Math.Sqrt(ex * ex + ey * ey);
         }
 
-        private static double DistToPolygon(V2 p, IList<V2> poly)
+        public static double DistToPolygon(V2 p, IList<V2> poly)
         {
             double d = double.MaxValue;
             for (int i = 0; i < poly.Count; i++)
@@ -722,7 +1165,16 @@ namespace BIMXSmartTools
             return d;
         }
 
-        // წერტილი ოთახის შიგნით წარწერისთვის: ცენტროიდი, ხოლო არაამოზნექილ ფორმაში - ყველაზე განიერი ჰორიზონტალური მონაკვეთის შუა
+        // ორი პოლიგონის კონტურებს შორის მინიმალური მანძილი (0 თუ ეხებიან/იკვეთებიან)
+        public static double PolygonDistance(IList<V2> a, IList<V2> b)
+        {
+            double d = double.MaxValue;
+            foreach (V2 p in a) d = Math.Min(d, DistToPolygon(p, b));
+            foreach (V2 p in b) d = Math.Min(d, DistToPolygon(p, a));
+            return d;
+        }
+
+        // წერტილი ოთახის შიგნით წარწერისთვის: ცენტროიდი, ხოლო არაამოზნექილ ფორმაში (L-ფორმა) - ყველაზე განიერი ჰორიზონტალური მონაკვეთის შუა
         public static V2 LabelPoint(IList<V2> poly)
         {
             V2 c = Centroid(poly);
@@ -812,8 +1264,8 @@ namespace BIMXSmartTools
         }
 
         // =====================================================================
-        // პოლიგონის დაყოფა კედლებით: კედელი პოლიგონს ჰყოფს მხოლოდ მაშინ, თუ მისი ხაზი
-        // პოლიგონს კონტურიდან კონტურამდე (ან უკვე გაჭრილ ხაზამდე) მთლიანად კვეთს
+        // ფოლბექი: პოლიგონის დაყოფა კედლის ღერძებით. კედელი პოლიგონს ჰყოფს მხოლოდ მაშინ,
+        // თუ მისი ხაზი პოლიგონს კონტურიდან კონტურამდე (ან უკვე გაჭრილ ხაზამდე) მთლიანად კვეთს
         // =====================================================================
         public static List<List<V2>> Partition(List<V2> poly, List<WallSeg> walls, double endTol, double minPieceArea)
         {
@@ -928,6 +1380,7 @@ namespace BIMXSmartTools
         public bool ActionGenerateMarketingRegions => chkGenerateMkt.Checked;
         public bool ActionCreateRoomRegions => chkCreateRoomRegions.Checked;
         public bool ActionWriteRoomAreaText => chkCreateRoomRegions.Checked && chkWriteRoomAreaText.Checked;
+        public bool ActionWriteRoomNames => ActionWriteRoomAreaText && chkWriteRoomNames.Checked;
 
         public ViewPlan SelectedSourcePlanView => cmbSourceView.SelectedItem as ViewPlan;
         public ViewPlan SelectedTargetMarketingView => rbUseExistingView.Checked ? (cmbTargetView.SelectedItem as ViewPlan) : null;
@@ -939,13 +1392,14 @@ namespace BIMXSmartTools
         private System.Windows.Forms.CheckBox chkGenerateMkt;
         private System.Windows.Forms.CheckBox chkCreateRoomRegions;
         private System.Windows.Forms.CheckBox chkWriteRoomAreaText;
+        private System.Windows.Forms.CheckBox chkWriteRoomNames;
         private System.Windows.Forms.Button btnExecute;
         private System.Windows.Forms.Button btnCancel;
 
         public MarketingAreaForm(List<ViewPlan> allFloorViews, ViewPlan detectedPlan)
         {
             this.Text = "BIM X - M AREA (სუფთა მარკეტინგის გეგმა & ოთახები)";
-            this.Size = new Size(630, 490);
+            this.Size = new Size(630, 520);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
@@ -959,7 +1413,7 @@ namespace BIMXSmartTools
 
             y += 78;
 
-            this.Controls.Add(new System.Windows.Forms.Label() { Text = "საწყისი გეგმა (ძირითადი ფილებით):", Location = new Point(15, y + 3), AutoSize = true, Font = new Font("Arial", 9f, FontStyle.Bold) });
+            this.Controls.Add(new System.Windows.Forms.Label() { Text = "საწყისი გეგმა (ყვითელი ფილები & ცხრილები):", Location = new Point(15, y + 3), AutoSize = true, Font = new Font("Arial", 9f, FontStyle.Bold) });
             cmbSourceView = new System.Windows.Forms.ComboBox() { Location = new Point(285, y), Width = 310, DropDownStyle = ComboBoxStyle.DropDownList, DisplayMember = "Name" };
             foreach (var v in allFloorViews) cmbSourceView.Items.Add(v);
             int srcIdx = allFloorViews.FindIndex(v => v.Id == detectedPlan.Id);
@@ -970,7 +1424,7 @@ namespace BIMXSmartTools
 
             rbCreateNewView = new System.Windows.Forms.RadioButton()
             {
-                Text = "✨ ახალი მარკეტინგის გეგმის შექმნა (შტამპების & დეტალების გადმოტანით)",
+                Text = "✨ ახალი მარკეტინგის გეგმის შექმნა (გადმოაქვს მხოლოდ ცხრილები)",
                 Location = new Point(18, y),
                 AutoSize = true,
                 Font = new Font("Arial", 9.5f, FontStyle.Bold),
@@ -1003,7 +1457,7 @@ namespace BIMXSmartTools
 
             chkGenerateMkt = new System.Windows.Forms.CheckBox()
             {
-                Text = "🎨 სრული მარკეტინგის ფილების შექმნა (კენტი=Blue, ლუწი=Green)",
+                Text = "🎨 მარკეტინგის ფილების შექმნა ცხრილების მიხედვით (კენტი=Blue, ლუწი=Green)",
                 Location = new Point(20, y),
                 AutoSize = true,
                 Font = new Font("Arial", 9.5f, FontStyle.Bold),
@@ -1016,30 +1470,49 @@ namespace BIMXSmartTools
 
             chkCreateRoomRegions = new System.Windows.Forms.CheckBox()
             {
-                Text = "📐 ზემოდან ოთახების INVISIBLE ფილების შექმნა (კედლების მიხედვით დაყოფით)",
+                Text = "📐 ოთახებად დაყოფა კედლებით (INVISIBLE ფილები)",
                 Location = new Point(20, y),
                 AutoSize = true,
                 Font = new Font("Arial", 9.5f, FontStyle.Bold),
                 ForeColor = Color.DarkGreen,
                 Checked = true
             };
-            chkCreateRoomRegions.CheckedChanged += (s, e) => chkWriteRoomAreaText.Enabled = chkCreateRoomRegions.Checked;
+            chkCreateRoomRegions.CheckedChanged += (s, e) =>
+            {
+                chkWriteRoomAreaText.Enabled = chkCreateRoomRegions.Checked;
+                chkWriteRoomNames.Enabled = chkCreateRoomRegions.Checked && chkWriteRoomAreaText.Checked;
+            };
             this.Controls.Add(chkCreateRoomRegions);
 
             y += 28;
 
             chkWriteRoomAreaText = new System.Windows.Forms.CheckBox()
             {
-                Text = "✍️ ოთახებში მხოლოდ ფართობის დაწერა (მაგ: 13.9 მ²)",
+                Text = "✍️ ოთახებში ფართობის დაწერა (მაგ: 13.9 m²)",
                 Location = new Point(20, y),
                 AutoSize = true,
                 Font = new Font("Arial", 9.5f, FontStyle.Bold),
                 ForeColor = Color.DarkSlateGray,
                 Checked = true
             };
+            chkWriteRoomAreaText.CheckedChanged += (s, e) =>
+                chkWriteRoomNames.Enabled = chkCreateRoomRegions.Checked && chkWriteRoomAreaText.Checked;
             this.Controls.Add(chkWriteRoomAreaText);
 
-            y += 45;
+            y += 28;
+
+            chkWriteRoomNames = new System.Windows.Forms.CheckBox()
+            {
+                Text = "🏷 ფართთან ერთად ოთახის სახელიც (Revit Room-დან; თუ გეგმაზე Room Tag-ები უკვე გაქვს, გამორთე)",
+                Location = new Point(40, y),
+                AutoSize = true,
+                Font = new Font("Arial", 8.5f),
+                ForeColor = Color.DimGray,
+                Checked = false
+            };
+            this.Controls.Add(chkWriteRoomNames);
+
+            y += 40;
 
             btnExecute = new System.Windows.Forms.Button()
             {
