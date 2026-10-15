@@ -3302,8 +3302,8 @@
         </div>
 
         <!-- Floating Historical Maps & Timeline Bar (1887 - 2026) — Docked at Bottom Center -->
-        <div id="historicalTimelineBar" class="hidden absolute bottom-5 left-1/2 -translate-x-1/2 bg-[#0c1427]/95 backdrop-blur-2xl border border-amber-500/50 shadow-[0_12px_36px_rgba(0,0,0,0.7)] rounded-2xl px-4 py-2.5 z-40 text-xs font-sans flex flex-col gap-2 w-[92%] sm:w-auto sm:min-w-[520px] max-w-2xl transition-all duration-300 pointer-events-auto">
-          <div class="flex items-center justify-between gap-3 border-b border-white/10 pb-1.5">
+        <div id="historicalTimelineBar" class="hidden absolute bottom-5 left-1/2 -translate-x-1/2 bg-[#0c1427]/95 backdrop-blur-2xl border border-amber-500/50 shadow-[0_12px_44px_rgba(0,0,0,0.85)] rounded-2xl px-4 py-3 z-40 text-xs font-sans flex flex-col gap-2.5 w-[96%] max-w-5xl sm:min-w-[780px] md:min-w-[880px] lg:min-w-[980px] transition-all duration-300 pointer-events-auto">
+          <div class="flex items-center justify-between gap-3 border-b border-white/10 pb-2">
             <div class="flex items-center gap-2">
               <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
               <span class="font-bold text-amber-300 text-xs flex items-center gap-1.5">
@@ -3313,7 +3313,7 @@
             </div>
             <div class="flex items-center gap-2">
               <!-- Play / Pause timeline animation -->
-              <button type="button" id="btnHistoricalPlay" onclick="toggleHistoricalPlay()" class="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/35 text-amber-300 border border-amber-500/40 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 shadow-sm" title="ავტომატური ანიმაციური დაკვრა">
+              <button type="button" id="btnHistoricalPlay" onclick="toggleHistoricalPlay()" class="px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/35 text-amber-300 border border-amber-500/40 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 shadow-sm" title="ავტომატური ანიმაციური დაკვრა">
                 <i id="iconHistoricalPlay" class="fa-solid fa-play text-[10px]"></i> <span class="text-[11px]">დაკვრა</span>
               </button>
               <button type="button" onclick="toggleHistoricalTimeline()" class="text-slate-400 hover:text-white p-1 rounded hover:bg-white/10 transition" title="დახურვა">
@@ -3323,47 +3323,47 @@
           </div>
 
           <div class="flex items-center gap-3">
-            <button type="button" onclick="stepHistoricalYear(-1)" class="w-7 h-7 rounded bg-white/5 hover:bg-white/15 text-slate-300 flex items-center justify-center text-xs transition active:scale-95 shrink-0" title="წინა პერიოდი">
+            <button type="button" onclick="stepHistoricalYear(-1)" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/15 text-slate-300 flex items-center justify-center text-xs transition active:scale-95 shrink-0 border border-white/10 hover:border-amber-400/40" title="წინა პერიოდი">
               <i class="fa-solid fa-backward-step"></i>
             </button>
             
-            <div class="flex-1 flex flex-col gap-1">
-              <input type="range" id="sliderHistoricalTimeline" min="0" max="18" step="1" value="18" oninput="onHistoricalSliderInput(this.value)" class="w-full accent-amber-400 cursor-pointer h-1.5 bg-slate-700/80 rounded-lg">
-              <div class="flex justify-between text-[8px] sm:text-[9px] font-mono text-slate-400 px-0.5 pt-0.5 overflow-x-auto gap-0.5 sm:gap-0">
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="0" onclick="setHistoricalYear(0)" title="1887 რუსეთის იმპერიის გეგმა">1887</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="1" onclick="setHistoricalYear(1)" title="1913 თბილისის საარქივო გეგმა">1913</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="2" onclick="setHistoricalYear(2)" title="1942 წითელი არმიის გენშტაბი">1942</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="3" onclick="setHistoricalYear(3)" title="1975 საბჭოთა გენგეგმა 500მ">1975</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="4" onclick="setHistoricalYear(4)" title="1985 სსრკ ტოპოგრაფია 500მ">1985</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="5" onclick="setHistoricalYear(5)" title="1990 გენშტაბის ტოპოგრაფია (1:100k)">1990</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="6" onclick="setHistoricalYear(6)" title="1995 ურბანული საკადასტრო გეგმა (1:2000)">1995</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="7" onclick="setHistoricalYear(7)" title="2000 KfW საარქივო აეროფრენა">2000</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="8" onclick="setHistoricalYear(8)" title="2005 საარქივო ორთოფოტო">2005</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="9" onclick="setHistoricalYear(9)" title="2007 სატელიტური ორთოფოტო">2007</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="10" onclick="setHistoricalYear(10)" title="2010 საარქივო ორთოფოტო">2010</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="11" onclick="setHistoricalYear(11)" title="2012 საარქივო ორთოფოტო">2012</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="12" onclick="setHistoricalYear(12)" title="2014 საარქივო ორთოფოტო">2014</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="13" onclick="setHistoricalYear(13)" title="2016 აეროფოტო">2016</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="14" onclick="setHistoricalYear(14)" title="2018 ორთოფოტო">2018</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="15" onclick="setHistoricalYear(15)" title="2020 სატელიტი">2020</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="16" onclick="setHistoricalYear(16)" title="2022 ორთოფოტო">2022</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="17" onclick="setHistoricalYear(17)" title="2024 ორთოფოტო">2024</button>
-                <button type="button" class="timeline-year-tick text-amber-300 font-bold hover:text-amber-200 transition" data-year-index="18" onclick="setHistoricalYear(18)" title="2026 უახლესი">2026</button>
+            <div class="flex-1 flex flex-col gap-1.5 min-w-0">
+              <input type="range" id="sliderHistoricalTimeline" min="0" max="18" step="1" value="18" oninput="onHistoricalSliderInput(this.value)" class="w-full accent-amber-400 cursor-pointer h-2 bg-slate-700/80 rounded-lg">
+              <div class="flex items-center justify-between gap-1 overflow-x-auto py-1 px-0.5 no-scrollbar scroll-smooth">
+                <button type="button" class="timeline-year-tick px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-medium text-slate-300 bg-white/5 border border-white/10 hover:border-amber-400/40 hover:text-amber-200 hover:bg-amber-500/10 transition shrink-0 text-center active:scale-95 shadow-sm min-w-[36px] sm:min-w-[42px]" data-year-index="0" onclick="setHistoricalYear(0)" title="1887 რუსეთის იმპერიის გეგმა">1887</button>
+                <button type="button" class="timeline-year-tick px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-medium text-slate-300 bg-white/5 border border-white/10 hover:border-amber-400/40 hover:text-amber-200 hover:bg-amber-500/10 transition shrink-0 text-center active:scale-95 shadow-sm min-w-[36px] sm:min-w-[42px]" data-year-index="1" onclick="setHistoricalYear(1)" title="1913 თბილისის საარქივო გეგმა">1913</button>
+                <button type="button" class="timeline-year-tick px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-medium text-slate-300 bg-white/5 border border-white/10 hover:border-amber-400/40 hover:text-amber-200 hover:bg-amber-500/10 transition shrink-0 text-center active:scale-95 shadow-sm min-w-[36px] sm:min-w-[42px]" data-year-index="2" onclick="setHistoricalYear(2)" title="1942 წითელი არმიის გენშტაბი">1942</button>
+                <button type="button" class="timeline-year-tick px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-medium text-slate-300 bg-white/5 border border-white/10 hover:border-amber-400/40 hover:text-amber-200 hover:bg-amber-500/10 transition shrink-0 text-center active:scale-95 shadow-sm min-w-[36px] sm:min-w-[42px]" data-year-index="3" onclick="setHistoricalYear(3)" title="1975 საბჭოთა გენგეგმა 500მ">1975</button>
+                <button type="button" class="timeline-year-tick px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-medium text-slate-300 bg-white/5 border border-white/10 hover:border-amber-400/40 hover:text-amber-200 hover:bg-amber-500/10 transition shrink-0 text-center active:scale-95 shadow-sm min-w-[36px] sm:min-w-[42px]" data-year-index="4" onclick="setHistoricalYear(4)" title="1985 სსრკ ტოპოგრაფია 500მ">1985</button>
+                <button type="button" class="timeline-year-tick px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-medium text-slate-300 bg-white/5 border border-white/10 hover:border-amber-400/40 hover:text-amber-200 hover:bg-amber-500/10 transition shrink-0 text-center active:scale-95 shadow-sm min-w-[36px] sm:min-w-[42px]" data-year-index="5" onclick="setHistoricalYear(5)" title="1990 გენშტაბის ტოპოგრაფია (1:100k)">1990</button>
+                <button type="button" class="timeline-year-tick px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-medium text-slate-300 bg-white/5 border border-white/10 hover:border-amber-400/40 hover:text-amber-200 hover:bg-amber-500/10 transition shrink-0 text-center active:scale-95 shadow-sm min-w-[36px] sm:min-w-[42px]" data-year-index="6" onclick="setHistoricalYear(6)" title="1995 ურბანული საკადასტრო გეგმა (1:2000)">1995</button>
+                <button type="button" class="timeline-year-tick px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-medium text-slate-300 bg-white/5 border border-white/10 hover:border-amber-400/40 hover:text-amber-200 hover:bg-amber-500/10 transition shrink-0 text-center active:scale-95 shadow-sm min-w-[36px] sm:min-w-[42px]" data-year-index="7" onclick="setHistoricalYear(7)" title="2000 KfW საარქივო აეროფრენა">2000</button>
+                <button type="button" class="timeline-year-tick px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-medium text-slate-300 bg-white/5 border border-white/10 hover:border-amber-400/40 hover:text-amber-200 hover:bg-amber-500/10 transition shrink-0 text-center active:scale-95 shadow-sm min-w-[36px] sm:min-w-[42px]" data-year-index="8" onclick="setHistoricalYear(8)" title="2005 საარქივო ორთოფოტო">2005</button>
+                <button type="button" class="timeline-year-tick px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-medium text-slate-300 bg-white/5 border border-white/10 hover:border-amber-400/40 hover:text-amber-200 hover:bg-amber-500/10 transition shrink-0 text-center active:scale-95 shadow-sm min-w-[36px] sm:min-w-[42px]" data-year-index="9" onclick="setHistoricalYear(9)" title="2007 სატელიტური ორთოფოტო">2007</button>
+                <button type="button" class="timeline-year-tick px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-medium text-slate-300 bg-white/5 border border-white/10 hover:border-amber-400/40 hover:text-amber-200 hover:bg-amber-500/10 transition shrink-0 text-center active:scale-95 shadow-sm min-w-[36px] sm:min-w-[42px]" data-year-index="10" onclick="setHistoricalYear(10)" title="2010 საარქივო ორთოფოტო">2010</button>
+                <button type="button" class="timeline-year-tick px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-medium text-slate-300 bg-white/5 border border-white/10 hover:border-amber-400/40 hover:text-amber-200 hover:bg-amber-500/10 transition shrink-0 text-center active:scale-95 shadow-sm min-w-[36px] sm:min-w-[42px]" data-year-index="11" onclick="setHistoricalYear(11)" title="2012 საარქივო ორთოფოტო">2012</button>
+                <button type="button" class="timeline-year-tick px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-medium text-slate-300 bg-white/5 border border-white/10 hover:border-amber-400/40 hover:text-amber-200 hover:bg-amber-500/10 transition shrink-0 text-center active:scale-95 shadow-sm min-w-[36px] sm:min-w-[42px]" data-year-index="12" onclick="setHistoricalYear(12)" title="2014 საარქივო ორთოფოტო">2014</button>
+                <button type="button" class="timeline-year-tick px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-medium text-slate-300 bg-white/5 border border-white/10 hover:border-amber-400/40 hover:text-amber-200 hover:bg-amber-500/10 transition shrink-0 text-center active:scale-95 shadow-sm min-w-[36px] sm:min-w-[42px]" data-year-index="13" onclick="setHistoricalYear(13)" title="2016 აეროფოტო">2016</button>
+                <button type="button" class="timeline-year-tick px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-medium text-slate-300 bg-white/5 border border-white/10 hover:border-amber-400/40 hover:text-amber-200 hover:bg-amber-500/10 transition shrink-0 text-center active:scale-95 shadow-sm min-w-[36px] sm:min-w-[42px]" data-year-index="14" onclick="setHistoricalYear(14)" title="2018 ორთოფოტო">2018</button>
+                <button type="button" class="timeline-year-tick px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-medium text-slate-300 bg-white/5 border border-white/10 hover:border-amber-400/40 hover:text-amber-200 hover:bg-amber-500/10 transition shrink-0 text-center active:scale-95 shadow-sm min-w-[36px] sm:min-w-[42px]" data-year-index="15" onclick="setHistoricalYear(15)" title="2020 სატელიტი">2020</button>
+                <button type="button" class="timeline-year-tick px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-medium text-slate-300 bg-white/5 border border-white/10 hover:border-amber-400/40 hover:text-amber-200 hover:bg-amber-500/10 transition shrink-0 text-center active:scale-95 shadow-sm min-w-[36px] sm:min-w-[42px]" data-year-index="16" onclick="setHistoricalYear(16)" title="2022 ორთოფოტო">2022</button>
+                <button type="button" class="timeline-year-tick px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-medium text-slate-300 bg-white/5 border border-white/10 hover:border-amber-400/40 hover:text-amber-200 hover:bg-amber-500/10 transition shrink-0 text-center active:scale-95 shadow-sm min-w-[36px] sm:min-w-[42px]" data-year-index="17" onclick="setHistoricalYear(17)" title="2024 ორთოფოტო">2024</button>
+                <button type="button" class="timeline-year-tick px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-bold text-slate-950 bg-amber-400 border border-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.5)] transition shrink-0 text-center active:scale-95 min-w-[36px] sm:min-w-[42px] scale-105" data-year-index="18" onclick="setHistoricalYear(18)" title="2026 უახლესი">2026</button>
               </div>
             </div>
 
-            <button type="button" onclick="stepHistoricalYear(1)" class="w-7 h-7 rounded bg-white/5 hover:bg-white/15 text-slate-300 flex items-center justify-center text-xs transition active:scale-95 shrink-0" title="შემდეგი პერიოდი">
+            <button type="button" onclick="stepHistoricalYear(1)" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/15 text-slate-300 flex items-center justify-center text-xs transition active:scale-95 shrink-0 border border-white/10 hover:border-amber-400/40" title="შემდეგი პერიოდი">
               <i class="fa-solid fa-forward-step"></i>
             </button>
           </div>
 
-          <div class="flex items-center justify-between text-[11px] text-slate-300 gap-3 pt-1 border-t border-white/5">
-            <div class="flex items-center gap-2">
+          <div class="flex items-center justify-between text-[11px] text-slate-300 gap-4 pt-1.5 border-t border-white/10">
+            <div class="flex items-center gap-2 shrink-0">
               <span class="text-[10px] text-slate-400">გამჭვირვალობა:</span>
-              <input type="range" id="sliderHistoricalOpacity" min="10" max="100" value="95" oninput="onHistoricalOpacityInput(this.value)" class="w-20 sm:w-24 accent-amber-400 cursor-pointer h-1 bg-slate-700 rounded">
-              <span id="lblHistoricalOpacityVal" class="text-[10px] font-mono text-amber-300">95%</span>
+              <input type="range" id="sliderHistoricalOpacity" min="10" max="100" value="95" oninput="onHistoricalOpacityInput(this.value)" class="w-20 sm:w-28 accent-amber-400 cursor-pointer h-1.5 bg-slate-700 rounded">
+              <span id="lblHistoricalOpacityVal" class="text-[10px] font-mono text-amber-300 font-bold">95%</span>
             </div>
-            <div id="lblHistoricalDescription" class="text-[10px] text-slate-300 truncate max-w-[200px] sm:max-w-xs font-medium">
+            <div id="lblHistoricalDescription" class="text-[10px] sm:text-[11px] text-slate-300 truncate max-w-sm sm:max-w-md md:max-w-xl font-medium text-right">
               2026 წლის უახლესი ორთოფოტო და საჯარო რეესტრის კადასტრი
             </div>
           </div>

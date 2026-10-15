@@ -925,15 +925,18 @@
       slider.value = idx;
     }
 
-    // Highlight timeline tick labels
+    // Highlight timeline tick labels with discrete pill badge styling
     document.querySelectorAll('.timeline-year-tick').forEach(t => {
       const tIdx = parseInt(t.dataset.yearIndex, 10);
       if (tIdx === idx) {
-        t.classList.add('text-amber-300', 'font-bold', 'scale-110');
-        t.classList.remove('text-slate-400');
+        t.classList.add('bg-amber-400', 'text-slate-950', 'font-bold', 'border-amber-300', 'shadow-[0_0_12px_rgba(251,191,36,0.5)]', 'scale-105');
+        t.classList.remove('text-slate-300', 'bg-white/5', 'border-white/10');
+        if (typeof t.scrollIntoView === 'function') {
+          t.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
       } else {
-        t.classList.remove('text-amber-300', 'font-bold', 'scale-110');
-        t.classList.add('text-slate-400');
+        t.classList.remove('bg-amber-400', 'text-slate-950', 'font-bold', 'border-amber-300', 'shadow-[0_0_12px_rgba(251,191,36,0.5)]', 'scale-105');
+        t.classList.add('text-slate-300', 'bg-white/5', 'border-white/10');
       }
     });
 
