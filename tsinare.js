@@ -436,66 +436,111 @@
       ]
     },
 
-    // --- 5. ისტორიული რუკები & რეტრო ტოპოგრაფია (100% გამართული & უფასო) ---
+    // --- 5. ისტორიული რუკები & რეტრო ტოპოგრაფია (ავთენტური საარქივო რუკები) ---
     hist_1887_imperial: {
-      label: '1887 რუსეთის იმპერიის ტოპო',
+      label: '1887 რუსეთის იმპერიის გეგმა',
       icon: '📜',
       group: 'historical',
-      description: '1887 წლის სამხედრო-ტოპოგრაფიული ერთვერსიანი რუკა (ვინტაჟური სეპია)',
+      description: '1887 წლის ქ. ტიფლისის სამხედრო-ტოპოგრაფიული გეგმა (ა. ილიინის კარტოგრაფიული არქივი)',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 15, maxZoom: 22, className: 'tile-filter-sepia-antique' } }
+        { url: 'https://tiles.nakarte.me/topomapper/{z}/{x}/{y}', opts: { minZoom: 1, maxNativeZoom: 13, maxZoom: 22 } },
+        {
+          url: 'https://upload.wikimedia.org/wikipedia/commons/4/41/Tiflis_city_plan%2C_1887.jpg',
+          isImageOverlay: true,
+          bounds: [[41.6677, 44.7739], [41.7285, 44.8593]],
+          opts: { opacity: 0.95 }
+        }
       ]
     },
     antique_1887: {
-      label: '1887 რუსეთის იმპერიის ტოპო',
+      label: '1887 რუსეთის იმპერიის გეგმა',
       icon: '📜',
       group: 'historical',
-      description: '1887 წლის სამხედრო-ტოპოგრაფიული ერთვერსიანი რუკა (ვინტაჟური სეპია)',
+      description: '1887 წლის ქ. ტიფლისის სამხედრო-ტოპოგრაფიული გეგმა (ა. ილიინის კარტოგრაფიული არქივი)',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 15, maxZoom: 22, className: 'tile-filter-sepia-antique' } }
+        { url: 'https://tiles.nakarte.me/topomapper/{z}/{x}/{y}', opts: { minZoom: 1, maxNativeZoom: 13, maxZoom: 22 } },
+        {
+          url: 'https://upload.wikimedia.org/wikipedia/commons/4/41/Tiflis_city_plan%2C_1887.jpg',
+          isImageOverlay: true,
+          bounds: [[41.6677, 44.7739], [41.7285, 44.8593]],
+          opts: { opacity: 0.95 }
+        }
+      ]
+    },
+    hist_1913_archive: {
+      label: '1913 თბილისის საარქივო გეგმა',
+      icon: '🏛️',
+      group: 'historical',
+      description: '1913 წლის ქალაქ თბილისის საარქივო ტოპოგრაფიული გეგმა',
+      layers: [
+        { url: 'https://tiles.nakarte.me/topomapper/{z}/{x}/{y}', opts: { minZoom: 1, maxNativeZoom: 13, maxZoom: 22 } },
+        {
+          url: 'https://upload.wikimedia.org/wikipedia/commons/4/4b/Map_of_Tbilisi_1913.jpg',
+          isImageOverlay: true,
+          bounds: [[41.6821, 44.7745], [41.7263, 44.8202]],
+          opts: { opacity: 0.95 }
+        }
       ]
     },
     hist_1942_soviet: {
       label: '1942 გენშტაბის სამხედრო ტოპო',
       icon: '🎖️',
       group: 'historical',
-      description: '1942 წლის წითელი არმიის გენშტაბის სამხედრო-ტოპოგრაფიული რუკა',
+      description: '1942 წლის წითელი არმიის გენშტაბის სამხედრო-ტოპოგრაფიული რუკა (1:100,000 / 1:200,000)',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 15, maxZoom: 22, className: 'tile-filter-soviet-topo' } }
+        { url: 'https://tiles.nakarte.me/topomapper/{z}/{x}/{y}', opts: { minZoom: 1, maxNativeZoom: 13, maxZoom: 22 } }
       ]
     },
     soviet_1942: {
       label: '1942 გენშტაბის სამხედრო ტოპო',
       icon: '🎖️',
       group: 'historical',
-      description: '1942 წლის წითელი არმიის გენშტაბის სამხედრო-ტოპოგრაფიული რუკა',
+      description: '1942 წლის წითელი არმიის გენშტაბის სამხედრო-ტოპოგრაფიული რუკა (1:100,000 / 1:200,000)',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 15, maxZoom: 22, className: 'tile-filter-soviet-topo' } }
+        { url: 'https://tiles.nakarte.me/topomapper/{z}/{x}/{y}', opts: { minZoom: 1, maxNativeZoom: 13, maxZoom: 22 } }
       ]
     },
     hist_1975_soviet: {
       label: '1975 საბჭოთა გენგეგმის ტოპო',
       icon: '🏗️',
       group: 'historical',
-      description: '1975 წლის ურბანული გენერალური გეგმის ტოპოგრაფიული საფუძველი',
+      description: '1975 წლის ურბანული გენერალური გეგმის 500-მეტრიანი სამხედრო-ტოპოგრაფიული რუკა (1:50,000)',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 16, maxZoom: 22, className: 'tile-filter-soviet-70s' } }
+        { url: 'https://{s}.tiles.nakarte.me/topo500/{z}/{x}/{y}', opts: { tms: true, subdomains: ['a', 'b', 'c'], minZoom: 1, maxNativeZoom: 14, maxZoom: 22 } }
       ]
     },
     soviet_1975: {
       label: '1975 საბჭოთა გენგეგმის ტოპო',
       icon: '🏗️',
       group: 'historical',
-      description: '1975 წლის ურბანული გენერალური გეგმის ტოპოგრაფიული საფუძველი',
+      description: '1975 წლის ურბანული გენერალური გეგმის 500-მეტრიანი სამხედრო-ტოპოგრაფიული რუკა (1:50,000)',
       layers: [
-        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxNativeZoom: 16, maxZoom: 22, className: 'tile-filter-soviet-70s' } }
+        { url: 'https://{s}.tiles.nakarte.me/topo500/{z}/{x}/{y}', opts: { tms: true, subdomains: ['a', 'b', 'c'], minZoom: 1, maxNativeZoom: 14, maxZoom: 22 } }
+      ]
+    },
+    hist_2004_nasa: {
+      label: '2004 NASA სატელიტი (არქივი)',
+      icon: '🛰️',
+      group: 'historical',
+      description: '2004 წლის NASA Terra სატელიტური ორთოგამოსახულება (ავთენტური 2004 არქივი)',
+      layers: [
+        { url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/2004-08-15/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg', opts: { minZoom: 1, maxNativeZoom: 9, maxZoom: 22 } }
+      ]
+    },
+    hist_2014_wayback: {
+      label: '2014 საარქივო აეროფოტო',
+      icon: '📸',
+      group: 'historical',
+      description: '2014 წლის პირველი ციფრული ორთოფოტოგადაღება (ESRI Wayback Archive Release M=30195)',
+      layers: [
+        { url: 'https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/30195/{z}/{y}/{x}', opts: { minZoom: 1, maxNativeZoom: 16, maxZoom: 22 } }
       ]
     }
   };
 
   // Historical Milestones & ESRI Wayback Releases (1887 - 2026)
   const WAYBACK_RELEASES = {
-    2014: 5844,
+    2014: 30195,
     2015: 28163,
     2016: 18966,
     2017: 25521,
@@ -511,11 +556,12 @@
   };
 
   const HISTORICAL_YEARS = [
-    { year: 1887, label: '1887 (რუსეთის იმპერია)', desc: '1887 წლის სამხედრო-ტოპოგრაფიული ერთვერსიანი რუკა (ვინტაჟური სეპია)', basemapKey: 'hist_1887_imperial', filterClass: 'tile-filter-sepia-antique', maxNativeZoom: 15 },
-    { year: 1942, label: '1942 (გენშტაბი II მსოფლიო ომი)', desc: '1942 წლის წითელი არმიის გენშტაბის სამხედრო-ტოპოგრაფიული რუკა', basemapKey: 'hist_1942_soviet', filterClass: 'tile-filter-soviet-topo', maxNativeZoom: 15 },
-    { year: 1975, label: '1975 (საბჭოთა გენგეგმა)', desc: '1975 წლის ურბანული გენერალური გეგმის ტოპოგრაფიული საფუძველი', basemapKey: 'hist_1975_soviet', filterClass: 'tile-filter-soviet-70s', maxNativeZoom: 16 },
-    { year: 2004, label: '2004 (ადრეული სატელიტი)', desc: '2004 წლის Landsat / early NASA სატელიტური ორთოფოტოსურათი', basemapKey: 'esri_satellite', filterClass: 'tile-filter-retro-ortho', maxNativeZoom: 16 },
-    { year: 2014, label: '2014 (ESRI Wayback)', desc: '2014 წლის აეროფოტოგადაღება (Release M=30195)', waybackRelease: 30195, maxNativeZoom: 16 },
+    { year: 1887, label: '1887 (რუსეთის იმპერია)', desc: '1887 წლის ქ. ტიფლისის სამხედრო-ტოპოგრაფიული გეგმა (ა. ილიინის კარტოგრაფიული არქივი)', basemapKey: 'hist_1887_imperial', maxNativeZoom: 15 },
+    { year: 1913, label: '1913 (თბილისის საარქივო გეგმა)', desc: '1913 წლის ქალაქ თბილისის დეტალური საარქივო გეგმა', basemapKey: 'hist_1913_archive', maxNativeZoom: 15 },
+    { year: 1942, label: '1942 (გენშტაბი II მსოფლიო ომი)', desc: '1942 წლის წითელი არმიის გენშტაბის სამხედრო-ტოპოგრაფიული რუკა (1:100,000 / 1:200,000)', basemapKey: 'hist_1942_soviet', maxNativeZoom: 13 },
+    { year: 1975, label: '1975 (საბჭოთა გენგეგმა)', desc: '1975 წლის ურბანული გენერალური გეგმის 500-მეტრიანი სამხედრო ტოპოგრაფია (1:50,000)', basemapKey: 'hist_1975_soviet', maxNativeZoom: 14 },
+    { year: 2004, label: '2004 (NASA Terra არქივი)', desc: '2004 წლის NASA Terra სატელიტური არქივი (ავთენტური 2004 წლის ორთოგამოსახულება)', basemapKey: 'hist_2004_nasa', maxNativeZoom: 9 },
+    { year: 2014, label: '2014 (ESRI საარქივო აეროფოტო)', desc: '2014 წლის პირველი მაღალი სიზუსტის აეროფოტოგადაღება (Wayback Archive Release M=30195)', waybackRelease: 30195, maxNativeZoom: 16 },
     { year: 2016, label: '2016 (ESRI Wayback)', desc: '2016 წლის აეროფოტოგადაღება (Release M=18966)', waybackRelease: 18966, maxNativeZoom: 16 },
     { year: 2018, label: '2018 (ESRI Wayback)', desc: '2018 წლის ორთოფოტო (Release M=23448)', waybackRelease: 23448, maxNativeZoom: 16 },
     { year: 2020, label: '2020 (ESRI Wayback)', desc: '2020 წლის სატელიტური ორთოფოტო (Release M=29260)', waybackRelease: 29260, maxNativeZoom: 16 },
@@ -563,13 +609,16 @@
     // Sync historical index if selecting a historical basemap
     if (key === 'antique_1887' || key === 'hist_1887_imperial') {
       state.historicalYearIndex = 0;
-      if (mapEl) mapEl.classList.add('tile-filter-sepia-antique');
-    } else if (key === 'soviet_1942' || key === 'hist_1942_soviet') {
+    } else if (key === 'hist_1913_archive') {
       state.historicalYearIndex = 1;
-      if (mapEl) mapEl.classList.add('tile-filter-soviet-topo');
-    } else if (key === 'soviet_1975' || key === 'hist_1975_soviet') {
+    } else if (key === 'soviet_1942' || key === 'hist_1942_soviet') {
       state.historicalYearIndex = 2;
-      if (mapEl) mapEl.classList.add('tile-filter-soviet-70s');
+    } else if (key === 'soviet_1975' || key === 'hist_1975_soviet') {
+      state.historicalYearIndex = 3;
+    } else if (key === 'hist_2004_nasa') {
+      state.historicalYearIndex = 4;
+    } else if (key === 'hist_2014_wayback') {
+      state.historicalYearIndex = 5;
     }
 
     // Remove existing base tile layers
@@ -577,20 +626,29 @@
     _activeTileLayers = [];
     // Add new layers with bulletproof zoom retention and tile stretching
     cfg.layers.forEach(def => {
-      const opts = Object.assign({
-        minZoom: 1,
-        maxZoom: 22,
-        maxNativeZoom: (def.opts && (def.opts.maxNativeZoom || def.opts.maxZoom)) || 19,
-        keepBuffer: 8,
-        updateWhenZooming: false,
-        updateWhenIdle: true,
-        crossOrigin: 'anonymous'
-      }, def.opts || {});
-      opts.maxZoom = 22;
-      opts.crossOrigin = 'anonymous';
-      const layer = L.tileLayer(def.url, opts);
-      layer.addTo(tsinareMap);
-      _activeTileLayers.push(layer);
+      if (def.isImageOverlay) {
+        const overlay = L.imageOverlay(def.url, def.bounds, {
+          opacity: (def.opts && def.opts.opacity) ?? (state.historicalOpacity ?? 0.95),
+          interactive: false
+        });
+        overlay.addTo(tsinareMap);
+        _activeTileLayers.push(overlay);
+      } else {
+        const opts = Object.assign({
+          minZoom: 1,
+          maxZoom: 22,
+          maxNativeZoom: (def.opts && (def.opts.maxNativeZoom || def.opts.maxZoom)) || 19,
+          keepBuffer: 8,
+          updateWhenZooming: false,
+          updateWhenIdle: true,
+          crossOrigin: 'anonymous'
+        }, def.opts || {});
+        opts.maxZoom = 22;
+        opts.crossOrigin = 'anonymous';
+        const layer = L.tileLayer(def.url, opts);
+        layer.addTo(tsinareMap);
+        _activeTileLayers.push(layer);
+      }
     });
 
     // Update picker UI (handle both aliases and primary keys)
@@ -598,7 +656,8 @@
       const bm = b.dataset.basemap;
       if (bm === key || (key === 'antique_1887' && bm === 'hist_1887_imperial') || (key === 'hist_1887_imperial' && bm === 'antique_1887') ||
           (key === 'soviet_1942' && bm === 'hist_1942_soviet') || (key === 'hist_1942_soviet' && bm === 'soviet_1942') ||
-          (key === 'soviet_1975' && bm === 'hist_1975_soviet') || (key === 'hist_1975_soviet' && bm === 'soviet_1975')) {
+          (key === 'soviet_1975' && bm === 'hist_1975_soviet') || (key === 'hist_1975_soviet' && bm === 'soviet_1975') ||
+          bm === key) {
         b.classList.add('basemap-btn-active');
       } else {
         b.classList.remove('basemap-btn-active');
@@ -705,30 +764,55 @@
     } else if (item.basemapKey && BASEMAP_REGISTRY[item.basemapKey]) {
       const cfg = BASEMAP_REGISTRY[item.basemapKey];
       cfg.layers.forEach(def => {
-        layerDefs.push({
-          url: def.url,
-          opts: Object.assign({
-            minZoom: 1,
-            maxZoom: 22,
-            maxNativeZoom: item.maxNativeZoom || (def.opts && def.opts.maxNativeZoom) || 16,
-            keepBuffer: 8,
-            crossOrigin: 'anonymous',
-            className: item.filterClass || (def.opts && def.opts.className) || ''
-          }, def.opts || {})
-        });
+        if (def.isImageOverlay) {
+          layerDefs.push({
+            isImageOverlay: true,
+            url: def.url,
+            bounds: def.bounds,
+            opts: def.opts || {}
+          });
+        } else {
+          layerDefs.push({
+            url: def.url,
+            opts: Object.assign({
+              minZoom: 1,
+              maxZoom: 22,
+              maxNativeZoom: item.maxNativeZoom || (def.opts && def.opts.maxNativeZoom) || 16,
+              keepBuffer: 8,
+              crossOrigin: 'anonymous',
+              className: item.filterClass || (def.opts && def.opts.className) || ''
+            }, def.opts || {})
+          });
+        }
       });
     }
 
     // Add new layers directly with target opacity so tiles download and render immediately
     layerDefs.forEach(d => {
-      const opts = Object.assign({}, d.opts, {
-        opacity: targetOpacity,
-        crossOrigin: 'anonymous',
-        maxZoom: 22
-      });
-      const layer = L.tileLayer(d.url, opts);
-      layer.addTo(tsinareMap);
-      newLayers.push(layer);
+      if (d.isImageOverlay) {
+        const overlay = L.imageOverlay(d.url, d.bounds, {
+          opacity: targetOpacity,
+          interactive: false
+        });
+        overlay.addTo(tsinareMap);
+        newLayers.push(overlay);
+      } else {
+        const opts = Object.assign({
+          minZoom: 1,
+          maxZoom: 22,
+          maxNativeZoom: (d.opts && (d.opts.maxNativeZoom || d.opts.maxZoom)) || 18,
+          keepBuffer: 8,
+          updateWhenZooming: false,
+          updateWhenIdle: true,
+          crossOrigin: 'anonymous'
+        }, d.opts || {}, {
+          opacity: targetOpacity,
+          maxZoom: 22
+        });
+        const layer = L.tileLayer(d.url, opts);
+        layer.addTo(tsinareMap);
+        newLayers.push(layer);
+      }
     });
 
     _activeTileLayers = newLayers;
@@ -793,8 +877,10 @@
     const op = Math.max(0.1, Math.min(1.0, parseInt(val, 10) / 100));
     state.historicalOpacity = op;
     _activeTileLayers.forEach(l => {
-      l.setOpacity(op);
-      const c = l.getContainer ? l.getContainer() : null;
+      if (typeof l.setOpacity === 'function') {
+        l.setOpacity(op);
+      }
+      const c = l.getContainer ? l.getContainer() : (l.getElement ? l.getElement() : null);
       if (c) c.style.opacity = op.toString();
     });
     const lbl = document.getElementById('lblHistoricalOpacityVal');
