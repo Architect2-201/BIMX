@@ -1560,9 +1560,17 @@
       border: none !important;
       visibility: hidden !important;
     }
+
+    /* Prevent any horizontal screen shifting */
+    html, body {
+      overflow-x: hidden !important;
+      max-width: 100vw !important;
+      width: 100% !important;
+      position: relative;
+    }
   </style>
 </head>
-<body class="flex flex-col h-screen w-screen overflow-hidden text-slate-100">
+<body class="flex flex-col h-screen w-full max-w-full overflow-hidden text-slate-100">
 
   <!-- =========================================================================
        1. TOP APP BAR / HEADER & CADASTRAL SEARCH
@@ -1887,48 +1895,6 @@
         <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-cyan-500/20 text-cyan-200">სრული ქსელი</span>
       </button>
     </div>
-
-    <!-- Action: Export PDF Report -->
-    <button 
-      type="button" 
-      id="btnExportPdf" 
-      onclick="exportTsinarePdfReport()" 
-      class="h-9 px-3.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white rounded-lg text-xs font-semibold flex items-center gap-2 transition-all active:scale-95 shadow-md shadow-emerald-600/25"
-      title="წინარე საპროექტო კვლევის ოფიციალური PDF დასკვნის ჩამოტვირთვა"
-    >
-      <i class="fa-solid fa-file-pdf text-sm"></i>
-      <span class="hidden sm:inline">PDF</span>
-    </button>
-
-    <!-- Action: Export PNG Screenshot -->
-    <button 
-      type="button" 
-      id="btnExportPng" 
-      onclick="exportTsinarePng()" 
-      class="h-9 px-3 bg-[#16233d] hover:bg-[#1e2f52] border border-[#263a63] text-slate-200 hover:text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95"
-      title="ნახაზის HD PNG სურათად ჩამოტვირთვა"
-    >
-      <i class="fa-solid fa-image text-emerald-400 text-xs"></i>
-      <span class="hidden md:inline">PNG</span>
-    </button>
-
-    <!-- Action: Export CAD DXF -->
-    <button 
-      type="button" 
-      id="btnExportDxf" 
-      onclick="exportTsinareDxf()" 
-      class="h-9 px-3 bg-[#16233d] hover:bg-[#1e2f52] border border-[#263a63] text-slate-200 hover:text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95"
-      title="AutoCAD DXF ფენების ჩამოტვირთვა (საკადასტრო საზღვარი, ლაქები, წითელი ხაზები)"
-    >
-      <i class="fa-solid fa-draw-polygon text-sky-400 text-xs"></i>
-      <span class="hidden md:inline">DXF</span>
-    </button>
-
-    <!-- Return to Main Site / Navigation -->
-    <a href="parcel-ai.html" class="h-9 px-3 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white rounded-lg text-xs font-medium flex items-center gap-1.5 transition">
-      <i class="fa-solid fa-arrow-left text-[11px]"></i>
-      <span class="hidden lg:inline">Parcel AI</span>
-    </a>
   </header>
 
   <!-- =========================================================================
@@ -3248,8 +3214,55 @@
           </div>
         </div>
 
+        <!-- Floating Primary Quick-Action Dock: PDF, PNG, DXF, Parcel AI -->
+        <div id="floatingCanvasActionDock" class="absolute top-4 right-4 z-30 flex items-center gap-2 bg-[#091122]/90 backdrop-blur-xl border border-sky-500/40 shadow-[0_8px_32px_rgba(0,0,0,0.65)] rounded-xl p-1.5 pointer-events-auto">
+          <!-- Action: Export PDF Report -->
+          <button 
+            type="button" 
+            id="btnExportPdf" 
+            onclick="exportTsinarePdfReport()" 
+            class="h-8 px-3.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-md shadow-emerald-600/30 cursor-pointer"
+            title="წინარე საპროექტო კვლევის ოფიციალური PDF დასკვნის ჩამოტვირთვა"
+          >
+            <i class="fa-solid fa-file-pdf text-sm"></i>
+            <span>PDF</span>
+          </button>
+
+          <!-- Action: Export PNG Screenshot -->
+          <button 
+            type="button" 
+            id="btnExportPng" 
+            onclick="exportTsinarePng()" 
+            class="h-8 px-3 bg-[#16233d] hover:bg-[#1e2f52] border border-[#263a63] text-slate-200 hover:text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm cursor-pointer"
+            title="ნახაზის HD PNG სურათად ჩამოტვირთვა"
+          >
+            <i class="fa-solid fa-image text-emerald-400 text-xs"></i>
+            <span>PNG</span>
+          </button>
+
+          <!-- Action: Export CAD DXF -->
+          <button 
+            type="button" 
+            id="btnExportDxf" 
+            onclick="exportTsinareDxf()" 
+            class="h-8 px-3 bg-[#16233d] hover:bg-[#1e2f52] border border-[#263a63] text-slate-200 hover:text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm cursor-pointer"
+            title="AutoCAD DXF ფენების ჩამოტვირთვა (საკადასტრო საზღვარი, ლაქები, წითელი ხაზები)"
+          >
+            <i class="fa-solid fa-draw-polygon text-sky-400 text-xs"></i>
+            <span>DXF</span>
+          </button>
+
+          <div class="h-4 w-px bg-slate-700/60 mx-0.5"></div>
+
+          <!-- Return to Main Site / Navigation -->
+          <a href="parcel-ai.html" class="h-8 px-3 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer" title="Parcel AI-ზე დაბრუნება">
+            <i class="fa-solid fa-arrow-left text-[11px] text-sky-400"></i>
+            <span>Parcel AI</span>
+          </a>
+        </div>
+
         <!-- Floating HUD: Sun Insolation & Shadow Angle Slider -->
-        <div class="absolute top-4 right-16 floating-cad-hud p-2 rounded-lg text-xs z-10 flex items-center gap-2">
+        <div class="absolute top-16 right-16 floating-cad-hud p-2 rounded-lg text-xs z-10 flex items-center gap-2">
           <i class="fa-solid fa-sun text-amber-400 text-xs"></i>
           <span class="text-[11px] text-slate-300 font-medium hidden sm:inline">ინსოლაცია:</span>
           <input 
@@ -3266,7 +3279,7 @@
         </div>
 
         <!-- Floating HUD: Architectural North Arrow (ჩრდილოეთის ისარი) -->
-        <div class="absolute top-4 right-4 floating-cad-hud w-9 h-9 rounded-lg flex items-center justify-center z-10" title="ჩრდილოეთი (North)">
+        <div class="absolute top-16 right-4 floating-cad-hud w-9 h-9 rounded-lg flex items-center justify-center z-10" title="ჩრდილოეთი (North)">
           <svg viewBox="0 0 24 24" class="w-6 h-6">
             <polygon points="12,2 8,22 12,17" fill="#ef4444" />
             <polygon points="12,2 16,22 12,17" fill="#cbd5e1" />
@@ -3306,7 +3319,7 @@
         </div>
 
         <!-- Floating Historical Maps & Timeline Bar (1887 - 2026) — Docked at Bottom Center -->
-        <div id="historicalTimelineBar" class="hidden absolute bottom-5 left-1/2 -translate-x-1/2 bg-[#0c1427]/95 backdrop-blur-2xl border border-amber-500/50 shadow-[0_12px_44px_rgba(0,0,0,0.85)] rounded-2xl px-4 py-3 z-40 text-xs font-sans flex flex-col gap-2.5 w-[96%] max-w-5xl sm:min-w-[780px] md:min-w-[880px] lg:min-w-[980px] transition-all duration-300 pointer-events-auto">
+        <div id="historicalTimelineBar" class="hidden absolute bottom-5 left-1/2 -translate-x-1/2 bg-[#0c1427]/95 backdrop-blur-2xl border border-amber-500/50 shadow-[0_12px_44px_rgba(0,0,0,0.85)] rounded-2xl px-4 py-3 z-40 text-xs font-sans flex flex-col gap-2.5 w-[96%] max-w-5xl box-border transition-all duration-300 pointer-events-auto">
           <div class="flex items-center justify-between gap-3 border-b border-white/10 pb-2">
             <div class="flex items-center gap-2">
               <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
@@ -3450,6 +3463,22 @@
       </div>
 
       <div class="p-3.5 space-y-3.5 text-xs">
+
+        <!-- Quick Action & Export Bar in Zoning Sidebar -->
+        <div class="bg-gradient-to-r from-[#0c1629] to-[#111e38] p-2.5 rounded-xl border border-sky-500/30 flex items-center justify-between gap-1.5 shadow-md">
+          <button type="button" onclick="exportTsinarePdfReport()" class="flex-1 py-1.5 px-2 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 shadow-md shadow-emerald-600/25" title="კვლევის ოფიციალური PDF დასკვნა">
+            <i class="fa-solid fa-file-pdf"></i> PDF დასკვნა
+          </button>
+          <button type="button" onclick="exportTsinarePng()" class="py-1.5 px-2 bg-[#121c33] hover:bg-[#1a2846] text-slate-200 border border-white/10 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition active:scale-95" title="HD PNG სურათი">
+            <i class="fa-solid fa-image text-emerald-400"></i> PNG
+          </button>
+          <button type="button" onclick="exportTsinareDxf()" class="py-1.5 px-2 bg-[#121c33] hover:bg-[#1a2846] text-slate-200 border border-white/10 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition active:scale-95" title="AutoCAD DXF">
+            <i class="fa-solid fa-draw-polygon text-sky-400"></i> DXF
+          </button>
+          <a href="parcel-ai.html" class="py-1.5 px-2 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 rounded-lg text-xs font-medium flex items-center gap-1 transition" title="Parcel AI-ზე დაბრუნება">
+            <i class="fa-solid fa-arrow-left text-[10px] text-sky-400"></i>
+          </a>
+        </div>
 
         <!-- K-1 (განაშენიანების კოეფიციენტი) Card -->
         <div class="bg-[#121c33] p-3 rounded-lg border border-[#213254] space-y-1.5">

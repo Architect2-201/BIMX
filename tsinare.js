@@ -987,8 +987,10 @@
       if (tIdx === idx) {
         t.classList.add('bg-amber-400', 'text-slate-950', 'font-bold', 'border-amber-300', 'shadow-[0_0_12px_rgba(251,191,36,0.5)]', 'scale-105');
         t.classList.remove('text-slate-300', 'bg-white/5', 'border-white/10');
-        if (typeof t.scrollIntoView === 'function') {
-          t.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        const tickContainer = t.parentElement;
+        if (tickContainer && typeof tickContainer.scrollTo === 'function') {
+          const scrollTarget = t.offsetLeft - (tickContainer.clientWidth / 2) + (t.clientWidth / 2);
+          tickContainer.scrollTo({ left: scrollTarget, behavior: 'smooth' });
         }
       } else {
         t.classList.remove('bg-amber-400', 'text-slate-950', 'font-bold', 'border-amber-300', 'shadow-[0_0_12px_rgba(251,191,36,0.5)]', 'scale-105');
