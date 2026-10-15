@@ -588,7 +588,7 @@
       group: 'historical',
       description: '2010 წლის საარქივო ორთოფოტოგადაღება',
       layers: [
-        { url: 'https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/30195/{z}/{y}/{x}', opts: { minZoom: 1, maxNativeZoom: 18, maxZoom: 22 } }
+        { url: 'https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/30195/{z}/{y}/{x}', opts: { minZoom: 1, maxNativeZoom: 16, maxZoom: 22 } }
       ]
     },
     hist_2012_wayback: {
@@ -597,25 +597,56 @@
       group: 'historical',
       description: '2012 წლის საარქივო ორთოფოტოგადაღება',
       layers: [
-        { url: 'https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/30195/{z}/{y}/{x}', opts: { minZoom: 1, maxNativeZoom: 18, maxZoom: 22 } }
+        { url: 'https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/30195/{z}/{y}/{x}', opts: { minZoom: 1, maxNativeZoom: 16, maxZoom: 22 } }
       ]
     },
     hist_2014_wayback: {
       label: '2014 საარქივო ორთოფოტო',
       icon: '📸',
       group: 'historical',
-      description: '2014 წლის პირველი ციფრული ორთოფოტოგადაღება (NAPR & ESRI Wayback Release M=30195)',
+      description: '2014 წლის პირველი ციფრული ორთოფოტოგადაღება (NAPR & ESRI Wayback)',
       layers: [
-        { url: 'https://mp.napr.gov.ge/ORTHO_2014_TBILISI/wmts/ORTHO_2014_TBILISI/GLOBAL_MERCATOR/{z}/{x}/{y}.png', opts: { minZoom: 1, maxNativeZoom: 18, maxZoom: 22 } }
+        { url: 'https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/30195/{z}/{y}/{x}', opts: { minZoom: 1, maxNativeZoom: 16, maxZoom: 22 } },
+        { url: 'https://mp.napr.gov.ge/ORTHO_2014_TBILISI/wmts/ORTHO_2014_TBILISI/GLOBAL_MERCATOR/{z}/{x}/{y}.png', opts: { minZoom: 1, maxNativeZoom: 19, maxZoom: 22 } }
       ]
     },
     hist_2014_napr: {
-      label: '2014 თბილისის ორთოფოტო',
+      label: '2014 საჯარო რეესტრის ორთოფოტო',
       icon: '📸',
       group: 'historical',
-      description: '2014 წლის თბილისის დეტალური ორთოფოტოგადაღება (NAPR)',
+      description: '2014 წლის თბილისის დეტალური ორთოფოტოგადაღება (NAPR & ESRI)',
       layers: [
-        { url: 'https://mp.napr.gov.ge/ORTHO_2014_TBILISI/wmts/ORTHO_2014_TBILISI/GLOBAL_MERCATOR/{z}/{x}/{y}.png', opts: { minZoom: 1, maxNativeZoom: 18, maxZoom: 22 } }
+        { url: 'https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/30195/{z}/{y}/{x}', opts: { minZoom: 1, maxNativeZoom: 16, maxZoom: 22 } },
+        { url: 'https://mp.napr.gov.ge/ORTHO_2014_TBILISI/wmts/ORTHO_2014_TBILISI/GLOBAL_MERCATOR/{z}/{x}/{y}.png', opts: { minZoom: 1, maxNativeZoom: 19, maxZoom: 22 } }
+      ]
+    },
+    hist_2020_napr: {
+      label: '2020 საჯარო რეესტრის ორთოფოტო',
+      icon: '📸',
+      group: 'historical',
+      description: '2020 წლის თბილისის დეტალური ორთოფოტოგადაღება (NAPR & ESRI)',
+      layers: [
+        { url: 'https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/29260/{z}/{y}/{x}', opts: { minZoom: 1, maxNativeZoom: 16, maxZoom: 22 } },
+        { url: 'https://mp.napr.gov.ge/ORTHO_2020_TBILISI/wmts/ORTHO_2020_TBILISI/GLOBAL_MERCATOR/{z}/{x}/{y}.png', opts: { minZoom: 1, maxNativeZoom: 19, maxZoom: 22 } }
+      ]
+    },
+    hist_2022_napr: {
+      label: '2022 საჯარო რეესტრის ორთოფოტო',
+      icon: '📸',
+      group: 'historical',
+      description: '2022 წლის აღმოსავლეთ საქართველოსა და თბილისის ორთოფოტოგადაღება (NAPR & ESRI)',
+      layers: [
+        { url: 'https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/45134/{z}/{y}/{x}', opts: { minZoom: 1, maxNativeZoom: 16, maxZoom: 22 } },
+        { url: 'https://mp.napr.gov.ge/ORTHO_2022_EAST/wmts/ORTHO_2022_EAST/GLOBAL_MERCATOR/{z}/{x}/{y}.png', opts: { minZoom: 1, maxNativeZoom: 19, maxZoom: 22 } }
+      ]
+    },
+    hist_2026_modern: {
+      label: '2026 თანამედროვე სატელიტი',
+      icon: '🛰️',
+      group: 'historical',
+      description: '2026 წლის უახლესი მაღალი გარჩევადობის ორთოგამოსახულება და საჯარო რეესტრის კადასტრი',
+      layers: [
+        { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts: { minZoom: 1, maxNativeZoom: 19, maxZoom: 22 } }
       ]
     },
     hist_2004_nasa: {
@@ -658,15 +689,15 @@
     { year: 2005, label: '2005 (საარქივო ორთოფოტო)', desc: '2005 წლის თბილისის საჯარო რეესტრის პირველი დეტალური ციფრული ორთოფოტო', basemapKey: 'hist_2005_napr', maxNativeZoom: 18 },
     { year: 2007, label: '2007 (სატელიტური ორთოფოტო)', desc: '2006-2007 წლების მაღალი გარჩევადობის სატელიტური ორთოგამოსახულება', basemapKey: 'hist_2007_napr', maxNativeZoom: 17 },
     { year: 2008, label: '2008 (სატელიტური ორთოფოტო)', desc: '2008 წლის მაღალი გარჩევადობის სატელიტური ორთოგამოსახულება (სრული ეროვნული დაფარვა)', basemapKey: 'hist_2008_sat', maxNativeZoom: 17 },
-    { year: 2010, label: '2010 (საარქივო ორთოფოტო)', desc: '2010 წლის საარქივო ორთოფოტოგადაღება', basemapKey: 'hist_2010_composite', maxNativeZoom: 18 },
-    { year: 2012, label: '2012 (საარქივო ორთოფოტო)', desc: '2012 წლის საარქივო ორთოფოტოგადაღება', basemapKey: 'hist_2012_wayback', maxNativeZoom: 18 },
-    { year: 2014, label: '2014 (საარქივო ორთოფოტო)', desc: '2014 წლის დეტალური ორთოფოტოგადაღება (NAPR & ESRI Wayback Release M=30195)', basemapKey: 'hist_2014_wayback', waybackRelease: 30195, maxNativeZoom: 18 },
-    { year: 2016, label: '2016 (ESRI Wayback)', desc: '2016 წლის აეროფოტოგადაღება (Release M=18966)', waybackRelease: 18966, maxNativeZoom: 18 },
-    { year: 2018, label: '2018 (ESRI Wayback)', desc: '2018 წლის ორთოფოტო (Release M=23448)', waybackRelease: 23448, maxNativeZoom: 18 },
-    { year: 2020, label: '2020 (ESRI Wayback)', desc: '2020 წლის სატელიტური ორთოფოტო (Release M=29260)', waybackRelease: 29260, maxNativeZoom: 18 },
-    { year: 2022, label: '2022 (ESRI Wayback)', desc: '2022 წლის მაღალი სიზუსტის ორთოფოტო (Release M=45134)', waybackRelease: 45134, maxNativeZoom: 18 },
-    { year: 2024, label: '2024 (ESRI Wayback)', desc: '2024 წლის ორთოფოტოგადაღება (Release M=16453)', waybackRelease: 16453, maxNativeZoom: 18 },
-    { year: 2026, label: '2026 (უახლესი 2026)', desc: '2026 წლის უახლესი ორთოფოტო და საჯარო რეესტრის კადასტრი (M=26334)', waybackRelease: 26334, maxNativeZoom: 19 }
+    { year: 2010, label: '2010 (საარქივო ორთოფოტო)', desc: '2010 წლის საარქივო ორთოფოტოგადაღება', basemapKey: 'hist_2010_composite', maxNativeZoom: 16 },
+    { year: 2012, label: '2012 (საარქივო ორთოფოტო)', desc: '2012 წლის საარქივო ორთოფოტოგადაღება', basemapKey: 'hist_2012_wayback', maxNativeZoom: 16 },
+    { year: 2014, label: '2014 (საჯარო რეესტრის ორთო)', desc: '2014 წლის დეტალური ორთოფოტოგადაღება (NAPR თბილისი & ESRI)', basemapKey: 'hist_2014_napr', maxNativeZoom: 19 },
+    { year: 2016, label: '2016 (ESRI სატელიტი)', desc: '2016 წლის აეროფოტოგადაღება (Release M=18966)', waybackRelease: 18966, maxNativeZoom: 16 },
+    { year: 2018, label: '2018 (ESRI სატელიტი)', desc: '2018 წლის ორთოფოტო (Release M=23448)', waybackRelease: 23448, maxNativeZoom: 16 },
+    { year: 2020, label: '2020 (საჯარო რეესტრის ორთო)', desc: '2020 წლის დეტალური ორთოფოტოგადაღება (NAPR თბილისი & ESRI)', basemapKey: 'hist_2020_napr', maxNativeZoom: 19 },
+    { year: 2022, label: '2022 (საჯარო რეესტრის ორთო)', desc: '2022 წლის მაღალი სიზუსტის ორთოფოტო (NAPR აღმოსავლეთ საქართველო & ESRI)', basemapKey: 'hist_2022_napr', maxNativeZoom: 19 },
+    { year: 2024, label: '2024 (ESRI სატელიტი)', desc: '2024 წლის ორთოფოტოგადაღება (Release M=16453)', waybackRelease: 16453, maxNativeZoom: 16 },
+    { year: 2026, label: '2026 (უახლესი 2026)', desc: '2026 წლის უახლესი მაღალი გარჩევადობის ორთოგამოსახულება და საჯარო რეესტრის კადასტრი', basemapKey: 'hist_2026_modern', maxNativeZoom: 19 }
   ];
 
   // Active Leaflet tile layer instances (current basemap)
@@ -883,22 +914,7 @@
 
     // Build new layer definitions
     const layerDefs = [];
-    if (item.waybackRelease) {
-      const waybackUrl = `https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/${item.waybackRelease}/{z}/{y}/{x}`;
-      layerDefs.push({
-        url: waybackUrl,
-        opts: {
-          minZoom: 1,
-          maxZoom: 22,
-          maxNativeZoom: item.maxNativeZoom || 18,
-          keepBuffer: 2,
-          updateWhenZooming: true,
-          updateWhenIdle: false,
-          crossOrigin: 'anonymous',
-          className: 'tile-historical-crisp'
-        }
-      });
-    } else if (item.basemapKey && BASEMAP_REGISTRY[item.basemapKey]) {
+    if (item.basemapKey && BASEMAP_REGISTRY[item.basemapKey]) {
       const cfg = BASEMAP_REGISTRY[item.basemapKey];
       cfg.layers.forEach(def => {
         if (def.isImageOverlay) {
@@ -909,19 +925,39 @@
             opts: def.opts || {}
           });
         } else {
+          const isWayback = def.url && def.url.includes('wayback.maptiles.arcgis.com');
+          const maxNative = isWayback ? 16 : ((def.opts && def.opts.maxNativeZoom) || item.maxNativeZoom || 18);
           layerDefs.push({
             url: def.url,
             opts: Object.assign({
               minZoom: 1,
               maxZoom: 22,
-              maxNativeZoom: item.maxNativeZoom || (def.opts && def.opts.maxNativeZoom) || 16,
+              maxNativeZoom: maxNative,
               keepBuffer: 2,
               updateWhenZooming: true,
               updateWhenIdle: false,
               crossOrigin: 'anonymous',
               className: 'tile-historical-crisp ' + (item.filterClass || (def.opts && def.opts.className) || '')
-            }, def.opts || {})
+            }, def.opts || {}, {
+              maxNativeZoom: maxNative,
+              maxZoom: 22
+            })
           });
+        }
+      });
+    } else if (item.waybackRelease) {
+      const waybackUrl = `https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/${item.waybackRelease}/{z}/{y}/{x}`;
+      layerDefs.push({
+        url: waybackUrl,
+        opts: {
+          minZoom: 1,
+          maxZoom: 22,
+          maxNativeZoom: 16,
+          keepBuffer: 2,
+          updateWhenZooming: true,
+          updateWhenIdle: false,
+          crossOrigin: 'anonymous',
+          className: 'tile-historical-crisp'
         }
       });
     }
@@ -938,10 +974,12 @@
         overlay.addTo(tsinareMap);
         newLayers.push(overlay);
       } else {
+        const isWayback = d.url && d.url.includes('wayback.maptiles.arcgis.com');
+        const safeNativeZoom = isWayback ? 16 : ((d.opts && d.opts.maxNativeZoom) || item.maxNativeZoom || 18);
         const opts = Object.assign({
           minZoom: 1,
           maxZoom: 22,
-          maxNativeZoom: (d.opts && (d.opts.maxNativeZoom || d.opts.maxZoom)) || 18,
+          maxNativeZoom: safeNativeZoom,
           keepBuffer: 2,
           updateWhenZooming: true,
           updateWhenIdle: false,
@@ -950,9 +988,13 @@
         }, d.opts || {}, {
           pane: 'historicalOverlayPane',
           opacity: targetOpacity,
+          maxNativeZoom: safeNativeZoom,
           maxZoom: 22
         });
         const layer = L.tileLayer(d.url, opts);
+        layer.on('tileerror', function (e) {
+          if (e && e.tile) e.tile.style.visibility = 'hidden';
+        });
         layer.addTo(tsinareMap);
         newLayers.push(layer);
       }
