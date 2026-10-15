@@ -437,13 +437,59 @@
     },
 
     // --- 5. ისტორიული რუკები & რეტრო ტოპოგრაფია (სრული ტერიტორია & საკადასტრო სიზუსტე) ---
+    // --- 5. ისტორიული რუკები & რეტრო ტოპოგრაფია (1887 — 2026 სრული დაფარვა) ---
+    hist_1887_imperial: {
+      label: '1887 რუსეთის იმპერიის გეგმა',
+      icon: '📜',
+      group: 'historical',
+      description: '1887 წლის ქ. ტიფლისის სამხედრო-ტოპოგრაფიული გეგმა (ა. ილიინის კარტოგრაფიული არქივი)',
+      layers: [
+        { url: 'https://tiles.nakarte.me/topomapper/{z}/{x}/{y}', opts: { minZoom: 1, maxNativeZoom: 13, maxZoom: 22, className: 'tile-historical-crisp' } },
+        {
+          url: 'assets/images/map_1887.jpg',
+          isImageOverlay: true,
+          bounds: [[41.6780, 44.7780], [41.7450, 44.8380]],
+          opts: { opacity: 0.95 }
+        }
+      ]
+    },
+    antique_1887: {
+      label: '1887 რუსეთის იმპერიის გეგმა',
+      icon: '📜',
+      group: 'historical',
+      description: '1887 წლის ქ. ტიფლისის სამხედრო-ტოპოგრაფიული გეგმა (ა. ილიინის კარტოგრაფიული არქივი)',
+      layers: [
+        { url: 'https://tiles.nakarte.me/topomapper/{z}/{x}/{y}', opts: { minZoom: 1, maxNativeZoom: 13, maxZoom: 22, className: 'tile-historical-crisp' } },
+        {
+          url: 'assets/images/map_1887.jpg',
+          isImageOverlay: true,
+          bounds: [[41.6780, 44.7780], [41.7450, 44.8380]],
+          opts: { opacity: 0.95 }
+        }
+      ]
+    },
+    hist_1913_archive: {
+      label: '1913 თბილისის საარქივო გეგმა',
+      icon: '🏛️',
+      group: 'historical',
+      description: '1913 წლის ქალაქ თბილისის დეტალური საარქივო ტოპოგრაფიული გეგმა',
+      layers: [
+        { url: 'https://tiles.nakarte.me/topomapper/{z}/{x}/{y}', opts: { minZoom: 1, maxNativeZoom: 13, maxZoom: 22, className: 'tile-historical-crisp' } },
+        {
+          url: 'assets/images/map_1913.jpg',
+          isImageOverlay: true,
+          bounds: [[41.6780, 44.7760], [41.7420, 44.8360]],
+          opts: { opacity: 0.95 }
+        }
+      ]
+    },
     hist_1942_soviet: {
       label: '1942 გენშტაბის სამხედრო ტოპო',
       icon: '🎖️',
       group: 'historical',
       description: '1942 წლის წითელი არმიის გენშტაბის სამხედრო-ტოპოგრაფიული რუკა (1:100,000 / 1:200,000, სრული ტერიტორია)',
       layers: [
-        { url: 'https://tiles.nakarte.me/topomapper/{z}/{x}/{y}', opts: { minZoom: 1, maxNativeZoom: 13, maxZoom: 22 } }
+        { url: 'https://tiles.nakarte.me/topomapper/{z}/{x}/{y}', opts: { minZoom: 1, maxNativeZoom: 13, maxZoom: 22, className: 'tile-historical-crisp' } }
       ]
     },
     soviet_1942: {
@@ -452,7 +498,7 @@
       group: 'historical',
       description: '1942 წლის წითელი არმიის გენშტაბის სამხედრო-ტოპოგრაფიული რუკა (1:100,000 / 1:200,000, სრული ტერიტორია)',
       layers: [
-        { url: 'https://tiles.nakarte.me/topomapper/{z}/{x}/{y}', opts: { minZoom: 1, maxNativeZoom: 13, maxZoom: 22 } }
+        { url: 'https://tiles.nakarte.me/topomapper/{z}/{x}/{y}', opts: { minZoom: 1, maxNativeZoom: 13, maxZoom: 22, className: 'tile-historical-crisp' } }
       ]
     },
     hist_1975_soviet: {
@@ -461,7 +507,7 @@
       group: 'historical',
       description: '1973-1990 წლების 500-მეტრიანი სამხედრო-ტოპოგრაფიული რუკა (1:50,000, სრული დაფარვა)',
       layers: [
-        { url: 'https://mp.napr.gov.ge/TOPO_50k_1973-1990/wmts/TOPO_50000_1973_1990/GLOBAL_MERCATOR/{z}/{x}/{y}.png', opts: { minZoom: 1, maxNativeZoom: 15, maxZoom: 22 } }
+        { url: 'https://mp.napr.gov.ge/TOPO_50k_1973-1990/wmts/TOPO_50000_1973_1990/GLOBAL_MERCATOR/{z}/{x}/{y}.png', opts: { minZoom: 1, maxNativeZoom: 15, maxZoom: 22, className: 'tile-historical-crisp' } }
       ]
     },
     soviet_1975: {
@@ -470,7 +516,16 @@
       group: 'historical',
       description: '1973-1990 წლების 500-მეტრიანი სამხედრო-ტოპოგრაფიული რუკა (1:50,000, სრული დაფარვა)',
       layers: [
-        { url: 'https://mp.napr.gov.ge/TOPO_50k_1973-1990/wmts/TOPO_50000_1973_1990/GLOBAL_MERCATOR/{z}/{x}/{y}.png', opts: { minZoom: 1, maxNativeZoom: 15, maxZoom: 22 } }
+        { url: 'https://mp.napr.gov.ge/TOPO_50k_1973-1990/wmts/TOPO_50000_1973_1990/GLOBAL_MERCATOR/{z}/{x}/{y}.png', opts: { minZoom: 1, maxNativeZoom: 15, maxZoom: 22, className: 'tile-historical-crisp' } }
+      ]
+    },
+    hist_1985_soviet: {
+      label: '1985 სსრკ ტოპოგრაფიული რუკა',
+      icon: '📐',
+      group: 'historical',
+      description: '1985 წლის სსრკ სამხედრო ტოპოგრაფიული რუკა 500მ (1:50,000)',
+      layers: [
+        { url: 'https://{s}.tiles.nakarte.me/topo500/{z}/{x}/{y}', opts: { tms: true, subdomains: ['a', 'b', 'c'], minZoom: 1, maxNativeZoom: 14, maxZoom: 22, className: 'tile-historical-crisp' } }
       ]
     },
     hist_1990_soviet: {
@@ -479,7 +534,7 @@
       group: 'historical',
       description: '1978-1990 წლების სამხედრო-ტოპოგრაფიული რუკა (1:100,000 სრული დაფარვა)',
       layers: [
-        { url: 'https://mp.napr.gov.ge/TOPO_100K_1978_1990/wmts/TOPO_100000/GLOBAL_MERCATOR/{z}/{x}/{y}.png', opts: { minZoom: 1, maxNativeZoom: 15, maxZoom: 22 } }
+        { url: 'https://mp.napr.gov.ge/TOPO_100K_1978_1990/wmts/TOPO_100000/GLOBAL_MERCATOR/{z}/{x}/{y}.png', opts: { minZoom: 1, maxNativeZoom: 14, maxZoom: 22, className: 'tile-historical-crisp' } }
       ]
     },
     hist_1995_cadastre: {
@@ -488,7 +543,16 @@
       group: 'historical',
       description: '1990-იანი წლების ქალაქგეგმარებითი და საკადასტრო ტოპოგრაფიული გეგმა 1:2000 (შენობების და ნაკვეთების ზუსტი კონტურებით)',
       layers: [
-        { url: 'https://mp.napr.gov.ge/TOPO_2k_Cityes/wmts/TOPO_2000_Cityes/GLOBAL_MERCATOR/{z}/{x}/{y}.png', opts: { minZoom: 1, maxNativeZoom: 17, maxZoom: 22 } }
+        { url: 'https://mp.napr.gov.ge/TOPO_2k_Cityes/wmts/TOPO_2000_Cityes/GLOBAL_MERCATOR/{z}/{x}/{y}.png', opts: { minZoom: 1, maxNativeZoom: 18, maxZoom: 22, className: 'tile-historical-crisp' } }
+      ]
+    },
+    hist_2000_kfw: {
+      label: '2000 KfW საარქივო აეროფრენა',
+      icon: '🛩️',
+      group: 'historical',
+      description: '2000 წლის გერმანიის KfW პროექტის პირველი ციფრული აეროფოტოგადაღება',
+      layers: [
+        { url: 'https://mp.napr.gov.ge/ORTHO_2000_KFW/wmts/ORTHO_2000_KFW/GLOBAL_MERCATOR/{z}/{x}/{y}.png', opts: { minZoom: 1, maxNativeZoom: 16, maxZoom: 22 } }
       ]
     },
     hist_2005_napr: {
@@ -509,6 +573,24 @@
         { url: 'https://mp.napr.gov.ge/ORTHO_2006_07_SATKEO/wmts/ORTHO_2006_07_SATKEO/GLOBAL_MERCATOR/{z}/{x}/{y}.png', opts: { minZoom: 1, maxNativeZoom: 17, maxZoom: 22 } }
       ]
     },
+    hist_2010_composite: {
+      label: '2010 საარქივო ორთოფოტო',
+      icon: '🛰️',
+      group: 'historical',
+      description: '2010 წლის საარქივო ორთოფოტოგადაღება',
+      layers: [
+        { url: 'https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/30195/{z}/{y}/{x}', opts: { minZoom: 1, maxNativeZoom: 18, maxZoom: 22 } }
+      ]
+    },
+    hist_2012_wayback: {
+      label: '2012 საარქივო ორთოფოტო',
+      icon: '📸',
+      group: 'historical',
+      description: '2012 წლის საარქივო ორთოფოტოგადაღება',
+      layers: [
+        { url: 'https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/30195/{z}/{y}/{x}', opts: { minZoom: 1, maxNativeZoom: 18, maxZoom: 22 } }
+      ]
+    },
     hist_2014_wayback: {
       label: '2014 საარქივო ორთოფოტო',
       icon: '📸',
@@ -527,34 +609,6 @@
         { url: 'https://mp.napr.gov.ge/ORTHO_2014_TBILISI/wmts/ORTHO_2014_TBILISI/GLOBAL_MERCATOR/{z}/{x}/{y}.png', opts: { minZoom: 1, maxNativeZoom: 18, maxZoom: 22 } }
       ]
     },
-    // Backwards compatibility aliases:
-    hist_1887_imperial: {
-      label: '1942 გენშტაბის სამხედრო ტოპო',
-      icon: '🎖️',
-      group: 'historical',
-      description: '1942 წლის წითელი არმიის გენშტაბის სამხედრო-ტოპოგრაფიული რუკა (სრული დაფარვა)',
-      layers: [
-        { url: 'https://tiles.nakarte.me/topomapper/{z}/{x}/{y}', opts: { minZoom: 1, maxNativeZoom: 13, maxZoom: 22 } }
-      ]
-    },
-    antique_1887: {
-      label: '1942 გენშტაბის სამხედრო ტოპო',
-      icon: '🎖️',
-      group: 'historical',
-      description: '1942 წლის წითელი არმიის გენშტაბის სამხედრო-ტოპოგრაფიული რუკა (სრული დაფარვა)',
-      layers: [
-        { url: 'https://tiles.nakarte.me/topomapper/{z}/{x}/{y}', opts: { minZoom: 1, maxNativeZoom: 13, maxZoom: 22 } }
-      ]
-    },
-    hist_1913_archive: {
-      label: '1975 საბჭოთა გენგეგმის ტოპო',
-      icon: '🏗️',
-      group: 'historical',
-      description: '1973-1990 წლების 500-მეტრიანი სამხედრო-ტოპოგრაფიული რუკა (1:50,000, სრული დაფარვა)',
-      layers: [
-        { url: 'https://mp.napr.gov.ge/TOPO_50k_1973-1990/wmts/TOPO_50000_1973_1990/GLOBAL_MERCATOR/{z}/{x}/{y}.png', opts: { minZoom: 1, maxNativeZoom: 15, maxZoom: 22 } }
-      ]
-    },
     hist_2004_nasa: {
       label: '2005 საარქივო ორთოფოტო',
       icon: '📸',
@@ -566,7 +620,7 @@
     }
   };
 
-  // Historical Milestones & ESRI Wayback Releases (1942 - 2026)
+  // Historical Milestones & ESRI Wayback Releases (1887 - 2026)
   const WAYBACK_RELEASES = {
     2014: 30195,
     2015: 28163,
@@ -584,18 +638,24 @@
   };
 
   const HISTORICAL_YEARS = [
+    { year: 1887, label: '1887 (რუსეთის იმპერია)', desc: '1887 წლის ქ. ტიფლისის სამხედრო-ტოპოგრაფიული გეგმა (ა. ილიინის კარტოგრაფიული არქივი)', basemapKey: 'hist_1887_imperial', maxNativeZoom: 16 },
+    { year: 1913, label: '1913 (თბილისის საარქივო გეგმა)', desc: '1913 წლის ქალაქ თბილისის დეტალური საარქივო ტოპოგრაფიული გეგმა', basemapKey: 'hist_1913_archive', maxNativeZoom: 16 },
     { year: 1942, label: '1942 (გენშტაბი II მსოფლიო ომი)', desc: '1942 წლის წითელი არმიის გენშტაბის სამხედრო-ტოპოგრაფიული რუკა (1:100,000 / 1:200,000, სრული ტერიტორია)', basemapKey: 'hist_1942_soviet', maxNativeZoom: 13 },
     { year: 1975, label: '1975 (საბჭოთა გენგეგმა 500მ)', desc: '1973-1990 წლების 500-მეტრიანი სამხედრო-ტოპოგრაფიული რუკა (1:50,000 სრული დაფარვა)', basemapKey: 'hist_1975_soviet', maxNativeZoom: 15 },
-    { year: 1990, label: '1990 (გენშტაბის ტოპოგრაფია)', desc: '1978-1990 წლების სამხედრო ტოპოგრაფიული სერია 1:100,000 (1990 გამოცემა, სრული ტერიტორია)', basemapKey: 'hist_1990_soviet', maxNativeZoom: 15 },
-    { year: 1995, label: '1995 (ურბანული საკადასტრო გეგმა)', desc: '1990-იანი წლების 1:2000 საკადასტრო და ქალაქგეგმარებითი ტოპოგრაფიული გეგმა (ზუსტი შენობა-ნაგებობებით)', basemapKey: 'hist_1995_cadastre', maxNativeZoom: 17 },
+    { year: 1985, label: '1985 (სსრკ ტოპოგრაფია 500მ)', desc: '1985 წლის სსრკ სამხედრო ტოპოგრაფიული რუკა (1:50,000 სრული დაფარვა)', basemapKey: 'hist_1985_soviet', maxNativeZoom: 14 },
+    { year: 1990, label: '1990 (გენშტაბის ტოპოგრაფია)', desc: '1978-1990 წლების სამხედრო ტოპოგრაფიული სერია 1:100,000 (1990 გამოცემა, სრული ტერიტორია)', basemapKey: 'hist_1990_soviet', maxNativeZoom: 14 },
+    { year: 1995, label: '1995 (ურბანული საკადასტრო გეგმა)', desc: '1990-იანი წლების 1:2000 საკადასტრო და ქალაქგეგმარებითი ტოპოგრაფიული გეგმა (ზუსტი შენობა-ნაგებობებით)', basemapKey: 'hist_1995_cadastre', maxNativeZoom: 18 },
+    { year: 2000, label: '2000 (KfW საარქივო აეროფრენა)', desc: '2000 წლის გერმანიის KfW პროექტის პირველი ციფრული აეროფოტოგადაღება', basemapKey: 'hist_2000_kfw', maxNativeZoom: 16 },
     { year: 2005, label: '2005 (საარქივო ორთოფოტო)', desc: '2005 წლის თბილისის საჯარო რეესტრის პირველი დეტალური ციფრული ორთოფოტო', basemapKey: 'hist_2005_napr', maxNativeZoom: 18 },
     { year: 2007, label: '2007 (სატელიტური ორთოფოტო)', desc: '2006-2007 წლების მაღალი გარჩევადობის სატელიტური ორთოგამოსახულება', basemapKey: 'hist_2007_napr', maxNativeZoom: 17 },
+    { year: 2010, label: '2010 (საარქივო ორთოფოტო)', desc: '2010 წლის საარქივო ორთოფოტოგადაღება', basemapKey: 'hist_2010_composite', maxNativeZoom: 18 },
+    { year: 2012, label: '2012 (საარქივო ორთოფოტო)', desc: '2012 წლის საარქივო ორთოფოტოგადაღება', basemapKey: 'hist_2012_wayback', maxNativeZoom: 18 },
     { year: 2014, label: '2014 (საარქივო ორთოფოტო)', desc: '2014 წლის დეტალური ორთოფოტოგადაღება (NAPR & ESRI Wayback Release M=30195)', basemapKey: 'hist_2014_wayback', waybackRelease: 30195, maxNativeZoom: 18 },
-    { year: 2016, label: '2016 (ESRI Wayback)', desc: '2016 წლის აეროფოტოგადაღება (Release M=18966)', waybackRelease: 18966, maxNativeZoom: 17 },
-    { year: 2018, label: '2018 (ESRI Wayback)', desc: '2018 წლის ორთოფოტო (Release M=23448)', waybackRelease: 23448, maxNativeZoom: 17 },
-    { year: 2020, label: '2020 (ESRI Wayback)', desc: '2020 წლის სატელიტური ორთოფოტო (Release M=29260)', waybackRelease: 29260, maxNativeZoom: 17 },
-    { year: 2022, label: '2022 (ESRI Wayback)', desc: '2022 წლის მაღალი სიზუსტის ორთოფოტო (Release M=45134)', waybackRelease: 45134, maxNativeZoom: 17 },
-    { year: 2024, label: '2024 (ESRI Wayback)', desc: '2024 წლის ორთოფოტოგადაღება (Release M=16453)', waybackRelease: 16453, maxNativeZoom: 17 },
+    { year: 2016, label: '2016 (ESRI Wayback)', desc: '2016 წლის აეროფოტოგადაღება (Release M=18966)', waybackRelease: 18966, maxNativeZoom: 18 },
+    { year: 2018, label: '2018 (ESRI Wayback)', desc: '2018 წლის ორთოფოტო (Release M=23448)', waybackRelease: 23448, maxNativeZoom: 18 },
+    { year: 2020, label: '2020 (ESRI Wayback)', desc: '2020 წლის სატელიტური ორთოფოტო (Release M=29260)', waybackRelease: 29260, maxNativeZoom: 18 },
+    { year: 2022, label: '2022 (ESRI Wayback)', desc: '2022 წლის მაღალი სიზუსტის ორთოფოტო (Release M=45134)', waybackRelease: 45134, maxNativeZoom: 18 },
+    { year: 2024, label: '2024 (ESRI Wayback)', desc: '2024 წლის ორთოფოტოგადაღება (Release M=16453)', waybackRelease: 16453, maxNativeZoom: 18 },
     { year: 2026, label: '2026 (უახლესი 2026)', desc: '2026 წლის უახლესი ორთოფოტო და საჯარო რეესტრის კადასტრი (M=26334)', waybackRelease: 26334, maxNativeZoom: 19 }
   ];
 
@@ -635,21 +695,10 @@
       );
     }
 
-    // Sync historical index if selecting a historical basemap
-    if (key === 'soviet_1942' || key === 'hist_1942_soviet' || key === 'antique_1887' || key === 'hist_1887_imperial') {
-      state.historicalYearIndex = 0;
-    } else if (key === 'soviet_1975' || key === 'hist_1975_soviet' || key === 'hist_1913_archive') {
-      state.historicalYearIndex = 1;
-    } else if (key === 'hist_1990_soviet') {
-      state.historicalYearIndex = 2;
-    } else if (key === 'hist_1995_cadastre') {
-      state.historicalYearIndex = 3;
-    } else if (key === 'hist_2005_napr' || key === 'hist_2004_nasa') {
-      state.historicalYearIndex = 4;
-    } else if (key === 'hist_2007_napr') {
-      state.historicalYearIndex = 5;
-    } else if (key === 'hist_2014_wayback' || key === 'hist_2014_napr') {
-      state.historicalYearIndex = 6;
+    // Dynamic sync of historical index if selecting any historical basemap
+    const foundIdx = HISTORICAL_YEARS.findIndex(h => h.basemapKey === key || (h.year && key.includes(h.year.toString())));
+    if (foundIdx !== -1) {
+      state.historicalYearIndex = foundIdx;
     }
 
     // Remove existing base tile layers
@@ -669,9 +718,9 @@
           minZoom: 1,
           maxZoom: 22,
           maxNativeZoom: (def.opts && (def.opts.maxNativeZoom || def.opts.maxZoom)) || 19,
-          keepBuffer: 8,
-          updateWhenZooming: false,
-          updateWhenIdle: true,
+          keepBuffer: 2,
+          updateWhenZooming: true,
+          updateWhenIdle: false,
           crossOrigin: 'anonymous'
         }, def.opts || {});
         opts.maxZoom = 22;
@@ -788,8 +837,11 @@
           minZoom: 1,
           maxZoom: 22,
           maxNativeZoom: item.maxNativeZoom || 18,
-          keepBuffer: 8,
-          crossOrigin: 'anonymous'
+          keepBuffer: 2,
+          updateWhenZooming: true,
+          updateWhenIdle: false,
+          crossOrigin: 'anonymous',
+          className: 'tile-historical-crisp'
         }
       });
     } else if (item.basemapKey && BASEMAP_REGISTRY[item.basemapKey]) {
@@ -809,9 +861,11 @@
               minZoom: 1,
               maxZoom: 22,
               maxNativeZoom: item.maxNativeZoom || (def.opts && def.opts.maxNativeZoom) || 16,
-              keepBuffer: 8,
+              keepBuffer: 2,
+              updateWhenZooming: true,
+              updateWhenIdle: false,
               crossOrigin: 'anonymous',
-              className: item.filterClass || (def.opts && def.opts.className) || ''
+              className: 'tile-historical-crisp ' + (item.filterClass || (def.opts && def.opts.className) || '')
             }, def.opts || {})
           });
         }
@@ -823,7 +877,8 @@
       if (d.isImageOverlay) {
         const overlay = L.imageOverlay(d.url, d.bounds, {
           opacity: targetOpacity,
-          interactive: false
+          interactive: false,
+          className: 'tile-historical-crisp'
         });
         overlay.addTo(tsinareMap);
         newLayers.push(overlay);
@@ -832,10 +887,11 @@
           minZoom: 1,
           maxZoom: 22,
           maxNativeZoom: (d.opts && (d.opts.maxNativeZoom || d.opts.maxZoom)) || 18,
-          keepBuffer: 8,
-          updateWhenZooming: false,
-          updateWhenIdle: true,
-          crossOrigin: 'anonymous'
+          keepBuffer: 2,
+          updateWhenZooming: true,
+          updateWhenIdle: false,
+          crossOrigin: 'anonymous',
+          className: 'tile-historical-crisp'
         }, d.opts || {}, {
           opacity: targetOpacity,
           maxZoom: 22
@@ -848,16 +904,13 @@
 
     _activeTileLayers = newLayers;
 
-    // Safely remove previous layers after a brief transition to avoid white/blank flash
+    // Immediately remove previous layers to prevent delay and modern satellite showing through
     if (oldLayers.length > 0) {
-      _histFadeTimer = setTimeout(() => {
-        oldLayers.forEach(l => {
-          if (tsinareMap && tsinareMap.hasLayer(l)) {
-            tsinareMap.removeLayer(l);
-          }
-        });
-        _histFadeTimer = null;
-      }, 300);
+      oldLayers.forEach(l => {
+        if (tsinareMap && tsinareMap.hasLayer(l)) {
+          tsinareMap.removeLayer(l);
+        }
+      });
     }
 
     // Update UI elements

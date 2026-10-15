@@ -1452,21 +1452,30 @@
     #tsinareLeafletMap.tile-filter-blueprint .leaflet-tile-pane {
       filter: invert(100%) sepia(100%) hue-rotate(185deg) saturate(380%) brightness(75%) contrast(120%);
     }
+    /* Clean, Crisp Historical Cartography Rendering */
+    .tile-historical-crisp,
+    .leaflet-tile.tile-historical-crisp,
+    .leaflet-image-layer.tile-historical-crisp,
+    #tsinareLeafletMap .tile-historical-crisp {
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+      filter: contrast(106%) brightness(99%);
+    }
     .leaflet-tile.tile-filter-sepia-antique,
     #tsinareLeafletMap.tile-filter-sepia-antique .leaflet-tile-pane {
-      filter: sepia(95%) contrast(125%) brightness(92%) saturate(160%) hue-rotate(-10deg);
+      filter: contrast(110%) brightness(98%);
     }
     .leaflet-tile.tile-filter-soviet-topo,
     #tsinareLeafletMap.tile-filter-soviet-topo .leaflet-tile-pane {
-      filter: contrast(135%) saturate(160%) sepia(40%) hue-rotate(25deg) brightness(90%);
+      filter: contrast(110%) brightness(98%);
     }
     .leaflet-tile.tile-filter-soviet-70s,
     #tsinareLeafletMap.tile-filter-soviet-70s .leaflet-tile-pane {
-      filter: contrast(125%) saturate(90%) sepia(45%) hue-rotate(180deg) brightness(95%);
+      filter: contrast(108%) brightness(98%);
     }
     .leaflet-tile.tile-filter-retro-ortho,
     #tsinareLeafletMap.tile-filter-retro-ortho .leaflet-tile-pane {
-      filter: contrast(130%) brightness(94%) saturate(85%) hue-rotate(-10deg);
+      filter: contrast(115%) brightness(96%);
     }
     .leaflet-tile.tile-filter-matrix,
     #tsinareLeafletMap.tile-filter-matrix .leaflet-tile-pane {
@@ -1474,7 +1483,7 @@
     }
     .leaflet-tile.tile-filter-high-contrast,
     #tsinareLeafletMap.tile-filter-high-contrast .leaflet-tile-pane {
-      filter: grayscale(100%) contrast(200%) brightness(90%);
+      filter: contrast(125%) brightness(95%);
     }
     .leaflet-tile.tile-filter-monochrome,
     #tsinareLeafletMap.tile-filter-monochrome .leaflet-tile-pane {
@@ -1789,7 +1798,15 @@
         <div class="bm-sep"></div>
 
         <!-- Group 5: ძველი & ისტორიული რუკები -->
-        <div class="basemap-group-label">📜 საარქივო და ისტორიული რუკები (1942 — 2026)</div>
+        <div class="basemap-group-label">📜 საარქივო და ისტორიული რუკები (1887 — 2026)</div>
+        <button class="basemap-btn" data-basemap="antique_1887" onclick="setBasemap('antique_1887'); closeBasemapDropdown();">
+          <span class="bm-icon">📜</span>
+          <div><div class="bm-name">1887 წ. რუსეთის იმპერიის გეგმა</div><div class="bm-desc">ა. ილიინის სამხედრო-ტოპოგრაფიული გეგმა (ავთენტური არქივი)</div></div>
+        </button>
+        <button class="basemap-btn" data-basemap="hist_1913_archive" onclick="setBasemap('hist_1913_archive'); closeBasemapDropdown();">
+          <span class="bm-icon">🏛️</span>
+          <div><div class="bm-name">1913 წ. თბილისის საარქივო გეგმა</div><div class="bm-desc">ქალაქ თბილისის დეტალური საარქივო ტოპოგრაფიული გეგმა</div></div>
+        </button>
         <button class="basemap-btn" data-basemap="soviet_1942" onclick="setBasemap('soviet_1942'); closeBasemapDropdown();">
           <span class="bm-icon">🎖️</span>
           <div><div class="bm-name">1942 წ. წითელი არმიის გენშტაბი</div><div class="bm-desc">II მსოფლიო ომის სამხედრო ტოპოგრაფია (1:100k, სრული დაფარვა)</div></div>
@@ -1797,6 +1814,10 @@
         <button class="basemap-btn" data-basemap="soviet_1975" onclick="setBasemap('soviet_1975'); closeBasemapDropdown();">
           <span class="bm-icon">🏗️</span>
           <div><div class="bm-name">1975 წ. საბჭოთა გენგეგმის 500მ</div><div class="bm-desc">1:50,000 ტოპოგრაფიული რუკა (სრული დაფარვა)</div></div>
+        </button>
+        <button class="basemap-btn" data-basemap="hist_1985_soviet" onclick="setBasemap('hist_1985_soviet'); closeBasemapDropdown();">
+          <span class="bm-icon">📐</span>
+          <div><div class="bm-name">1985 წ. სსრკ ტოპოგრაფია 500მ</div><div class="bm-desc">სსრკ სამხედრო ტოპოგრაფიული რუკა (1:50,000)</div></div>
         </button>
         <button class="basemap-btn" data-basemap="hist_1990_soviet" onclick="setBasemap('hist_1990_soviet'); closeBasemapDropdown();">
           <span class="bm-icon">🗺️</span>
@@ -1806,6 +1827,10 @@
           <span class="bm-icon">📐</span>
           <div><div class="bm-name">1995 წ. ურბანული საკადასტრო ტოპო</div><div class="bm-desc">1:2000 ქალაქგეგმარებითი გეგმა ზუსტი შენობა-ნაგებობებით</div></div>
         </button>
+        <button class="basemap-btn" data-basemap="hist_2000_kfw" onclick="setBasemap('hist_2000_kfw'); closeBasemapDropdown();">
+          <span class="bm-icon">🛩️</span>
+          <div><div class="bm-name">2000 წ. KfW საარქივო აეროფრენა</div><div class="bm-desc">გერმანიის KfW პროექტის პირველი ციფრული აეროფოტო</div></div>
+        </button>
         <button class="basemap-btn" data-basemap="hist_2005_napr" onclick="setBasemap('hist_2005_napr'); closeBasemapDropdown();">
           <span class="bm-icon">📸</span>
           <div><div class="bm-name">2005 წ. თბილისის ორთოფოტო</div><div class="bm-desc">საჯარო რეესტრის პირველი დეტალური ციფრული ორთოფოტო</div></div>
@@ -1814,13 +1839,17 @@
           <span class="bm-icon">🛰️</span>
           <div><div class="bm-name">2007 წ. სატელიტური ორთოფოტო</div><div class="bm-desc">მაღალი გარჩევადობის სატელიტური ორთოგამოსახულება</div></div>
         </button>
+        <button class="basemap-btn" data-basemap="hist_2010_composite" onclick="setBasemap('hist_2010_composite'); closeBasemapDropdown();">
+          <span class="bm-icon">🛰️</span>
+          <div><div class="bm-name">2010 წ. საარქივო ორთოფოტო</div><div class="bm-desc">2010 წლის საარქივო ორთოგამოსახულება</div></div>
+        </button>
         <button class="basemap-btn" data-basemap="hist_2014_wayback" onclick="setBasemap('hist_2014_wayback'); closeBasemapDropdown();">
           <span class="bm-icon">📸</span>
           <div><div class="bm-name">2014 წ. საარქივო ორთოფოტო</div><div class="bm-desc">დეტალური ორთოფოტოგადაღება (NAPR & ESRI Wayback)</div></div>
         </button>
         <button class="basemap-btn" data-basemap="hist_timeline_toggle" onclick="toggleHistoricalTimeline(); closeBasemapDropdown();">
           <span class="bm-icon">⏱️</span>
-          <div><div class="bm-name">ქრონოლოგიური სლაიდერი (1942-2026)</div><div class="bm-desc">13 პერიოდის რბილი ანიმაციური შედარება</div></div>
+          <div><div class="bm-name">ქრონოლოგიური სლაიდერი (1887-2026)</div><div class="bm-desc">19 პერიოდის რბილი ანიმაციური შედარება</div></div>
         </button>
       </div>
     </div>
@@ -3299,21 +3328,27 @@
             </button>
             
             <div class="flex-1 flex flex-col gap-1">
-              <input type="range" id="sliderHistoricalTimeline" min="0" max="12" step="1" value="12" oninput="onHistoricalSliderInput(this.value)" class="w-full accent-amber-400 cursor-pointer h-1.5 bg-slate-700/80 rounded-lg">
-              <div class="flex justify-between text-[9px] font-mono text-slate-400 px-0.5 pt-0.5">
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="0" onclick="setHistoricalYear(0)" title="1942 წითელი არმიის გენშტაბი">1942</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="1" onclick="setHistoricalYear(1)" title="1975 საბჭოთა გენგეგმა 500მ">1975</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="2" onclick="setHistoricalYear(2)" title="1990 გენშტაბის ტოპოგრაფია (1:100k)">1990</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="3" onclick="setHistoricalYear(3)" title="1995 ურბანული საკადასტრო გეგმა (1:2000)">1995</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="4" onclick="setHistoricalYear(4)" title="2005 თბილისის საარქივო ორთოფოტო">2005</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="5" onclick="setHistoricalYear(5)" title="2007 სატელიტური ორთოფოტო">2007</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="6" onclick="setHistoricalYear(6)" title="2014 საარქივო ორთოფოტო">2014</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="7" onclick="setHistoricalYear(7)" title="2016 აეროფოტო">2016</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="8" onclick="setHistoricalYear(8)" title="2018 ორთოფოტო">2018</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="9" onclick="setHistoricalYear(9)" title="2020 სატელიტი">2020</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="10" onclick="setHistoricalYear(10)" title="2022 ორთოფოტო">2022</button>
-                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="11" onclick="setHistoricalYear(11)" title="2024 ორთოფოტო">2024</button>
-                <button type="button" class="timeline-year-tick text-amber-300 font-bold hover:text-amber-200 transition" data-year-index="12" onclick="setHistoricalYear(12)" title="2026 უახლესი">2026</button>
+              <input type="range" id="sliderHistoricalTimeline" min="0" max="18" step="1" value="18" oninput="onHistoricalSliderInput(this.value)" class="w-full accent-amber-400 cursor-pointer h-1.5 bg-slate-700/80 rounded-lg">
+              <div class="flex justify-between text-[8px] sm:text-[9px] font-mono text-slate-400 px-0.5 pt-0.5 overflow-x-auto gap-0.5 sm:gap-0">
+                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="0" onclick="setHistoricalYear(0)" title="1887 რუსეთის იმპერიის გეგმა">1887</button>
+                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="1" onclick="setHistoricalYear(1)" title="1913 თბილისის საარქივო გეგმა">1913</button>
+                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="2" onclick="setHistoricalYear(2)" title="1942 წითელი არმიის გენშტაბი">1942</button>
+                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="3" onclick="setHistoricalYear(3)" title="1975 საბჭოთა გენგეგმა 500მ">1975</button>
+                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="4" onclick="setHistoricalYear(4)" title="1985 სსრკ ტოპოგრაფია 500მ">1985</button>
+                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="5" onclick="setHistoricalYear(5)" title="1990 გენშტაბის ტოპოგრაფია (1:100k)">1990</button>
+                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="6" onclick="setHistoricalYear(6)" title="1995 ურბანული საკადასტრო გეგმა (1:2000)">1995</button>
+                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="7" onclick="setHistoricalYear(7)" title="2000 KfW საარქივო აეროფრენა">2000</button>
+                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="8" onclick="setHistoricalYear(8)" title="2005 საარქივო ორთოფოტო">2005</button>
+                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="9" onclick="setHistoricalYear(9)" title="2007 სატელიტური ორთოფოტო">2007</button>
+                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="10" onclick="setHistoricalYear(10)" title="2010 საარქივო ორთოფოტო">2010</button>
+                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="11" onclick="setHistoricalYear(11)" title="2012 საარქივო ორთოფოტო">2012</button>
+                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="12" onclick="setHistoricalYear(12)" title="2014 საარქივო ორთოფოტო">2014</button>
+                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="13" onclick="setHistoricalYear(13)" title="2016 აეროფოტო">2016</button>
+                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="14" onclick="setHistoricalYear(14)" title="2018 ორთოფოტო">2018</button>
+                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="15" onclick="setHistoricalYear(15)" title="2020 სატელიტი">2020</button>
+                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="16" onclick="setHistoricalYear(16)" title="2022 ორთოფოტო">2022</button>
+                <button type="button" class="timeline-year-tick hover:text-amber-300 transition" data-year-index="17" onclick="setHistoricalYear(17)" title="2024 ორთოფოტო">2024</button>
+                <button type="button" class="timeline-year-tick text-amber-300 font-bold hover:text-amber-200 transition" data-year-index="18" onclick="setHistoricalYear(18)" title="2026 უახლესი">2026</button>
               </div>
             </div>
 
