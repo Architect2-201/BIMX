@@ -573,6 +573,15 @@
         { url: 'https://mp.napr.gov.ge/ORTHO_2006_07_SATKEO/wmts/ORTHO_2006_07_SATKEO/GLOBAL_MERCATOR/{z}/{x}/{y}.png', opts: { minZoom: 1, maxNativeZoom: 17, maxZoom: 22 } }
       ]
     },
+    hist_2008_sat: {
+      label: '2008 სატელიტური ორთოფოტო',
+      icon: '🛰️',
+      group: 'historical',
+      description: '2008 წლის მაღალი გარჩევადობის სატელიტური ორთოგამოსახულება (სრული ეროვნული დაფარვა)',
+      layers: [
+        { url: 'https://mp.napr.gov.ge/ORTHO_2006_07_SATKEO/wmts/ORTHO_2006_07_SATKEO/GLOBAL_MERCATOR/{z}/{x}/{y}.png', opts: { minZoom: 1, maxNativeZoom: 17, maxZoom: 22 } }
+      ]
+    },
     hist_2010_composite: {
       label: '2010 საარქივო ორთოფოტო',
       icon: '🛰️',
@@ -648,6 +657,7 @@
     { year: 2000, label: '2000 (KfW საარქივო აეროფრენა)', desc: '2000 წლის გერმანიის KfW პროექტის პირველი ციფრული აეროფოტოგადაღება', basemapKey: 'hist_2000_kfw', maxNativeZoom: 16 },
     { year: 2005, label: '2005 (საარქივო ორთოფოტო)', desc: '2005 წლის თბილისის საჯარო რეესტრის პირველი დეტალური ციფრული ორთოფოტო', basemapKey: 'hist_2005_napr', maxNativeZoom: 18 },
     { year: 2007, label: '2007 (სატელიტური ორთოფოტო)', desc: '2006-2007 წლების მაღალი გარჩევადობის სატელიტური ორთოგამოსახულება', basemapKey: 'hist_2007_napr', maxNativeZoom: 17 },
+    { year: 2008, label: '2008 (სატელიტური ორთოფოტო)', desc: '2008 წლის მაღალი გარჩევადობის სატელიტური ორთოგამოსახულება (სრული ეროვნული დაფარვა)', basemapKey: 'hist_2008_sat', maxNativeZoom: 17 },
     { year: 2010, label: '2010 (საარქივო ორთოფოტო)', desc: '2010 წლის საარქივო ორთოფოტოგადაღება', basemapKey: 'hist_2010_composite', maxNativeZoom: 18 },
     { year: 2012, label: '2012 (საარქივო ორთოფოტო)', desc: '2012 წლის საარქივო ორთოფოტოგადაღება', basemapKey: 'hist_2012_wayback', maxNativeZoom: 18 },
     { year: 2014, label: '2014 (საარქივო ორთოფოტო)', desc: '2014 წლის დეტალური ორთოფოტოგადაღება (NAPR & ESRI Wayback Release M=30195)', basemapKey: 'hist_2014_wayback', waybackRelease: 30195, maxNativeZoom: 18 },
