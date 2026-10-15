@@ -673,7 +673,38 @@
   let tsinareMap = null;
   let parcelPolygonLayer = null;
   let _activeTileLayers = []; // currently rendered Leaflet tile layers
+  let _modernUnderlayLayer = null; // modern satellite layer positioned underneath historical maps for transparency comparison
   let _histFadeTimer = null;
+
+  function ensureHistoricalPanes() {
+    if (!tsinareMap) return;
+    if (!tsinareMap.getPane('historicalUnderlayPane')) {
+      const p = tsinareMap.createPane('historicalUnderlayPane');
+      p.style.zIndex = '185';
+    }
+    if (!tsinareMap.getPane('historicalOverlayPane')) {
+      const p = tsinareMap.createPane('historicalOverlayPane');
+      p.style.zIndex = '205';
+    }
+  }
+
+  function ensureModernUnderlay() {
+    if (!tsinareMap) return;
+    ensureHistoricalPanes();
+    if (!_modernUnderlayLayer) {
+      _modernUnderlayLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        minZoom: 1,
+        maxZoom: 22,
+        maxNativeZoom: 19,
+        pane: 'historicalUnderlayPane',
+        keepBuffer: 2,
+        updateWhenZooming: true,
+        updateWhenIdle: false,
+        crossOrigin: 'anonymous'
+      });
+      _modernUnderlayLayer.addTo(tsinareMap);
+    }
+  }
 
   // Switch the Leaflet basemap to any key in BASEMAP_REGISTRY
   window.setBasemap = function (key) {
@@ -684,6 +715,12 @@
     const cfg = BASEMAP_REGISTRY[key];
     if (!cfg || !tsinareMap) return;
     state.activeBasemap = key;
+
+    // Clean up modern underlay if user is leaving historical mode
+    if (_modernUnderlayLayer && tsinareMap && tsinareMap.hasLayer(_modernUnderlayLayer)) {
+      tsinareMap.removeLayer(_modernUnderlayLayer);
+      _modernUnderlayLayer = null;
+    }
 
     // Auto-switch to hybrid if user was in pure CAD mode so map is immediately visible
     if (state.viewMode === 'cad' && typeof window.setViewMode === 'function') {
@@ -786,6 +823,11 @@
         const playBtn = document.getElementById('btnHistoricalPlay');
         if (playBtn) playBtn.classList.remove('bg-amber-500/40', 'border-amber-400');
       }
+      // Clean up modern underlay if timeline is closed
+      if (_modernUnderlayLayer && tsinareMap && tsinareMap.hasLayer(_modernUnderlayLayer)) {
+        tsinareMap.removeLayer(_modernUnderlayLayer);
+        _modernUnderlayLayer = null;
+      }
       // Revert to active basemap
       window.setBasemap(state.activeBasemap || 'esri_satellite');
     }
@@ -799,6 +841,8 @@
     if (state.viewMode === 'cad' && typeof window.setViewMode === 'function') {
       window.setViewMode('hybrid');
     }
+    // Ensure modern satellite is active in the background for transparency comparison
+    ensureModernUnderlay();
     let idx = 0;
     if (typeof indexOrYear === 'number' && indexOrYear < HISTORICAL_YEARS.length) {
       idx = indexOrYear;
@@ -888,6 +932,7 @@
         const overlay = L.imageOverlay(d.url, d.bounds, {
           opacity: targetOpacity,
           interactive: false,
+          pane: 'historicalOverlayPane',
           className: 'tile-historical-crisp'
         });
         overlay.addTo(tsinareMap);
@@ -903,6 +948,7 @@
           crossOrigin: 'anonymous',
           className: 'tile-historical-crisp'
         }, d.opts || {}, {
+          pane: 'historicalOverlayPane',
           opacity: targetOpacity,
           maxZoom: 22
         });
@@ -971,7 +1017,7 @@
   };
 
   window.onHistoricalOpacityInput = function (val) {
-    const op = Math.max(0.1, Math.min(1.0, parseInt(val, 10) / 100));
+    const op = Math.max(0.0, Math.min(1.0, parseInt(val, 10) / 100));
     state.historicalOpacity = op;
     _activeTileLayers.forEach(l => {
       if (typeof l.setOpacity === 'function') {
@@ -982,6 +1028,12 @@
     });
     const lbl = document.getElementById('lblHistoricalOpacityVal');
     if (lbl) lbl.innerText = Math.round(op * 100) + '%';
+  };
+
+  window.setHistoricalOpacityQuick = function (pct) {
+    const slider = document.getElementById('sliderHistoricalOpacity');
+    if (slider) slider.value = pct;
+    window.onHistoricalOpacityInput(pct);
   };
 
   window.toggleHistoricalPlay = function () {
