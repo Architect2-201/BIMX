@@ -10,8 +10,6 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="assets/images/favicon.png">
 
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
   <!-- Google Fonts & Material Symbols -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -57,7 +55,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 
   <!-- BIMX Core Stylesheet (Cache-busted) -->
-  <link rel="stylesheet" href="styles.css?v=20260917_08">
+  <link rel="stylesheet" href="styles.css?v=20261103_01">
 
   <script>
     (function() {
@@ -161,14 +159,17 @@
       max-width: 1380px;
       width: 100%;
       margin: 0 auto 40px;
-      background: var(--bg-card);
-      border: var(--glass-border);
+      background: linear-gradient(165deg, rgba(20, 26, 36, 0.78) 0%, rgba(11, 15, 22, 0.88) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: var(--radius-lg);
       padding: clamp(18px, 2.5vw, 32px);
-      box-shadow: var(--card-shadow);
-      backdrop-filter: var(--glass-blur);
-      -webkit-backdrop-filter: var(--glass-blur);
-      transition: all 0.25s ease;
+      box-shadow: 0 24px 56px -14px rgba(0, 0, 0, 0.68), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .lie-search-card:hover {
+      border-color: rgba(161, 204, 237, 0.25);
     }
 
     .lie-search-grid {
@@ -280,21 +281,22 @@
       margin-bottom: 30px;
     }
     .stat-card {
-      background: var(--bg-card);
-      border: var(--glass-border);
+      background: linear-gradient(165deg, rgba(20, 26, 36, 0.72) 0%, rgba(11, 15, 22, 0.84) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.09);
       border-radius: var(--radius-md);
-      padding: 16px;
+      padding: 16px 18px;
       position: relative;
       overflow: hidden;
-      box-shadow: var(--card-shadow);
-      backdrop-filter: var(--glass-blur);
-      -webkit-backdrop-filter: var(--glass-blur);
-      transition: all 0.2s ease;
+      box-shadow: 0 14px 36px -10px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .stat-card:hover {
       background: var(--bg-card-hover);
-      border-color: rgba(161, 204, 237, 0.3);
+      border-color: rgba(161, 204, 237, 0.35);
       transform: translateY(-2px);
+      box-shadow: 0 20px 44px -10px rgba(0, 0, 0, 0.68), inset 0 1px 0 rgba(255, 255, 255, 0.16);
     }
     .stat-card::before {
       content: '';
@@ -1235,6 +1237,8 @@
         <a aria-current="page" class="nav-link px-3 py-2 transition-all bg-white/10 text-white font-semibold rounded-lg shadow-inner border border-white/15 active text-sm" data-path="gis-analysis" href="land-intelligence.html">GIS ანალიზი</a>
         <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="parcel-ai" href="parcel-ai.html">AI ანალიზი</a>
         <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-sky-400 hover:text-white hover:bg-white/5 transition-all duration-200 flex items-center gap-1.5" data-path="tsinare" href="tsinare.html"><span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>წინარე</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="apps" href="apps.html">აპლიკაციები</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="plugins" href="plugins.html">პლაგინები</a>
         <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="contact" href="index.html#contact">კონტაქტი</a>
       </nav>
 
@@ -1273,6 +1277,8 @@
     <a class="drawer-link px-3 py-2 rounded-lg text-sm font-semibold text-white bg-white/10 border border-white/10" href="land-intelligence.html">GIS ანალიზი</a>
     <a class="drawer-link px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5" href="parcel-ai.html">AI ანალიზი</a>
     <a class="drawer-link px-3 py-2 rounded-lg text-sm text-sky-400 hover:text-white hover:bg-white/5 flex items-center gap-1.5" href="tsinare.html"><span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>წინარე</a>
+    <a class="drawer-link px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5" href="apps.html">აპლიკაციები</a>
+    <a class="drawer-link px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5" href="plugins.html">პლაგინები</a>
     <a class="drawer-link px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5" href="index.html#contact">კონტაქტი</a>
   </div>
 
@@ -2187,6 +2193,7 @@
           <a class="footer-nav-link" href="plugins.html">BIM პლაგინები</a>
           <a class="footer-nav-link" href="land-intelligence.html" style="color: #ffffff; font-weight: 600;">GIS ანალიტიკა</a>
           <a class="footer-nav-link" href="parcel-ai.html">AI საკადასტრო პასპორტი</a>
+          <a class="footer-nav-link" href="tsinare.html" style="color: #38bdf8;">2D CAD &amp; გენგეგმა (წინარე)</a>
           <a class="footer-nav-link" href="index.html#calculator">ფასის კალკულატორი</a>
         </div>
 

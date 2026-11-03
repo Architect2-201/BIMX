@@ -9826,5 +9826,344 @@ html.light .asm-zoom-btn:hover,
   background: rgba(239, 68, 68, 0.2);
 }
 
+/* ==========================================================================
+   BIMX ARCHITECTURAL INTELLIGENCE — GLOBAL GRAPHICAL POLISH SUITE (v2026.11)
+   ========================================================================== */
+
+/* 1. Precision Scrollbars & Selection */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(6, 8, 13, 0.6);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.24);
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(127, 169, 201, 0.55);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.8);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.28);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.48);
+}
+
+::selection {
+  background: rgba(127, 169, 201, 0.32);
+  color: #ffffff;
+}
+
+[data-theme="light"] ::selection {
+  background: rgba(37, 99, 235, 0.18);
+  color: #0f172a;
+}
+
+/* 2. Refined Header & Navigation Dock Micro-Interactions */
+.header-air-glass {
+  background: rgba(6, 9, 15, 0.78);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 36px -10px rgba(0, 0, 0, 0.65), inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.nav-dock-air-glass {
+  background: rgba(15, 20, 28, 0.72);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 24px rgba(0, 0, 0, 0.35);
+  padding: 4px 6px;
+}
+
+.nav-link-air {
+  position: relative;
+  border-radius: 999px;
+  padding: 7px 15px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nav-link-air:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.nav-link-air.active-nav-pill {
+  color: #ffffff !important;
+  font-weight: 600;
+  background: linear-gradient(180deg, rgba(127, 169, 201, 0.22) 0%, rgba(56, 189, 248, 0.1) 100%);
+  border: 1px solid rgba(127, 169, 201, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 4px 14px rgba(56, 189, 248, 0.15);
+}
+
+[data-theme="light"] .nav-link-air.active-nav-pill {
+  color: #0f172a !important;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.09) 0%, rgba(15, 23, 42, 0.04) 100%);
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.cta-btn-air {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cta-btn-air:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 10px 28px rgba(220, 232, 245, 0.28), inset 0 1px 0 #ffffff;
+}
+
+/* 3. Elevated Air Glass Cards & Specular Borders */
+.card-air-glass {
+  background: linear-gradient(165deg, rgba(22, 28, 38, 0.72) 0%, rgba(12, 16, 23, 0.82) 100%);
+  backdrop-filter: blur(24px) saturate(170%);
+  -webkit-backdrop-filter: blur(24px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 20px 50px -12px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition:
+    transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-air-glass:hover {
+  border-color: rgba(168, 199, 229, 0.26);
+  box-shadow:
+    0 26px 60px -12px rgba(0, 0, 0, 0.78),
+    0 0 28px rgba(127, 169, 201, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+[data-theme="light"] .card-air-glass {
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.94) 0%, rgba(248, 250, 252, 0.9) 100%);
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  box-shadow:
+    0 16px 40px -10px rgba(15, 23, 42, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="light"] .card-air-glass:hover {
+  border-color: rgba(15, 23, 42, 0.2);
+  box-shadow:
+    0 22px 48px -10px rgba(15, 23, 42, 0.12),
+    inset 0 1px 0 #ffffff;
+}
+
+/* 4. Catalog Pages (apps.html & plugins.html) Graphic Refinement & Light Mode Parity */
+.catalog-toolbar-flex {
+  background: linear-gradient(165deg, rgba(20, 25, 34, 0.78) 0%, rgba(12, 16, 23, 0.88) 100%);
+  backdrop-filter: blur(20px) saturate(170%);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.catalog-search-input {
+  background: rgba(8, 11, 16, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.22s ease;
+}
+
+.catalog-search-input:focus {
+  border-color: rgba(127, 169, 201, 0.55);
+  background: rgba(10, 14, 22, 0.88);
+  box-shadow: 0 0 0 3px rgba(127, 169, 201, 0.14);
+}
+
+.catalog-item-card {
+  background: linear-gradient(165deg, rgba(21, 27, 36, 0.76) 0%, rgba(11, 15, 22, 0.88) 100%);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 18px 44px -12px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.catalog-item-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(168, 199, 229, 0.32);
+  box-shadow:
+    0 26px 56px -12px rgba(0, 0, 0, 0.78),
+    0 0 24px rgba(127, 169, 201, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.catalog-icon-box {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.btn-catalog-download {
+  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.12);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-catalog-download:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 10px 26px rgba(220, 232, 245, 0.25);
+}
+
+[data-theme="light"] .catalog-toolbar-flex {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(15, 23, 42, 0.1);
+  box-shadow: 0 12px 32px -8px rgba(15, 23, 42, 0.06);
+}
+
+[data-theme="light"] .catalog-search-input {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.12);
+  color: #0f172a;
+}
+
+[data-theme="light"] .catalog-search-input:focus {
+  background: #ffffff;
+  border-color: #0f172a;
+}
+
+[data-theme="light"] .catalog-filter-btn {
+  background: #f1f5f9;
+  border-color: rgba(15, 23, 42, 0.1);
+  color: #475569;
+}
+
+[data-theme="light"] .catalog-filter-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+[data-theme="light"] .catalog-filter-btn.active {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+}
+
+[data-theme="light"] .catalog-item-card {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.09);
+  box-shadow: 0 14px 34px -10px rgba(15, 23, 42, 0.07);
+}
+
+[data-theme="light"] .catalog-item-card:hover {
+  border-color: rgba(15, 23, 42, 0.22);
+  box-shadow: 0 22px 48px -10px rgba(15, 23, 42, 0.12);
+}
+
+[data-theme="light"] .catalog-icon-box {
+  background: #f1f5f9;
+  border-color: rgba(15, 23, 42, 0.1);
+  color: #0f172a;
+  box-shadow: none;
+}
+
+[data-theme="light"] .catalog-item-title,
+[data-theme="light"] .catalog-meta-val {
+  color: #0f172a;
+}
+
+[data-theme="light"] .catalog-item-desc,
+[data-theme="light"] .catalog-meta-label {
+  color: #475569;
+}
+
+[data-theme="light"] .catalog-meta-grid {
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .catalog-version-tag {
+  background: #f1f5f9;
+  border-color: rgba(15, 23, 42, 0.12);
+  color: #334155;
+}
+
+[data-theme="light"] .btn-catalog-download {
+  background: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.15);
+}
+
+[data-theme="light"] .btn-catalog-download:hover {
+  background: #1e293b;
+}
+
+[data-theme="light"] .btn-catalog-action {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.12);
+  color: #334155;
+}
+
+[data-theme="light"] .btn-catalog-action:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* 5. Interactive Calculator & Portfolio Polish */
+.calc-option-btn {
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.calc-option-btn:hover {
+  transform: translateY(-1px);
+}
+
+.calc-option-btn.active {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.14) 0%, rgba(127, 169, 201, 0.08) 100%);
+  border-color: rgba(220, 232, 245, 0.55);
+  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+/* 6. Unified Footer Polish */
+.footer-unified-glass {
+  position: relative;
+  background: linear-gradient(180deg, rgba(8, 11, 17, 0.92) 0%, rgba(5, 7, 11, 0.98) 100%);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.footer-cert-badge {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: all 0.2s ease;
+}
+
+.footer-cert-badge:hover {
+  border-color: rgba(127, 169, 201, 0.35);
+  color: #ffffff;
+}
+
+.round-social-btn {
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.round-social-btn:hover {
+  transform: translateY(-2px);
+  border-color: rgba(168, 199, 229, 0.4);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+
 
 
