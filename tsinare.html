@@ -1624,30 +1624,29 @@
        1. TOP APP BAR / HEADER & CADASTRAL SEARCH
        ========================================================================= -->
   <header class="h-16 flex-none bg-[#0a101d]/95 backdrop-blur-xl border-b border-[#1f2e4d] px-4 flex items-center justify-between relative z-[200] gap-3">
-    <!-- Brand & Page Title -->
+    <!-- Brand & Studio Navigation Dock -->
     <div class="flex items-center gap-3 min-w-max">
       <a href="index.html" class="flex items-center gap-2 group" title="BIMX Studio მთავარი">
         <img src="assets/images/logo-white.png" alt="BIMX Logo" class="h-7 w-auto object-contain transition-transform group-hover:scale-105">
       </a>
       <div class="h-6 w-px bg-slate-700/60 hidden sm:block"></div>
-      <div class="flex items-center gap-2">
+      <!-- Unified 3-Studio Navigation Dock (GIS ანალიზი | AI ანალიზი | • წინარე) -->
+      <nav class="hidden lg:flex items-center gap-1 p-1 rounded-2xl bg-[#070b14]/90 border border-slate-700/60 shadow-inner" aria-label="BIMX Studio Switcher">
+        <a href="land-intelligence.html" onclick="const c=(document.getElementById('cadastralInput')?.value||localStorage.getItem('bimx_last_cadastral')||'').trim(); if(c) this.href='land-intelligence.html?code='+encodeURIComponent(c);" class="px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-white/10 transition flex items-center gap-1.5" title="ნაკვეთის სრული GIS და რეგულაციური ანალიზი">
+          <span>GIS ანალიზი</span>
+        </a>
+        <a href="parcel-ai.html" onclick="const c=(document.getElementById('cadastralInput')?.value||localStorage.getItem('bimx_last_cadastral')||'').trim(); if(c) this.href='parcel-ai.html?code='+encodeURIComponent(c);" class="px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-white/10 transition flex items-center gap-1.5" title="შენობის 3D AI კონცეფციის სტუდია">
+          <span>AI ანალიზი</span>
+        </a>
+        <a href="tsinare.html" aria-current="page" class="px-3 py-1.5 rounded-xl text-xs font-bold text-sky-300 bg-sky-500/15 border border-sky-400/35 shadow-sm flex items-center gap-1.5" title="წინარე — 2D საპროექტო CAD & გენგეგმის სტუდია">
+          <span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>
+          <span>წინარე</span>
+        </a>
+      </nav>
+      <div class="flex lg:hidden items-center gap-2">
         <span class="font-extrabold text-sm sm:text-base tracking-wider bg-gradient-to-r from-white via-sky-200 to-sky-400 bg-clip-text text-transparent">
-          წინარე
+          • წინარე
         </span>
-        <span class="hidden lg:inline-flex px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider rounded bg-sky-500/15 border border-sky-500/30 text-sky-300 font-semibold">
-          საპროექტო CAD &amp; გენგეგმის სტუდია
-        </span>
-      </div>
-      <!-- Quick Platform Switcher Pills -->
-      <div class="hidden xl:flex items-center gap-1 ml-1 pl-2.5 border-l border-slate-700/60">
-        <a href="land-intelligence.html" onclick="const c=(document.getElementById('cadastralInput')?.value||'').trim(); if(c) this.href='land-intelligence.html?code='+encodeURIComponent(c);" class="px-2 py-1 rounded-md text-[11px] font-medium text-slate-300 hover:text-white hover:bg-white/10 transition flex items-center gap-1" title="ნაკვეთის GIS ანალიტიკა">
-          <i class="fa-solid fa-layer-group text-[10px] text-sky-400"></i>
-          <span>GIS</span>
-        </a>
-        <a href="parcel-ai.html" onclick="const c=(document.getElementById('cadastralInput')?.value||'').trim(); if(c) this.href='parcel-ai.html?code='+encodeURIComponent(c);" class="px-2 py-1 rounded-md text-[11px] font-medium text-slate-300 hover:text-white hover:bg-white/10 transition flex items-center gap-1" title="3D AI კონცეფციის სტუდია">
-          <i class="fa-solid fa-cube text-[10px] text-emerald-400"></i>
-          <span>3D AI</span>
-        </a>
       </div>
     </div>
 
@@ -4129,6 +4128,6 @@
   </div>
 
   <!-- Core JavaScript Logic -->
-  <script src="tsinare.js?v=20261002_parking_multiselect_v4"></script>
+  <script src="tsinare.js?v=20261103_02"></script>
 </body>
 </html>

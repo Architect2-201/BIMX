@@ -55,7 +55,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 
   <!-- BIMX Core Stylesheet (Cache-busted) -->
-  <link rel="stylesheet" href="styles.css?v=20261103_01">
+  <link rel="stylesheet" href="styles.css?v=20261103_02">
 
   <script>
     (function() {
@@ -83,75 +83,175 @@
 
     /* Dedicated Styles for Land Intelligence Engine */
     .lie-page {
-      padding-top: 88px;
+      padding-top: 84px;
       min-height: 100vh;
       background: transparent;
       color: var(--text-primary);
     }
 
     .lie-hero {
-      padding: clamp(30px, 4vw, 60px) 0 20px;
+      padding: clamp(22px, 3vw, 42px) 0 18px;
       text-align: center;
-      border-bottom: 1px solid var(--border-line);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
       position: relative;
+      margin-bottom: 24px;
+      background-image:
+        linear-gradient(to right, rgba(56, 189, 248, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(56, 189, 248, 0.03) 1px, transparent 1px);
+      background-size: 36px 36px;
+      border-radius: 0 0 24px 24px;
     }
 
     .lie-badge {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      background: rgba(161, 204, 237, 0.08);
-      border: 1px solid rgba(161, 204, 237, 0.25);
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.14), rgba(161, 204, 237, 0.06));
+      border: 1px solid rgba(56, 189, 248, 0.35);
       padding: 6px 16px;
       border-radius: var(--radius-full);
-      font-size: 0.78rem;
+      font-size: 0.75rem;
       font-weight: 700;
-      color: #a1cced;
+      color: #7dd3fc;
       text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 16px;
-      backdrop-filter: blur(10px);
+      letter-spacing: 0.1em;
+      margin-bottom: 14px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 18px rgba(56, 189, 248, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.15);
     }
 
     .lie-title {
-      font-size: clamp(2rem, 3.8vw, 3.2rem);
+      font-size: clamp(1.85rem, 3.4vw, 2.85rem);
       font-weight: 800;
-      letter-spacing: -0.5px;
-      margin-bottom: 12px;
-      background: linear-gradient(135deg, #ffffff 40%, var(--primary-accent, #DCE8F5) 100%);
+      letter-spacing: -0.025em;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #ffffff 35%, #bae6fd 75%, #38bdf8 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
     .lie-subtitle {
-      max-width: 960px;
-      margin: 0 auto 24px;
+      max-width: 900px;
+      margin: 0 auto 20px;
       color: var(--text-secondary);
-      font-size: 1.05rem;
-      line-height: 1.6;
+      font-size: 0.98rem;
+      line-height: 1.65;
     }
 
     .lie-axiom-strip {
       display: flex;
       justify-content: center;
-      gap: 12px;
+      gap: 10px;
       flex-wrap: wrap;
-      margin-bottom: 28px;
+      margin-bottom: 18px;
     }
 
     .axiom-pill {
-      background: rgba(10, 14, 22, 0.55);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(12, 18, 30, 0.72);
+      border: 1px solid rgba(56, 189, 248, 0.2);
       backdrop-filter: blur(12px);
       padding: 5px 14px;
-      border-radius: var(--radius-sm);
-      font-size: 0.75rem;
+      border-radius: 999px;
+      font-size: 0.73rem;
       font-family: var(--font-mono);
-      color: var(--text-muted);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      color: #94a3b8;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 4px 12px rgba(0, 0, 0, 0.25);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
     .axiom-pill strong {
+      color: #e2e8f0;
+    }
+
+    /* Cross-Studio Action Bar */
+    .lie-studio-handoff-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      background: linear-gradient(165deg, rgba(16, 25, 43, 0.85) 0%, rgba(10, 16, 28, 0.92) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      border-radius: var(--radius-md);
+      padding: 12px 18px;
+      margin-bottom: 20px;
+      box-shadow: 0 14px 34px -10px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+    }
+    .lie-handoff-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .lie-live-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      background: rgba(16, 185, 129, 0.14);
+      border: 1px solid rgba(16, 185, 129, 0.38);
+      color: #34d399;
+    }
+    .lie-live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulse 2s infinite;
+    }
+    .lie-handoff-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .btn-studio-handoff {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 14px;
+      border-radius: 9px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.05);
+      color: #e2e8f0;
+    }
+    .btn-studio-handoff:hover {
+      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.1);
       color: #ffffff;
+      border-color: rgba(56, 189, 248, 0.45);
+    }
+    .btn-studio-handoff.primary-3d {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(6, 182, 212, 0.18));
+      border-color: rgba(16, 185, 129, 0.45);
+      color: #6ee7b7;
+    }
+    .btn-studio-handoff.primary-3d:hover {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.34), rgba(6, 182, 212, 0.28));
+      color: #ffffff;
+      box-shadow: 0 6px 18px rgba(16, 185, 129, 0.22);
+    }
+    .btn-studio-handoff.primary-cad {
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.24), rgba(56, 189, 248, 0.16));
+      border-color: rgba(56, 189, 248, 0.48);
+      color: #7dd3fc;
+    }
+    .btn-studio-handoff.primary-cad:hover {
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.36), rgba(56, 189, 248, 0.28));
+      color: #ffffff;
+      box-shadow: 0 6px 18px rgba(56, 189, 248, 0.25);
     }
 
     /* Search Box - Minimal Air Glass */
@@ -1233,13 +1333,11 @@
       </a>
 
       <!-- Desktop Navigation -->
-      <nav class="hidden lg:flex items-center gap-1 p-1 nav-dock-air-glass rounded-xl" id="navLinksList" data-active-classes="bg-white/10 text-white font-medium rounded-lg shadow-inner border border-white/10">
-        <a aria-current="page" class="nav-link px-3 py-2 transition-all bg-white/10 text-white font-semibold rounded-lg shadow-inner border border-white/15 active text-sm" data-path="gis-analysis" href="land-intelligence.html">GIS ანალიზი</a>
-        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="parcel-ai" href="parcel-ai.html">AI ანალიზი</a>
-        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-sky-400 hover:text-white hover:bg-white/5 transition-all duration-200 flex items-center gap-1.5" data-path="tsinare" href="tsinare.html"><span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>წინარე</a>
-        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="apps" href="apps.html">აპლიკაციები</a>
-        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="plugins" href="plugins.html">პლაგინები</a>
-        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="contact" href="index.html#contact">კონტაქტი</a>
+      <nav class="hidden lg:flex items-center gap-1.5 p-1.5 nav-dock-air-glass rounded-xl" id="navLinksList" data-active-classes="bg-white/10 text-white font-medium rounded-lg shadow-inner border border-white/10">
+        <a aria-current="page" class="nav-link px-3.5 py-2 transition-all bg-white/10 text-white font-semibold rounded-lg shadow-inner border border-white/15 active text-sm" data-path="gis-analysis" href="land-intelligence.html">GIS ანალიზი</a>
+        <a class="nav-link px-3.5 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="parcel-ai" href="parcel-ai.html" onclick="const c=(document.getElementById('cadastralCodeInput')?.value||'').trim(); if(c) this.href='parcel-ai.html?code='+encodeURIComponent(c);">AI ანალიზი</a>
+        <a class="nav-link px-3.5 py-2 rounded-lg font-body-md text-sm text-sky-400 hover:text-white hover:bg-white/5 transition-all duration-200 flex items-center gap-1.5" data-path="tsinare" href="tsinare.html" onclick="const c=(document.getElementById('cadastralCodeInput')?.value||'').trim(); if(c) this.href='tsinare.html?code='+encodeURIComponent(c);"><span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>წინარე</a>
+        <a class="nav-link px-3.5 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="contact" href="index.html#contact">კონტაქტი</a>
       </nav>
 
       <!-- Actions Group -->
@@ -1404,10 +1502,12 @@
 
           <!-- Quick Samples -->
           <div class="lie-chip-row">
-            <span>სანიმუშო ნაკვეთები:</span>
-            <button type="button" class="sample-chip" onclick="setCadastralSample('01.15.02.038.003', 'residential_single')">01.15.02.038.003 (თბილისი - საცხოვრებელი)</button>
-            <button type="button" class="sample-chip" onclick="setCadastralSample('01.10.09.001.001', 'commercial')">01.10.09.001.001 (კომერციული)</button>
-            <button type="button" class="sample-chip" onclick="setCadastralSample('01.17.01.015.002', 'hotel')">01.17.01.015.002 (სასტუმრო)</button>
+            <span><i class="fa-solid fa-bolt text-sky-400 mr-1"></i>სანიმუშო ნაკვეთები:</span>
+            <button type="button" class="sample-chip" onclick="setCadastralSample('01.15.02.038.003', 'residential_single')">01.15.02.038.003 (ვერა · საცხოვრებელი)</button>
+            <button type="button" class="sample-chip" onclick="setCadastralSample('01.11.13.002.264', 'residential_multi')">01.11.13.002.264 (გლდანი · 14,884 მ²)</button>
+            <button type="button" class="sample-chip" onclick="setCadastralSample('01.14.03.005.001', 'commercial')">01.14.03.005.001 (საბურთალო · კომერციული)</button>
+            <button type="button" class="sample-chip" onclick="setCadastralSample('01.16.01.013.031', 'hotel')">01.16.01.013.031 (ჩუღურეთი · სასტუმრო)</button>
+            <button type="button" class="sample-chip" onclick="setCadastralSample('05.32.01.234', 'mixed_use')">05.32.01.234 (ბათუმი · მრავალფუნქციური)</button>
           </div>
         </form>
       </div>
@@ -1422,6 +1522,37 @@
 
       <!-- Results Section (Dynamic) -->
       <div id="resultsContainer" style="display: none;">
+
+        <!-- Cross-Studio Action & Handoff Toolbar -->
+        <div class="lie-studio-handoff-bar" id="lieCrossStudioBar">
+          <div class="lie-handoff-left">
+            <span class="lie-live-pill">
+              <span class="lie-live-dot"></span>
+              <span id="handoffStatusLabel">NAPR &amp; GENPLAN VERIFIED</span>
+            </span>
+            <span style="font-size: 0.84rem; color: #cbd5e1;">
+              აქტიური ნაკვეთი: <strong id="handoffActiveCode" style="font-family: var(--font-mono); color: #38bdf8;">—</strong>
+            </span>
+          </div>
+          <div class="lie-handoff-actions">
+            <a id="btnOpenInParcelAi" href="parcel-ai.html" class="btn-studio-handoff primary-3d" onclick="const c=(document.getElementById('cadastralCodeInput')?.value||'').trim(); if(c) this.href='parcel-ai.html?code='+encodeURIComponent(c);" title="ნაკვეთის 3D მოდელირება, ინსოლაცია და AI ანალიზი">
+              <i class="fa-solid fa-cube"></i>
+              <span>AI ანალიზი (3D სტუდია)</span>
+            </a>
+            <a id="btnOpenInTsinareCad" href="tsinare.html" class="btn-studio-handoff primary-cad" onclick="const c=(document.getElementById('cadastralCodeInput')?.value||'').trim(); if(c) this.href='tsinare.html?code='+encodeURIComponent(c);" title="ნაკვეთის 2D საპროექტო გენგეგმა, ტოპოგრაფია და CAD ხაზვა">
+              <i class="fa-solid fa-compass-drafting"></i>
+              <span>წინარე (2D CAD გენგეგმა)</span>
+            </a>
+            <button type="button" class="btn-studio-handoff" onclick="exportLandIntelligenceJson()" title="სრული ანალიტიკური JSON დოსიეს ჩამოტვირთვა">
+              <i class="fa-solid fa-file-code" style="color: #a78bfa;"></i>
+              <span>JSON დოსიე</span>
+            </button>
+            <button type="button" class="btn-studio-handoff" onclick="window.print()" title="ოფიციალური ქალაქთმშენებლობითი ანგარიშის ბეჭდვა / PDF">
+              <i class="fa-solid fa-file-pdf" style="color: #f87171;"></i>
+              <span>PDF დასკვნა</span>
+            </button>
+          </div>
+        </div>
 
         <!-- Quick Summary Stats Strip -->
         <div class="lie-stats-bar">
@@ -1471,8 +1602,8 @@
               <!-- Collapsible GIS Layers Tree (Photos 1 & 2) -->
               <div class="gis-tree-panel" id="gisTreePanel">
                 <div class="gis-tree-header">
-                  <span><i class="fa-solid fa-folder-tree" style="color: #1d4e89; margin-right: 6px;"></i> სივრცითი ფენები</span>
-                  <button type="button" class="gis-info-btn" style="color: #64748b;" onclick="toggleGisTreePanel()" title="დაკეცვა">
+                  <span><i class="fa-solid fa-folder-tree" style="color: #38bdf8; margin-right: 6px;"></i> სივრცითი ფენები</span>
+                  <button type="button" class="gis-info-btn" style="color: #94a3b8;" onclick="toggleGisTreePanel()" title="დაკეცვა">
                     <i class="fa-solid fa-chevron-left"></i>
                   </button>
                 </div>
@@ -1499,7 +1630,7 @@
                 <div class="tree-node-parent active" onclick="toggleTreeNode(this, 'grpGenPlan')">
                   <span class="tree-arrow open">▼</span>
                   <span class="tree-icon"><i class="fa-solid fa-drafting-compass"></i></span>
-                  <span style="font-weight: 700; color: #0f172a;">მიწათსარგებლობის გენგეგმა</span>
+                  <span style="font-weight: 700; color: #f8fafc;">მიწათსარგებლობის გენგეგმა</span>
                 </div>
                 <div class="tree-children open" id="grpGenPlan">
                   <div class="tree-node-item selected">
@@ -2266,7 +2397,7 @@
   <script src="main.js?v=20260917_08"></script>
 
   <!-- Client Application Script -->
-  <script src="land-intelligence.js"></script>
+  <script src="land-intelligence.js?v=20261103_02"></script>
 
 </body>
 </html>

@@ -983,6 +983,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. If parcel is resolved:
     if (parcelData && parcelData.coordinates && parcelData.coordinates.length > 2) {
       state.activeParcel = parcelData;
+      try {
+        if (parcelData.code) {
+          localStorage.setItem('bimx_last_cadastral', parcelData.code);
+        }
+      } catch (storageErr) {}
 
       // Reset manual coefficients to parcel defaults
       state.manualCoefficients = {
@@ -17414,9 +17419,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof initAiExtraModulesDropdown === 'function') initAiExtraModulesDropdown();
     initMobileSystem();
 
-    // Initial display: Automatically load official sample parcel so user immediately sees real map boundary & 3D model
+    // Initial display: Synchronize cadastral code from URL query (?code=) or recent session storage, defaulting to official NAPR sample
     if (typeof searchParcel === 'function') {
-      searchParcel('01.15.02.038.003');
+      let initialCode = '01.15.02.038.003';
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        initialCode = (
+          urlParams.get('code') ||
+          urlParams.get('cadastral') ||
+          localStorage.getItem('bimx_last_cadastral') ||
+          '01.15.02.038.003'
+        ).trim();
+      } catch (e) {}
+      searchParcel(initialCode);
     }
   }, 120);
 });

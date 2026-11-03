@@ -1198,12 +1198,18 @@
     setupEventListeners();
     syncLayerCheckboxes();
     
-    // Check URL query parameters for cadastral code
+    // Check URL query parameters or recent session storage for cadastral code
     const urlParams = new URLSearchParams(window.location.search);
-    const codeParam = urlParams.get('code') || urlParams.get('cadastral');
-    if (codeParam) {
-      if (els.cadastralInput) els.cadastralInput.value = codeParam;
-      triggerCadastralSearch(codeParam);
+    let codeParam = urlParams.get('code') || urlParams.get('cadastral') || '';
+    if (!codeParam) {
+      try {
+        codeParam = localStorage.getItem('bimx_last_cadastral') || '';
+      } catch (e) {}
+    }
+    if (codeParam && codeParam.trim()) {
+      const cleanCode = codeParam.trim();
+      if (els.cadastralInput) els.cadastralInput.value = cleanCode;
+      triggerCadastralSearch(cleanCode);
     } else {
       showGeorgiaOverviewState();
     }
@@ -1734,7 +1740,12 @@
 
         updateToolStatus(`მოიძებნა ნაკვეთი ${state.cadastralCode} (${state.officialAreaSqm} მ²). გენგეგმის სტუდია მზადაა.`);
 
-        // Save successfully searched cadastral code & address to history
+        // Save successfully searched cadastral code & address to history and cross-studio session
+        try {
+          if (state.cadastralCode) {
+            localStorage.setItem('bimx_last_cadastral', state.cadastralCode);
+          }
+        } catch (storageErr) {}
         if (typeof window.saveToSearchHistory === 'function') {
           window.saveToSearchHistory(state.cadastralCode, state.address);
         }

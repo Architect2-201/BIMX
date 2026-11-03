@@ -63,7 +63,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 
   <!-- Site Stylesheet (Cache-busted) -->
-  <link rel="stylesheet" href="styles.css?v=20261103_01">
+  <link rel="stylesheet" href="styles.css?v=20261103_02">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -1069,13 +1069,11 @@
       </a>
 
       <!-- Desktop Navigation -->
-      <nav class="hidden lg:flex items-center gap-1 p-1 nav-dock-air-glass rounded-xl" id="navLinksList" data-active-classes="bg-white/10 text-white font-medium rounded-lg shadow-inner border border-white/10">
-        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="gis-analysis" href="land-intelligence.html">GIS ანალიზი</a>
-        <a aria-current="page" class="nav-link px-3 py-2 transition-all bg-white/10 text-white font-semibold rounded-lg shadow-inner border border-white/15 active text-sm" data-path="parcel-ai" href="parcel-ai.html">AI ანალიზი</a>
-        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-sky-400 hover:text-white hover:bg-white/5 transition-all duration-200 flex items-center gap-1.5" data-path="tsinare" href="tsinare.html"><span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>წინარე</a>
-        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="apps" href="apps.html">აპლიკაციები</a>
-        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="plugins" href="plugins.html">პლაგინები</a>
-        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="contact" href="index.html#contact">კონტაქტი</a>
+      <nav class="hidden lg:flex items-center gap-1.5 p-1.5 nav-dock-air-glass rounded-2xl" id="navLinksList" data-active-classes="bg-white/10 text-white font-medium rounded-xl shadow-inner border border-white/10">
+        <a class="nav-link px-3.5 py-2 rounded-xl font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="gis-analysis" href="land-intelligence.html" onclick="const c=(document.getElementById('cadastralCodeInput')?.value||localStorage.getItem('bimx_last_cadastral')||'').trim(); if(c) this.href='land-intelligence.html?code='+encodeURIComponent(c);">GIS ანალიზი</a>
+        <a aria-current="page" class="nav-link px-3.5 py-2 transition-all bg-white/10 text-white font-semibold rounded-xl shadow-inner border border-white/15 active text-sm" data-path="parcel-ai" href="parcel-ai.html">AI ანალიზი</a>
+        <a class="nav-link px-3.5 py-2 rounded-xl font-body-md text-sm text-sky-400 hover:text-white hover:bg-white/5 transition-all duration-200 flex items-center gap-1.5" data-path="tsinare" href="tsinare.html" onclick="const c=(document.getElementById('cadastralCodeInput')?.value||localStorage.getItem('bimx_last_cadastral')||'').trim(); if(c) this.href='tsinare.html?code='+encodeURIComponent(c);"><span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>წინარე</a>
+        <a class="nav-link px-3.5 py-2 rounded-xl font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="contact" href="index.html#contact">კონტაქტი</a>
       </nav>
 
       <!-- Actions Group -->
@@ -1117,22 +1115,32 @@
        ========================================================================== -->
   <section class="parcel-top-intro" style="padding-top: 96px; padding-bottom: 12px; background: transparent;">
     <div class="w-full px-4 sm:px-6 lg:px-8">
-      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 py-2 border-b border-white/10">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 py-2.5 border-b border-white/10">
         <div>
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-2">
-            <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span>
-            <span class="text-xs font-mono font-medium tracking-wider text-sky-300 uppercase">PROPTECH &amp; CONTECH GIS ENGINE</span>
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-400/25 backdrop-blur-md mb-2 shadow-sm">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-xs font-mono font-semibold tracking-wider text-sky-300 uppercase">PROPTECH &amp; CONTECH 3D AI STUDIO · NAPR &amp; TAS LIVE</span>
           </div>
-          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-1" data-i18n="parcel_main_title">ნაკვეთის AI ანალიზი</h1>
-          <p class="text-sm text-slate-400 max-w-2xl leading-relaxed" data-i18n="parcel_main_desc">
+          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white mb-1 bg-gradient-to-r from-white via-slate-100 to-sky-300 bg-clip-text text-transparent" data-i18n="parcel_main_title">ნაკვეთის AI ანალიზი</h1>
+          <p class="text-sm text-slate-300 max-w-2xl leading-relaxed" data-i18n="parcel_main_desc">
             შეიყვანე საკადასტრო კოდი, ნახე ნაკვეთი, გააანალიზე მისი სივრცითი მონაცემები და შექმენი შენობის საწყისი 3D კონცეფცია.
           </p>
         </div>
 
-        <!-- System Status Banner (Item 13 in user requirements) -->
-        <div class="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs font-medium backdrop-blur-md self-start lg:self-center">
-          <i class="fa-solid fa-shield-halved text-amber-400 text-sm"></i>
-          <span data-i18n="process_warning">ეს სისტემა არ აგზავნის განაცხადს ავტომატურად მუნიციპალიტეტში.</span>
+        <!-- Cross-Studio Quick Handoff & Official Disclaimer -->
+        <div class="flex flex-wrap items-center gap-2.5 self-start lg:self-center">
+          <a href="land-intelligence.html" onclick="const c=(document.getElementById('cadastralCodeInput')?.value||localStorage.getItem('bimx_last_cadastral')||'').trim(); if(c) this.href='land-intelligence.html?code='+encodeURIComponent(c);" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/35 text-sky-200 hover:text-white text-xs font-bold transition-all shadow-sm" title="ნაკვეთის სრული სამართლებრივი და რეგულაციური GIS დოსიე">
+            <i class="fa-solid fa-layer-group text-sky-400"></i>
+            <span>GIS ანალიზი (დოსიე)</span>
+          </a>
+          <a href="tsinare.html" onclick="const c=(document.getElementById('cadastralCodeInput')?.value||localStorage.getItem('bimx_last_cadastral')||'').trim(); if(c) this.href='tsinare.html?code='+encodeURIComponent(c);" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/35 text-emerald-200 hover:text-white text-xs font-bold transition-all shadow-sm" title="ნაკვეთის გახსნა 2D საპროექტო CAD & გენგეგმის სტუდიაში">
+            <i class="fa-solid fa-compass-drafting text-emerald-400"></i>
+            <span>• წინარე (2D CAD)</span>
+          </a>
+          <div class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs font-medium backdrop-blur-md">
+            <i class="fa-solid fa-shield-halved text-amber-400 text-sm"></i>
+            <span data-i18n="process_warning">ეს სისტემა არ აგზავნის განაცხადს ავტომატურად მუნიციპალიტეტში.</span>
+          </div>
         </div>
       </div>
     </div>
@@ -1196,11 +1204,17 @@
             <span data-i18n="parcel_btn_search">ნაკვეთის მოძიება</span>
           </button>
 
-          <!-- Quick link to open in Tsinare 2D CAD Studio -->
-          <a id="btnOpenInTsinare" href="tsinare.html" target="_blank" onclick="const c = (document.getElementById('cadastralCodeInput')?.value || '').trim(); if (c) this.href = 'tsinare.html?code=' + encodeURIComponent(c);" style="margin-top: 6px; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 8px 12px; border-radius: 8px; font-size: 0.78rem; font-weight: 600; background: rgba(14, 165, 233, 0.12); border: 1px solid rgba(14, 165, 233, 0.3); color: #38bdf8; text-decoration: none; transition: all 0.2s;" onmouseover="this.style.background='rgba(14, 165, 233, 0.25)'; this.style.color='#ffffff';" onmouseout="this.style.background='rgba(14, 165, 233, 0.12)'; this.style.color='#38bdf8';" title="ნაკვეთის გახსნა 'წინარე' 2D საპროექტო CAD & გენგეგმის სტუდიაში">
-            <i class="fa-solid fa-compass-drafting"></i>
-            <span>წინარე CAD სტუდიაში გახსნა</span>
-          </a>
+          <!-- Cross-Studio Quick Handoff Buttons (GIS Dossier + Tsinare 2D CAD) -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px;">
+            <a id="btnOpenInGis" href="land-intelligence.html" onclick="const c = (document.getElementById('cadastralCodeInput')?.value || localStorage.getItem('bimx_last_cadastral') || '').trim(); if (c) this.href = 'land-intelligence.html?code=' + encodeURIComponent(c);" style="display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 8px; border-radius: 8px; font-size: 0.74rem; font-weight: 700; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.32); color: #7dd3fc; text-decoration: none; transition: all 0.2s;" onmouseover="this.style.background='rgba(56, 189, 248, 0.24)'; this.style.color='#ffffff';" onmouseout="this.style.background='rgba(56, 189, 248, 0.12)'; this.style.color='#7dd3fc';" title="ნაკვეთის გახსნა GIS ანალიტიკისა და რეგულაციების გვერდზე">
+              <i class="fa-solid fa-layer-group"></i>
+              <span>GIS ანალიზი</span>
+            </a>
+            <a id="btnOpenInTsinare" href="tsinare.html" onclick="const c = (document.getElementById('cadastralCodeInput')?.value || localStorage.getItem('bimx_last_cadastral') || '').trim(); if (c) this.href = 'tsinare.html?code=' + encodeURIComponent(c);" style="display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 8px; border-radius: 8px; font-size: 0.74rem; font-weight: 700; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.32); color: #6ee7b7; text-decoration: none; transition: all 0.2s;" onmouseover="this.style.background='rgba(16, 185, 129, 0.24)'; this.style.color='#ffffff';" onmouseout="this.style.background='rgba(16, 185, 129, 0.12)'; this.style.color='#6ee7b7';" title="ნაკვეთის გახსნა 'წინარე' 2D საპროექტო CAD & გენგეგმის სტუდიაში">
+              <i class="fa-solid fa-compass-drafting"></i>
+              <span>• წინარე CAD</span>
+            </a>
+          </div>
 
           <!-- Sample Official Parcels Dropdown for Instant Testing -->
           <select class="sample-parcels-select" id="sampleParcelsSelect" aria-label="Sample official parcels">
@@ -4407,8 +4421,8 @@
   <script src="assets/fonts/georgian-font-data.js"></script>
 
   <!-- 6. Platform Scripts -->
-  <script src="translations.js?v=20260929_1700"></script>
-  <script src="main.js?v=20260929_1700"></script>
-  <script src="parcel-ai.js?v=20260929_1700"></script>
+  <script src="translations.js?v=20261103_02"></script>
+  <script src="main.js?v=20261103_02"></script>
+  <script src="parcel-ai.js?v=20261103_02"></script>
 </body>
 </html>

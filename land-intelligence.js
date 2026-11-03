@@ -26,20 +26,46 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('resize', () => {
     if (mapInstance) mapInstance.invalidateSize();
   });
-  // Initial state: do not run auto-analysis until user enters cadastral code
+
+  // Synchronize cadastral code from URL query (?code=) or recent session storage, defaulting to official NAPR sample
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialCode = (
+      urlParams.get('code') ||
+      urlParams.get('cadastral') ||
+      localStorage.getItem('bimx_last_cadastral') ||
+      '01.15.02.038.003'
+    ).trim();
+
+    const codeInput = document.getElementById('cadastralCodeInput');
+    if (codeInput && initialCode) {
+      codeInput.value = initialCode;
+    }
+
+    if (initialCode) {
+      setTimeout(() => {
+        runAnalysis(initialCode, 'residential_single', null);
+      }, 80);
+    }
+  } catch (err) {
+    console.warn('Auto-analysis initialization warning:', err);
+  }
 });
 
 function initMobileMenu() {
   const mobileHamburger = document.getElementById('mobileHamburger');
   const navLinksList = document.getElementById('navLinksList');
-  if (mobileHamburger && navLinksList) {
+  const mobileDrawer = document.getElementById('mobileNavDrawer');
+  if (mobileHamburger) {
     mobileHamburger.addEventListener('click', () => {
-      navLinksList.classList.toggle('open');
+      if (navLinksList) navLinksList.classList.toggle('open');
+      if (mobileDrawer) mobileDrawer.classList.toggle('hidden');
       mobileHamburger.classList.toggle('active');
     });
-    document.querySelectorAll('.nav-link-item').forEach(link => {
+    document.querySelectorAll('.nav-link-item, .mobile-drawer-link').forEach(link => {
       link.addEventListener('click', () => {
-        navLinksList.classList.remove('open');
+        if (navLinksList) navLinksList.classList.remove('open');
+        if (mobileDrawer) mobileDrawer.classList.add('hidden');
         mobileHamburger.classList.remove('active');
       });
     });
@@ -409,18 +435,18 @@ function renderInfoModalDetails(data) {
       `;
     } else {
       container.innerHTML = `
-        <div style="padding: 12px 0; color: #475569; font-size: 0.86rem; line-height: 1.5;">
-          <div style="font-weight: 700; color: #10b981; margin-bottom: 6px; font-size: 0.92rem;">
+        <div style="padding: 12px 0; color: #cbd5e1; font-size: 0.86rem; line-height: 1.55;">
+          <div style="font-weight: 700; color: #34d399; margin-bottom: 6px; font-size: 0.92rem; display: flex; align-items: center; gap: 6px;">
             <i class="fa-solid fa-circle-check"></i> 100% თავისუფალი სამშენებლო რესურსი (${portalName})
           </div>
-          <div>ნაკვეთზე არ ფიქსირდება შეთანხმებული არქიტექტურული პროექტი ან სამშენებლო ნებართვა.</div>
-          <div style="margin-top: 10px; padding: 10px; background: #f0fdf4; border-radius: 6px; border: 1px solid #bbf7d0; color: #166534; font-size: 0.84rem;">
-            <strong>დარჩენილი პოტენციალი:</strong> სრული K-1 (${(data.coefficients?.k1?.maxFootprintSqm || 0).toLocaleString()} მ²) და K-2 (${(data.coefficients?.k2?.maxGrossFloorAreaSqm || 0).toLocaleString()} მ²).
+          <div style="color: #94a3b8;">ნაკვეთზე არ ფიქსირდება შეთანხმებული არქიტექტურული პროექტი ან სამშენებლო ნებართვა.</div>
+          <div style="margin-top: 10px; padding: 10px 12px; background: rgba(16, 185, 129, 0.12); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.35); color: #6ee7b7; font-size: 0.84rem;">
+            <strong style="color: #a7f3d0;">დარჩენილი პოტენციალი:</strong> სრული K-1 (${(data.coefficients?.k1?.maxFootprintSqm || 0).toLocaleString()} მ²) და K-2 (${(data.coefficients?.k2?.maxGrossFloorAreaSqm || 0).toLocaleString()} მ²).
           </div>
           <div style="margin-top: 10px; font-size: 0.8rem;">
-            <span style="color: #64748b;">ოფიციალური მონაცემთა გადამოწმება: </span>
-            <a href="${portalUrl}" target="_blank" rel="noopener noreferrer" style="color: #0284c7; font-weight: 600; text-decoration: underline;">${portalName} ↗</a> · 
-            <a href="https://maps.gov.ge/map/portal" target="_blank" rel="noopener noreferrer" style="color: #0284c7; font-weight: 600; text-decoration: underline;">maps.gov.ge ↗</a>
+            <span style="color: #94a3b8;">ოფიციალური მონაცემთა გადამოწმება: </span>
+            <a href="${portalUrl}" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; font-weight: 600; text-decoration: underline;">${portalName} ↗</a> · 
+            <a href="https://maps.gov.ge/map/portal" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; font-weight: 600; text-decoration: underline;">maps.gov.ge ↗</a>
           </div>
         </div>
       `;
@@ -602,24 +628,58 @@ async function runAnalysis(cadastralCode, buildingUse, zoneOverride) {
     : (zoneSelect && zoneSelect.value !== 'auto' ? zoneSelect.value : null);
 
   try {
-    const res = await fetch('/api/land-analysis', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        cadastralCode,
-        constructionType: 'new_construction',
-        buildingUse: buildingUse || 'residential_single',
-        zoneOverride: activeZoneOverride
-      })
-    });
+    const reqPayload = {
+      cadastralCode,
+      constructionType: 'new_construction',
+      buildingUse: buildingUse || 'residential_single',
+      zoneOverride: activeZoneOverride
+    };
 
-    const data = await res.json();
+    let data = null;
+    try {
+      const res = await fetch('/api/land-analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reqPayload)
+      });
+      if (res.ok) {
+        data = await res.json();
+      } else {
+        const errJson = await res.json().catch(() => ({}));
+        if (errJson.messageKa || errJson.error) {
+          throw new Error(errJson.messageKa || errJson.error);
+        }
+      }
+    } catch (primaryErr) {
+      // Fallback to remote production API if running on static preview or secondary mirror
+      if (window.location.hostname !== 'architect2.ge') {
+        try {
+          const remoteRes = await fetch('https://architect2.ge/api/land-analysis', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reqPayload)
+          });
+          if (remoteRes.ok) {
+            data = await remoteRes.json();
+          }
+        } catch (remoteErr) {
+          console.warn('Remote fallback error:', remoteErr);
+        }
+      }
+      if (!data) throw primaryErr;
+    }
 
-    if (!res.ok || data.status === 'ERROR') {
-      throw new Error(data.messageKa || data.error || 'მოთხოვნის დამუშავება ვერ მოხერხდა');
+    if (!data || data.status === 'ERROR') {
+      throw new Error((data && (data.messageKa || data.error)) || 'მოთხოვნის დამუშავება ვერ მოხერხდა');
     }
 
     currentAnalysisData = data;
+    try {
+      if (data.parcel && data.parcel.cadastralCode) {
+        localStorage.setItem('bimx_last_cadastral', data.parcel.cadastralCode);
+      }
+    } catch (storageErr) {}
+
     if (resultsContainer) resultsContainer.style.display = 'block';
     renderAnalysisResults(data);
 
@@ -644,6 +704,26 @@ async function runAnalysis(cadastralCode, buildingUse, zoneOverride) {
 }
 
 /**
+ * Exports active Land Intelligence report as a structured JSON dossier
+ */
+function exportLandIntelligenceJson() {
+  if (!currentAnalysisData) return;
+  const code = (currentAnalysisData.parcel?.cadastralCode || 'parcel').replace(/[^0-9a-zA-Z.-]/g, '_');
+  const blob = new Blob([JSON.stringify(currentAnalysisData, null, 2)], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `BIMX_GIS_Dossier_${code}.json`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 200);
+}
+window.exportLandIntelligenceJson = exportLandIntelligenceJson;
+
+/**
  * Renders the entire analytical report across all blocks
  */
 function renderAnalysisResults(data) {
@@ -658,6 +738,17 @@ function renderAnalysisResults(data) {
   const poss = data.constructionPossibility;
   const summary = data.finalSummary;
   const buildable = data.buildableArea;
+
+  // 0. Cross-Studio Handoff Bar Synchronization
+  setText('handoffActiveCode', p.cadastralCode || '—');
+  const btnParcelAi = document.getElementById('btnOpenInParcelAi');
+  if (btnParcelAi && p.cadastralCode) {
+    btnParcelAi.href = `parcel-ai.html?code=${encodeURIComponent(p.cadastralCode)}`;
+  }
+  const btnTsinareCad = document.getElementById('btnOpenInTsinareCad');
+  if (btnTsinareCad && p.cadastralCode) {
+    btnTsinareCad.href = `tsinare.html?code=${encodeURIComponent(p.cadastralCode)}`;
+  }
 
   // 1. Quick Stats Strip
   setText('statArea', `${p.areaSqm.toLocaleString()} მ²`);
