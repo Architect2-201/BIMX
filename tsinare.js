@@ -4105,8 +4105,36 @@
     }
   };
 
+  // --- Mobile Workspace Tab Switcher (<= 1024px) ---
+  window.switchTsinareMobileTab = function (tabName) {
+    const leftSb = document.getElementById('leftCadastralSidebar');
+    const rightSb = document.getElementById('rightZoningSidebar');
+    const centerMain = document.getElementById('centerCadWorkspace');
+    const tabs = document.querySelectorAll('#tsinareMobileNav .tsinare-m-tab');
+
+    tabs.forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-tsinare-tab') === tabName);
+    });
+
+    if (leftSb) leftSb.classList.toggle('tsinare-mobile-active', tabName === 'passport');
+    if (rightSb) rightSb.classList.toggle('tsinare-mobile-active', tabName === 'zoning');
+    if (centerMain) centerMain.classList.toggle('tsinare-mobile-hidden', tabName !== 'canvas');
+    document.body.classList.toggle('tsinare-mobile-panel-open', tabName !== 'canvas');
+
+    if (tabName === 'canvas') {
+      setTimeout(() => {
+        if (tsinareMap) tsinareMap.invalidateSize();
+        renderCadWorld();
+      }, 150);
+    }
+  };
+
   // --- Collapsible Sidebars ---
   window.toggleLeftSidebar = function () {
+    if (window.innerWidth <= 1024) {
+      window.switchTsinareMobileTab('canvas');
+      return;
+    }
     const sb = document.getElementById('leftCadastralSidebar');
     const btnExpand = document.getElementById('btnExpandLeftSidebar');
     if (!sb) return;
@@ -4128,6 +4156,10 @@
   };
 
   window.toggleRightSidebar = function () {
+    if (window.innerWidth <= 1024) {
+      window.switchTsinareMobileTab('canvas');
+      return;
+    }
     const sb = document.getElementById('rightZoningSidebar');
     const btnExpand = document.getElementById('btnExpandRightSidebar');
     if (!sb) return;
@@ -4302,6 +4334,9 @@
 
     if (els.cadDynamicHud) els.cadDynamicHud.classList.add('hidden');
     if (els.cadOsnapTooltip) els.cadOsnapTooltip.classList.add('hidden');
+    if (window.innerWidth <= 1024 && typeof window.switchTsinareMobileTab === 'function' && document.body.classList.contains('tsinare-mobile-panel-open')) {
+      window.switchTsinareMobileTab('canvas');
+    }
 
     // Auto-switch ribbon tab based on active tool category
     const toolToTabMap = {

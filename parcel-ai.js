@@ -14713,11 +14713,26 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    window.switchMobileTab = switchMobileTab;
+
     tabBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         const target = btn.dataset.target;
         if (target) switchMobileTab(target);
       });
+    });
+
+    // Auto-switch to viewport when user clicks Search or Generate Concept inside Params panel on mobile
+    const btnMainSearch = document.getElementById('btnCadastralSearch');
+    const btnGenConcept = document.getElementById('btnGenerateConcept');
+    [btnMainSearch, btnGenConcept].forEach(btn => {
+      if (btn) {
+        btn.addEventListener('click', () => {
+          if (window.innerWidth <= 1024) {
+            setTimeout(() => switchMobileTab('viewport'), 180);
+          }
+        });
+      }
     });
 
     // Return to Viewport / 3D Buttons

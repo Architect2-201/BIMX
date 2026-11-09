@@ -1616,6 +1616,207 @@
       background: linear-gradient(180deg, rgba(11, 18, 33, 0.92) 0%, rgba(7, 12, 23, 0.96) 100%) !important;
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(56, 189, 248, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
     }
+
+    /* =========================================================================
+       MOBILE & TABLET RESPONSIVE ADAPTATION (<= 1024px & <= 640px)
+       ========================================================================= */
+    #tsinareMobileNav {
+      display: none;
+    }
+    .tsinare-mobile-return-bar {
+      display: none;
+    }
+
+    @media (max-width: 1024px) {
+      /* 1. Multi-row Adaptive Top Header */
+      #tsinareTopHeader {
+        height: auto !important;
+        min-height: 52px !important;
+        flex-wrap: wrap !important;
+        padding: 6px 10px !important;
+        gap: 6px !important;
+      }
+      #tsinareSearchWrap {
+        order: 10 !important;
+        flex: 0 0 100% !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+      }
+      #tsinareSearchWrap > form > div {
+        height: 36px !important;
+      }
+
+      /* 2. Mobile Segmented Workspace Switcher Bar */
+      #tsinareMobileNav {
+        display: flex !important;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 8px;
+        background: rgba(8, 13, 25, 0.98);
+        border-bottom: 1px solid rgba(56, 189, 248, 0.22);
+        flex: 0 0 auto;
+        z-index: 45;
+      }
+      .tsinare-m-tab {
+        flex: 1 1 0%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        padding: 7px 6px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #94a3b8;
+        background: rgba(15, 23, 42, 0.75);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        white-space: nowrap;
+        transition: all 0.18s ease;
+        touch-action: manipulation;
+      }
+      .tsinare-m-tab.active {
+        color: #38bdf8;
+        background: linear-gradient(135deg, rgba(2, 132, 199, 0.32), rgba(14, 165, 233, 0.16));
+        border-color: rgba(56, 189, 248, 0.55);
+        box-shadow: 0 2px 10px rgba(2, 132, 199, 0.25);
+      }
+
+      /* Hide CAD ribbon when viewing Passport or Zoning panel on mobile */
+      body.tsinare-mobile-panel-open #topCadRibbonDock {
+        display: none !important;
+      }
+
+      /* 3. Single-Panel Full-Width Mobile Workspace (No Crushed 3-Column Overlap) */
+      #leftCadastralSidebar,
+      #rightZoningSidebar {
+        display: none !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 1 1 auto !important;
+        border-left: none !important;
+        border-right: none !important;
+      }
+      #leftCadastralSidebar.tsinare-mobile-active,
+      #rightZoningSidebar.tsinare-mobile-active {
+        display: flex !important;
+      }
+      #centerCadWorkspace {
+        display: flex !important;
+        width: 100% !important;
+        flex: 1 1 auto !important;
+      }
+      #centerCadWorkspace.tsinare-mobile-hidden {
+        display: none !important;
+      }
+      .tsinare-mobile-return-bar {
+        display: flex !important;
+      }
+      .desktop-sidebar-collapse-btn {
+        display: none !important;
+      }
+
+      /* 4. Prevent Floating HUD Collisions Inside #cadCanvasWrapper */
+      #btnExpandLeftSidebar,
+      #btnExpandRightSidebar,
+      #cadModeHintHud {
+        display: none !important;
+      }
+      #cadNorthArrowHud {
+        top: 8px !important;
+        left: 8px !important;
+        right: auto !important;
+        width: 32px !important;
+        height: 32px !important;
+      }
+      #floatingCanvasActionDock {
+        top: 8px !important;
+        right: 8px !important;
+        padding: 4px !important;
+        gap: 4px !important;
+        border-radius: 10px !important;
+      }
+      #floatingCanvasActionDock button {
+        height: 28px !important;
+        padding: 0 8px !important;
+        font-size: 11px !important;
+      }
+      .dock-parcel-ai-link,
+      .dock-parcel-ai-sep {
+        display: none !important;
+      }
+      #cadSunHud {
+        top: 46px !important;
+        right: 8px !important;
+        padding: 4px 8px !important;
+        border-radius: 8px !important;
+      }
+      #cadSunHud input[type="range"] {
+        width: 68px !important;
+      }
+      #cadScaleBarHud {
+        bottom: 8px !important;
+        left: 8px !important;
+        padding: 4px 8px !important;
+        gap: 2px !important;
+      }
+      #lblMouseCoords {
+        display: none !important;
+      }
+      #cadZoomControlsHud {
+        bottom: 8px !important;
+        right: 8px !important;
+      }
+      #georgiaOverviewOverlay > div {
+        padding: 16px !important;
+        margin: 0 12px !important;
+        max-width: calc(100vw - 24px) !important;
+      }
+      #utilityDetailsPopup {
+        top: 52px !important;
+        left: 8px !important;
+        right: 8px !important;
+        width: auto !important;
+        max-width: calc(100vw - 16px) !important;
+      }
+      #historicalTimelineBar {
+        bottom: 8px !important;
+        width: calc(100% - 16px) !important;
+        padding: 8px 10px !important;
+      }
+      #basemapDropdown {
+        right: 0 !important;
+        left: auto !important;
+        width: min(320px, calc(100vw - 16px)) !important;
+        max-height: 65vh !important;
+      }
+      #searchHistoryDropdown {
+        width: 100% !important;
+        max-width: calc(100vw - 20px) !important;
+        left: 0 !important;
+        right: 0 !important;
+      }
+      .cad-menu-popup {
+        max-width: calc(100vw - 16px) !important;
+        min-width: 0 !important;
+        width: calc(100vw - 16px) !important;
+        left: 8px !important;
+        right: 8px !important;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .cad-ribbon-bar {
+        height: 38px !important;
+      }
+      .cad-ribbon-row2 {
+        height: 44px !important;
+      }
+      #cadScaleBarGraphic > div {
+        width: 18px !important;
+      }
+    }
   </style>
 </head>
 <body class="flex flex-col h-screen w-full max-w-full overflow-hidden text-slate-100">
@@ -1623,35 +1824,30 @@
   <!-- =========================================================================
        1. TOP APP BAR / HEADER & CADASTRAL SEARCH
        ========================================================================= -->
-  <header class="h-16 flex-none bg-[#0a101d]/95 backdrop-blur-xl border-b border-[#1f2e4d] px-4 flex items-center justify-between relative z-[200] gap-3">
+  <header id="tsinareTopHeader" class="h-16 flex-none bg-[#0a101d]/95 backdrop-blur-xl border-b border-[#1f2e4d] px-4 flex items-center justify-between relative z-[200] gap-3">
     <!-- Brand & Studio Navigation Dock -->
-    <div class="flex items-center gap-3 min-w-max">
+    <div class="flex items-center gap-2 sm:gap-3 min-w-max">
       <a href="index.html" class="flex items-center gap-2 group" title="BIMX Studio მთავარი">
-        <img src="assets/images/logo-white.png" alt="BIMX Logo" class="h-7 w-auto object-contain transition-transform group-hover:scale-105">
+        <img src="assets/images/logo-white.png" alt="BIMX Logo" class="h-6 sm:h-7 w-auto object-contain transition-transform group-hover:scale-105">
       </a>
-      <div class="h-6 w-px bg-slate-700/60 hidden sm:block"></div>
-      <!-- Unified 3-Studio Navigation Dock (GIS ანალიზი | AI ანალიზი | • წინარე) -->
-      <nav class="hidden lg:flex items-center gap-1 p-1 rounded-2xl bg-[#070b14]/90 border border-slate-700/60 shadow-inner" aria-label="BIMX Studio Switcher">
-        <a href="land-intelligence.html" onclick="const c=(document.getElementById('cadastralInput')?.value||localStorage.getItem('bimx_last_cadastral')||'').trim(); if(c) this.href='land-intelligence.html?code='+encodeURIComponent(c);" class="px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-white/10 transition flex items-center gap-1.5" title="ნაკვეთის სრული GIS და რეგულაციური ანალიზი">
-          <span>GIS ანალიზი</span>
+      <div class="h-5 w-px bg-slate-700/60"></div>
+      <!-- Unified 3-Studio Navigation Dock (GIS ანალიზი | AI ანალიზი | • წინარე) — visible on both desktop and mobile -->
+      <nav class="flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-xl sm:rounded-2xl bg-[#070b14]/90 border border-slate-700/60 shadow-inner" aria-label="BIMX Studio Switcher">
+        <a href="land-intelligence.html" onclick="const c=(document.getElementById('cadastralInput')?.value||localStorage.getItem('bimx_last_cadastral')||'').trim(); if(c) this.href='land-intelligence.html?code='+encodeURIComponent(c);" class="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-medium text-slate-300 hover:text-white hover:bg-white/10 transition flex items-center gap-1" title="ნაკვეთის სრული GIS და რეგულაციური ანალიზი">
+          <span>GIS</span><span class="hidden sm:inline">ანალიზი</span>
         </a>
-        <a href="parcel-ai.html" onclick="const c=(document.getElementById('cadastralInput')?.value||localStorage.getItem('bimx_last_cadastral')||'').trim(); if(c) this.href='parcel-ai.html?code='+encodeURIComponent(c);" class="px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-white/10 transition flex items-center gap-1.5" title="შენობის 3D AI კონცეფციის სტუდია">
-          <span>AI ანალიზი</span>
+        <a href="parcel-ai.html" onclick="const c=(document.getElementById('cadastralInput')?.value||localStorage.getItem('bimx_last_cadastral')||'').trim(); if(c) this.href='parcel-ai.html?code='+encodeURIComponent(c);" class="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-medium text-slate-300 hover:text-white hover:bg-white/10 transition flex items-center gap-1" title="შენობის 3D AI კონცეფციის სტუდია">
+          <span>AI</span><span class="hidden sm:inline">ანალიზი</span>
         </a>
-        <a href="tsinare.html" aria-current="page" class="px-3 py-1.5 rounded-xl text-xs font-bold text-sky-300 bg-sky-500/15 border border-sky-400/35 shadow-sm flex items-center gap-1.5" title="წინარე — 2D საპროექტო CAD & გენგეგმის სტუდია">
+        <a href="tsinare.html" aria-current="page" class="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold text-sky-300 bg-sky-500/15 border border-sky-400/35 shadow-sm flex items-center gap-1" title="წინარე — 2D საპროექტო CAD & გენგეგმის სტუდია">
           <span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>
           <span>წინარე</span>
         </a>
       </nav>
-      <div class="flex lg:hidden items-center gap-2">
-        <span class="font-extrabold text-sm sm:text-base tracking-wider bg-gradient-to-r from-white via-sky-200 to-sky-400 bg-clip-text text-transparent">
-          • წინარე
-        </span>
-      </div>
     </div>
 
     <!-- Central Cadastral Search Bar -->
-    <div class="flex-1 min-w-[270px] sm:min-w-[340px] md:min-w-[420px] max-w-2xl mx-1.5 sm:mx-3 relative z-50">
+    <div id="tsinareSearchWrap" class="flex-1 min-w-[270px] sm:min-w-[340px] md:min-w-[420px] max-w-2xl mx-1.5 sm:mx-3 relative z-50">
       <form id="cadastralSearchForm" onsubmit="event.preventDefault(); triggerCadastralSearch(); return false;" class="relative w-full flex items-center">
         <div class="relative w-full flex items-center bg-[#10192e] border-2 border-[#243557] hover:border-sky-500/50 focus-within:border-sky-400 focus-within:ring-2 focus-within:ring-sky-400/25 rounded-xl transition-all shadow-lg h-10 px-1">
           <i class="fa-solid fa-location-crosshairs pl-2.5 pr-1 text-sky-400 text-sm flex-none" title="საკადასტრო კოდით ძებნა"></i>
@@ -1700,23 +1896,24 @@
     </div>
 
     <!-- View Mode Switcher: CAD | Hybrid Satellite | Full GIS Map -->
-    <div class="hidden md:flex items-center bg-[#0d1627] p-0.5 rounded-lg border border-[#1e2f4f] text-xs font-medium shrink-0">
-      <button type="button" id="btnModeCad" onclick="setViewMode('cad')" class="h-8 px-2.5 rounded-md text-slate-300 hover:text-white transition flex items-center gap-1.5" title="სუფთა CAD ნახაზის რეჟიმი (ბლუპრინტი/ვექტორული ბადე)">
-        <i class="fa-solid fa-pen-nib text-xs text-sky-400"></i>
-        <span>CAD ნახაზი</span>
+    <div class="flex items-center bg-[#0d1627] p-0.5 rounded-lg border border-[#1e2f4f] text-[11px] sm:text-xs font-medium shrink-0">
+      <button type="button" id="btnModeCad" onclick="setViewMode('cad')" class="h-7 sm:h-8 px-1.5 sm:px-2.5 rounded-md text-slate-300 hover:text-white transition flex items-center gap-1" title="სუფთა CAD ნახაზის რეჟიმი (ბლუპრინტი/ვექტორული ბადე)">
+        <i class="fa-solid fa-pen-nib text-[11px] sm:text-xs text-sky-400"></i>
+        <span class="hidden lg:inline">CAD ნახაზი</span>
+        <span class="lg:hidden">CAD</span>
       </button>
-      <button type="button" id="btnModeHybrid" onclick="setViewMode('hybrid')" class="h-8 px-2.5 rounded-md bg-emerald-500/25 border border-emerald-400 text-emerald-300 font-bold transition flex items-center gap-1.5" title="სატელიტური ორთოფოტო + CAD ნახაზი ზედნადებით">
-        <i class="fa-solid fa-satellite text-xs text-emerald-400"></i>
-        <span>სატელიტი + CAD</span>
+      <button type="button" id="btnModeHybrid" onclick="setViewMode('hybrid')" class="h-7 sm:h-8 px-1.5 sm:px-2.5 rounded-md bg-emerald-500/25 border border-emerald-400 text-emerald-300 font-bold transition flex items-center gap-1" title="სატელიტური ორთოფოტო + CAD ნახაზი ზედნადებით">
+        <i class="fa-solid fa-satellite text-[11px] sm:text-xs text-emerald-400"></i>
+        <span class="hidden lg:inline">სატელიტი + CAD</span>
       </button>
-      <button type="button" id="btnModeMap" onclick="setViewMode('map')" class="h-8 px-2.5 rounded-md text-slate-300 hover:text-white transition flex items-center gap-1.5" title="ინტერაქტიული GIS რუკის სრული ეკრანი">
-        <i class="fa-solid fa-earth-europe text-xs text-amber-400"></i>
-        <span>GIS რუკა</span>
+      <button type="button" id="btnModeMap" onclick="setViewMode('map')" class="h-7 sm:h-8 px-1.5 sm:px-2.5 rounded-md text-slate-300 hover:text-white transition flex items-center gap-1" title="ინტერაქტიული GIS რუკის სრული ეკრანი">
+        <i class="fa-solid fa-earth-europe text-[11px] sm:text-xs text-amber-400"></i>
+        <span class="hidden lg:inline">GIS რუკა</span>
       </button>
     </div>
 
     <!-- Quick Georgia Map Reset Button -->
-    <div class="hidden sm:flex items-center">
+    <div class="hidden xl:flex items-center">
       <button type="button" onclick="showGeorgiaOverviewState()" class="h-9 px-3 text-xs font-mono rounded-lg bg-[#16233d] hover:bg-[#1e2f52] border border-[#263a63] text-sky-300 hover:text-white transition flex items-center gap-1.5" title="მთლიანი საქართველოს რუკაზე დაბრუნება">
         <i class="fa-solid fa-compass text-sky-400 text-xs"></i>
         <span>რუკის ცენტრირება</span>
@@ -1729,11 +1926,11 @@
         type="button"
         id="btnBasemapTrigger"
         onclick="toggleBasemapDropdown(event)"
-        class="h-9 px-3 text-xs rounded-lg bg-[#0d1627] hover:bg-[#1a2846] border border-[#263a63] text-slate-200 hover:text-white transition flex items-center gap-1.5 shrink-0"
+        class="h-8 sm:h-9 px-2 sm:px-3 text-xs rounded-lg bg-[#0d1627] hover:bg-[#1a2846] border border-[#263a63] text-slate-200 hover:text-white transition flex items-center gap-1 sm:gap-1.5 shrink-0"
         title="ბეისმეპის შეცვლა"
       >
         <i class="fa-solid fa-layer-group text-violet-400 text-xs"></i>
-        <span id="lblActiveBasemap" class="hidden sm:inline">🛰️ სატელიტი (ESRI)</span>
+        <span id="lblActiveBasemap" class="hidden md:inline">🛰️ სატელიტი (ESRI)</span>
         <i class="fa-solid fa-chevron-down text-[9px] text-slate-400 ml-0.5"></i>
       </button>
 
@@ -1930,12 +2127,12 @@
         type="button"
         id="btnHistoricalTimelineToggle"
         onclick="toggleHistoricalTimeline()"
-        class="h-9 px-3 text-xs rounded-lg bg-[#141b2d] hover:bg-[#1f2942] border border-amber-500/40 text-amber-300 hover:text-white transition flex items-center gap-1.5 shrink-0 shadow-sm"
+        class="h-8 sm:h-9 px-2 sm:px-3 text-xs rounded-lg bg-[#141b2d] hover:bg-[#1f2942] border border-amber-500/40 text-amber-300 hover:text-white transition flex items-center gap-1 sm:gap-1.5 shrink-0 shadow-sm"
         title="ძველი რუკების ქრონოლოგია და წლების სლაიდერი (1887 — 2026)"
       >
         <i class="fa-solid fa-clock-rotate-left text-amber-400 text-xs"></i>
         <span class="hidden md:inline font-semibold">ძველი რუკები</span>
-        <span id="lblActiveHistoricalYear" class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-200">1887-2026</span>
+        <span id="lblActiveHistoricalYear" class="hidden sm:inline px-1.5 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-200">1887-2026</span>
       </button>
     </div>
 
@@ -1945,15 +2142,33 @@
         type="button"
         id="btnCadUtilitiesToggle"
         onclick="toggleUtilitiesQuickPanel()"
-        class="h-9 px-3 text-xs rounded-lg bg-[#0e2038] hover:bg-[#162e50] border border-cyan-500/50 text-cyan-300 hover:text-white transition flex items-center gap-1.5 shrink-0 shadow-sm"
+        class="h-8 sm:h-9 px-2 sm:px-3 text-xs rounded-lg bg-[#0e2038] hover:bg-[#162e50] border border-cyan-500/50 text-cyan-300 hover:text-white transition flex items-center gap-1 sm:gap-1.5 shrink-0 shadow-sm"
         title="მიწისზედა და მიწისქვედა საინჟინრო კომუნიკაციები (წყალი, კანალიზაცია, ელექტრო, გაზი, კავშირგაბმულობა)"
       >
         <i class="fa-solid fa-bolt text-cyan-400 text-xs"></i>
         <span class="hidden md:inline font-semibold">კომუნიკაციები</span>
-        <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-cyan-500/20 text-cyan-200">სრული ქსელი</span>
+        <span class="hidden sm:inline px-1.5 py-0.5 rounded text-[10px] font-mono bg-cyan-500/20 text-cyan-200">სრული ქსელი</span>
       </button>
     </div>
   </header>
+
+  <!-- =========================================================================
+       MOBILE WORKSPACE SWITCHER BAR (Visible on <= 1024px)
+       ========================================================================= -->
+  <nav id="tsinareMobileNav" aria-label="მობილური სამუშაო პანელები">
+    <button type="button" class="tsinare-m-tab active" data-tsinare-tab="canvas" onclick="switchTsinareMobileTab('canvas')">
+      <i class="fa-solid fa-compass-drafting text-sky-400"></i>
+      <span>გენგეგმა / რუკა</span>
+    </button>
+    <button type="button" class="tsinare-m-tab" data-tsinare-tab="passport" onclick="switchTsinareMobileTab('passport')">
+      <i class="fa-solid fa-id-card text-emerald-400"></i>
+      <span>პასპორტი</span>
+    </button>
+    <button type="button" class="tsinare-m-tab" data-tsinare-tab="zoning" onclick="switchTsinareMobileTab('zoning')">
+      <i class="fa-solid fa-chart-pie text-purple-400"></i>
+      <span>K1·K2·K3 &amp; შენობა</span>
+    </button>
+  </nav>
 
   <!-- =========================================================================
        CAD RIBBON DOCK: FULL-WIDTH ARCHITECTURAL COMMAND BAR
@@ -2977,7 +3192,10 @@
           <span id="naprStatusBadge" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">
             მზადაა
           </span>
-          <button type="button" onclick="toggleLeftSidebar()" class="h-6 w-6 rounded bg-[#162238] hover:bg-[#1e2f4f] border border-[#243557] text-slate-400 hover:text-white flex items-center justify-center transition" title="მარცხენა პანელის ჩაკეცვა">
+          <button type="button" onclick="switchTsinareMobileTab('canvas')" class="tsinare-mobile-return-bar px-2 py-1 rounded bg-sky-500/20 border border-sky-400/40 text-sky-300 text-[10px] font-bold items-center gap-1">
+            <i class="fa-solid fa-compass-drafting"></i> რუკაზე
+          </button>
+          <button type="button" onclick="toggleLeftSidebar()" class="desktop-sidebar-collapse-btn h-6 w-6 rounded bg-[#162238] hover:bg-[#1e2f4f] border border-[#243557] text-slate-400 hover:text-white flex items-center justify-center transition" title="მარცხენა პანელის ჩაკეცვა">
             <i class="fa-solid fa-angles-left text-[11px]"></i>
           </button>
         </div>
@@ -3102,7 +3320,7 @@
     <!-- =======================================================================
          CENTER: INTERACTIVE 2D CAD WORKSPACE & DRAWING ENGINE
          ======================================================================= -->
-    <main class="flex-1 flex flex-col relative overflow-hidden bg-[#070c17]">
+    <main id="centerCadWorkspace" class="flex-1 flex flex-col relative overflow-hidden bg-[#070c17]">
 
       <!-- Floating Expand Triggers when sidebars are collapsed -->
       <button type="button" id="btnExpandLeftSidebar" onclick="toggleLeftSidebar()" class="hidden absolute left-3 top-3 z-30 px-3 py-1.5 rounded-lg bg-[#0d1629]/95 backdrop-blur border border-sky-500/50 text-sky-300 hover:text-white hover:bg-sky-600/30 text-xs font-semibold shadow-xl items-center gap-1.5 transition active:scale-95" title="საკადასტრო პასპორტის გახსნა">
@@ -3265,7 +3483,7 @@
         </div>
 
         <!-- Floating HUD: Mode Hint -->
-        <div class="absolute top-4 left-4 floating-cad-hud px-3 py-1.5 rounded-lg text-xs flex items-center gap-2.5 z-10 pointer-events-none max-w-[260px] sm:max-w-sm truncate shadow-md">
+        <div id="cadModeHintHud" class="absolute top-4 left-4 floating-cad-hud px-3 py-1.5 rounded-lg text-xs flex items-center gap-2.5 z-10 pointer-events-none max-w-[260px] sm:max-w-sm truncate shadow-md">
           <div class="flex items-center gap-2 truncate">
             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
             <span id="lblToolStatusHint" class="text-slate-200 font-medium truncate">მზადაა: აირჩიეთ ინსტრუმენტი</span>
@@ -3310,17 +3528,17 @@
             <span>DXF</span>
           </button>
 
-          <div class="h-4 w-px bg-slate-700/60 mx-0.5"></div>
+          <div class="dock-parcel-ai-sep h-4 w-px bg-slate-700/60 mx-0.5"></div>
 
           <!-- Return to Main Site / Navigation -->
-          <a href="parcel-ai.html" class="h-8 px-3 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer" title="Parcel AI-ზე დაბრუნება">
+          <a href="parcel-ai.html" class="dock-parcel-ai-link h-8 px-3 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer" title="Parcel AI-ზე დაბრუნება">
             <i class="fa-solid fa-arrow-left text-[11px] text-sky-400"></i>
             <span>Parcel AI</span>
           </a>
         </div>
 
         <!-- Floating HUD: Sun Insolation & Shadow Angle Slider -->
-        <div class="absolute top-16 right-16 floating-cad-hud p-2 rounded-lg text-xs z-10 flex items-center gap-2">
+        <div id="cadSunHud" class="absolute top-16 right-16 floating-cad-hud p-2 rounded-lg text-xs z-10 flex items-center gap-2">
           <i class="fa-solid fa-sun text-amber-400 text-xs"></i>
           <span class="text-[11px] text-slate-300 font-medium hidden sm:inline">ინსოლაცია:</span>
           <input 
@@ -3337,7 +3555,7 @@
         </div>
 
         <!-- Floating HUD: Architectural North Arrow (ჩრდილოეთის ისარი) -->
-        <div class="absolute top-16 right-4 floating-cad-hud w-9 h-9 rounded-lg flex items-center justify-center z-10" title="ჩრდილოეთი (North)">
+        <div id="cadNorthArrowHud" class="absolute top-16 right-4 floating-cad-hud w-9 h-9 rounded-lg flex items-center justify-center z-10" title="ჩრდილოეთი (North)">
           <svg viewBox="0 0 24 24" class="w-6 h-6">
             <polygon points="12,2 8,22 12,17" fill="#ef4444" />
             <polygon points="12,2 16,22 12,17" fill="#cbd5e1" />
@@ -3346,7 +3564,7 @@
         </div>
 
         <!-- Floating HUD: Dynamic Graphic Scale Bar (გრაფიკული მასშტაბი) -->
-        <div class="absolute bottom-4 left-4 floating-cad-hud p-2.5 rounded-lg text-xs flex flex-col gap-1.5 z-10 pointer-events-auto">
+        <div id="cadScaleBarHud" class="absolute bottom-4 left-4 floating-cad-hud p-2.5 rounded-lg text-xs flex flex-col gap-1.5 z-10 pointer-events-auto">
           <div class="flex items-center gap-2">
             <!-- Alternating Scale Bar -->
             <div id="cadScaleBarGraphic" class="flex items-center h-3 border border-slate-500 rounded overflow-hidden">
@@ -3364,7 +3582,7 @@
         </div>
 
         <!-- Floating HUD: Zoom Controls -->
-        <div class="absolute bottom-4 right-4 floating-cad-hud p-1 rounded-lg flex flex-col gap-1 z-10">
+        <div id="cadZoomControlsHud" class="absolute bottom-4 right-4 floating-cad-hud p-1 rounded-lg flex flex-col gap-1 z-10">
           <button type="button" onclick="cadZoomIn()" class="w-8 h-8 rounded bg-white/5 hover:bg-white/10 text-slate-200 flex items-center justify-center transition" title="გადიდება (+)">
             <i class="fa-solid fa-plus text-xs"></i>
           </button>
@@ -3514,7 +3732,10 @@
           <button type="button" onclick="resetZoningToDefaults()" class="text-slate-400 hover:text-white text-[11px] flex items-center gap-1 transition" title="ნაგულისხმევ კოეფიციენტებზე დაბრუნება">
             <i class="fa-solid fa-rotate-left"></i> Reset
           </button>
-          <button type="button" onclick="toggleRightSidebar()" class="h-6 w-6 rounded bg-[#162238] hover:bg-[#1e2f4f] border border-[#243557] text-slate-400 hover:text-white flex items-center justify-center transition" title="მარჯვენა პანელის ჩაკეცვა">
+          <button type="button" onclick="switchTsinareMobileTab('canvas')" class="tsinare-mobile-return-bar px-2 py-1 rounded bg-sky-500/20 border border-sky-400/40 text-sky-300 text-[10px] font-bold items-center gap-1">
+            <i class="fa-solid fa-compass-drafting"></i> რუკაზე
+          </button>
+          <button type="button" onclick="toggleRightSidebar()" class="desktop-sidebar-collapse-btn h-6 w-6 rounded bg-[#162238] hover:bg-[#1e2f4f] border border-[#243557] text-slate-400 hover:text-white flex items-center justify-center transition" title="მარჯვენა პანელის ჩაკეცვა">
             <i class="fa-solid fa-angles-right text-[11px]"></i>
           </button>
         </div>
@@ -4128,6 +4349,6 @@
   </div>
 
   <!-- Core JavaScript Logic -->
-  <script src="tsinare.js?v=20261103_02"></script>
+  <script src="tsinare.js?v=20261109_01"></script>
 </body>
 </html>
