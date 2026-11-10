@@ -23,6 +23,25 @@
 (function () {
   'use strict';
 
+  function addImageOverlayWithFallback(url, fallbacks, bounds, options) {
+    const overlay = L.imageOverlay(url, bounds, options);
+    const chain = (fallbacks || []).slice();
+    overlay.on('add', function () {
+      const el = overlay.getElement();
+      if (!el || el.dataset.fmtBound) return;
+      el.dataset.fmtBound = '1';
+      el.addEventListener('error', function onErr() {
+        const next = chain.shift();
+        if (!next) {
+          el.removeEventListener('error', onErr);
+          return;
+        }
+        overlay.setUrl(next);
+      });
+    });
+    return overlay;
+  }
+
   // Screen DPI Constant: 96 DPI -> 1 meter = 3779.528 pixels
   const METERS_TO_PIXELS_REAL = 96 / 0.0254; // ~3779.528
 
@@ -446,7 +465,8 @@
       layers: [
         { url: 'https://tiles.nakarte.me/topomapper/{z}/{x}/{y}', opts: { minZoom: 1, maxNativeZoom: 13, maxZoom: 22, className: 'tile-historical-crisp' } },
         {
-          url: 'assets/images/map_1887.jpg',
+          url: 'assets/images/map_1887.avif',
+          fallbackUrls: ['assets/images/map_1887.webp', 'assets/images/map_1887.jpg'],
           isImageOverlay: true,
           bounds: [[41.6780, 44.7780], [41.7450, 44.8380]],
           opts: { opacity: 0.95 }
@@ -461,7 +481,8 @@
       layers: [
         { url: 'https://tiles.nakarte.me/topomapper/{z}/{x}/{y}', opts: { minZoom: 1, maxNativeZoom: 13, maxZoom: 22, className: 'tile-historical-crisp' } },
         {
-          url: 'assets/images/map_1887.jpg',
+          url: 'assets/images/map_1887.avif',
+          fallbackUrls: ['assets/images/map_1887.webp', 'assets/images/map_1887.jpg'],
           isImageOverlay: true,
           bounds: [[41.6780, 44.7780], [41.7450, 44.8380]],
           opts: { opacity: 0.95 }
@@ -476,7 +497,8 @@
       layers: [
         { url: 'https://tiles.nakarte.me/topomapper/{z}/{x}/{y}', opts: { minZoom: 1, maxNativeZoom: 13, maxZoom: 22, className: 'tile-historical-crisp' } },
         {
-          url: 'assets/images/map_1913.jpg',
+          url: 'assets/images/map_1913.avif',
+          fallbackUrls: ['assets/images/map_1913.webp', 'assets/images/map_1913.jpg'],
           isImageOverlay: true,
           bounds: [[41.6780, 44.7760], [41.7420, 44.8360]],
           opts: { opacity: 0.95 }
@@ -785,7 +807,7 @@
     // Add new layers with bulletproof zoom retention and tile stretching
     cfg.layers.forEach(def => {
       if (def.isImageOverlay) {
-        const overlay = L.imageOverlay(def.url, def.bounds, {
+        const overlay = addImageOverlayWithFallback(def.url, def.fallbackUrls, def.bounds, {
           opacity: (def.opts && def.opts.opacity) ?? (state.historicalOpacity ?? 0.95),
           interactive: false
         });
@@ -921,6 +943,7 @@
           layerDefs.push({
             isImageOverlay: true,
             url: def.url,
+            fallbackUrls: def.fallbackUrls || [],
             bounds: def.bounds,
             opts: def.opts || {}
           });
@@ -965,7 +988,7 @@
     // Add new layers directly with target opacity so tiles download and render immediately
     layerDefs.forEach(d => {
       if (d.isImageOverlay) {
-        const overlay = L.imageOverlay(d.url, d.bounds, {
+        const overlay = addImageOverlayWithFallback(d.url, d.fallbackUrls, d.bounds, {
           opacity: targetOpacity,
           interactive: false,
           pane: 'historicalOverlayPane',
@@ -1594,12 +1617,10 @@
       // 1. Direct Live Fetch from local proxy or production endpoint if not preset
       if (!data) {
         const candidateUrls = [
-          `/api/parcel?code=${encodeURIComponent(cleanCode)}&t=${Date.now()}`,
-          `https://architect2.ge/api/parcel?code=${encodeURIComponent(cleanCode)}&t=${Date.now()}`
+          `/api/parcel?code=${encodeURIComponent(cleanCode)}&t=${Date.now()}`
         ];
         if (rawInput !== cleanCode) {
           candidateUrls.push(`/api/parcel?code=${encodeURIComponent(rawInput)}&t=${Date.now()}`);
-          candidateUrls.push(`https://architect2.ge/api/parcel?code=${encodeURIComponent(rawInput)}&t=${Date.now()}`);
         }
 
         for (const url of candidateUrls) {
@@ -1636,8 +1657,7 @@
         }
         if (parentCandidate) {
           const pUrls = [
-            `/api/parcel?code=${encodeURIComponent(parentCandidate)}&t=${Date.now()}`,
-            `https://architect2.ge/api/parcel?code=${encodeURIComponent(parentCandidate)}&t=${Date.now()}`
+            `/api/parcel?code=${encodeURIComponent(parentCandidate)}&t=${Date.now()}`
           ];
           for (const url of pUrls) {
             try {

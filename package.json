@@ -4,7 +4,8 @@
   "description": "BIMX - Building Information Modeling & Digital Engineering Platform",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "build:css": "tailwindcss -c tailwind.config.js -i assets/css/tailwind.src.css -o assets/css/tailwind.css --minify && tailwindcss -c tailwind.tsinare.config.js -i assets/css/tailwind.src.css -o assets/css/tailwind-tsinare.css --minify"
   },
   "keywords": [
     "bim",
@@ -16,6 +17,9 @@
   "author": "BIMX Georgia",
   "license": "ISC",
   "devDependencies": {
+    "@tailwindcss/container-queries": "^0.1.1",
+    "@tailwindcss/forms": "^0.5.10",
+    "tailwindcss": "^3.4.17",
     "vercel": "^59.15.1"
   },
   "dependencies": {

@@ -3,8 +3,6 @@
    Full-width, Responsive, Minimalist with High-tech Architectural Animations
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+Georgian:wght@400;500;600;700;800&display=swap');
-
 :root {
   /* Fonts */
   --font-main: 'Inter', 'Noto Sans Georgian', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
@@ -46,7 +44,7 @@
 
   --text-primary: #F5F7FA;
   --text-secondary: #9BA3AE;
-  --text-muted: #626B76;
+  --text-muted: #8e9195;
   --text-contrast: #06080d;
 
   --border-line: rgba(255, 255, 255, 0.08);
@@ -10204,4 +10202,12 @@ html.light .asm-zoom-btn:hover,
   transform: translateY(-1px);
   box-shadow: 0 12px 28px -4px rgba(14, 165, 233, 0.58), inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
   filter: brightness(1.06);
+}
+
+/* outline-variant #44474b was ~2.07:1 on #0b0e13. Keep the border token, lift text. */
+html.dark .text-outline-variant,
+[data-theme="dark"] .text-outline-variant,
+html.dark .placeholder-outline-variant::placeholder,
+[data-theme="dark"] .placeholder-outline-variant::placeholder {
+  color: #8e9195 !important;
 }
