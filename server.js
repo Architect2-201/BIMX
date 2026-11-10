@@ -1476,6 +1476,17 @@ const requestHandler = async (req, res) => {
   }
 
   let reqPath = decodeURI(parsedUrl.pathname);
+  const retiredPages = {
+    '/apps': '/',
+    '/apps.html': '/',
+    '/plugins': '/',
+    '/plugins.html': '/'
+  };
+  if (retiredPages[reqPath]) {
+    res.writeHead(308, { Location: retiredPages[reqPath] });
+    res.end();
+    return;
+  }
   if (reqPath === '/' || reqPath === '') {
     reqPath = '/index.html';
   } else if (reqPath === '/tsinare' || reqPath === '/წინარე') {

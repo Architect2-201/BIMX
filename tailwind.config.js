@@ -3,8 +3,6 @@ module.exports = {
   darkMode: 'class',
   content: [
     './index.html',
-    './apps.html',
-    './plugins.html',
     './land-intelligence.html',
     './parcel-ai.html',
     './main.js',
