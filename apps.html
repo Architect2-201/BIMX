@@ -5,62 +5,49 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BIMX Studio — BIM აპლიკაციები და პროგრამული უზრუნველყოფა</title>
   <meta name="description" content="ექსკლუზიური დამოუკიდებელი BIM დესკტოპ და ქლაუდ აპლიკაციები კოორდინაციისთვის, მონაცემთა ექსტრაქციისა და ხარისხის აუდიტისთვის.">
-  <meta name="keywords" content="BIM აპლიკაციები, BIM software, BIMX Studio, დესკტოპ პროგრამები, Coordinate Master, BoQ Engine, Model Auditor">
-
-  <!-- OpenGraph -->
+  <link rel="canonical" href="https://www.architect2.ge/apps">
+  <link rel="alternate" hreflang="ka" href="https://www.architect2.ge/apps">
+  <link rel="alternate" hreflang="en" href="https://www.architect2.ge/apps">
+  <link rel="alternate" hreflang="x-default" href="https://www.architect2.ge/apps">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://www.bimx.ge/apps.html">
-  <meta property="og:title" content="BIMX Studio — BIM აპლიკაციები">
-  <meta property="og:description" content="ექსკლუზიური BIM აპლიკაციები დამოუკიდებელი ინჟინერიისთვის.">
-  <meta property="og:image" content="assets/images/hero-bim.jpg">
+  <meta property="og:site_name" content="BIMX Studio">
+  <meta property="og:locale" content="ka_GE">
+  <meta property="og:locale:alternate" content="en_US">
+  <meta property="og:url" content="https://www.architect2.ge/apps">
+  <meta property="og:title" content="BIMX Studio — BIM აპლიკაციები და პროგრამული უზრუნველყოფა">
+  <meta property="og:description" content="ექსკლუზიური დამოუკიდებელი BIM დესკტოპ და ქლაუდ აპლიკაციები კოორდინაციისთვის, მონაცემთა ექსტრაქციისა და ხარისხის აუდიტისთვის.">
+  <meta property="og:image" content="https://www.architect2.ge/assets/images/og-cover.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="BIMX Studio">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="BIMX Studio — BIM აპლიკაციები და პროგრამული უზრუნველყოფა">
+  <meta name="twitter:description" content="ექსკლუზიური დამოუკიდებელი BIM დესკტოპ და ქლაუდ აპლიკაციები კოორდინაციისთვის, მონაცემთა ექსტრაქციისა და ხარისხის აუდიტისთვის.">
+  <meta name="twitter:image" content="https://www.architect2.ge/assets/images/og-cover.jpg">
+  <meta name="keywords" content="BIM აპლიკაციები, BIM software, BIMX Studio, დესკტოპ პროგრამები, Coordinate Master, BoQ Engine, Model Auditor">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="assets/images/favicon.png">
+  <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="apple-touch-icon" href="assets/images/favicon.png">
 
   <!-- Google Fonts & Material Symbols -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+Georgian:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+Georgian:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+Georgian:wght@400;500;600;700;800&display=swap"></noscript>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"></noscript>
 
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <script id="tailwind-config">
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          colors: {
-            "surface-dim": "#101319",
-            "on-surface-variant": "#c4c7cb",
-            "outline": "#8e9195",
-            "secondary-fixed-dim": "#a1cced",
-            "on-background": "#e1e2e9",
-            "on-surface": "#e1e2e9",
-            "primary": "#ffffff",
-            "secondary": "#a1cced",
-            "secondary-container": "#1d4b67",
-            "on-secondary-container": "#90badb",
-            "surface-container": "#1d2025",
-            "background": "#06080d"
-          },
-          fontFamily: {
-            "display-hero": ["Inter", "sans-serif"],
-            "headline-lg": ["Inter", "sans-serif"],
-            "body-md": ["Inter", "sans-serif"],
-            "technical-code": ["JetBrains Mono", "monospace"]
-          }
-        }
-      }
-    };
-  </script>
+  <link rel="stylesheet" href="assets/css/tailwind.css?v=20261110_01">
 
   <!-- Icons (FontAwesome) -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>
 
   <!-- Stylesheet (Cache-busted) -->
-  <link rel="stylesheet" href="styles.css?v=20261103_01">
+  <link rel="stylesheet" href="styles.css?v=20261110_01">
 
   <script>
     (function() {
@@ -96,18 +83,18 @@
   <header class="fixed top-0 left-0 right-0 z-50 header-air-glass transition-all duration-300" id="mainHeader">
     <div class="h-20 w-full px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
       <!-- Logo + Brand -->
-      <a class="flex items-center focus:outline-none group brand-logo-link" id="brandLogo" data-path="home" href="index.html" aria-label="BIMX Studio Home">
+      <a class="flex items-center focus:outline-none group brand-logo-link" id="brandLogo" data-path="home" href="/" aria-label="BIMX Studio Home">
         <img alt="BIMX Logo" class="h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-105 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] brand-logo-img" src="assets/images/logo-white.png">
       </a>
 
       <!-- Desktop Navigation -->
       <nav class="hidden lg:flex items-center gap-1 p-1 nav-dock-air-glass rounded-xl" id="navLinksList" data-active-classes="bg-white/10 text-white font-medium rounded-lg shadow-inner border border-white/10">
-        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="gis-analysis" href="land-intelligence.html">GIS ანალიზი</a>
-        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="parcel-ai" href="parcel-ai.html">AI ანალიზი</a>
-        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-sky-400 hover:text-white hover:bg-white/5 transition-all duration-200 flex items-center gap-1.5" data-path="tsinare" href="tsinare.html"><span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>წინარე</a>
-        <a aria-current="page" class="nav-link px-3 py-2 transition-all bg-white/10 text-white font-semibold rounded-lg shadow-inner border border-white/15 active text-sm" data-path="apps" href="apps.html">აპლიკაციები</a>
-        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="plugins" href="plugins.html">პლაგინები</a>
-        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="contact" href="index.html#contact">კონტაქტი</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="gis-analysis" href="/land-intelligence">GIS ანალიზი</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="parcel-ai" href="/parcel-ai">AI ანალიზი</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-sky-400 hover:text-white hover:bg-white/5 transition-all duration-200 flex items-center gap-1.5" data-path="tsinare" href="/tsinare"><span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>წინარე</a>
+        <a aria-current="page" class="nav-link px-3 py-2 transition-all bg-white/10 text-white font-semibold rounded-lg shadow-inner border border-white/15 active text-sm" data-path="apps" href="/apps">აპლიკაციები</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="plugins" href="/plugins">პლაგინები</a>
+        <a class="nav-link px-3 py-2 rounded-lg font-body-md text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200" data-path="contact" href="/#contact">კონტაქტი</a>
       </nav>
 
       <!-- Actions Group -->
@@ -124,7 +111,7 @@
         </button>
 
         <!-- Consultation CTA -->
-        <a class="hidden sm:inline-flex items-center justify-center h-10 px-5 rounded-lg text-sm font-semibold btn-air-glass-primary active:scale-95 transition-all duration-200" data-path="consultation" href="index.html#contact">კონსულტაცია</a>
+        <a class="hidden sm:inline-flex items-center justify-center h-10 px-5 rounded-lg text-sm font-semibold btn-air-glass-primary active:scale-95 transition-all duration-200" data-path="consultation" href="/#contact">კონსულტაცია</a>
 
         <!-- Mobile Hamburger Button -->
         <button id="mobileHamburger" type="button" class="lg:hidden p-2 rounded-lg bg-white/5 text-slate-200 hover:text-white border border-white/10 flex items-center justify-center" aria-label="Toggle mobile menu">
@@ -136,12 +123,12 @@
 
   <!-- Mobile Drawer Menu -->
   <div id="mobileNavDrawer" class="mobile-nav-drawer-glass fixed inset-x-0 top-20 z-40 p-4 border-b border-white/10 bg-slate-950/95 backdrop-blur-2xl hidden flex flex-col gap-2 shadow-2xl">
-    <a class="drawer-link px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5" href="land-intelligence.html">GIS ანალიზი</a>
-    <a class="drawer-link px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5" href="parcel-ai.html">AI ანალიზი</a>
-    <a class="drawer-link px-3 py-2 rounded-lg text-sm text-sky-400 hover:text-white hover:bg-white/5 flex items-center gap-1.5" href="tsinare.html"><span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>წინარე</a>
-    <a class="drawer-link px-3 py-2 rounded-lg text-sm font-semibold text-white bg-white/10 border border-white/10" href="apps.html">აპლიკაციები</a>
-    <a class="drawer-link px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5" href="plugins.html">პლაგინები</a>
-    <a class="drawer-link px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5" href="index.html#contact">კონტაქტი</a>
+    <a class="drawer-link px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5" href="/land-intelligence">GIS ანალიზი</a>
+    <a class="drawer-link px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5" href="/parcel-ai">AI ანალიზი</a>
+    <a class="drawer-link px-3 py-2 rounded-lg text-sm text-sky-400 hover:text-white hover:bg-white/5 flex items-center gap-1.5" href="/tsinare"><span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>წინარე</a>
+    <a class="drawer-link px-3 py-2 rounded-lg text-sm font-semibold text-white bg-white/10 border border-white/10" href="/apps">აპლიკაციები</a>
+    <a class="drawer-link px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5" href="/plugins">პლაგინები</a>
+    <a class="drawer-link px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5" href="/#contact">კონტაქტი</a>
   </div>
 
   <!-- ==========================================================================
@@ -151,7 +138,7 @@
     <div class="container-fluid">
       <div class="catalog-header-content anim-reveal">
         <div class="catalog-breadcrumb">
-          <a href="index.html" data-i18n="nav_home">მთავარი</a>
+          <a href="/" data-i18n="nav_home">მთავარი</a>
           <i class="fa-solid fa-chevron-right" style="font-size: 0.65rem;"></i>
           <span data-i18n="nav_apps">აპლიკაციები</span>
         </div>
@@ -428,21 +415,21 @@
 
         <div class="footer-nav-col">
           <span class="footer-col-header">პლატფორმა</span>
-          <a class="footer-nav-link" href="index.html#modules">სერვისები</a>
-          <a class="footer-nav-link" href="apps.html" style="color: #ffffff; font-weight: 600;">BIM აპლიკაციები</a>
-          <a class="footer-nav-link" href="plugins.html">BIM პლაგინები</a>
-          <a class="footer-nav-link" href="land-intelligence.html">GIS ანალიტიკა</a>
-          <a class="footer-nav-link" href="parcel-ai.html">AI საკადასტრო პასპორტი</a>
-          <a class="footer-nav-link" href="tsinare.html" style="color: #38bdf8;">2D CAD &amp; გენგეგმა (წინარე)</a>
-          <a class="footer-nav-link" href="index.html#calculator">ფასის კალკულატორი</a>
+          <a class="footer-nav-link" href="/#modules">სერვისები</a>
+          <a class="footer-nav-link" href="/apps" style="color: #ffffff; font-weight: 600;">BIM აპლიკაციები</a>
+          <a class="footer-nav-link" href="/plugins">BIM პლაგინები</a>
+          <a class="footer-nav-link" href="/land-intelligence">GIS ანალიტიკა</a>
+          <a class="footer-nav-link" href="/parcel-ai">AI საკადასტრო პასპორტი</a>
+          <a class="footer-nav-link" href="/tsinare" style="color: #38bdf8;">2D CAD &amp; გენგეგმა (წინარე)</a>
+          <a class="footer-nav-link" href="/#calculator">ფასის კალკულატორი</a>
         </div>
 
         <div class="footer-nav-col">
           <span class="footer-col-header">კომპანია</span>
-          <a class="footer-nav-link" href="index.html#projects">პროექტების პორტფოლიო</a>
-          <a class="footer-nav-link" href="index.html#contact">ექსპერტული კონსულტაცია</a>
-          <a class="footer-nav-link" href="index.html#contact">საკონტაქტო ცენტრი</a>
-          <a class="footer-nav-link" href="index.html#philosophy">OpenBIM &amp; ISO სტანდარტები</a>
+          <a class="footer-nav-link" href="/#projects">პროექტების პორტფოლიო</a>
+          <a class="footer-nav-link" href="/#contact">ექსპერტული კონსულტაცია</a>
+          <a class="footer-nav-link" href="/#contact">საკონტაქტო ცენტრი</a>
+          <a class="footer-nav-link" href="/#philosophy">OpenBIM &amp; ISO სტანდარტები</a>
         </div>
 
         <div class="footer-nav-col">
@@ -450,20 +437,14 @@
           <div style="display: flex; flex-direction: column; gap: 4px; font-family: var(--font-mono); font-size: 12px; color: #9ba3ae;">
             <span style="color: #ffffff;">Tbilisi, Georgia</span>
             <span>portal@architect2.ge</span>
-            <span>+995 32 200 00 00</span>
+            <span>+995 595 064 085</span>
           </div>
           <div class="socials-round-list" style="margin-top: 10px;">
             <a href="https://www.instagram.com/_bim_x_/" target="_blank" class="round-social-btn" aria-label="Instagram">
               <i class="fa-brands fa-instagram"></i>
             </a>
-            <a href="https://wa.me/995599000000" target="_blank" class="round-social-btn" aria-label="WhatsApp">
+            <a href="https://wa.me/995595064085" target="_blank" class="round-social-btn" aria-label="WhatsApp">
               <i class="fa-brands fa-whatsapp"></i>
-            </a>
-            <a href="https://www.facebook.com" target="_blank" class="round-social-btn" aria-label="Facebook">
-              <i class="fa-brands fa-facebook-f"></i>
-            </a>
-            <a href="https://www.linkedin.com" target="_blank" class="round-social-btn" aria-label="LinkedIn">
-              <i class="fa-brands fa-linkedin-in"></i>
             </a>
           </div>
         </div>
@@ -481,7 +462,7 @@
   </footer>
 
   <!-- Scripts -->
-  <script src="translations.js?v=20260917_08"></script>
-  <script src="main.js?v=20260917_08"></script>
+  <script src="translations.js?v=20261110_01"></script>
+  <script src="main.js?v=20261110_01"></script>
 </body>
 </html>

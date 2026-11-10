@@ -651,21 +651,6 @@ async function runAnalysis(cadastralCode, buildingUse, zoneOverride) {
         }
       }
     } catch (primaryErr) {
-      // Fallback to remote production API if running on static preview or secondary mirror
-      if (window.location.hostname !== 'architect2.ge') {
-        try {
-          const remoteRes = await fetch('https://architect2.ge/api/land-analysis', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(reqPayload)
-          });
-          if (remoteRes.ok) {
-            data = await remoteRes.json();
-          }
-        } catch (remoteErr) {
-          console.warn('Remote fallback error:', remoteErr);
-        }
-      }
       if (!data) throw primaryErr;
     }
 
@@ -743,11 +728,11 @@ function renderAnalysisResults(data) {
   setText('handoffActiveCode', p.cadastralCode || '—');
   const btnParcelAi = document.getElementById('btnOpenInParcelAi');
   if (btnParcelAi && p.cadastralCode) {
-    btnParcelAi.href = `parcel-ai.html?code=${encodeURIComponent(p.cadastralCode)}`;
+    btnParcelAi.href = `/parcel-ai?code=${encodeURIComponent(p.cadastralCode)}`;
   }
   const btnTsinareCad = document.getElementById('btnOpenInTsinareCad');
   if (btnTsinareCad && p.cadastralCode) {
-    btnTsinareCad.href = `tsinare.html?code=${encodeURIComponent(p.cadastralCode)}`;
+    btnTsinareCad.href = `/tsinare?code=${encodeURIComponent(p.cadastralCode)}`;
   }
 
   // 1. Quick Stats Strip

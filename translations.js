@@ -111,6 +111,11 @@ const translations = {
     proj_3_title: "ტერმინალის ლოგისტიკური ჰაბი",
     proj_3_meta: "ინდუსტრიული · Scan-to-BIM · 24,000 მ²",
     proj_3_desc: "არსებული ინფრასტრუქტურის 3D ლაზერული სკანირება და ციფრული ტყუპის მომზადება რეკონსტრუქციისთვის.",
+    img_hero_alt: "BIM არქიტექტორი მუშაობს ციფრულ მოდელზე — BIMX Studio",
+    img_clash_alt: "სამრეწველო საინჟინრო ოთახი: MEP და კონსტრუქციის შეჯახების აღმოჩენა",
+    img_proj_commercial_alt: "ჰორიზონტი ბიზნეს კომპლექსი — კომერციული BIM მოდელი",
+    img_proj_residential_alt: "გოლდფილდ რეზიდენციები — საცხოვრებელი BIM მოდელი",
+    img_proj_industrial_alt: "ტერმინალის ლოგისტიკური ჰაბი — Scan-to-BIM ციფრული ტყუპი",
 
     // Calculator
     calc_tag: "ონლაინ კალკულატორი",
@@ -640,6 +645,11 @@ const translations = {
     proj_3_title: "Terminal Logistics Hub",
     proj_3_meta: "Industrial · Scan-to-BIM · 24,000 m²",
     proj_3_desc: "3D LiDAR terrestrial laser scan converted into an exact digital twin for industrial expansion.",
+    img_hero_alt: "BIM architect working on a digital model — BIMX Studio",
+    img_clash_alt: "Industrial mechanical room with MEP and structural clash detection",
+    img_proj_commercial_alt: "Horizonti business complex — commercial BIM model",
+    img_proj_residential_alt: "Goldfield residences — residential BIM model",
+    img_proj_industrial_alt: "Terminal logistics hub — scan-to-BIM digital twin",
 
     // Calculator
     calc_tag: "Project Estimator",

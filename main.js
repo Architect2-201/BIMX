@@ -147,6 +147,15 @@ window.applyLanguage = function(lang) {
     }
   });
 
+  document.querySelectorAll('[data-i18n-alt]').forEach(el => {
+    const key = el.getAttribute('data-i18n-alt');
+    if (dict[key]) {
+      el.alt = dict[key];
+    }
+  });
+
+  document.documentElement.lang = lang === 'en' ? 'en' : 'ka';
+
   if (dict.meta_title) document.title = dict.meta_title;
   const metaDesc = document.querySelector('meta[name="description"]');
   if (metaDesc && dict.meta_desc) {
@@ -450,24 +459,38 @@ function initBimxPlatform() {
   /* ==========================================================================
      10. Smooth Page Transition Navigation Interceptor
      ========================================================================== */
-  document.querySelectorAll('a[href]').forEach(link => {
-    const href = link.getAttribute('href');
-    if (!href) return;
-    
-    // Skip external links, mailto, tel, empty links, or javascript
-    if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('mailto:') || href.startsWith('tel:') || href.startsWith('#') || href.startsWith('javascript:')) {
-      return;
+  function normalizeSitePath(p) {
+    if (!p) return '/';
+    let path = String(p).split('?')[0].split('#')[0];
+    if (path.endsWith('.html')) path = path.slice(0, -5);
+    if (path === 'index') return '/';
+    if (!path.startsWith('/')) {
+      const base = window.location.pathname.replace(/[^/]*$/, '');
+      path = (base + path).replace(/\/{2,}/g, '/');
     }
-    
-    // Skip if new tab
-    if (link.getAttribute('target') === '_blank') return;
+    path = path.replace(/\/index$/, '/') || '/';
+    if (path.length > 1 && path.endsWith('/')) path = path.slice(0, -1);
+    return path || '/';
+  }
 
+  document.querySelectorAll('a[href]').forEach(link => {
     link.addEventListener('click', (e) => {
-      // Check if target is same page anchor with page name, e.g., index.html#services when on index.html
-      const currentPath = window.location.pathname.split('/').pop() || 'index.html';
-      const [targetFile, targetHash] = href.split('#');
+      const href = link.getAttribute('href');
+      if (!href) return;
 
-      if ((targetFile === currentPath || (targetFile === '' && targetHash)) && targetHash) {
+      if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('mailto:') || href.startsWith('tel:') || href.startsWith('#') || href.startsWith('javascript:')) {
+        return;
+      }
+
+      if (link.getAttribute('target') === '_blank') return;
+
+      const hashIndex = href.indexOf('#');
+      const targetFile = hashIndex === -1 ? href : href.slice(0, hashIndex);
+      const targetHash = hashIndex === -1 ? '' : href.slice(hashIndex + 1);
+      const current = normalizeSitePath(window.location.pathname);
+      const target = normalizeSitePath(targetFile);
+
+      if (targetHash && (target === current || targetFile === '')) {
         const anchorEl = document.getElementById(targetHash);
         if (anchorEl) {
           e.preventDefault();
