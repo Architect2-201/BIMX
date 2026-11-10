@@ -6,6 +6,12 @@
       "maxDuration": 30
     }
   },
+  "redirects": [
+    { "source": "/apps", "destination": "/", "permanent": true },
+    { "source": "/apps.html", "destination": "/", "permanent": true },
+    { "source": "/plugins", "destination": "/", "permanent": true },
+    { "source": "/plugins.html", "destination": "/", "permanent": true }
+  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },
     { "source": "/tsinare", "destination": "/tsinare.html" },

@@ -6,8 +6,6 @@ const translations = {
     // Header & Navigation
     nav_home: "მთავარი",
     nav_services: "სერვისები",
-    nav_apps: "აპლიკაციები",
-    nav_plugins: "პლაგინები",
     nav_land_intel: "GIS ანალიზი",
     nav_parcel_ai: "AI ანალიზი",
     nav_philosophy: "ფილოსოფია",
@@ -25,8 +23,6 @@ const translations = {
     hero_desc: "არქიტექტურული და საინჟინრო მოდელირება, საერთაშორისო სტანდარტები (ISO 19650), Clash Detection, ექსკლუზიური აპლიკაციები და პლაგინები.",
     hero_btn_explore: "სერვისების ნახვა",
     hero_btn_calc: "კალკულატორი",
-    hero_btn_apps: "აპლიკაციების კატალოგი",
-    hero_btn_plugins: "Revit პლაგინები",
     hero_scroll: "Scroll",
 
     // 3 Columns Overview
@@ -142,72 +138,6 @@ const translations = {
     calc_res_weeks: "კვირა",
     calc_res_formats: "მისაღები ფორმატები",
     calc_btn_apply: "შეთავაზების მიღება ამ მონაცემებით",
-
-    // Applications Page
-    apps_title: "BIMX აპლიკაციები — დამოუკიდებელი ხელსაწყოები",
-    apps_hero_tag: "BIMX SOFTWARE SUITE",
-    apps_hero_title: "BIM აპლიკაციები",
-    apps_hero_desc: "მაღალტექნოლოგიური დამოუკიდებელი პროგრამები არქიტექტორებისთვის, ინჟინრებისა და BIM მენეჯერებისთვის.",
-    apps_search_ph: "მოძებნეთ აპლიკაცია დასახელებით ან ფუნქციით...",
-    apps_upload_btn: "აპლიკაციის ატვირთვა",
-    apps_filter_all: "ყველა აპლიკაცია",
-    apps_filter_desktop: "Windows Desktop",
-    apps_filter_cloud: "Cloud & Web",
-    apps_download_btn: "ჩამოტვირთვა (.EXE)",
-    apps_docs_btn: "დოკუმენტაცია",
-
-    app_1_title: "BIMX Coordinate Master",
-    app_1_meta: "v2.4.0 · Windows 10/11 · 64-bit · 48 MB",
-    app_1_desc: "კოორდინატების ავტომატური ექსტრაქცია, IFC მოდელების პოზიციონირება და LiDAR წერტილოვანი ღრუბლის ორიენტაციის სინქრონიზაცია.",
-
-    app_2_title: "BIMX BoQ & Cost Engine",
-    app_2_meta: "v1.8.5 · Desktop App · 35 MB",
-    app_2_desc: "Revit და IFC მოდელებიდან მასალათა უწყისების წამიერი ექსპორტი Excel-ში და ავტომატური ხარჯთაღრიცხვა ლოკალური ფასებით.",
-
-    app_3_title: "BIMX Model Auditor",
-    app_3_meta: "v3.1.2 · Cloud / Desktop · 62 MB",
-    app_3_desc: "BIM მოდელების ხარისხის ავტომატური შემოწმება ISO 19650 სტანდარტთან და ეროვნულ სამშენებლო ნორმებთან შესაბამისობაზე.",
-
-    // Plugins Page
-    plugins_title: "BIMX პლაგინები — Revit & ArchiCAD Add-ins",
-    plugins_hero_tag: "PRODUCTIVITY ADD-INS",
-    plugins_hero_title: "BIM პლაგინები და სკრიპტები",
-    plugins_hero_desc: "Autodesk Revit, ArchiCAD და Navisworks გაფართოებები სამუშაო დროის 40%-ით დასაზოგად და რუტინული პროცესების გასამარტივებლად.",
-    plugins_search_ph: "მოძებნეთ პლაგინი დასახელებით ან პლატფორმით...",
-    plugins_upload_btn: "პლაგინის ატვირთვა",
-    plugins_filter_all: "ყველა პლაგინი",
-    plugins_filter_revit: "Autodesk Revit",
-    plugins_filter_archicad: "ArchiCAD",
-    plugins_filter_navis: "Navisworks",
-    plugins_download_btn: "ჩამოტვირთვა (.ZIP)",
-    plugins_details_btn: "ინსტალაციის გზამკვლევი",
-
-    plugin_1_title: "Revit Clash Auto-Fixer",
-    plugin_1_meta: "Revit 2023–2026 · v4.2.1 · 14 MB",
-    plugin_1_desc: "MEP მილებისა და საჰაერო არხების სამშენებლო კონსტრუქციებთან შეჯახების ავტომატური გადაჭრა მითითებული ოფსეტებით.",
-
-    plugin_2_title: "Revit Smart Sheet Generator",
-    plugin_2_meta: "Revit 2022–2026 · v2.0.4 · 8 MB",
-    plugin_2_desc: "ნახაზების ფურცლების, ჭრების და ფასადების ავტომატური გენერაცია და ნუმერაცია საპროექტო შაბლონის მიხედვით.",
-
-    plugin_3_title: "Navisworks BCF Live Sync",
-    plugin_3_meta: "Navisworks Manage · v1.5.0 · 11 MB",
-    plugin_3_desc: "შეჯახებების მყისიერი სინქრონიზაცია BCF 2.1 ფორმატში BIM Track-სა და Revizto-სთან რეალურ დროში.",
-
-    plugin_4_title: "ArchiCAD OpenBIM Exporter",
-    plugin_4_meta: "ArchiCAD 26–28 · v1.2.0 · 6 MB",
-    plugin_4_desc: "IFC4 ექსპორტის ოპტიმიზაცია, კლასიფიკაციების და ფენების ავტომატური რუკირება უდანაკარგო კოორდინაციისთვის.",
-
-    // Upload Modal
-    modal_app_title: "აპლიკაციის ატვირთვა / დამატება",
-    modal_plugin_title: "პლაგინის ატვირთვა / დამატება",
-    modal_lbl_name: "დასახელება",
-    modal_lbl_ver: "ვერსია",
-    modal_lbl_cat: "კატეგორია / პლატფორმა",
-    modal_lbl_file: "აირჩიეთ ფაილი (.exe, .zip, .addin, .msi)",
-    modal_lbl_desc: "მოკლე აღწერა და ცვლილებების სია",
-    modal_submit_btn: "ატვირთვა და გამოქვეყნება",
-    modal_success_msg: "მადლობა! ფაილი წარმატებით აიტვირთა და დაემატა საიტის კატალოგში.",
 
     // Contact Page & Form
     contact_tag: "კონტაქტი",
@@ -540,8 +470,6 @@ const translations = {
     // Header & Navigation
     nav_home: "Home",
     nav_services: "Services",
-    nav_apps: "Applications",
-    nav_plugins: "Plugins",
     nav_land_intel: "GIS Analysis",
     nav_parcel_ai: "AI Analysis",
     nav_philosophy: "Philosophy",
@@ -559,8 +487,6 @@ const translations = {
     hero_desc: "Architectural and structural modeling, international standards (ISO 19650), Clash Detection, bespoke standalone applications and productivity plugins.",
     hero_btn_explore: "Explore Services",
     hero_btn_calc: "Calculator",
-    hero_btn_apps: "Software Suite",
-    hero_btn_plugins: "Revit Plugins",
     hero_scroll: "Scroll",
 
     // 3 Columns Overview
@@ -676,72 +602,6 @@ const translations = {
     calc_res_weeks: "weeks",
     calc_res_formats: "Deliverable Formats",
     calc_btn_apply: "Get Official Proposal With These Parameters",
-
-    // Applications Page
-    apps_title: "BIMX Applications — Standalone Software Suite",
-    apps_hero_tag: "BIMX SOFTWARE SUITE",
-    apps_hero_title: "BIM Applications",
-    apps_hero_desc: "High-performance standalone software developed for architects, engineers, and BIM specialists.",
-    apps_search_ph: "Search application by name or function...",
-    apps_upload_btn: "Upload Application",
-    apps_filter_all: "All Applications",
-    apps_filter_desktop: "Windows Desktop",
-    apps_filter_cloud: "Cloud & Web",
-    apps_download_btn: "Download (.EXE)",
-    apps_docs_btn: "Documentation",
-
-    app_1_title: "BIMX Coordinate Master",
-    app_1_meta: "v2.4.0 · Windows 10/11 · 64-bit · 48 MB",
-    app_1_desc: "Batch coordinate extraction, automated IFC positioning, and LiDAR point cloud orientation synchronization.",
-
-    app_2_title: "BIMX BoQ & Cost Engine",
-    app_2_meta: "v1.8.5 · Desktop App · 35 MB",
-    app_2_desc: "Instant material takeoff from Revit and IFC files exported into structured Excel sheets with localized pricing.",
-
-    app_3_title: "BIMX Model Auditor",
-    app_3_meta: "v3.1.2 · Cloud / Desktop · 62 MB",
-    app_3_desc: "Automated QA/QC validation engine auditing models against ISO 19650 protocols and custom engineering rules.",
-
-    // Plugins Page
-    plugins_title: "BIMX Plugins — Revit & ArchiCAD Add-ins",
-    plugins_hero_tag: "PRODUCTIVITY ADD-INS",
-    plugins_hero_title: "BIM Plugins & Add-ins",
-    plugins_hero_desc: "Autodesk Revit, ArchiCAD, and Navisworks extensions engineered to save 40% of production modeling time.",
-    plugins_search_ph: "Search plugin by name or platform...",
-    plugins_upload_btn: "Upload Plugin",
-    plugins_filter_all: "All Plugins",
-    plugins_filter_revit: "Autodesk Revit",
-    plugins_filter_archicad: "ArchiCAD",
-    plugins_filter_navis: "Navisworks",
-    plugins_download_btn: "Download Add-in (.ZIP)",
-    plugins_details_btn: "Installation Guide",
-
-    plugin_1_title: "Revit Clash Auto-Fixer",
-    plugin_1_meta: "Revit 2023–2026 · v4.2.1 · 14 MB",
-    plugin_1_desc: "Automated resolution of MEP ducts and pipes colliding with structural beams based on configurable offset standards.",
-
-    plugin_2_title: "Revit Smart Sheet Generator",
-    plugin_2_meta: "Revit 2022–2026 · v2.0.4 · 8 MB",
-    plugin_2_desc: "One-click generation and numbering of drawing sheets, sections, and elevation views conforming to firm templates.",
-
-    plugin_3_title: "Navisworks BCF Live Sync",
-    plugin_3_meta: "Navisworks Manage · v1.5.0 · 11 MB",
-    plugin_3_desc: "Real-time bi-directional synchronization of clash issues in BCF 2.1 format with BIM Track and Revizto.",
-
-    plugin_4_title: "ArchiCAD OpenBIM Exporter",
-    plugin_4_meta: "ArchiCAD 26–28 · v1.2.0 · 6 MB",
-    plugin_4_desc: "Optimized IFC4 export with automated classification and property mapping for seamless cross-disciplinary exchange.",
-
-    // Upload Modal
-    modal_app_title: "Upload / Publish Application",
-    modal_plugin_title: "Upload / Publish Plugin",
-    modal_lbl_name: "Software Name",
-    modal_lbl_ver: "Version Number",
-    modal_lbl_cat: "Platform / Category",
-    modal_lbl_file: "Select File (.exe, .zip, .addin, .msi)",
-    modal_lbl_desc: "Features & Release Notes",
-    modal_submit_btn: "Upload & Publish",
-    modal_success_msg: "Success! File uploaded and published to the catalog.",
 
     // Contact Page & Form
     contact_tag: "Contact",
